@@ -1,0 +1,10 @@
+**/CMakeCache.txt
+**/CMakeFiles
+**/CMakeScripts
+**/cmake_install.cmake
+**/Makefile
+
+nxml
+
+.idea
+.DS_Store

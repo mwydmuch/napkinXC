@@ -27,7 +27,7 @@ Args::Args() {
     // Tree options
     tree = "";
     arity = 2;
-    treeType = treeTypeName::completeInOrder;
+    treeType = completeInOrder;
 
     // Prediction options
     topK = 1;
@@ -90,9 +90,9 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--treeType") {
-                if (args.at(ai + 1) == "completeInOrder") treeType = treeTypeName::completeInOrder;
-                else if (args.at(ai + 1) == "completeRandom") treeType = treeTypeName::completeRandom;
-                else if (args.at(ai + 1) == "complete") treeType = treeTypeName::complete;
+                if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
+                else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
+                else if (args.at(ai + 1) == "complete") treeType = complete;
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
                     printHelp();

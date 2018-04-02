@@ -26,6 +26,7 @@ public:
 
     template<class F, class... Args>
     auto enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+    void stopAll();
 
 private:
     // Keeps track of threads
@@ -62,12 +63,7 @@ inline ThreadPool::ThreadPool(size_t threads): stop(false){
 
 // The destructor joins all threads
 inline ThreadPool::~ThreadPool(){
-    {
-        std::unique_lock<std::mutex> lock(queue_mutex);
-        stop = true;
-    }
-    condition.notify_all();
-    for(std::thread &worker: workers) worker.join();
+    stopAll();
 }
 
 // Add new work item to the pool
@@ -75,7 +71,7 @@ template<class F, class... Args>
 auto ThreadPool::enqueue(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>{
     using return_type = typename std::result_of<F(Args...)>::type;
 
-    auto task = std::make_shared< std::packaged_task<return_type()> >(
+    auto task = std::make_shared<std::packaged_task<return_type()>>(
             std::bind(std::forward<F>(f), std::forward<Args>(args)...)
         );
 
@@ -90,4 +86,54 @@ auto ThreadPool::enqueue(F&& f, Args&&... args) -> std::future<typename std::res
     }
     condition.notify_one();
     return res;
+}
+
+void ThreadPool::stopAll(){
+    {
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        stop = true;
+    }
+    condition.notify_all();
+    for(std::thread &worker: workers) worker.join();
+}
+
+
+//Simple set of threads
+class ThreadSet {
+public:
+    ThreadSet();
+    ~ThreadSet();
+
+    template<class F, class... Args>
+    auto add(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>;
+    void joinAll();
+
+private:
+    std::vector<std::thread> workers;
+};
+
+ThreadSet::ThreadSet(){ }
+
+ThreadSet::~ThreadSet(){
+    joinAll();
+}
+
+// Add new thread to set
+template<class F, class... Args>
+auto ThreadSet::add(F&& f, Args&&... args) -> std::future<typename std::result_of<F(Args...)>::type>{
+    using return_type = typename std::result_of<F(Args...)>::type;
+
+    auto task = std::make_shared<std::packaged_task<return_type()>>(
+            std::bind(std::forward<F>(f), std::forward<Args>(args)...)
+        );
+
+    std::future<return_type> res = task->get_future();
+    workers.push_back(std::thread([task](){ (*task)(); }));
+    return res;
+}
+
+void ThreadSet::joinAll(){
+    for(auto &worker: workers)
+        worker.join();
+    workers.clear();
 }

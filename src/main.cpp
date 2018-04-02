@@ -24,7 +24,7 @@ void test(Args &args) {
         Base* base = new Base();
         base->load(args.model + "/node_" + std::to_string(i) + ".bin");
         bases.push_back(base);
-        outProgress(i, tree.nodes());
+        printProgress(i, tree.nodes());
     }
 
     tree.test(labels, features, bases, args);

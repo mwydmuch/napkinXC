@@ -80,7 +80,7 @@ double Base::predict(Feature* features){
         Feature* w = sparseW.data();
         while(f->index != -1) {
             while(w->index < f->index - 1) ++w;
-            p += w->value * f->value;
+            if(w->index == f->index - 1) p += w->value * f->value;
             ++f;
         }
     }
@@ -140,7 +140,7 @@ void Base::save(std::ostream& out){
     //std::cerr << "Saved base: classCount: " << classCount << ", firstClass: " << firstClass << ", wSize: " << wSize << "\n";
 }
 
-void Base::load(std::string infile, bool asSparse){
+void Base::load(std::string infile, CodingType coding){
     if(useLinearPredict){
         M = load_model(infile.c_str());
         assert(M->nr_class <= 2);
@@ -149,12 +149,11 @@ void Base::load(std::string infile, bool asSparse){
 
     std::ifstream in;
     in.open(infile);
-    load(in, asSparse);
+    load(in, coding);
     in.close();
 }
 
-void Base::load(std::istream& in, bool asSparse) {
-    sparse = asSparse;
+void Base::load(std::istream& in, CodingType coding) {
 
     in.read((char*) &classCount, sizeof(classCount));
     in.read((char*) &firstClass, sizeof(firstClass));
@@ -163,6 +162,10 @@ void Base::load(std::istream& in, bool asSparse) {
         in.read((char *) &wSize, sizeof(wSize));
         bool loadSparse;
         in.read((char *) &loadSparse, sizeof(loadSparse));
+
+        if(coding == spaceOptimal) sparse = loadSparse;
+        else if(coding == dense) sparse = false;
+        else sparse = true;
 
         sparseW.clear();
         W.clear();

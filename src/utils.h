@@ -29,6 +29,6 @@ uint32_t hash(T& v){
 }
 
 // Prints progress
-inline void outProgress(int state, int max){
+inline void printProgress(int state, int max){
     std::cerr << "  " << state << " / " << max << "\r";
 }

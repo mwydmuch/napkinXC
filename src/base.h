@@ -11,6 +11,8 @@
 #include "args.h"
 #include "types.h"
 
+enum CodingType { dense, sparse, spaceOptimal };
+
 class Base {
 public:
     Base();
@@ -21,8 +23,8 @@ public:
 
     void save(std::string outfile);
     void save(std::ostream& out);
-    void load(std::string infile, bool asSparse = false);
-    void load(std::istream& in, bool asSparse = false);
+    void load(std::string infile, CodingType coding = spaceOptimal);
+    void load(std::istream& in, CodingType coding = spaceOptimal);
 
 private:
     bool sparse;

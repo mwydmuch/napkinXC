@@ -8,7 +8,7 @@
 #include <string>
 #include "types.h"
 
-enum class treeTypeName : int { completeInOrder, completeRandom, complete, given };
+enum TreeType { completeInOrder, completeRandom, complete, given };
 
 class Args{
 public:
@@ -28,7 +28,7 @@ public:
 
     // Tree options
     int arity;
-    treeTypeName treeType;
+    TreeType treeType;
     std::string tree;
 
     // Prediction options

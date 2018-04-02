@@ -15,7 +15,7 @@
 
 #include "pltree.h"
 #include "utils.h"
-#include "threadpool.h"
+#include "threads.h"
 
 int nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
 //    std::cerr << "Training node " << i << " ..." << std::endl;
@@ -25,10 +25,6 @@ int nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<Fe
     base.train(n, binLabels, binFeatures, args);
     base.save(args.model + "/node_" + std::to_string(i) + ".bin");
 
-    return 0;
-}
-
-int testThread(int i){
     return 0;
 }
 
@@ -53,9 +49,9 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
 
     // Create tree structure
     if(args.tree.size() > 0) loadTreeStructure(args.tree);
-    else if(args.treeType == treeTypeName::completeInOrder)
+    else if(args.treeType == completeInOrder)
         buildCompleteTree(labels.cols(), args.arity, false);
-    else if(args.treeType == treeTypeName::completeRandom)
+    else if(args.treeType == completeRandom)
         buildCompleteTree(labels.cols(), args.arity, true);
     else buildTree(labels, features, args);
 
@@ -74,16 +70,17 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
 
     // Gather examples for each node
     for(int r = 0; r < rows; ++r){
-        outProgress(r, rows);
+        printProgress(r, rows);
 
         std::unordered_set<TreeNode*> nPositive; // positive nodes
         std::unordered_set<TreeNode*> nNegative; // negative nodes
 
         int rSize = labels.sizes()[r];
         auto rLabels = labels.data()[r];
+
         if (rSize > 0){
             for (int i = 0; i < rSize; ++i) {
-                TreeNode *n = treeLeaves[labels.data()[r][i]];
+                TreeNode *n = treeLeaves[rLabels[i]];
                 nPositive.insert(n);
                 while (n->parent) {
                     n = n->parent;
@@ -123,23 +120,25 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
 
     if(args.threads > 1){
         // Run learning in parallel
-        ThreadPool pool(args.threads);
+        ThreadPool tPool(args.threads);
         std::vector<std::future<int>> results;
 
-        for(auto n : tree) {
-            results.emplace_back(
-                pool.enqueue(nodeTrainThread, n->index, features.cols(), binLabels[n->index], binFeatures[n->index], args)
-            );
-        }
+        for(auto n : tree)
+            results.emplace_back(tPool.enqueue(nodeTrainThread, n->index, features.cols(),
+                std::ref(binLabels[n->index]), std::ref(binFeatures[n->index]), std::ref(args)));
 
         // Wait for all processes to finish
         for(int i = 0; i < results.size(); ++i) {
             results[i].get();
-            outProgress(i, results.size());
+            printProgress(i, results.size());
         }
     } else {
-        for(auto n : tree)
-            nodeTrainThread(n->index, features.cols(), binLabels[n->index], binFeatures[n->index], args);
+        for(int i = 0; i < tree.size(); ++i){
+            Base base;
+            base.train(features.cols(), binLabels[tree[i]->index], binFeatures[tree[i]->index], args);
+            base.save(args.model + "/node_" + std::to_string(i) + ".bin");
+            printProgress(i, tree.size());
+        }
     }
 
     std::cerr << "  Points count: " << rows
@@ -150,12 +149,6 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
     // Save data
     save(args.model + "/tree.bin");
     args.save(args.model + "/args.bin");
-}
-
-// TODO
-int pointTestThread(int i, int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
-    //std::cerr << "Training point " << i << " ..." << std::endl;
-    return 0;
 }
 
 void PLTree::predict(std::vector<TreeNodeProb>& prediction, Feature* features, std::vector<Base*>& bases, int k){
@@ -186,35 +179,97 @@ void PLTree::predict(std::vector<TreeNodeProb>& prediction, Feature* features, s
     }
 }
 
-void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<Base*>& bases, Args& args) {
-    std::cerr << "Starting testing ...\n";
+std::mutex testMutex;
+int pointTestThread(PLTree* tree, Label* labels, Feature* features, std::vector<Base*>& bases,
+    int k, std::vector<int>& precision){
 
-    int k = args.topK;
-    std::vector<int> precision (k);
     std::vector<TreeNodeProb> prediction;
+    tree->predict(prediction, features, bases, k);
 
-    int rows = features.rows();
-    assert(rows == labels.rows());
+    testMutex.lock();
+    for (int i = 0; i < k; ++i){
+        int l = -1;
+        while(labels[++l] > -1)
+            if (prediction[i].node->label == labels[l]) ++precision[i];
+    }
+    testMutex.unlock();
 
-    for(int r = 0; r < rows; ++r){
-        outProgress(r, rows);
+    return 0;
+}
 
-        int rSize = labels.sizes()[r];
-        auto rLabels = labels.data()[r];
+int batchTestThread(PLTree* tree, SRMatrix<Label>& labels, SRMatrix<Feature>& features,
+    std::vector<Base*>& bases, int topK, int startRow, int stopRow, std::vector<int>& precision){
 
-        prediction.clear();
-        predict(prediction, features.data()[r], bases, k);
+    std::vector<int> localPrecision (topK);
+    for(int r = startRow; r < stopRow; ++r){
+        std::vector<TreeNodeProb> prediction;
+        tree->predict(prediction, features.data()[r], bases, topK);
 
-        for (int i = 0; i < k; ++i){
-            for (int j = 0; j < rSize; ++j) {
-                if (prediction[i].node->label == rLabels[j])
-                    ++precision[i];
+        for (int i = 0; i < topK; ++i){
+            for (int j = 0; j < labels.sizes()[r]; ++j) {
+                if (prediction[i].node->label == labels.data()[r][j])
+                    ++localPrecision[i];
             }
         }
     }
 
+    testMutex.lock();
+    for (int i = 0; i < topK; ++i)
+        precision[i] += localPrecision[i];
+    testMutex.unlock();
+
+    return 0;
+}
+
+void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<Base*>& bases, Args& args) {
+    std::cerr << "Starting testing ...\n";
+
+    std::vector<int> precision (args.topK);
+    int rows = features.rows();
+    assert(rows == labels.rows());
+
+    if(args.threads > 1){
+        // Run prediction in parallel
+
+        // Pool
+        ThreadPool tPool(args.threads);
+        std::vector<std::future<int>> results;
+
+        for(int r = 0; r < rows; ++r)
+            results.emplace_back(tPool.enqueue(pointTestThread, this, labels.data()[r],
+                features.data()[r], std::ref(bases), args.topK, std::ref(precision)));
+
+        // Wait for all processes to finish
+        for(int i = 0; i < results.size(); ++i) {
+            results[i].get();
+            printProgress(i, results.size());
+        }
+
+        // Batches
+        /*
+        ThreadSet tSet;
+        int tRows = ceil(static_cast<double>(rows)/args.threads);
+        for(int t = 0; t < args.threads; ++t)
+            tSet.add(batchTestThread, this, std::ref(labels), std::ref(features), std::ref(bases),
+                args.topK, t * tRows, std::min((t + 1) * tRows, labels.rows()), std::ref(precision));
+        tSet.joinAll();
+        */
+
+    } else {
+        for(int r = 0; r < rows; ++r){
+            std::vector<TreeNodeProb> prediction;
+            predict(prediction, features.data()[r], bases, args.topK);
+
+            for (int i = 0; i < args.topK; ++i){
+                for (int j = 0; j < labels.sizes()[r]; ++j)
+                    if (prediction[i].node->label == labels.data()[r][j]) ++precision[i];
+            }
+            printProgress(r, rows);
+        }
+    }
+
     double correct = 0;
-    for (int i = 0; i < k; ++i) {
+    for (int i = 0; i < args.topK; ++i) {
         correct += precision[i];
         std::cerr << "P@" << i + 1 << ": " << correct / (rows * (i + 1)) << "\n";
     }
@@ -264,7 +319,7 @@ void PLTree::loadTreeStructure(std::string file){
 
 // TODO
 void PLTree::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
-    
+
 }
 
 void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {
@@ -337,17 +392,17 @@ void PLTree::save(std::ostream& out){
         out.write((char*) &n->label, sizeof(n->label));
     }
 
-    uint32_t root_n = treeRoot->index;
-    out.write((char*) &root_n, sizeof(root_n));
+    int rootN = treeRoot->index;
+    out.write((char*) &rootN, sizeof(rootN));
 
     for(size_t i = 0; i < t; ++i) {
         TreeNode *n = tree[i];
 
-        int parent_n;
-        if(n->parent) parent_n = n->parent->index;
-        else parent_n = -1;
+        int parentN;
+        if(n->parent) parentN = n->parent->index;
+        else parentN = -1;
 
-        out.write((char*) &parent_n, sizeof(parent_n));
+        out.write((char*) &parentN, sizeof(parentN));
     }
 }
 
@@ -372,18 +427,18 @@ void PLTree::load(std::istream& in){
         if (n->label >= 0) treeLeaves[n->label] = n;
     }
 
-    uint32_t root_n;
-    in.read((char*) &root_n, sizeof(root_n));
-    treeRoot = tree[root_n];
+    int rootN;
+    in.read((char*) &rootN, sizeof(rootN));
+    treeRoot = tree[rootN];
 
     for(size_t i = 0; i < t; ++i) {
         TreeNode *n = tree[i];
 
-        int parent_n;
-        in.read((char*) &parent_n, sizeof(parent_n));
-        if(parent_n >= 0) {
-            tree[parent_n]->children.push_back(n);
-            n->parent = tree[parent_n];
+        int parentN;
+        in.read((char*) &parentN, sizeof(parentN));
+        if(parentN >= 0) {
+            tree[parentN]->children.push_back(n);
+            n->parent = tree[parentN];
         }
     }
 }

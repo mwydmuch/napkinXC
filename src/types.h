@@ -50,16 +50,14 @@ template <typename T>
 void SRMatrix<T>::appendRow(std::vector<T> row){
     s.push_back(row.size());
 
-    if(row.size() > 0){
-        T *newRow = new T[row.size() + 1];
-        std::memcpy(newRow, row.data(), row.size() * sizeof(T));
-        std::memset(&newRow[row.size()], -1, sizeof(T)); // Add termination feature (-1)
-        r.push_back(newRow);
+    T *newRow = new T[row.size() + 1];
+    std::memcpy(newRow, row.data(), row.size() * sizeof(T));
+    std::memset(&newRow[row.size()], -1, sizeof(T)); // Add termination feature (-1)
+    r.push_back(newRow);
 
+    if(row.size() > 0){
         int rown = *(int *)&row.back() + 1;
         if(n < rown) n = rown;
-    } else {
-        r.push_back(nullptr);
     }
 
     m = r.size();
@@ -86,4 +84,3 @@ template <typename T>
 inline int SRMatrix<T>::cols(){
     return n;
 }
-

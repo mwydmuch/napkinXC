@@ -77,10 +77,11 @@ double Base::predict(Feature* features){
     Feature* f = features;
 
     if(sparse){
-        Feature* w = sparseW.data();
+        //Feature* w = sparseW.data();
         while(f->index != -1) {
-            while(w->index < f->index - 1) ++w;
-            if(w->index == f->index - 1) p += w->value * f->value;
+            //while(w->index < f->index - 1) ++w;
+            //if(w->index == f->index - 1) p += w->value * f->value;
+            if(sparseW.count(f->index - 1)) p += sparseW[f->index - 1] * f->value;
             ++f;
         }
     }
@@ -115,7 +116,7 @@ void Base::save(std::ostream& out){
     if(classCount > 1) {
         assert(M != nullptr);
 
-        // Decide on optimal file codding
+        // Decide on optimal file coding
         int denseSize = wSize * sizeof(double), nonZeroCount = 0;
         for (int i = 0; i < wSize; ++i)
             if(M->w[i] != 0) ++nonZeroCount;
@@ -124,10 +125,10 @@ void Base::save(std::ostream& out){
         bool saveSparse = sparseSize < denseSize;
 
         out.write((char*) &wSize, sizeof(wSize));
+        out.write((char*) &nonZeroCount, sizeof(nonZeroCount));
         out.write((char*) &saveSparse, sizeof(saveSparse));
 
         if(saveSparse){
-            out.write((char*) &nonZeroCount, sizeof(nonZeroCount));
             for(int i = 0; i < wSize; ++i){
                 if(M->w[i] != 0){
                     out.write((char*) &i, sizeof(i));
@@ -159,34 +160,46 @@ void Base::load(std::istream& in, CodingType coding) {
     in.read((char*) &firstClass, sizeof(firstClass));
 
     if(classCount > 1) {
-        in.read((char *) &wSize, sizeof(wSize));
         bool loadSparse;
-        in.read((char *) &loadSparse, sizeof(loadSparse));
+        int nonZeroCount;
 
-        if(coding == spaceOptimal) sparse = loadSparse;
+        in.read((char*) &wSize, sizeof(wSize));
+        in.read((char*) &nonZeroCount, sizeof(nonZeroCount));
+        in.read((char*) &loadSparse, sizeof(loadSparse));
+
+        // Decide on weights coding
+        if(coding == spaceOptimal){
+            int denseSize = wSize * sizeof(double);
+            // Unordered map stores elements inside buckets in the list structure, memory used for buckets omitted
+            int sparseSize = nonZeroCount * (2 * sizeof(int) + sizeof(double));
+            sparse = sparseSize < denseSize;
+        }
         else if(coding == dense) sparse = false;
         else sparse = true;
 
-        sparseW.clear();
         W.clear();
         if(!sparse) W = std::vector<double>(wSize);
+        sparseW = std::unordered_map<int, double>();
 
         if(loadSparse){
-            int nonZeroCount, index;
+            int index;
             double w;
-            in.read((char*) &nonZeroCount, sizeof(nonZeroCount));
+
             for (int i = 0; i < nonZeroCount; ++i) {
-                in.read((char *) &index, sizeof(index));
-                in.read((char *) &w, sizeof(w));
-                if (sparse) sparseW.push_back({index, w});
+                in.read((char*) &index, sizeof(index));
+                in.read((char*) &w, sizeof(w));
+                if (sparse)
+                    //sparseW.push_back({index, w});
+                    sparseW.insert({index, w});
                 else W[index] = w;
             }
         } else {
             if (sparse) {
                 double w;
                 for (int i = 0; i < wSize; ++i) {
-                    in.read((char *) &w, sizeof(w));
-                    if (w != 0) sparseW.push_back({i, w});
+                    in.read((char*) &w, sizeof(w));
+                    //if (w != 0) sparseW.push_back({i, w});
+                    if (w != 0) sparseW.insert({i, w});
                 }
             } else in.read((char*) W.data(), wSize * sizeof(double));
         }

@@ -22,16 +22,19 @@ public:
     ~SRMatrix();
     void appendRow(std::vector<T> row);
 
-    T** data();
-    std::vector<int>& sizes();
-    int rows();
-    int cols();
+    // Returns data as T**
+    inline T** data(){ return r.data(); }
+
+    // Returns rows' sizes
+    inline std::vector<int>& sizes(){ return s; }
+    inline int rows(){ return m; }
+    inline int cols(){ return n; }
 
 private:
-    int m; // row count
-    int n; // col count
-    std::vector<int> s; // sizes
-    std::vector<T *> r; // rows
+    int m; // Row count
+    int n; // Col count
+    std::vector<int> s; // Rows' sizes
+    std::vector<T *> r; // Rows
 };
 
 template <typename T>
@@ -61,26 +64,4 @@ void SRMatrix<T>::appendRow(std::vector<T> row){
     }
 
     m = r.size();
-}
-
-// Returns data as T**
-template <typename T>
-inline T** SRMatrix<T>::data(){
-    return r.data();
-}
-
-// Returns rows' sizes
-template <typename T>
-inline std::vector<int>& SRMatrix<T>::sizes(){
-    return s;
-}
-
-template <typename T>
-inline int SRMatrix<T>::rows(){
-    return m;
-}
-
-template <typename T>
-inline int SRMatrix<T>::cols(){
-    return n;
 }

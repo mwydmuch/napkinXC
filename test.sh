@@ -27,4 +27,4 @@ echo
 
 echo "Model dir: ${MODEL}"
 echo "Files (nodes): $(ls ${MODEL} | wc -l | grep -E '[0-9]+' -o)"
-echo "Model size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9]+[BMG]' -o)"
+echo "Model size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.]+[BMG]' -o)"

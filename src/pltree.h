@@ -38,8 +38,8 @@ public:
     void predict(std::vector<TreeNodeProb>& prediction, Feature* features, std::vector<Base*>& bases, int k);
     void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<Base*>& bases, Args& args);
 
-    int nodes();
-    int labels();
+    inline int nodes() { return t; }
+    inline int labels() { return k; }
 
     void save(std::string outfile);
     void save(std::ostream& out);

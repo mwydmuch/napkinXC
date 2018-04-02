@@ -8,6 +8,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include "args.h"
 #include "types.h"
 
@@ -21,6 +22,10 @@ public:
     void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
     double predict(Feature* features);
 
+    inline bool sprase(){
+        return sparse;
+    }
+
     void save(std::string outfile);
     void save(std::ostream& out);
     void load(std::string infile, CodingType coding = spaceOptimal);
@@ -32,8 +37,9 @@ private:
     int classCount;
     int firstClass;
 
-    std::vector<Feature> sparseW;
     std::vector<double> W;
+    //std::vector<Feature> sparseW;
+    std::unordered_map<int, double> sparseW;
 
     // LibLinear's stuff
     model *M;

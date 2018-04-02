@@ -38,7 +38,6 @@ Args:
                     Note: -1 to use #cpus - 1, 0 to use #cpus
     --header        Input contains header (default = 1)
                     Header format: #lines #features #labels
-                    Note: XML repo datasets have headers
     --hash          Size of hashing space (default = -1)
                     Note: -1 to disable
 
@@ -52,7 +51,7 @@ Args:
     --bias          Add bias term (default = 1)
 
     Tree:
-    --arity         Arity of a tree (default = 2)
+    -a, --arity     Arity of a tree (default = 2)
     --tree          File with tree structure
     --treeType      Type of a tree to build if file with structure is not provided
                     Tree types: completeInOrder, completeRandom, complete

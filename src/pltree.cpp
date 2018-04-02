@@ -17,17 +17,6 @@
 #include "utils.h"
 #include "threads.h"
 
-int nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
-//    std::cerr << "Training node " << i << " ..." << std::endl;
-//    std::cerr << "  n: " << n << " l: " << binLabels.size() << "\n";
-
-    Base base;
-    base.train(n, binLabels, binFeatures, args);
-    base.save(args.model + "/node_" + std::to_string(i) + ".bin");
-
-    return 0;
-}
-
 PLTree::PLTree(){}
 
 PLTree::~PLTree() {
@@ -36,12 +25,12 @@ PLTree::~PLTree() {
     }
 }
 
-int PLTree::nodes(){
-    return t;
-}
+int nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
+    Base base;
+    base.train(n, binLabels, binFeatures, args);
+    base.save(args.model + "/node_" + std::to_string(i) + ".bin");
 
-int PLTree::labels(){
-    return k;
+    return 0;
 }
 
 void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
@@ -162,7 +151,6 @@ void PLTree::predict(std::vector<TreeNodeProb>& prediction, Feature* features, s
     while (!nQueue.empty()) {
         TreeNodeProb np = nQueue.top(); // current node
         nQueue.pop();
-
         //std::cerr << "  Node: " << np.node->index << ", label: " << np.node->label << ", p: " << np.p << "\n";
 
         if(np.node->label >= 0){
@@ -172,8 +160,8 @@ void PLTree::predict(std::vector<TreeNodeProb>& prediction, Feature* features, s
         } else {
             for(auto child : np.node->children){
                 p = np.p * bases[child->index]->predict(features);
-                //std::cerr << "    Child: " << child->index << ", label: " << child->label << ", p: " << p << "\n";
                 nQueue.push({child, p});
+                //std::cerr << "    Child: " << child->index << ", label: " << child->label << ", p: " << p << "\n";
             }
         }
     }
@@ -441,4 +429,6 @@ void PLTree::load(std::istream& in){
             n->parent = tree[parentN];
         }
     }
+
+    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
 }

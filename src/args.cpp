@@ -66,7 +66,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 threads = std::stoi(args.at(ai + 1));
                 if(threads == 0) threads = getCpuCount();
                 else if(threads == -1) threads = getCpuCount() - 1;
-            } else if (args[ai] == "--eps")
+            } else if (args[ai] == "-e" || args[ai] == "--eps")
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--bias")
                 bias = std::stoi(args.at(ai + 1)) != 0;
@@ -87,7 +87,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             // Tree options
             else if (args[ai] == "--tree")
                 tree = std::string(args.at(ai + 1));
-            else if (args[ai] == "--arity")
+            else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--treeType") {
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
@@ -131,7 +131,7 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     std::ifstream in;
     in.open(input);
 
-    // Read header (only for checks)
+    // Read header
     // Format: #rows #features #labels
     if(header){
         getline(in, line);
@@ -218,9 +218,39 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;
 }
 
-// TODO
 void Args::printHelp(){
-    std::cerr << "HELP!\n";
+    std::cerr << R"HELP(Usage: nxml <command> <args>
+
+    Commands:
+        train
+        test
+
+    Args:
+        General:
+        -i, --input     Input dataset in LibSvm format
+        -m, --model     Model's dir
+        -t, --threads   Number of threads used for training and testing (default = -1)
+                        Note: -1 to use #cpus - 1, 0 to use #cpus
+        --header        Input contains header (default = 1)
+                        Header format: #lines #features #labels
+        --hash          Size of hashing space (default = -1)
+                        Note: -1 to disable
+
+        Base classifier:
+        -s, --solver    LibLinear solver (default = L2R_LR_DUAL)
+                        Supported solvers: L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC,
+                        L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC, L1R_LR, L2R_LR_DUAL
+                        See: https://github.com/cjlin1/liblinear
+        -e, --eps       Stopping criteria (default = 0.1)
+                        See: https://github.com/cjlin1/liblinear
+        --bias          Add bias term (default = 1)
+
+        Tree:
+        -a, --arity     Arity of a tree (default = 2)
+        --tree          File with tree structure
+        --treeType      Type of a tree to build if file with structure is not provided
+                        Tree types: completeInOrder, completeRandom, complete
+    )HELP";
     exit(EXIT_FAILURE);
 }
 

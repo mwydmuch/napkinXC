@@ -5,6 +5,8 @@
 **/Makefile
 
 nxml
+data
+models
 
 .idea
 .DS_Store

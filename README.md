@@ -1,14 +1,19 @@
 # napkinXML
 
-Extremely simple implementation of extreme multi-label classifier.
+Extremely simple and fast extreme multi-label classifier based on Probabilistic Label Tree (PLT) algorithm.
 
-## TODO:
-- Add balanced kmeans clustering
-- Parallelize example gathering
-- Optimize types in LibLinear (it uses double, we could gain some speed by changing to floats)
-- Ensemble of trees
-- Better paths/arguments handling
-- Add feature hashing
+## Notes
+Feel free to work on this repo, if you like.
+I'm (Marek) currently working on balanced kmeans clustering.
+
+## TODOs
+- Balanced kmeans clustering
+- Parallel example gathering
+- Optimise types in LibLinear (it uses double, we could gain some speed by changing to floats)
+- Ensemble of trees (reuse code from fastText version)
+- Better paths handling and checking (<dir>/<dir2> works, <dir>/<dir2>/ doesn't)
+- Feature hashing
+- Storing the model in one large file instead of separate small files
 
 ## Build
 ```
@@ -51,4 +56,20 @@ Args:
     --tree          File with tree structure
     --treeType      Type of a tree to build if file with structure is not provided
                     Tree types: completeInOrder, completeRandom, complete
+```
+
+## Tests
+```
+Usage test.sh <dataset> <optional nxml train args>
+
+Datasets:
+    amazonCat
+    amazonCat-14K
+    amazon
+    amazon-3M
+    deliciousLarge
+    eurlex
+    wiki10
+    wikiLSHTC
+    WikipediaLarge-500K
 ```

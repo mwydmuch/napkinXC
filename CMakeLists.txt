@@ -6,7 +6,7 @@ set (fasttext_VERSION_MINOR 1)
 
 include_directories(napkinXML)
 
-set(CMAKE_CXX_FLAGS " -std=c++11 -funroll-loops -O3")
+set(CMAKE_CXX_FLAGS " -std=c++11 -pthread -funroll-loops -O3")
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp

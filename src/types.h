@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstddef>
 #include <cassert>
+#include <cstring>
 #include <vector>
 #include "linear.h"
 

@@ -88,7 +88,7 @@ auto ThreadPool::enqueue(F&& f, Args&&... args) -> std::future<typename std::res
     return res;
 }
 
-void ThreadPool::stopAll(){
+inline void ThreadPool::stopAll(){
     {
         std::unique_lock<std::mutex> lock(queue_mutex);
         stop = true;
@@ -112,9 +112,9 @@ private:
     std::vector<std::thread> workers;
 };
 
-ThreadSet::ThreadSet(){ }
+inline ThreadSet::ThreadSet(){ }
 
-ThreadSet::~ThreadSet(){
+inline ThreadSet::~ThreadSet(){
     joinAll();
 }
 
@@ -132,7 +132,7 @@ auto ThreadSet::add(F&& f, Args&&... args) -> std::future<typename std::result_o
     return res;
 }
 
-void ThreadSet::joinAll(){
+inline void ThreadSet::joinAll(){
     for(auto &worker: workers)
         worker.join();
     workers.clear();

@@ -949,7 +949,7 @@ static void solve_l2r_l1l2_svc(
 			else
 			{
 				active_size = l;
-				info("*");
+				//info("*");
 				PGmax_old = INF;
 				PGmin_old = -INF;
 				continue;
@@ -970,7 +970,7 @@ static void solve_l2r_l1l2_svc(
 	*/
 
 	// calculate objective value
-
+	/*
 	double v = 0;
 	int nSV = 0;
 	for(i=0; i<w_size; i++)
@@ -981,8 +981,6 @@ static void solve_l2r_l1l2_svc(
 		if(alpha[i] > 0)
 			++nSV;
 	}
-
-	/*
 	info("Objective value = %lf\n",v/2);
 	info("nSV = %d\n",nSV);
 	*/

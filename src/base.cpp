@@ -81,7 +81,8 @@ double Base::predict(Feature* features){
         while(f->index != -1) {
             //while(w->index < f->index - 1) ++w;
             //if(w->index == f->index - 1) p += w->value * f->value;
-            if(sparseW.count(f->index - 1)) p += sparseW[f->index - 1] * f->value;
+            auto w = sparseW.find(f->index - 1);
+            if(w != sparseW.end()) p += w->second * f->value;
             ++f;
         }
     }
@@ -103,8 +104,7 @@ void Base::save(std::string outfile){
         return;
     }
 
-    std::ofstream out;
-    out.open(outfile);
+    std::ofstream out(outfile);
     save(out);
     out.close();
 }
@@ -148,8 +148,7 @@ void Base::load(std::string infile, CodingType coding){
         return;
     }
 
-    std::ifstream in;
-    in.open(infile);
+    std::ifstream in(infile);
     load(in, coding);
     in.close();
 }

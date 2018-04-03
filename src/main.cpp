@@ -8,6 +8,13 @@
 #include "base.h"
 #include "pltree.h"
 #include "utils.h"
+#include "threads.h"
+
+Base* nodeLoadThread(std::string nodeFile){
+    Base* base = new Base();
+    base->load(nodeFile);
+    return base;
+}
 
 void test(Args &args) {
     SRMatrix<Label> labels;
@@ -20,11 +27,28 @@ void test(Args &args) {
 
     std::cerr << "Loading base classifiers ...\n";
     std::vector<Base*> bases;
-    for(int i = 0; i < tree.nodes(); ++i) {
-        Base* base = new Base();
-        base->load(args.model + "/node_" + std::to_string(i) + ".bin");
-        bases.push_back(base);
-        printProgress(i, tree.nodes());
+
+    if(args.threads > 1){
+        // Run loading in parallel
+        ThreadPool tPool(args.threads);
+        std::vector<std::future<Base*>> results;
+
+        for (int i = 0; i < tree.nodes(); ++i)
+            results.emplace_back(tPool.enqueue(nodeLoadThread, args.model + "/node_" + std::to_string(i) + ".bin"));
+
+        // Get loaded classfiers
+        for(int i = 0; i < results.size(); ++i) {
+            Base* base = results[i].get();
+            bases.push_back(base);
+            printProgress(i, results.size());
+        }
+    } else {
+        for(int i = 0; i < tree.nodes(); ++i) {
+            Base* base = new Base();
+            base->load(args.model + "/node_" + std::to_string(i) + ".bin");
+            bases.push_back(base);
+            printProgress(i, tree.nodes());
+        }
     }
 
     tree.test(labels, features, bases, args);

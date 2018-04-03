@@ -18,13 +18,14 @@ public:
     std::string input;
     std::string model;
     bool header;
+    bool bias;
+    bool norm;
     int hash;
 
     // Training options
     int threads;
     int solverType;
     double eps;
-    bool bias;
 
     // Tree options
     int arity;
@@ -36,6 +37,7 @@ public:
 
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+    void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures);
     void printHelp();
 
     void save(std::string outfile);

@@ -17,12 +17,13 @@ Args::Args() {
     model = "";
     header = true;
     hash = -1;
+    bias = true;
+    norm = true;
 
     // Training options
     threads = getCpuCount() - 1;
     eps = 0.1;
     solverType = L2R_LR_DUAL;
-    bias = true;
 
     // Tree options
     tree = "";
@@ -58,6 +59,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 model = std::string(args.at(ai + 1));
             else if (args[ai] == "--header")
                 header = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--bias")
+                bias = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--norm")
+                norm = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--hash")
                 hash = std::stoi(args.at(ai + 1));
 
@@ -68,8 +73,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if(threads == -1) threads = getCpuCount() - 1;
             } else if (args[ai] == "-e" || args[ai] == "--eps")
                 eps = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--bias")
-                bias = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--solver") {
                 if (args.at(ai + 1) == "L2R_LR") solverType = L2R_LR;
                 else if (args.at(ai + 1) == "L2R_L2LOSS_SVC_DUAL") solverType = L2R_L2LOSS_SVC_DUAL;
@@ -120,20 +123,19 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 }
 
 // Reads train/test data to sparse matrix
-// TODO: check if line is sorted, sort if not
 void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     std::cerr << "Loading data from: " << input << std::endl;
-
-    int hRows = -1;
-    size_t nextPos, pos = 0;
-    std::string line;
 
     std::ifstream in;
     in.open(input);
 
+    int hRows = -1;
+    std::string line;
+
     // Read header
     // Format: #rows #features #labels
     if(header){
+        size_t nextPos, pos = 0;
         getline(in, line);
 
         nextPos = line.find_first_of(" ", pos);
@@ -150,42 +152,15 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
         std::cerr << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << std::endl;
     }
 
+    std::vector<Label> lLabels;
+    std::vector<Feature> lFeatures;
+
     // Read examples
-    // LibSvm line format label,label,... feature(:value) feature(:value) ...
     while (getline(in, line)){
-        std::vector<Label> lLabels;
-        std::vector<Feature> lFeatures;
-        pos = line[0] == ' ' ? 1 : 0;
+        lLabels.clear();
+        lFeatures.clear();
 
-        while((nextPos = line.find_first_of(",: ", pos))){
-            // Label
-            if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' '))
-                lLabels.push_back(std::stoi(line.substr(pos, nextPos - pos)));
-
-            // Feature (LibLinear ignore feature 0)
-            else if (line[pos - 1] == ' ' && line[nextPos] == ':')
-                lFeatures.push_back({std::stoi(line.substr(pos, nextPos - pos)) + 1, 1.0});
-
-            else if (line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
-                lFeatures.back().value = std::stof(line.substr(pos, nextPos - pos));
-
-            if (nextPos == std::string::npos) break;
-            pos = nextPos + 1;
-        }
-
-        // Norm row
-        double norm = 0;
-        for(int f = 0; f < lFeatures.size(); ++f)
-            norm += lFeatures[f].value * lFeatures[f].value;
-        norm = std::sqrt(norm);
-        for(int f = 0; f < lFeatures.size(); ++f)
-            lFeatures[f].value /= norm;
-
-        // Add bias feature
-        if(bias && hFeatures < 0)
-            lFeatures.push_back({lFeatures.back().index + 1, 1.0});
-        else if(bias)
-            lFeatures.push_back({hFeatures + 1, 1.0});
+        readLine(line, lLabels, lFeatures);
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
@@ -216,6 +191,44 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
 //    }
 
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;
+}
+
+// Reads line in LibSvm format label,label,... feature(:value) feature(:value) ...
+void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures){
+    size_t nextPos, pos = line[0] == ' ' ? 1 : 0;
+    bool requiresSort = false;
+
+    while((nextPos = line.find_first_of(",: ", pos))){
+        // Label
+        if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' '))
+            lLabels.push_back(std::stoi(line.substr(pos, nextPos - pos)));
+
+        // Feature (LibLinear ignore feature 0)
+        else if (line[pos - 1] == ' ' && line[nextPos] == ':')
+            lFeatures.push_back({std::stoi(line.substr(pos, nextPos - pos)) + 1, 1.0});
+
+        else if (line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
+            lFeatures.back().value = std::stof(line.substr(pos, nextPos - pos));
+
+        if (nextPos == std::string::npos) break;
+        pos = nextPos + 1;
+    }
+
+    // Norm row
+    if (norm){
+        double norm = 0;
+        for(int f = 0; f < lFeatures.size(); ++f)
+            norm += lFeatures[f].value * lFeatures[f].value;
+        norm = std::sqrt(norm);
+        for(int f = 0; f < lFeatures.size(); ++f)
+            lFeatures[f].value /= norm;
+    }
+
+    // Add bias feature
+    if(bias && hFeatures < 0)
+        lFeatures.push_back({lFeatures.back().index + 1, 1.0});
+    else if(bias)
+        lFeatures.push_back({hFeatures + 1, 1.0});
 }
 
 void Args::printHelp(){
@@ -255,29 +268,29 @@ void Args::printHelp(){
 }
 
 void Args::save(std::string outfile){
-    std::ofstream out;
-    out.open(outfile);
+    std::ofstream out(outfile);
     save(out);
     out.close();
 }
 
 void Args::save(std::ostream& out){
-    out.write((char*) &bias, sizeof(bias));
     out.write((char*) &hFeatures, sizeof(hFeatures));
     out.write((char*) &hLabels, sizeof(hLabels));
+    out.write((char*) &bias, sizeof(bias));
+    out.write((char*) &norm, sizeof(bias));
     out.write((char*) &hash, sizeof(hash));
 }
 
 void Args::load(std::string infile){
-    std::ifstream in;
-    in.open(infile);
+    std::ifstream in(infile);
     load(in);
     in.close();
 }
 
 void Args::load(std::istream& in){
-    in.read((char*) &bias, sizeof(bias));
     in.read((char*) &hFeatures, sizeof(hFeatures));
     in.read((char*) &hLabels, sizeof(hLabels));
+    in.read((char*) &bias, sizeof(bias));
+    in.read((char*) &norm, sizeof(bias));
     in.read((char*) &hash, sizeof(hash));
 }

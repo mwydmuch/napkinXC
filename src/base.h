@@ -22,9 +22,7 @@ public:
     void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
     double predict(Feature* features);
 
-    inline bool sprase(){
-        return sparse;
-    }
+    inline bool sprase(){ return sparse; }
 
     void save(std::string outfile);
     void save(std::ostream& out);

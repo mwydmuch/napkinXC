@@ -55,14 +55,18 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
     std::vector<std::vector<double>> binLabels(rows);
     std::vector<std::vector<Feature*>> binFeatures(rows);
 
+    // Positive and negative nodes
+    std::unordered_set<TreeNode*> nPositive;
+    std::unordered_set<TreeNode*> nNegative;
+
     std::cerr << "  Assigning points ...\n";
 
     // Gather examples for each node
     for(int r = 0; r < rows; ++r){
         printProgress(r, rows);
 
-        std::unordered_set<TreeNode*> nPositive; // positive nodes
-        std::unordered_set<TreeNode*> nNegative; // negative nodes
+        nPositive.clear();
+        nNegative.clear();
 
         int rSize = labels.sizes()[r];
         auto rLabels = labels.data()[r];
@@ -116,7 +120,6 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
             results.emplace_back(tPool.enqueue(nodeTrainThread, n->index, features.cols(),
                 std::ref(binLabels[n->index]), std::ref(binFeatures[n->index]), std::ref(args)));
 
-        // Wait for all processes to finish
         for(int i = 0; i < results.size(); ++i) {
             results[i].get();
             printProgress(i, results.size());
@@ -227,7 +230,6 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vec
             results.emplace_back(tPool.enqueue(pointTestThread, this, labels.data()[r],
                 features.data()[r], std::ref(bases), args.topK, std::ref(precision)));
 
-        // Wait for all processes to finish
         for(int i = 0; i < results.size(); ++i) {
             results[i].get();
             printProgress(i, results.size());
@@ -244,8 +246,9 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vec
         */
 
     } else {
+        std::vector<TreeNodeProb> prediction;
         for(int r = 0; r < rows; ++r){
-            std::vector<TreeNodeProb> prediction;
+            prediction.clear();
             predict(prediction, features.data()[r], bases, args.topK);
 
             for (int i = 0; i < args.topK; ++i){
@@ -305,9 +308,87 @@ void PLTree::loadTreeStructure(std::string file){
     assert(treeLeaves.size() == k);
 }
 
-// TODO
+// K-means clustering
 void PLTree::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
-
+    // void balanced_kmeans( SMatF* mat, _float acc, VecI& partition )
+    // {
+    // 	_int nc = mat->nc;
+    // 	_int nr = mat->nr;
+    //
+    // 	_int c[2] = {-1,-1};
+    // 	c[0] = get_rand_num( nc );
+    // 	c[1] = c[0];
+    // 	while( c[1] == c[0] )
+    // 		c[1] = get_rand_num( nc );
+    //
+    // 	_float** centers;
+    // 	init_2d_float( 2, nr, centers );
+    // 	reset_2d_float( 2, nr, centers );
+    // 	for( _int i=0; i<2; i++ )
+    // 		set_d_with_s( mat->data[c[i]], mat->size[c[i]], centers[i] );
+    //
+    // 	_float** cosines;
+    // 	init_2d_float( 2, nc, cosines );
+    //
+    // 	pairIF* dcosines = new pairIF[ nc ];
+    //
+    // 	partition.resize( nc );
+    //
+    // 	_float old_cos = -10000;
+    // 	_float new_cos = -1;
+    //
+    // 	while( new_cos - old_cos >= acc )
+    // 	{
+    //
+    // 		for( _int i=0; i<2; i++ )
+    // 		{
+    // 			for( _int j=0; j<nc; j++ )
+    // 				cosines[i][j] = mult_d_s_vec( centers[i], mat->data[j], mat->size[j] );
+    // 		}
+    //
+    // 		for( _int i=0; i<nc; i++ )
+    // 		{
+    // 			dcosines[i].first = i;
+    // 			dcosines[i].second = cosines[0][i] - cosines[1][i];
+    // 		}
+    //
+    // 		sort( dcosines, dcosines+nc, comp_pair_by_second_desc<_int,_float> );
+    //
+    // 		//pairII pn = get_pos_neg_count( partition );
+    // 		//cout << pn.first << " " << pn.second << endl;
+    //
+    // 		old_cos = new_cos;
+    // 		new_cos = 0;
+    // 		for( _int i=0; i<nc; i++ )
+    // 		{
+    // 			_int id = dcosines[i].first;
+    // 			//cout << i << " " << id << " " << dcosines[i].second << " " << cosines[0][id] << " " << cosines[1][id] << endl;
+    // 			_int part = (_int)(i < nc/2);
+    // 			partition[ id ] = 1 - part;
+    // 			new_cos += cosines[ partition[id] ][ id ];
+    // 		}
+    // 		new_cos /= nc;
+    //
+    // 		//pn = get_pos_neg_count( partition );
+    // 		//cout << pn.first << " " << pn.second << endl;
+    // 		//cout << "new_cos: " << new_cos << " tmp_cos: " << tmp_cos << endl;
+    //
+    // 		reset_2d_float( 2, nr, centers );
+    //
+    // 		for( _int i=0; i<nc; i++ )
+    // 		{
+    // 			_int p = partition[ i ];
+    // 			add_s_to_d_vec( mat->data[i], mat->size[i], centers[ p ] );
+    // 		}
+    //
+    // 		for( _int i=0; i<2; i++ )
+    // 			normalize_d_vec( centers[i], nr );
+    // 	}
+    //
+    // 	delete_2d_float( 2, nr, centers );
+    // 	delete_2d_float( 2, nc, cosines );
+    // 	delete [] dcosines;
+    // }
 }
 
 void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {
@@ -361,8 +442,7 @@ void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {
 }
 
 void PLTree::save(std::string outfile){
-    std::ofstream out;
-    out.open(outfile);
+    std::ofstream out(outfile);
     save(out);
     out.close();
 }
@@ -395,8 +475,7 @@ void PLTree::save(std::ostream& out){
 }
 
 void PLTree::load(std::string infile){
-    std::ifstream in;
-    in.open(infile);
+    std::ifstream in(infile);
     load(in);
     in.close();
 }

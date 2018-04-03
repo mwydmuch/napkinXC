@@ -16,19 +16,23 @@ Args::Args() {
     input = "";
     model = "";
     header = true;
-    hash = -1;
+    hash = 0;
     bias = true;
     norm = true;
+    threshold = 0.1;
+    sparseWeights = true;
 
     // Training options
     threads = getCpuCount() - 1;
     eps = 0.1;
     solverType = L2R_LR_DUAL;
+    solverName = "L2R_LR_DUAL";
 
     // Tree options
     tree = "";
     arity = 2;
     treeType = completeInOrder;
+    treeTypeName = "completeInOrder";
 
     // Prediction options
     topK = 1;
@@ -65,6 +69,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 norm = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--hash")
                 hash = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--threshold")
+                threshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--sparseWeights")
+                sparseWeights = std::stoi(args.at(ai + 1)) != 0;
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -74,6 +82,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             } else if (args[ai] == "-e" || args[ai] == "--eps")
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--solver") {
+                solverName = args.at(ai + 1);
                 if (args.at(ai + 1) == "L2R_LR") solverType = L2R_LR;
                 else if (args.at(ai + 1) == "L2R_L2LOSS_SVC_DUAL") solverType = L2R_L2LOSS_SVC_DUAL;
                 else if (args.at(ai + 1) == "L2R_L2LOSS_SVC") solverType = L2R_L2LOSS_SVC;
@@ -93,6 +102,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--treeType") {
+                treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
                 else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
                 else if (args.at(ai + 1) == "complete") treeType = complete;
@@ -229,6 +239,16 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
         lFeatures.push_back({lFeatures.back().index + 1, 1.0});
     else if(bias)
         lFeatures.push_back({hFeatures + 1, 1.0});
+}
+
+void Args::printArgs(){
+    std::cerr << "napkinXML"
+        << "\n  Input: " << input
+        << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
+        << "\n  Model: " << model
+        << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+        << "\n    Tree type: " << treeTypeName << ", arity: " << arity
+        << "\n  Threads: " << threads << "\n";
 }
 
 void Args::printHelp(){

@@ -8,13 +8,6 @@
 #include "base.h"
 #include "pltree.h"
 #include "utils.h"
-#include "threads.h"
-
-Base* nodeLoadThread(std::string nodeFile){
-    Base* base = new Base();
-    base->load(nodeFile);
-    return base;
-}
 
 void test(Args &args) {
     SRMatrix<Label> labels;
@@ -28,33 +21,17 @@ void test(Args &args) {
     std::cerr << "Loading base classifiers ...\n";
     std::vector<Base*> bases;
 
-    if(args.threads > 1){
-        // Run loading in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
-
-        for (int i = 0; i < tree.nodes(); ++i)
-            results.emplace_back(tPool.enqueue(nodeLoadThread, args.model + "/node_" + std::to_string(i) + ".bin"));
-
-        // Get loaded classfiers
-        for(int i = 0; i < results.size(); ++i) {
-            Base* base = results[i].get();
-            bases.push_back(base);
-            printProgress(i, results.size());
-        }
-    } else {
-        for(int i = 0; i < tree.nodes(); ++i) {
-            Base* base = new Base();
-            base->load(args.model + "/node_" + std::to_string(i) + ".bin");
-            bases.push_back(base);
-            printProgress(i, tree.nodes());
-        }
+    std::ifstream in(args.model + "/weights.bin");
+    for(int i = 0; i < tree.nodes(); ++i) {
+        bases.emplace_back(new Base());
+        bases.back()->load(in, args);
+        printProgress(i, tree.nodes());
     }
+    in.close();
 
     tree.test(labels, features, bases, args);
 
-    for(auto base : bases)
-        delete base;
+    for(auto base : bases) delete base;
 }
 
 void train(Args &args) {
@@ -66,10 +43,27 @@ void train(Args &args) {
     tree.train(labels, features, args);
 }
 
+void shrink(Args &args) {
+    PLTree tree;
+    tree.load(args.input + "/tree.bin");
+    args.sparseWeights = false;
+
+    std::ifstream in(args.input + "/weights.bin");
+    std::ofstream out(args.model + "/weights.bin");
+    for (int i = 0; i < tree.nodes(); ++i){
+        Base base;
+        base.load(in, args);
+        base.save(out, args);
+    }
+    in.close();
+    out.close();
+}
+
 int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);
     Args args = Args();
     args.parseArgs(arg);
+    args.printArgs();
 
     if (arg.size() < 2)
         args.printHelp();
@@ -79,6 +73,8 @@ int main(int argc, char** argv) {
         train(args);
     else if(command == "test")
         test(args);
+    else if(command == "shrink")
+        shrink(args);
     else
         args.printHelp();
 

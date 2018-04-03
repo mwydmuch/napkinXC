@@ -21,6 +21,8 @@ public:
     bool bias;
     bool norm;
     int hash;
+    double threshold;
+    bool sparseWeights;
 
     // Training options
     int threads;
@@ -38,6 +40,7 @@ public:
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);
     void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures);
+    void printArgs();
     void printHelp();
 
     void save(std::string outfile);
@@ -48,4 +51,7 @@ public:
 private:
     int hLabels;
     int hFeatures;
+
+    std::string solverName;
+    std::string treeTypeName;
 };

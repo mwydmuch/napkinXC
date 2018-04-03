@@ -4,26 +4,26 @@
  */
 
 #include <cmath>
+#include <fstream>
+#include <iostream>
 
 #include "base.h"
 #include "linear.h"
 
-#include <iostream>
+
 Base::Base(){
     sparse = false;
     wSize = 0;
     classCount = 0;
     firstClass = 0;
-    M = nullptr;
 
-    useLinearPredict = false;
+    W = nullptr;
+    sparseW = nullptr;
 }
 
 Base::~Base(){
-    if(M) {
-        free_model_content(M);
-        delete M;
-    }
+    if(W != nullptr) delete[] W;
+    if(sparseW != nullptr) delete sparseW;
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -51,25 +51,21 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     auto output = check_parameter(&P, &C);
     assert(output == NULL);
 
-    M = train_linear(&P, &C);
+    model* M = train_linear(&P, &C);
     assert(M->nr_class <= 2);
     assert(M->nr_feature + 1 == P.n);
 
     wSize = M->nr_feature + M->bias;
     firstClass = M->label[0];
     classCount = M->nr_class;
+    W = M->w;
+
+    // Delete LibLinear model
+    delete[] M->label;
+    delete M;
 }
 
 double Base::predict(Feature* features){
-    //std::cerr << "Predicting base ...\n";
-
-    if(useLinearPredict){
-        double p[2];
-        predict_probability(M, features, reinterpret_cast<double*>(p));
-        if(M->label[0] == 0) return 1.0 - p[0];
-        else return p[0];
-    }
-
     if(classCount == 1)
         return static_cast<double>(firstClass);
 
@@ -77,12 +73,9 @@ double Base::predict(Feature* features){
     Feature* f = features;
 
     if(sparse){
-        //Feature* w = sparseW.data();
         while(f->index != -1) {
-            //while(w->index < f->index - 1) ++w;
-            //if(w->index == f->index - 1) p += w->value * f->value;
-            auto w = sparseW.find(f->index - 1);
-            if(w != sparseW.end()) p += w->second * f->value;
+            auto w = sparseW->find(f->index - 1);
+            if(w != sparseW->end()) p += w->second * f->value;
             ++f;
         }
     }
@@ -97,29 +90,23 @@ double Base::predict(Feature* features){
     else return 1.0 - (1.0 / (1.0 + exp(-p)));
 }
 
-void Base::save(std::string outfile){
-    if(useLinearPredict){
-        assert(M != nullptr);
-        save_model(outfile.c_str(), M);
-        return;
-    }
-
+void Base::save(std::string outfile, Args& args){
     std::ofstream out(outfile);
-    save(out);
+    save(out, args);
     out.close();
 }
 
-void Base::save(std::ostream& out){
+void Base::save(std::ostream& out, Args& args){
     out.write((char*) &classCount, sizeof(classCount));
     out.write((char*) &firstClass, sizeof(firstClass));
 
     if(classCount > 1) {
-        assert(M != nullptr);
+        assert(W != nullptr);
 
         // Decide on optimal file coding
         int denseSize = wSize * sizeof(double), nonZeroCount = 0;
         for (int i = 0; i < wSize; ++i)
-            if(M->w[i] != 0) ++nonZeroCount;
+            if(W[i] != 0 && fabs(W[i]) >= args.threshold) ++nonZeroCount;
 
         int sparseSize = nonZeroCount * (sizeof(int) + sizeof(double));
         bool saveSparse = sparseSize < denseSize;
@@ -130,31 +117,26 @@ void Base::save(std::ostream& out){
 
         if(saveSparse){
             for(int i = 0; i < wSize; ++i){
-                if(M->w[i] != 0){
+                if(W[i] != 0 && fabs(W[i]) >= args.threshold){
                     out.write((char*) &i, sizeof(i));
-                    out.write((char*) &M->w[i], sizeof(double));
+                    out.write((char*) &W[i], sizeof(double));
                 }
             }
-        } else out.write((char*) M->w, wSize * sizeof(double));
-    }
+        } else out.write((char*) W, wSize * sizeof(double));
 
-    //std::cerr << "Saved base: classCount: " << classCount << ", firstClass: " << firstClass << ", wSize: " << wSize << "\n";
+        //std::cerr << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
+        //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << sparseSize/1024 << "/" << denseSize/1024 << "K\n";
+    }
+    //else std::cerr << "  Saved base: classCount: " << classCount << ", firstClass: " << firstClass << "\n";
 }
 
-void Base::load(std::string infile, CodingType coding){
-    if(useLinearPredict){
-        M = load_model(infile.c_str());
-        assert(M->nr_class <= 2);
-        return;
-    }
-
+void Base::load(std::string infile, Args& args){
     std::ifstream in(infile);
-    load(in, coding);
+    load(in, args);
     in.close();
 }
 
-void Base::load(std::istream& in, CodingType coding) {
-
+void Base::load(std::istream& in, Args& args) {
     in.read((char*) &classCount, sizeof(classCount));
     in.read((char*) &firstClass, sizeof(firstClass));
 
@@ -167,18 +149,19 @@ void Base::load(std::istream& in, CodingType coding) {
         in.read((char*) &loadSparse, sizeof(loadSparse));
 
         // Decide on weights coding
-        if(coding == spaceOptimal){
+        if(args.sparseWeights){
             int denseSize = wSize * sizeof(double);
-            // Unordered map stores elements inside buckets in the list structure, memory used for buckets omitted
+            // Unordered map stores elements inside buckets in the list structure, memory used for buckets is omitted here
             int sparseSize = nonZeroCount * (2 * sizeof(int) + sizeof(double));
             sparse = sparseSize < denseSize;
         }
-        else if(coding == dense) sparse = false;
-        else sparse = true;
+        else sparse = false;
 
-        W.clear();
-        if(!sparse) W = std::vector<double>(wSize);
-        sparseW = std::unordered_map<int, double>();
+        if(!sparse){
+            W = new double[wSize];
+            std::memset(W, 0, wSize * sizeof(double));
+        }
+        sparseW = new std::unordered_map<int, double>();
 
         if(loadSparse){
             int index;
@@ -187,9 +170,7 @@ void Base::load(std::istream& in, CodingType coding) {
             for (int i = 0; i < nonZeroCount; ++i) {
                 in.read((char*) &index, sizeof(index));
                 in.read((char*) &w, sizeof(w));
-                if (sparse)
-                    //sparseW.push_back({index, w});
-                    sparseW.insert({index, w});
+                if (sparse) sparseW->insert({index, w});
                 else W[index] = w;
             }
         } else {
@@ -197,12 +178,13 @@ void Base::load(std::istream& in, CodingType coding) {
                 double w;
                 for (int i = 0; i < wSize; ++i) {
                     in.read((char*) &w, sizeof(w));
-                    //if (w != 0) sparseW.push_back({i, w});
-                    if (w != 0) sparseW.insert({i, w});
+                    if (w != 0) sparseW->insert({i, w});
                 }
-            } else in.read((char*) W.data(), wSize * sizeof(double));
+            } else in.read((char*) W, wSize * sizeof(double));
         }
-    }
 
-    // std::cerr << "Loaded base: sparse: " << sparse << ", classCount: " << classCount << ", firstClass: " << firstClass << ", wSize: " << wSize << "\n";
+        //std::cerr << "  Loaded base: sparse: " << sparse << ", classCount: " << classCount << ", firstClass: " << firstClass << ", weights: "
+        //    << nonZeroCount << "/" << wSize << ", size: " << nonZeroCount * (2 * sizeof(int) + sizeof(double))/1024 << "/" << wSize * sizeof(double)/1024 << "K\n";
+    }
+    //else std::cerr << "  Loaded base: classCount: " << classCount << ", firstClass: " << firstClass << "\n";
 }

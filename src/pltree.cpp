@@ -33,7 +33,206 @@ Base* nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<
     return base;
 }
 
+
+
+JobResult PLTree::processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out, SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
+    int maxIter = 1000;
+    int iter = 0;
+    bool converged = false;
+
+    Base *baseLeft = new Base();
+    Base *baseRight = new Base();
+
+    std::vector<int> leftPositiveInstances;
+    std::vector<int> rightPositiveInstances;
+    std::vector<int> leftLabels;
+    std::vector<int> rightLabels;
+
+    std::vector<int>::const_iterator middle;
+    std::vector<Feature*> binFeatures;
+
+    for(std::vector<int>::const_iterator i = jobInstances.cbegin(); i != jobInstances.cend(); i++ ){
+        binFeatures.push_back(features.data()[*i]);
+    }
+    // TODO create features only once
+
+    while(true) {
+        iter++;
+
+        //split labels
+        //random for random split
+        middle = jobLabels.begin() + jobLabels.size()/2;
+        leftLabels = std::vector<int>(jobLabels.cbegin(), middle);
+        rightLabels = std::vector<int>(middle+1, jobLabels.cend());
+        std::sort(leftLabels.begin(), leftLabels.end());
+        std::sort(rightLabels.begin(), rightLabels.end());
+
+        // determine left and right pos/neg labels and pos instances
+        std::vector<double> binLabelsLeft;
+        std::vector<double> binLabelsRight;
+        for(std::vector<int>::const_iterator i = jobInstances.cbegin(); i != jobInstances.cend(); i++ ) {
+            double binLabelLeft = 0.0;
+            double binLabelRight = 0.0;
+
+            for (int j = 0; j < labels.sizes()[*i]; ++j) {
+                auto label = labels.data()[*i][j];
+                if (!binLabelLeft and std::binary_search(leftLabels.begin(), leftLabels.end(), label)) {
+                    binLabelLeft = 1.0;
+                    leftPositiveInstances.push_back(*i);
+
+                } else if (!binLabelRight and std::binary_search(rightLabels.begin(), rightLabels.end(), label)) {
+                    binLabelRight = 1.0;
+                    rightPositiveInstances.push_back(*i);
+                }
+                if (binLabelLeft and binLabelRight) break;
+            }
+            binLabelsLeft.push_back(binLabelLeft);
+            binLabelsRight.push_back(binLabelRight);
+        }
+        //train
+        //TODO remove old models!!!
+        baseLeft->train(features.cols(), binLabelsLeft, binFeatures, args);
+        baseRight->train(features.cols(), binLabelsRight, binFeatures, args);
+
+        // evaluate if convergence criteria are meet
+        converged = true;
+        if(converged or (iter > maxIter)) {
+            break;
+        }
+    }
+    printProgress(index, jobLabels.size()*2);
+
+
+    //TODO: process leaves differently!
+    struct JobResult result{
+            .left = baseLeft,
+            .right = baseRight,
+            .leftPositiveInstances = leftPositiveInstances,
+            .rightPositiveInstances = rightPositiveInstances,
+            .leftLabels = leftLabels,
+            .rightLabels = rightLabels
+    };
+
+    return result;
+}
+
+JobResult PLTree::trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
+    std::vector<double> binLabels;
+    std::vector<Feature*> binFeatures;
+    std::vector<int> rootPositiveIndices;
+
+    for(int r = 0; r < labels.rows(); ++r){
+        printProgress(r, labels.rows());
+
+        binFeatures.push_back(features.data()[r]);
+
+        if (labels.sizes()[r] > 0) {
+            binLabels.push_back(1.0);
+            rootPositiveIndices.push_back(r);
+        } else {
+            binLabels.push_back(0.0);
+        }
+    }
+
+    Base *base = new Base();
+    base->train(features.cols(), binLabels, binFeatures, args);
+
+    JobResult result;
+    result.leftPositiveInstances = rootPositiveIndices;
+    result.left = base;
+    return result;
+}
+
+void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
+
+    std::vector<int> levelJobIndices;
+    std::vector<int> nextLevelJobIndices;
+    std::vector<std::vector<int>> jobInstances;
+    std::vector<std::vector<int>> jobLabels;
+    std::vector<JobResult> results;
+
+    std::ofstream out(args.model + "/weights.bin");
+
+    //process root first
+    JobResult rootResult = trainRoot(labels, features, args);
+    rootResult.left->save(out, args);
+    delete rootResult.left;
+    TreeNode *n = new TreeNode();
+    n->index = 0;
+    if(labels.cols() > 0){
+        n->label = -1;
+    }
+    n->parent = NULL;
+    tree.push_back(n);
+
+    //create job:
+    jobInstances.push_back(rootResult.leftPositiveInstances);
+    rootResult.leftPositiveInstances.clear();
+    std::vector<int> allLabels(labels.cols());
+    std::iota(allLabels.begin(), allLabels.end(), 0); // TODO: labels start from 0?
+    jobLabels.push_back(allLabels);
+    levelJobIndices.push_back(0);
+
+    //TODO: create tree somehow
+
+    while(levelJobIndices.size() != 0){
+        //TODO implement parallel
+        for(std::vector<int>::iterator jobIndex = levelJobIndices.begin(); jobIndex != levelJobIndices.end(); jobIndex++){
+            JobResult result = processJob(*jobIndex, jobInstances[*jobIndex], jobLabels[*jobIndex], out, labels, features, args);
+            results.push_back(result);
+        }
+
+        //TODO ensure i save in the order of tree nodes
+        for(int i = 0; i < results.size(); ++i) {
+            TreeNode *leftNode = new TreeNode();
+            tree.push_back(leftNode);
+            leftNode->index = tree.size() - 1;
+            tree[i]->children.push_back(leftNode);
+            results[i].left->save(out, args);
+            delete results[i].left;
+
+            TreeNode *rightNode = new TreeNode();
+            tree.push_back(rightNode );
+            rightNode ->index = tree.size() - 1;
+            tree[i]->children.push_back(rightNode);
+            results[i].right->save(out, args);
+            delete results[i].right;
+
+            if(results[i].leftLabels.size() > 1) {
+                jobInstances.push_back(results[i].leftPositiveInstances);
+                jobLabels.push_back(results[i].leftLabels);
+                nextLevelJobIndices.push_back(jobInstances.size() - 1);
+            } else {
+                leftNode->label = results[i].leftLabels[0];
+            }
+
+            if(results[i].rightLabels.size() > 1) {
+                jobInstances.push_back(results[i].rightPositiveInstances);
+                jobLabels.push_back(results[i].rightLabels);
+                nextLevelJobIndices.push_back(jobInstances.size() - 1);
+            }else {
+                rightNode->label = results[i].rightLabels[0];
+            }
+
+            printProgress(i, results.size());
+        }
+
+        levelJobIndices = nextLevelJobIndices;
+        nextLevelJobIndices.clear();
+    }
+    out.close();
+}
+
+
 void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+    if(args.treeType == topDown){
+        trainTopDown(labels, features, args);
+    } else {
+        trainFixed(labels, features, args);
+    }
+}
+
+void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
     std::cerr << "Training tree ...\n";
 
     // Create tree structure

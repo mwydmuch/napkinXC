@@ -29,6 +29,16 @@ struct TreeNodeProb{
     bool operator<(const TreeNodeProb &r) const { return p < r.p; }
 };
 
+struct JobResult{
+    Base *left;
+    Base *right;
+    std::vector<int> leftPositiveInstances;
+    std::vector<int> rightPositiveInstances;
+    std::vector<int> leftLabels;
+    std::vector<int> rightLabels;
+};
+
+
 class PLTree{
 public:
     PLTree();
@@ -54,6 +64,10 @@ private:
     std::vector<TreeNode*> tree; // pointers to tree nodes
     std::unordered_map<int, TreeNode*> treeLeaves; // leaves map
 
+    void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+    void trainFixed(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+    JobResult processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out, SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+    JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);

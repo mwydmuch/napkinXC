@@ -1161,8 +1161,6 @@ static void solve_l2r_l1l2_svr(
 		if(iter == 0)
 			Gnorm1_init = Gnorm1_new;
 		iter++;
-		if(iter % 10 == 0)
-			info(".");
 
 		if(Gnorm1_new <= eps*Gnorm1_init)
 		{
@@ -1171,7 +1169,6 @@ static void solve_l2r_l1l2_svr(
 			else
 			{
 				active_size = l;
-				info("*");
 				Gmax_old = INF;
 				continue;
 			}
@@ -1180,6 +1177,7 @@ static void solve_l2r_l1l2_svr(
 		Gmax_old = Gmax_new;
 	}
 
+	/*
 	info("\noptimization finished, #iter = %d\n", iter);
 	if(iter >= max_iter)
 		info("\nWARNING: reaching max number of iterations\nUsing -s 11 may be faster\n\n");
@@ -1199,6 +1197,7 @@ static void solve_l2r_l1l2_svr(
 
 	info("Objective value = %lf\n", v);
 	info("nSV = %d\n",nSV);
+	*/
 
 	delete [] beta;
 	delete [] QD;
@@ -1595,7 +1594,6 @@ static void solve_l1r_l2_svc(
 			Gnorm1_init = Gnorm1_new;
 		iter++;
 		if(iter % 10 == 0)
-			info(".");
 
 		if(Gnorm1_new <= eps*Gnorm1_init)
 		{
@@ -1604,7 +1602,6 @@ static void solve_l1r_l2_svc(
 			else
 			{
 				active_size = w_size;
-				info("*");
 				Gmax_old = INF;
 				continue;
 			}
@@ -1613,6 +1610,7 @@ static void solve_l1r_l2_svc(
 		Gmax_old = Gmax_new;
 	}
 
+	/*
 	info("\noptimization finished, #iter = %d\n", iter);
 	if(iter >= max_iter)
 		info("\nWARNING: reaching max number of iterations\n");
@@ -1641,6 +1639,7 @@ static void solve_l1r_l2_svc(
 
 	info("Objective value = %lf\n", v);
 	info("#nonzeros/#features = %d/%d\n", nnz, w_size);
+	*/
 
 	delete [] index;
 	delete [] y;

@@ -12,6 +12,8 @@
 #include "utils.h"
 
 Args::Args() {
+    command = "";
+
     // Input/output options
     input = "";
     model = "";
@@ -44,6 +46,8 @@ Args::Args() {
 
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
+    command = args[1];
+
     for (int ai = 2; ai < args.size(); ai += 2) {
         if (args[ai][0] != '-') {
             std::cerr << "Provided argument without a dash! Usage:" << std::endl;
@@ -242,13 +246,20 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
 }
 
 void Args::printArgs(){
-    std::cerr << "napkinXML"
-        << "\n  Input: " << input
-        << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
-        << "\n  Model: " << model
-        << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
-        << "\n    Tree type: " << treeTypeName << ", arity: " << arity
-        << "\n  Threads: " << threads << "\n";
+    if (command == "train" || command == "test"){
+        std::cerr << "napkinXML - " << command
+            << "\n  Input: " << input
+            << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
+            << "\n  Model: " << model
+            << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+            << "\n    Tree type: " << treeTypeName << ", arity: " << arity
+            << "\n  Threads: " << threads << "\n";
+    }
+    else if (command == "shrink")
+        std::cerr << "napkinXML - " << command
+            << "\n  Input model: " << input
+            << "\n  Output model: " << model
+            << "\n  Threshold: " << threshold << "\n";
 }
 
 void Args::printHelp(){
@@ -271,8 +282,8 @@ void Args::printHelp(){
 
         Base classifier:
         -s, --solver    LibLinear solver (default = L2R_LR_DUAL)
-                        Supported solvers: L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC,
-                        L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC, L1R_LR, L2R_LR_DUAL
+                        Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
+                        L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                         See: https://github.com/cjlin1/liblinear
         -e, --eps       Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear

@@ -18,7 +18,12 @@ public:
     ~Base();
 
     void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
-    double predict(Feature* features);
+    double predictValue(Feature* features);
+    double predictLoss(Feature* features);
+    double predictProbability(Feature* features);
+
+    void toSparse();
+    void toDense();
 
     void save(std::string outfile, Args& args);
     void save(std::ostream& out, Args& args);
@@ -27,6 +32,7 @@ public:
 
 private:
     bool sparse;
+    bool hingeLoss;
     int wSize;
     int classCount;
     int firstClass;

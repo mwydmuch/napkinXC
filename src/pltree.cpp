@@ -52,8 +52,8 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
     assert(k >= labels.cols());
 
     // Examples selected for each node
-    std::vector<std::vector<double>> binLabels(rows);
-    std::vector<std::vector<Feature*>> binFeatures(rows);
+    std::vector<std::vector<double>> binLabels(t);
+    std::vector<std::vector<Feature*>> binFeatures(t);
 
     // Positive and negative nodes
     std::unordered_set<TreeNode*> nPositive;
@@ -147,24 +147,27 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
     args.save(args.model + "/args.bin");
 }
 
-void PLTree::predict(std::vector<TreeNodeProb>& prediction, Feature* features, std::vector<Base*>& bases, int k){
-    std::priority_queue<TreeNodeProb> nQueue;
+void PLTree::predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, int k){
+    std::priority_queue<TreeNodeValue> nQueue;
 
-    double p = bases[treeRoot->index]->predict(features);
-    nQueue.push({treeRoot, p});
+    //double val = bases[treeRoot->index]->predictProbability(features);
+    double val = -bases[treeRoot->index]->predictLoss(features);
+    nQueue.push({treeRoot, val});
 
     while (!nQueue.empty()) {
-        TreeNodeProb np = nQueue.top(); // Current node
+        TreeNodeValue nVal = nQueue.top(); // Current node
         nQueue.pop();
 
-        if(np.node->label >= 0){
-            prediction.push_back({np.node, np.p});
+        if(nVal.node->label >= 0){
+            //prediction.push_back({nVal.node, nVal.val}); // When using probability
+            prediction.push_back({nVal.node, exp(nVal.val)}); // When using loss
             if (prediction.size() >= k)
                 break;
         } else {
-            for(auto child : np.node->children){
-                p = np.p * bases[child->index]->predict(features);
-                nQueue.push({child, p});
+            for(auto child : nVal.node->children){
+                //val = nVal.val * bases[child->index]->predictProbability(features); // When using probability
+                val = nVal.val - bases[child->index]->predictLoss(features); // When using loss
+                nQueue.push({child, val});
             }
         }
     }
@@ -174,7 +177,7 @@ std::mutex testMutex;
 int pointTestThread(PLTree* tree, Label* labels, Feature* features, std::vector<Base*>& bases,
     int k, std::vector<int>& precision){
 
-    std::vector<TreeNodeProb> prediction;
+    std::vector<TreeNodeValue> prediction;
     tree->predict(prediction, features, bases, k);
 
     testMutex.lock();
@@ -193,7 +196,7 @@ int batchTestThread(PLTree* tree, SRMatrix<Label>& labels, SRMatrix<Feature>& fe
 
     std::vector<int> localPrecision (topK);
     for(int r = startRow; r < stopRow; ++r){
-        std::vector<TreeNodeProb> prediction;
+        std::vector<TreeNodeValue> prediction;
         tree->predict(prediction, features.data()[r], bases, topK);
 
         for (int i = 0; i < topK; ++i){
@@ -246,7 +249,7 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vec
         */
 
     } else {
-        std::vector<TreeNodeProb> prediction;
+        std::vector<TreeNodeValue> prediction;
         for(int r = 0; r < rows; ++r){
             prediction.clear();
             predict(prediction, features.data()[r], bases, args.topK);

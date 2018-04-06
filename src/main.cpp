@@ -20,7 +20,6 @@ void test(Args &args) {
 
     std::cerr << "Loading base classifiers ...\n";
     std::vector<Base*> bases;
-
     std::ifstream in(args.model + "/weights.bin");
     for(int i = 0; i < tree.nodes(); ++i) {
         bases.emplace_back(new Base());
@@ -65,15 +64,11 @@ int main(int argc, char** argv) {
     args.parseArgs(arg);
     args.printArgs();
 
-    if (arg.size() < 2)
-        args.printHelp();
-
-    std::string command(arg[1]);
-    if(command == "train")
+    if(args.command == "train")
         train(args);
-    else if(command == "test")
+    else if(args.command == "test")
         test(args);
-    else if(command == "shrink")
+    else if(args.command == "shrink")
         shrink(args);
     else
         args.printHelp();

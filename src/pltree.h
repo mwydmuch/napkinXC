@@ -32,6 +32,7 @@ struct TreeNodeProb{
 struct JobResult{
     Base *left;
     Base *right;
+    int parent;
     std::vector<int> leftPositiveInstances;
     std::vector<int> rightPositiveInstances;
     std::vector<int> leftLabels;
@@ -64,10 +65,14 @@ private:
     std::vector<TreeNode*> tree; // pointers to tree nodes
     std::unordered_map<int, TreeNode*> treeLeaves; // leaves map
 
+    void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
+                        std::ofstream &out, Args &args, std::vector<int> &nextLevelJobIndices,
+                        std::vector<std::vector<int>> &jobInstances, std::vector<std::vector<int>> &jobLabels);
     void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     void trainFixed(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     JobResult processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out, SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);

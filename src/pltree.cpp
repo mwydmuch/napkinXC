@@ -63,7 +63,7 @@ JobResult PLTree::processJob(int index, std::vector<int> jobInstances, std::vect
         //random for random split
         middle = jobLabels.begin() + jobLabels.size()/2;
         leftLabels = std::vector<int>(jobLabels.cbegin(), middle);
-        rightLabels = std::vector<int>(middle+1, jobLabels.cend());
+        rightLabels = std::vector<int>(middle, jobLabels.cend());
         std::sort(leftLabels.begin(), leftLabels.end());
         std::sort(rightLabels.begin(), rightLabels.end());
 
@@ -91,6 +91,7 @@ JobResult PLTree::processJob(int index, std::vector<int> jobInstances, std::vect
         }
         //train
         //TODO remove old models!!!
+
         baseLeft->train(features.cols(), binLabelsLeft, binFeatures, args);
         baseRight->train(features.cols(), binLabelsRight, binFeatures, args);
 
@@ -100,17 +101,19 @@ JobResult PLTree::processJob(int index, std::vector<int> jobInstances, std::vect
             break;
         }
     }
-    printProgress(index, jobLabels.size()*2);
+    printProgress(index, labels.cols()*2);
 
 
     //TODO: process leaves differently!
     struct JobResult result{
             .left = baseLeft,
             .right = baseRight,
+            .parent = index,
             .leftPositiveInstances = leftPositiveInstances,
             .rightPositiveInstances = rightPositiveInstances,
             .leftLabels = leftLabels,
             .rightLabels = rightLabels
+
     };
 
     return result;
@@ -143,6 +146,28 @@ JobResult PLTree::trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features
     return result;
 }
 
+void PLTree::addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
+                            std::ofstream &out, Args &args, std::vector<int> &nextLevelJobIndices,
+                            std::vector<std::vector<int>> &jobInstances, std::vector<std::vector<int>> &jobLabels){
+    TreeNode *node = new TreeNode();
+    tree.push_back(node);
+    node->index = tree.size() - 1;
+    tree[parent]->children.push_back(node);
+    node->parent = tree[parent];
+    model->save(out, args);
+    delete model;
+
+    if(labels.size() > 1) {
+        jobInstances.push_back(instances);
+        jobLabels.push_back(labels);
+        nextLevelJobIndices.push_back(jobInstances.size() - 1);
+        node->label = -1;
+    } else {
+        node->label = labels[0];
+        treeLeaves[node->label] = node;
+    }
+}
+
 void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
 
     std::vector<int> levelJobIndices;
@@ -157,70 +182,49 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
     JobResult rootResult = trainRoot(labels, features, args);
     rootResult.left->save(out, args);
     delete rootResult.left;
-    TreeNode *n = new TreeNode();
-    n->index = 0;
+    TreeNode *root = new TreeNode();
+    root->index = 0;
     if(labels.cols() > 0){
-        n->label = -1;
+        root->label = -1;
     }
-    n->parent = NULL;
-    tree.push_back(n);
+    root->parent = NULL;
+    tree.push_back(root);
+    treeRoot = tree[0];
 
     //create job:
     jobInstances.push_back(rootResult.leftPositiveInstances);
     rootResult.leftPositiveInstances.clear();
-    std::vector<int> allLabels(labels.cols());
+    std::vector<int> allLabels(labels.cols());//TODO: determine the number/list of unique labels/ in some correct way
     std::iota(allLabels.begin(), allLabels.end(), 0); // TODO: labels start from 0?
     jobLabels.push_back(allLabels);
     levelJobIndices.push_back(0);
 
-    //TODO: create tree somehow
-
     while(levelJobIndices.size() != 0){
         //TODO implement parallel
+        //TODO ensure i save in the order of tree nodes
+
+        results.clear();
         for(std::vector<int>::iterator jobIndex = levelJobIndices.begin(); jobIndex != levelJobIndices.end(); jobIndex++){
             JobResult result = processJob(*jobIndex, jobInstances[*jobIndex], jobLabels[*jobIndex], out, labels, features, args);
             results.push_back(result);
         }
-
-        //TODO ensure i save in the order of tree nodes
+//TODO implement any number of children!.
         for(int i = 0; i < results.size(); ++i) {
-            TreeNode *leftNode = new TreeNode();
-            tree.push_back(leftNode);
-            leftNode->index = tree.size() - 1;
-            tree[i]->children.push_back(leftNode);
-            results[i].left->save(out, args);
-            delete results[i].left;
-
-            TreeNode *rightNode = new TreeNode();
-            tree.push_back(rightNode );
-            rightNode ->index = tree.size() - 1;
-            tree[i]->children.push_back(rightNode);
-            results[i].right->save(out, args);
-            delete results[i].right;
-
-            if(results[i].leftLabels.size() > 1) {
-                jobInstances.push_back(results[i].leftPositiveInstances);
-                jobLabels.push_back(results[i].leftLabels);
-                nextLevelJobIndices.push_back(jobInstances.size() - 1);
-            } else {
-                leftNode->label = results[i].leftLabels[0];
-            }
-
-            if(results[i].rightLabels.size() > 1) {
-                jobInstances.push_back(results[i].rightPositiveInstances);
-                jobLabels.push_back(results[i].rightLabels);
-                nextLevelJobIndices.push_back(jobInstances.size() - 1);
-            }else {
-                rightNode->label = results[i].rightLabels[0];
-            }
-
-            printProgress(i, results.size());
+            addModelToTree(results[i].left, results[i].parent, results[i].leftLabels, results[i].leftPositiveInstances,
+                    out, args, nextLevelJobIndices, jobInstances, jobLabels);
+            addModelToTree(results[i].right, results[i].parent, results[i].rightLabels, results[i].rightPositiveInstances,
+                           out, args, nextLevelJobIndices, jobInstances, jobLabels);
         }
 
         levelJobIndices = nextLevelJobIndices;
         nextLevelJobIndices.clear();
     }
     out.close();
+
+    t = tree.size();
+    k = labels.cols();//TODO: incorrect!!
+    save(args.model + "/tree.bin");
+    args.save(args.model + "/args.bin");
 }
 
 
@@ -251,8 +255,8 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     assert(k >= labels.cols());
 
     // Examples selected for each node
-    std::vector<std::vector<double>> binLabels(rows);
-    std::vector<std::vector<Feature*>> binFeatures(rows);
+    std::vector<std::vector<double>> binLabels(t);
+    std::vector<std::vector<Feature*>> binFeatures(t);
 
     // Positive and negative nodes
     std::unordered_set<TreeNode*> nPositive;
@@ -323,6 +327,7 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
         for(int i = 0; i < results.size(); ++i) {
             Base* base = results[i].get();
             base->save(out, args);
+//            base->print();
             delete base;
             printProgress(i, results.size());
         }
@@ -331,6 +336,7 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
             Base base;
             base.train(features.cols(), binLabels[tree[i]->index], binFeatures[tree[i]->index], args);
             base.save(out, args);
+//            base.print();
             printProgress(i, tree.size());
         }
     }

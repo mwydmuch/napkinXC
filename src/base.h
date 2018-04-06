@@ -24,6 +24,7 @@ public:
     void save(std::ostream& out, Args& args);
     void load(std::string infile, Args& args);
     void load(std::istream& in, Args& args);
+    void print();
 
 private:
     bool sparse;

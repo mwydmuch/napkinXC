@@ -31,7 +31,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     assert(binLabels.size() == binFeatures.size());
     problem P = {
         .l = static_cast<int>(binLabels.size()),
-        .n = n - 1, // -1, because features are +1
+        .n = n,
         .y = binLabels.data(),
         .x = binFeatures.data(),
         .bias = (args.bias ? 1.0 : 0.0)

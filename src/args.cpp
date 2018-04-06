@@ -109,6 +109,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
                 else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
+                else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
+                else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "complete") treeType = complete;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else {
@@ -118,7 +120,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
 
             // Prediction options
-            else if (args[ai] == "--topK")
+            else if (args[ai] == "--to"
+                                         "pK")
                 topK = std::stoi(args.at(ai + 1));
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;

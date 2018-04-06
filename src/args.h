@@ -8,7 +8,7 @@
 #include <string>
 #include "types.h"
 
-enum TreeType { completeInOrder, completeRandom, complete, given, topDown };
+enum TreeType { completeInOrder, completeRandom, complete, given, topDown, balancedInOrder, balancedRandom };
 
 class Args{
 public:

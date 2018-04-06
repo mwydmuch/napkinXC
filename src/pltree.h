@@ -75,5 +75,7 @@ private:
 
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
+    void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
+    TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
     void loadTreeStructure(std::string file);
 };

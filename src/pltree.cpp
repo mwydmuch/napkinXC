@@ -103,7 +103,6 @@ JobResult PLTree::processJob(int index, std::vector<int> jobInstances, std::vect
     }
     printProgress(index, labels.cols()*2);
 
-
     //TODO: process leaves differently!
     struct JobResult result{
             .left = baseLeft,
@@ -125,10 +124,7 @@ JobResult PLTree::trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features
     std::vector<int> rootPositiveIndices;
 
     for(int r = 0; r < labels.rows(); ++r){
-        printProgress(r, labels.rows());
-
         binFeatures.push_back(features.data()[r]);
-
         if (labels.sizes()[r] > 0) {
             binLabels.push_back(1.0);
             rootPositiveIndices.push_back(r);
@@ -202,13 +198,13 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
     while(levelJobIndices.size() != 0){
         //TODO implement parallel
         //TODO ensure i save in the order of tree nodes
-
         results.clear();
         for(std::vector<int>::iterator jobIndex = levelJobIndices.begin(); jobIndex != levelJobIndices.end(); jobIndex++){
             JobResult result = processJob(*jobIndex, jobInstances[*jobIndex], jobLabels[*jobIndex], out, labels, features, args);
             results.push_back(result);
+            printProgress(*jobIndex, labels.cols());
         }
-//TODO implement any number of children!.
+        //TODO implement any number of children!.
         for(int i = 0; i < results.size(); ++i) {
             addModelToTree(results[i].left, results[i].parent, results[i].leftLabels, results[i].leftPositiveInstances,
                     out, args, nextLevelJobIndices, jobInstances, jobLabels);
@@ -220,6 +216,8 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
         nextLevelJobIndices.clear();
     }
     out.close();
+
+    std::cerr<<std::endl<<"Training finished."<<std::endl;
 
     t = tree.size();
     k = labels.cols();//TODO: incorrect!!
@@ -245,6 +243,10 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
         buildCompleteTree(labels.cols(), args.arity, false);
     else if(args.treeType == completeRandom)
         buildCompleteTree(labels.cols(), args.arity, true);
+    else if(args.treeType == balancedInOrder)
+        buildBalancedTree(labels.cols(), args.arity, false);
+    else if(args.treeType == balancedRandom)
+        buildBalancedTree(labels.cols(), args.arity, true);
     else buildTree(labels, features, args);
 
     // For stats
@@ -327,7 +329,6 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
         for(int i = 0; i < results.size(); ++i) {
             Base* base = results[i].get();
             base->save(out, args);
-//            base->print();
             delete base;
             printProgress(i, results.size());
         }
@@ -336,7 +337,6 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
             Base base;
             base.train(features.cols(), binLabels[tree[i]->index], binFeatures[tree[i]->index], args);
             base.save(out, args);
-//            base.print();
             printProgress(i, tree.size());
         }
     }
@@ -519,6 +519,53 @@ void PLTree::loadTreeStructure(std::string file){
 // K-means clustering
 void PLTree::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
 
+}
+
+TreeNode* PLTree::buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end){
+    //TODO implement kary tree
+
+    TreeNode *n = new TreeNode();
+    if(begin + 1 == end){
+        n->index = tree.size();
+        tree.push_back(n);
+        n->label = *begin;
+        treeLeaves[n->label] = n;
+    } else {
+        std::vector<int>::const_iterator middle = begin + (end - begin)/2;
+        n->index = tree.size();
+        tree.push_back(n);
+        n->label = -1;
+
+        TreeNode *c = buildBalancedTreeRec(begin, middle);
+        n->children.push_back(c);
+        c->parent = n;
+
+        c = buildBalancedTreeRec(middle, end);
+        n->children.push_back(c);
+        c->parent = n;
+    }
+    return n;
+}
+
+void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
+    std::cerr << "Building balanced PLTree ...\n";
+    //TODO: implement k-ary tree
+
+    std::default_random_engine rng(time(0));
+
+    std::vector<int> labelsOrder;
+    for (auto i = 0; i < labelCount; ++i) labelsOrder.push_back(i);
+    if (randomizeTree){
+        std::random_shuffle(labelsOrder.begin(), labelsOrder.end());
+    }
+
+    treeRoot = buildBalancedTreeRec(labelsOrder.cbegin(), labelsOrder.cend());
+    treeRoot->parent = nullptr;
+
+    k = treeLeaves.size();
+    t = tree.size();
+
+    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << arity << "\n";
 }
 
 void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {

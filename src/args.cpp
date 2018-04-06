@@ -198,11 +198,13 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     assert(hLabels >= labels.cols());
     assert(hFeatures + 1 + (bias ? 1 : 0) >= features.cols() );
 
-//    for (int r = 0; r < features.rows(); ++r){
-//        for(int c = 0; c < features.sizes()[r]; ++c)
-//            std::cerr << features.data()[r][c].index << ":" << features.data()[r][c].value << " ";
-//        std::cerr << "\n";
-//    }
+    /*
+    for (int r = 0; r < features.rows(); ++r){
+       for(int c = 0; c < features.sizes()[r]; ++c)
+           std::cerr << features.data()[r][c].index << ":" << features.data()[r][c].value << " ";
+       std::cerr << "\n";
+    }
+    */
 
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;
 }
@@ -308,7 +310,7 @@ void Args::save(std::ostream& out){
     out.write((char*) &hFeatures, sizeof(hFeatures));
     out.write((char*) &hLabels, sizeof(hLabels));
     out.write((char*) &bias, sizeof(bias));
-    out.write((char*) &norm, sizeof(bias));
+    out.write((char*) &norm, sizeof(norm));
     out.write((char*) &hash, sizeof(hash));
 }
 
@@ -322,6 +324,6 @@ void Args::load(std::istream& in){
     in.read((char*) &hFeatures, sizeof(hFeatures));
     in.read((char*) &hLabels, sizeof(hLabels));
     in.read((char*) &bias, sizeof(bias));
-    in.read((char*) &norm, sizeof(bias));
+    in.read((char*) &norm, sizeof(norm));
     in.read((char*) &hash, sizeof(hash));
 }

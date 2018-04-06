@@ -14,6 +14,8 @@ class Args{
 public:
     Args();
 
+    std::string command;
+
     // Input/output options
     std::string input;
     std::string model;

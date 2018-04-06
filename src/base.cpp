@@ -31,7 +31,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     assert(binLabels.size() == binFeatures.size());
     problem P = {
         .l = static_cast<int>(binLabels.size()),
-        .n = n - 1, // -1, because features are +1
+        .n = n,
         .y = binLabels.data(),
         .x = binFeatures.data(),
         .bias = (args.bias ? 1.0 : 0.0)
@@ -44,7 +44,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         .nr_weight = 0,
         .weight_label = NULL,
         .weight = NULL,
-        .p = 0,
+        .p = 0.1,
         .init_sol = NULL
     };
 
@@ -60,34 +60,73 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     classCount = M->nr_class;
     W = M->w;
 
+    hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC
+        || args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
+
     // Delete LibLinear model
     delete[] M->label;
     delete M;
 }
 
-double Base::predict(Feature* features){
-    if(classCount == 1)
-        return static_cast<double>(firstClass);
-
-    double p = 0;
+double Base::predictValue(Feature* features){
+    double val = 0;
     Feature* f = features;
 
     if(sparse){
+        assert(sparseW != nullptr);
         while(f->index != -1) {
             auto w = sparseW->find(f->index - 1);
-            if(w != sparseW->end()) p += w->second * f->value;
+            if(w != sparseW->end()) val += w->second * f->value;
             ++f;
         }
     }
     else {
+        assert(W != nullptr);
         while(f->index != -1) {
-            p += W[f->index - 1] * f->value;
+            val += W[f->index - 1] * f->value;
             ++f;
         }
     }
 
-    if(firstClass == 1) return 1.0 / (1.0 + exp(-p));
-    else return 1.0 - (1.0 / (1.0 + exp(-p)));
+    if(firstClass == 0) val *= -1;
+    return val;
+}
+
+double Base::predictLoss(Feature* features){
+    if(classCount < 2) return -static_cast<double>(firstClass);
+    double val = predictValue(features);
+
+    if(hingeLoss) val = std::pow(fmax(0, 1 - val), 2); // Hinge squared loss
+    else val = log(1 + exp(-val)); // Log loss
+    return val;
+}
+
+double Base::predictProbability(Feature* features){
+    if(classCount < 2) return static_cast<double>(firstClass);
+    double val = predictValue(features);
+    val = 1.0 / (1.0 + exp(-val)); // Probability
+    return val;
+}
+
+void Base::toSparse(){
+    if(!sparse){
+        sparseW = new std::unordered_map<int, double>();
+        for(int i = 0; i < wSize; ++i)
+            if(W[i] != 0) sparseW->insert({i, W[i]});
+        delete[] W;
+        sparse = true;
+    }
+}
+
+void Base::toDense(){
+    if(sparse){
+        W = new double[wSize];
+        std::memset(W, 0, wSize * sizeof(double));
+        for(auto w : *sparseW)
+            W[w.first] = w.second;
+        delete sparseW;
+        sparse = false;
+    }
 }
 
 void Base::save(std::string outfile, Args& args){
@@ -120,6 +159,7 @@ void Base::save(std::ostream& out, Args& args){
         int sparseSize = nonZeroCount * (sizeof(int) + sizeof(double));
         bool saveSparse = sparseSize < denseSize;
 
+        out.write((char*) &hingeLoss, sizeof(hingeLoss));
         out.write((char*) &wSize, sizeof(wSize));
         out.write((char*) &nonZeroCount, sizeof(nonZeroCount));
         out.write((char*) &saveSparse, sizeof(saveSparse));
@@ -153,6 +193,7 @@ void Base::load(std::istream& in, Args& args) {
         bool loadSparse;
         int nonZeroCount;
 
+        in.read((char*) &hingeLoss, sizeof(hingeLoss));
         in.read((char*) &wSize, sizeof(wSize));
         in.read((char*) &nonZeroCount, sizeof(nonZeroCount));
         in.read((char*) &loadSparse, sizeof(loadSparse));
@@ -169,8 +210,7 @@ void Base::load(std::istream& in, Args& args) {
         if(!sparse){
             W = new double[wSize];
             std::memset(W, 0, wSize * sizeof(double));
-        }
-        sparseW = new std::unordered_map<int, double>();
+        } else sparseW = new std::unordered_map<int, double>();
 
         if(loadSparse){
             int index;

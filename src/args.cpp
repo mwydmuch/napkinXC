@@ -12,6 +12,8 @@
 #include "utils.h"
 
 Args::Args() {
+    command = "";
+
     // Input/output options
     input = "";
     model = "";
@@ -44,6 +46,8 @@ Args::Args() {
 
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
+    command = args[1];
+
     for (int ai = 2; ai < args.size(); ai += 2) {
         if (args[ai][0] != '-') {
             std::cerr << "Provided argument without a dash! Usage:" << std::endl;
@@ -195,11 +199,13 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     assert(hLabels >= labels.cols());
     assert(hFeatures + 1 + (bias ? 1 : 0) >= features.cols() );
 
-//    for (int r = 0; r < features.rows(); ++r){
-//        for(int c = 0; c < features.sizes()[r]; ++c)
-//            std::cerr << features.data()[r][c].index << ":" << features.data()[r][c].value << " ";
-//        std::cerr << "\n";
-//    }
+    /*
+    for (int r = 0; r < features.rows(); ++r){
+       for(int c = 0; c < features.sizes()[r]; ++c)
+           std::cerr << features.data()[r][c].index << ":" << features.data()[r][c].value << " ";
+       std::cerr << "\n";
+    }
+    */
 
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;
 }
@@ -243,13 +249,20 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
 }
 
 void Args::printArgs(){
-    std::cerr << "napkinXML"
-        << "\n  Input: " << input
-        << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
-        << "\n  Model: " << model
-        << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
-        << "\n    Tree type: " << treeTypeName << ", arity: " << arity
-        << "\n  Threads: " << threads << "\n";
+    if (command == "train" || command == "test"){
+        std::cerr << "napkinXML - " << command
+            << "\n  Input: " << input
+            << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
+            << "\n  Model: " << model
+            << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+            << "\n    Tree type: " << treeTypeName << ", arity: " << arity
+            << "\n  Threads: " << threads << "\n";
+    }
+    else if (command == "shrink")
+        std::cerr << "napkinXML - " << command
+            << "\n  Input model: " << input
+            << "\n  Output model: " << model
+            << "\n  Threshold: " << threshold << "\n";
 }
 
 void Args::printHelp(){
@@ -272,8 +285,8 @@ void Args::printHelp(){
 
         Base classifier:
         -s, --solver    LibLinear solver (default = L2R_LR_DUAL)
-                        Supported solvers: L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC,
-                        L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC, L1R_LR, L2R_LR_DUAL
+                        Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
+                        L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                         See: https://github.com/cjlin1/liblinear
         -e, --eps       Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
@@ -298,7 +311,7 @@ void Args::save(std::ostream& out){
     out.write((char*) &hFeatures, sizeof(hFeatures));
     out.write((char*) &hLabels, sizeof(hLabels));
     out.write((char*) &bias, sizeof(bias));
-    out.write((char*) &norm, sizeof(bias));
+    out.write((char*) &norm, sizeof(norm));
     out.write((char*) &hash, sizeof(hash));
 }
 
@@ -312,6 +325,6 @@ void Args::load(std::istream& in){
     in.read((char*) &hFeatures, sizeof(hFeatures));
     in.read((char*) &hLabels, sizeof(hLabels));
     in.read((char*) &bias, sizeof(bias));
-    in.read((char*) &norm, sizeof(bias));
+    in.read((char*) &norm, sizeof(norm));
     in.read((char*) &hash, sizeof(hash));
 }

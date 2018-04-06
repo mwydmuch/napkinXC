@@ -12,15 +12,15 @@
 void test(Args &args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
-    args.readData(labels, features);
     args.load(args.model + "/args.bin");
+    args.printArgs();
+    args.readData(labels, features);
 
     PLTree tree;
     tree.load(args.model + "/tree.bin");
 
     std::cerr << "Loading base classifiers ...\n";
     std::vector<Base*> bases;
-
     std::ifstream in(args.model + "/weights.bin");
     for(int i = 0; i < tree.nodes(); ++i) {
         bases.emplace_back(new Base());
@@ -35,6 +35,8 @@ void test(Args &args) {
 }
 
 void train(Args &args) {
+    args.printArgs();
+
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
     args.readData(labels, features);
@@ -44,6 +46,8 @@ void train(Args &args) {
 }
 
 void shrink(Args &args) {
+    args.printArgs();
+
     PLTree tree;
     tree.load(args.input + "/tree.bin");
     args.sparseWeights = false;
@@ -63,17 +67,12 @@ int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);
     Args args = Args();
     args.parseArgs(arg);
-    args.printArgs();
 
-    if (arg.size() < 2)
-        args.printHelp();
-
-    std::string command(arg[1]);
-    if(command == "train")
+    if(args.command == "train")
         train(args);
-    else if(command == "test")
+    else if(args.command == "test")
         test(args);
-    else if(command == "shrink")
+    else if(args.command == "shrink")
         shrink(args);
     else
         args.printHelp();

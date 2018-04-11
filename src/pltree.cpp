@@ -35,67 +35,71 @@ Base* nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<
     return base;
 }
 
-JobResult PLTree::processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out,
+std::vector<std::vector<int>> splitLabels(std::vector<int> labels, Args &args){
+    std::vector<std::vector<int>> labelSplits;
+    int partSize = ceil(float(labels.size()) / args.arity);
+    std::vector<int>::const_iterator partBegin = labels.cbegin();
+    while(partBegin < labels.cend()){
+        std::vector<int> split =  std::vector<int>(partBegin, min(partBegin + partSize, labels.cend()));
+        std::sort(split.begin(), split.end());;
+        labelSplits.push_back(split);
+        partBegin += partSize;
+    }
+    return labelSplits;
+}
+
+std::vector<struct JobResult> PLTree::processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out,
                              SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
     int maxIter = 1000;
     int iter = 0;
     bool converged = false;
+    std::vector<struct JobResult> results;
 
-    Base *baseLeft = new Base();
-    Base *baseRight = new Base();
-
-    std::vector<int> leftPositiveInstances;
-    std::vector<int> rightPositiveInstances;
-    std::vector<int> leftLabels;
-    std::vector<int> rightLabels;
-
-    std::vector<int>::const_iterator middle;
+    std::vector<std::vector<int>> childPositiveInstances;
+    std::vector<std::vector<int>> childLabels;
+    std::vector<std::vector<double>> binLabelsChild;
     std::vector<Feature*> binFeatures;
+    std::vector<Base*> childBases(args.arity);
 
     for(std::vector<int>::const_iterator i = jobInstances.cbegin(); i != jobInstances.cend(); i++ ){
         binFeatures.push_back(features.data()[*i]);
     }
     // TODO create features only once
+    int nodeArity;
 
     while(true) {
         iter++;
-
         //split labels
-        //random for random split
-        middle = jobLabels.begin() + (jobLabels.size() - 1)/2 + 1;
-        leftLabels = std::vector<int>(jobLabels.cbegin(), middle);
-        rightLabels = std::vector<int>(middle, jobLabels.cend());
-        std::sort(leftLabels.begin(), leftLabels.end());
-        std::sort(rightLabels.begin(), rightLabels.end());
+        childLabels = splitLabels(jobLabels, args);
+        nodeArity = std::min(args.arity, int(childLabels.size()));
 
-        // determine left and right pos/neg labels and pos instances
-        //TODO use unordered_set instead of a sorted vector
-        std::vector<double> binLabelsLeft;
-        std::vector<double> binLabelsRight;
-        for(std::vector<int>::const_iterator i = jobInstances.cbegin(); i != jobInstances.cend(); i++ ) {
-            double binLabelLeft = 0.0;
-            double binLabelRight = 0.0;
+        for(int i = 0; i <  nodeArity; i++){
+            std::vector<double> cBinLabels;
+            std::vector<int> cInstaces;
 
-            for (int j = 0; j < labels.sizes()[*i]; ++j) {
-                auto label = labels.data()[*i][j];
-                if (!binLabelLeft and std::binary_search(leftLabels.begin(), leftLabels.end(), label)) {
-                    binLabelLeft = 1.0;
-                    leftPositiveInstances.push_back(*i);
-
-                } else if (!binLabelRight and std::binary_search(rightLabels.begin(), rightLabels.end(), label)) {
-                    binLabelRight = 1.0;
-                    rightPositiveInstances.push_back(*i);
+            for(std::vector<int>::const_iterator n = jobInstances.cbegin(); n != jobInstances.cend(); n++ ) {
+                double binLabel = 0.0;
+                for (int j = 0; j < labels.sizes()[*n]; ++j) {
+                    auto label = labels.data()[*n][j];
+                    //TODO use unordered_set instead
+                    if (!binLabel and std::binary_search(childLabels[i].begin(), childLabels[i].end(), label)) {
+                        binLabel = 1.0;
+                        cInstaces.push_back(*n);
+                        break;
+                    }
                 }
-                if (binLabelLeft and binLabelRight) break;
+                cBinLabels.push_back(binLabel);
             }
-            binLabelsLeft.push_back(binLabelLeft);
-            binLabelsRight.push_back(binLabelRight);
+            binLabelsChild.push_back(cBinLabels);
+            childPositiveInstances.push_back(cInstaces);
         }
         //train
         //TODO remove old models!!!
-
-        baseLeft->train(features.cols(), binLabelsLeft, binFeatures, args);
-        baseRight->train(features.cols(), binLabelsRight, binFeatures, args);
+        for(int i = 0; i <  nodeArity; i++){
+            Base *base = new Base();
+            base->train(features.cols(), binLabelsChild[i], binFeatures, args);
+            childBases[i] = base;
+        }
 
         // evaluate if convergence criteria are meet
         converged = true;
@@ -103,24 +107,21 @@ JobResult PLTree::processJob(int index, std::vector<int> jobInstances, std::vect
             break;
         }
     }
-//    printProgress(index, labels.cols()*2);
 
-    //TODO: process leaves differently!
-    struct JobResult result{
-            .left = baseLeft,
-            .right = baseRight,
-            .parent = index,
-            .leftPositiveInstances = leftPositiveInstances,
-            .rightPositiveInstances = rightPositiveInstances,
-            .leftLabels = leftLabels,
-            .rightLabels = rightLabels
+    for(int i = 0; i <  nodeArity; i++) {
+        struct JobResult result{
+                .base = childBases[i],
+                .parent = index,
+                .instances = childPositiveInstances[i],
+                .labels = childLabels[i]
+        };
+        results.push_back(result);
+    }
 
-    };
-
-    return result;
+    return results;
 }
 
-JobResult PLTree::trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
+struct JobResult PLTree::trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
     std::vector<double> binLabels;
     std::vector<Feature*> binFeatures;
     std::vector<int> rootPositiveIndices;
@@ -139,8 +140,9 @@ JobResult PLTree::trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features
     base->train(features.cols(), binLabels, binFeatures, args);
 
     JobResult result;
-    result.leftPositiveInstances = rootPositiveIndices;
-    result.left = base;
+    result.parent = -1;
+    result.instances = rootPositiveIndices;
+    result.base = base;
     return result;
 }
 
@@ -149,21 +151,34 @@ void PLTree::addModelToTree(Base *model, int parent, std::vector<int> &labels, s
     TreeNode *node = new TreeNode();
     tree.push_back(node);
     node->index = tree.size() - 1;
-    tree[parent]->children.push_back(node);
-    node->parent = tree[parent];
     model->save(out, args);
     delete model;
 
-    assert(tree[parent]->label == -1);
 
-    if(labels.size() > 1) {
-        nextLevelJobs.push_back(NodeJob{.parent = node->index, .labels = labels, .indices = instances });
-        node->label = -1;
+    if(parent == -1){ //ROOT
+        node->parent = nullptr;
+        treeRoot = tree[0];
+        if(labels.size() > 0){
+            node->label = -1;
+            if(labels.size() > 1){
+                nextLevelJobs.push_back(NodeJob{.parent = 0, .labels = labels, .instances = instances});
+            }
+        }
     } else {
-        node->label = labels[0];
-        treeLeaves[node->label] = node;
+        tree[parent]->children.push_back(node);
+        node->parent = tree[parent];
+        assert(tree[parent]->label == -1);
+
+        if(labels.size() > 1) {
+            nextLevelJobs.push_back(NodeJob{.parent = node->index, .labels = labels, .instances = instances });
+            node->label = -1;
+        } else {
+            node->label = labels[0];
+            treeLeaves[node->label] = node;
+        }
     }
 }
+
 
 void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
 
@@ -172,37 +187,21 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
 
     std::ofstream out(args.model + "/weights.bin");
 
-    //process root first
-    JobResult rootResult = trainRoot(labels, features, args);
-    rootResult.left->save(out, args);
-    delete rootResult.left;
-    TreeNode *root = new TreeNode();
-    root->index = 0;
-    if(labels.cols() > 0){
-        root->label = -1;
-    }
-    root->parent = NULL;
-    tree.push_back(root);
-    treeRoot = tree[0];
-
-    //create job:
+    struct JobResult rootResult = trainRoot(labels, features, args);
     std::vector<int> allLabels(labels.cols());//TODO: determine the number/list of unique labels/ in some correct way
     std::iota(allLabels.begin(), allLabels.end(), 0); // TODO: labels start from 0?
-    jobs.push_back(NodeJob{.parent = 0, .labels = allLabels, .indices = rootResult.leftPositiveInstances});
-    rootResult.leftPositiveInstances.clear();
-    //TODO optimize copying of vectors
+    addModelToTree(rootResult.base, -1, allLabels, rootResult.instances, out, args, jobs);
+    //TODO remove copying of vectors
 
 
     while(jobs.size() != 0){
         //TODO implement parallel
-        //TODO ensure i save in the order of tree nodes
         nextLevelJobs.clear();
         for(auto job : jobs){
-            JobResult result = processJob(job.parent, job.indices, job.labels, out, labels, features, args);
-            addModelToTree(result.left, result.parent, result.leftLabels, result.leftPositiveInstances,
-                           out, args, nextLevelJobs);
-            addModelToTree(result.right, result.parent, result.rightLabels, result.rightPositiveInstances,
-                           out, args, nextLevelJobs);
+            std::vector<JobResult> results = processJob(job.parent, job.instances, job.labels, out, labels, features, args);
+            for(auto result : results){
+                addModelToTree(result.base, result.parent, result.labels, result.instances,out, args, nextLevelJobs);
+            }
         }
         jobs = nextLevelJobs;
         nextLevelJobs.clear();
@@ -213,6 +212,9 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
 
     t = tree.size();
     k = labels.cols();//TODO: incorrect!!
+
+    assert(k >= labels.cols());
+
     save(args.model + "/tree.bin");
     args.save(args.model + "/args.bin");
 
@@ -254,8 +256,8 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
     } else {
         trainFixed(labels, features, args);
     }
-    printTree(tree[0]);
-    std::cout<<std::endl;
+//    printTree(tree[0]);
+//    std::cout<<std::endl;
 }
 
 void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
@@ -547,7 +549,6 @@ void PLTree::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Arg
 
 void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
     std::cerr << "Building balanced PLTree ...\n";
-    //TODO: implement k-ary tree
 
     std::default_random_engine rng(time(0));
 
@@ -558,9 +559,11 @@ void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
     }
 
     std::queue<std::tuple<std::vector<int>::const_iterator, std::vector<int>::const_iterator, int>> begin_end_parent;
-    begin_end_parent.push(std::make_tuple(labelsOrder.cbegin(), labelsOrder.cbegin() + (labelsOrder.size() - 1), -1));
+    begin_end_parent.push(std::make_tuple(labelsOrder.cbegin(), labelsOrder.cend(), -1));
+    int c;
 
     while(!begin_end_parent.empty()){
+
 
         auto bep = begin_end_parent.front();
         begin_end_parent.pop();
@@ -568,7 +571,7 @@ void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
         auto endd = std::get<1>(bep);
         auto parent = std::get<2>(bep);
 
-        if(begin == endd){
+        if(begin + 1 == endd){
             TreeNode *n = new TreeNode();
             n->index = tree.size();
             tree.push_back(n);
@@ -589,9 +592,16 @@ void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
                 n->parent = tree[parent];
             }
 
-            std::vector<int>::const_iterator middle = begin + (endd - begin)/2;
-            begin_end_parent.push(std::make_tuple(begin, middle, n->index));
-            begin_end_parent.push(std::make_tuple(middle+1, endd, n->index));
+            //TODO there is a bug somewhere here
+            //why when
+            int partSize = ceil(float(endd - begin)/arity);
+            std::vector<int>::const_iterator partBegin = begin;
+            c = 0;
+            while (partBegin < endd){
+                assert(c++ < arity);
+                begin_end_parent.push(std::make_tuple(partBegin, min(partBegin + partSize, endd), n->index));
+                partBegin += partSize;
+            }
         }
     }
 

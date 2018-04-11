@@ -10,6 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include <tuple>
+#include <algorithm>
 
 #include "args.h"
 #include "types.h"
@@ -33,17 +34,14 @@ struct TreeNodeValue{
 struct NodeJob{
     int parent;
     std::vector<int> labels;
-    std::vector<int> indices;
+    std::vector<int> instances;
 };
 
 struct JobResult{
-    Base *left;
-    Base *right;
+    Base *base;
     int parent;
-    std::vector<int> leftPositiveInstances;
-    std::vector<int> rightPositiveInstances;
-    std::vector<int> leftLabels;
-    std::vector<int> rightLabels;
+    std::vector<int> instances;
+    std::vector<int> labels;
 };
 
 
@@ -74,11 +72,13 @@ private:
 
     void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                         std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
+    void addRootToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
+                               std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     void trainFixed(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    JobResult processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out,
+    std::vector<struct JobResult> processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out,
                          SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+    struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
 
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);

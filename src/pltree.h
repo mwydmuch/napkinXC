@@ -76,8 +76,9 @@ private:
                                std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     void trainFixed(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    std::vector<struct JobResult> processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out,
-                         SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+//    std::vector<struct JobResult> processJob(int index, std::vector<int>& jobInstances, std::vector<int>& jobLabels,
+//                                             std::ofstream& out,SRMatrix<Label>& labels, SRMatrix<Feature>& features,
+//                                             Args& args);
     struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
 
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);

@@ -27,15 +27,13 @@ PLTree::~PLTree() {
 
 Base* nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
     Base* base = new Base();
-    for(auto lbl : binLabels) std::cout<<lbl;
-    std::cout<<std::endl;
     base->train(n, binLabels, binFeatures, args);
     // base->save(args.model + "/node_" + std::to_string(i) + ".bin", args);
 
     return base;
 }
 
-std::vector<std::vector<int>> splitLabels(std::vector<int> labels, Args &args){
+std::vector<std::vector<int>> splitLabels(std::vector<int> labels, const Args &args){
     std::vector<std::vector<int>> labelSplits;
     int partSize = ceil(float(labels.size()) / args.arity);
     std::vector<int>::const_iterator partBegin = labels.cbegin();
@@ -48,8 +46,15 @@ std::vector<std::vector<int>> splitLabels(std::vector<int> labels, Args &args){
     return labelSplits;
 }
 
-std::vector<struct JobResult> PLTree::processJob(int index, std::vector<int> jobInstances, std::vector<int> jobLabels, std::ofstream &out,
-                             SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args){
+//std::vector<struct JobResult> processJob(int index, const std::vector<int> &jobInstances,
+//                                         const std::vector<int> &jobLabels, std::ofstream &out,
+//                                         SRMatrix<Label> &labels, SRMatrix<Feature> &features,
+//                                         Args &args){
+std::vector<struct JobResult> processJob(int index, const std::vector<int>& jobInstances,
+                                         const std::vector<int>& jobLabels, std::ofstream& out,
+                                         SRMatrix<Label>& labels, SRMatrix<Feature>& features,
+                                         Args& args){
+    //TODO add to params if trained multiple times
     int maxIter = 1000;
     int iter = 0;
     bool converged = false;
@@ -61,17 +66,18 @@ std::vector<struct JobResult> PLTree::processJob(int index, std::vector<int> job
     std::vector<Feature*> binFeatures;
     std::vector<Base*> childBases(args.arity);
 
-    for(std::vector<int>::const_iterator i = jobInstances.cbegin(); i != jobInstances.cend(); i++ ){
-        binFeatures.push_back(features.data()[*i]);
+//    for(std::vector<int>::const_iterator i = jobInstances.cbegin(); i != jobInstances.cend(); i++ ){
+    for(int i = 0; i < jobInstances.size(); i++ ){
+        binFeatures.push_back(features.data()[jobInstances[i]]);
     }
-    // TODO create features only once
+
     int nodeArity;
 
     while(true) {
-        iter++;
         //split labels
         childLabels = splitLabels(jobLabels, args);
-        nodeArity = std::min(args.arity, int(childLabels.size()));
+        nodeArity = int(childLabels.size());
+        assert(args.arity >= nodeArity);
 
         for(int i = 0; i <  nodeArity; i++){
             std::vector<double> cBinLabels;
@@ -93,8 +99,8 @@ std::vector<struct JobResult> PLTree::processJob(int index, std::vector<int> job
             binLabelsChild.push_back(cBinLabels);
             childPositiveInstances.push_back(cInstaces);
         }
-        //train
-        //TODO remove old models!!!
+
+        //TODO remove old models if trained multiple times
         for(int i = 0; i <  nodeArity; i++){
             Base *base = new Base();
             base->train(features.cols(), binLabelsChild[i], binFeatures, args);
@@ -103,7 +109,8 @@ std::vector<struct JobResult> PLTree::processJob(int index, std::vector<int> job
 
         // evaluate if convergence criteria are meet
         converged = true;
-        if(converged or (iter > maxIter)) {
+
+        if(converged or (iter++ > maxIter)) {
             break;
         }
     }
@@ -117,7 +124,6 @@ std::vector<struct JobResult> PLTree::processJob(int index, std::vector<int> job
         };
         results.push_back(result);
     }
-
     return results;
 }
 
@@ -192,32 +198,56 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
     std::iota(allLabels.begin(), allLabels.end(), 0); // TODO: labels start from 0?
     addModelToTree(rootResult.base, -1, allLabels, rootResult.instances, out, args, jobs);
     //TODO remove copying of vectors
-
-
-    while(jobs.size() != 0){
-        //TODO implement parallel
-        nextLevelJobs.clear();
-        for(auto job : jobs){
-            std::vector<JobResult> results = processJob(job.parent, job.instances, job.labels, out, labels, features, args);
-            for(auto result : results){
-                addModelToTree(result.base, result.parent, result.labels, result.instances,out, args, nextLevelJobs);
+    if(args.threads > 1){
+        // Run learning in parallel
+        ThreadPool tPool(args.threads);
+        while(jobs.size() != 0) {
+            std::vector<std::future<std::vector<JobResult>>> levelResults;
+            for (auto &job : jobs) {
+                levelResults.emplace_back(
+                        tPool.enqueue(processJob, job.parent, std::cref(job.instances), std::cref(job.labels),
+                                      std::ref(out), std::ref(labels), std::ref(features), std::ref(args)));
             }
+
+            for (int i = 0; i < levelResults.size(); ++i) {
+                std::vector<JobResult> results;
+                results = levelResults[i].get();
+
+                for (auto result : results) {
+                    addModelToTree(result.base, result.parent, result.labels, result.instances, out, args,
+                                   nextLevelJobs);
+                }
+            }
+
+            jobs = nextLevelJobs;
+            nextLevelJobs.clear();
         }
-        jobs = nextLevelJobs;
-        nextLevelJobs.clear();
+
+    } else {
+        while(jobs.size() != 0){
+            nextLevelJobs.clear();
+            for(auto job : jobs){
+                std::vector<JobResult> results = processJob(job.parent, job.instances, job.labels, out, labels, features, args);
+                for(auto result : results){
+                    addModelToTree(result.base, result.parent, result.labels, result.instances,out, args, nextLevelJobs);
+                }
+                printProgress(job.parent, labels.cols());
+            }
+            jobs = nextLevelJobs;
+            nextLevelJobs.clear();
+        }
     }
     out.close();
 
     std::cerr<<std::endl<<"Training finished."<<std::endl;
 
     t = tree.size();
-    k = labels.cols();//TODO: incorrect!!
+    k = treeLeaves.size();
 
     assert(k >= labels.cols());
 
     save(args.model + "/tree.bin");
     args.save(args.model + "/args.bin");
-
 }
 
 
@@ -563,8 +593,6 @@ void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
     int c;
 
     while(!begin_end_parent.empty()){
-
-
         auto bep = begin_end_parent.front();
         begin_end_parent.pop();
         auto begin = std::get<0>(bep);
@@ -592,8 +620,6 @@ void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
                 n->parent = tree[parent];
             }
 
-            //TODO there is a bug somewhere here
-            //why when
             int partSize = ceil(float(endd - begin)/arity);
             std::vector<int>::const_iterator partBegin = begin;
             c = 0;

@@ -22,21 +22,30 @@ public:
     double predictLoss(Feature* features);
     double predictProbability(Feature* features);
 
-    void toSparse();
-    void toDense();
+    int inline denseSize(){ return wSize * sizeof(double); }
+    int inline mapSize(){ return nonZeroW * (2 * sizeof(int) + sizeof(double)); }
+    int inline sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
 
-    void save(std::string outfile, Args& args);
-    void save(std::ostream& out, Args& args);
-    void load(std::string infile, Args& args);
-    void load(std::istream& in, Args& args);
+    void toMap(); // from W to mapW
+    void toDense(); // from sparseW or mapW to W
+    void toSparse(); // from W to sparseW
+    void threshold(double threshold);
+
+    void save(std::string outfile);
+    void save(std::ostream& out);
+    void load(std::string infile, bool sparseWeights = true);
+    void load(std::istream& in, bool sparseWeights = true);
 
 private:
     bool sparse;
     bool hingeLoss;
+
     int wSize;
+    int nonZeroW;
     int classCount;
     int firstClass;
 
     double* W;
-    std::unordered_map<int, double>* sparseW;
+    std::unordered_map<int, double>* mapW;
+    Feature* sparseW;
 };

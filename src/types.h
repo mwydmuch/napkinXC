@@ -21,7 +21,8 @@ class SRMatrix {
 public:
     SRMatrix();
     ~SRMatrix();
-    void appendRow(std::vector<T> row);
+    void appendRow(const std::vector<T>& row);
+    void appendRow(const T* row, const int size);
 
     // Returns data as T**
     inline T** data(){ return r.data(); }
@@ -35,7 +36,7 @@ private:
     int m; // Row count
     int n; // Col count
     std::vector<int> s; // Rows' sizes
-    std::vector<T *> r; // Rows
+    std::vector<T*> r; // Rows
 };
 
 template <typename T>
@@ -51,16 +52,21 @@ SRMatrix<T>::~SRMatrix(){
 
 // Data should be sorted
 template <typename T>
-void SRMatrix<T>::appendRow(std::vector<T> row){
-    s.push_back(row.size());
+void SRMatrix<T>::appendRow(const std::vector<T>& row){
+    appendRow(row.data(), row.size());
+}
 
-    T *newRow = new T[row.size() + 1];
-    std::memcpy(newRow, row.data(), row.size() * sizeof(T));
-    std::memset(&newRow[row.size()], -1, sizeof(T)); // Add termination feature (-1)
+template <typename T>
+void SRMatrix<T>::appendRow(const T* row, const int size){
+    s.push_back(size);
+
+    T *newRow = new T[size + 1];
+    std::memcpy(newRow, row, size * sizeof(T));
+    std::memset(&newRow[size], -1, sizeof(T)); // Add termination feature (-1)
     r.push_back(newRow);
 
-    if(row.size() > 0){
-        int rown = *(int *)&row.back() + 1;
+    if(size > 0){
+        int rown = *(int *)&row[size - 1] + 1;
         if(n < rown) n = rown;
     }
 

@@ -13,6 +13,8 @@ struct feature_node
 {
 	int index;
 	double value;
+
+	bool operator<(const feature_node &r) const { return value < r.value; }
 };
 
 struct problem
@@ -80,4 +82,3 @@ void set_print_string_function(void (*print_func) (const char*));
 #endif
 
 #endif /* _LIBLINEAR_H */
-

@@ -23,9 +23,9 @@ void test(Args &args) {
     std::vector<Base*> bases;
     std::ifstream in(args.model + "/weights.bin");
     for(int i = 0; i < tree.nodes(); ++i) {
-        bases.emplace_back(new Base());
-        bases.back()->load(in, args);
         printProgress(i, tree.nodes());
+        bases.emplace_back(new Base());
+        bases.back()->load(in, args.sparseWeights);
     }
     in.close();
 
@@ -50,14 +50,14 @@ void shrink(Args &args) {
 
     PLTree tree;
     tree.load(args.input + "/tree.bin");
-    args.sparseWeights = false;
 
     std::ifstream in(args.input + "/weights.bin");
     std::ofstream out(args.model + "/weights.bin");
     for (int i = 0; i < tree.nodes(); ++i){
         Base base;
-        base.load(in, args);
-        base.save(out, args);
+        base.load(in, false);
+        base.threshold(args.threshold);
+        base.save(out);
     }
     in.close();
     out.close();

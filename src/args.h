@@ -21,23 +21,27 @@ public:
     std::string model;
     bool header;
     bool bias;
+    double biasValue;
     bool norm;
     int hash;
     double threshold;
-    bool sparseWeights;
 
     // Training options
     int threads;
     int solverType;
     double eps;
+    bool labelsWeights;
 
     // Tree options
     int arity;
     TreeType treeType;
     std::string tree;
+    int maxLeaves;
 
     // Prediction options
     int topK;
+    bool sparseWeights;
+    double discount;
 
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);

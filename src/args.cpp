@@ -20,24 +20,28 @@ Args::Args() {
     header = true;
     hash = 0;
     bias = true;
+    biasValue = 1.0;
     norm = true;
     threshold = 0.1;
-    sparseWeights = true;
 
     // Training options
-    threads = getCpuCount() - 1;
+    threads = getCpuCount();
     eps = 0.1;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
+    labelsWeights = false;
 
     // Tree options
     tree = "";
     arity = 2;
     treeType = completeInOrder;
     treeTypeName = "completeInOrder";
+    maxLeaves = 4;
 
     // Prediction options
     topK = 1;
+    sparseWeights = true;
+    discount = 1.0;
 
     // Private
     hFeatures = -1;
@@ -47,6 +51,11 @@ Args::Args() {
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
+
+    if(command != "train" && command != "test" && command != "shrink"){
+        std::cerr << "Unknown command type: " << command << std::endl;
+        printHelp();
+    }
 
     for (int ai = 2; ai < args.size(); ai += 2) {
         if (args[ai][0] != '-') {
@@ -75,8 +84,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--sparseWeights")
-                sparseWeights = std::stoi(args.at(ai + 1)) != 0;
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -87,13 +94,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
-                if (args.at(ai + 1) == "L2R_LR") solverType = L2R_LR;
+                if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
+                else if (args.at(ai + 1) == "L2R_LR") solverType = L2R_LR;
+                else if (args.at(ai + 1) == "L1R_LR") solverType = L1R_LR;
                 else if (args.at(ai + 1) == "L2R_L2LOSS_SVC_DUAL") solverType = L2R_L2LOSS_SVC_DUAL;
                 else if (args.at(ai + 1) == "L2R_L2LOSS_SVC") solverType = L2R_L2LOSS_SVC;
                 else if (args.at(ai + 1) == "L2R_L1LOSS_SVC_DUAL") solverType = L2R_L1LOSS_SVC_DUAL;
                 else if (args.at(ai + 1) == "L1R_L2LOSS_SVC") solverType = L1R_L2LOSS_SVC;
-                else if (args.at(ai + 1) == "L1R_LR") solverType = L1R_LR;
-                else if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
                 else {
                     std::cerr << "Unknown solver type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -119,6 +126,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             // Prediction options
             else if (args[ai] == "--topK")
                 topK = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--sparseWeights")
+                sparseWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--discount")
+                discount = std::stof(args.at(ai + 1)) != 0;
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();
@@ -185,7 +196,7 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     if(bias && !header){
         for(int r = 0; r < features.rows(); ++r) {
             features.data()[r][features.sizes()[r] - 1].index = features.cols() - 1;
-            features.data()[r][features.sizes()[r] - 1].value = 1.0;
+            features.data()[r][features.sizes()[r] - 1].value = biasValue;
         }
     }
 
@@ -242,9 +253,9 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
 
     // Add bias feature
     if(bias && hFeatures < 0)
-        lFeatures.push_back({lFeatures.back().index + 1, 1.0});
+        lFeatures.push_back({lFeatures.back().index + 1, biasValue});
     else if(bias)
-        lFeatures.push_back({hFeatures + 1, 1.0});
+        lFeatures.push_back({hFeatures + 1, biasValue});
 }
 
 void Args::printArgs(){
@@ -278,7 +289,7 @@ void Args::printHelp(){
         -t, --threads   Number of threads used for training and testing (default = -1)
                         Note: -1 to use #cpus - 1, 0 to use #cpus
         --header        Input contains header (default = 1)
-                        Header format: #lines #features #labels
+                        Header fo   rmat: #lines #features #labels
         --hash          Size of hashing space (default = -1)
                         Note: -1 to disable
 

@@ -29,6 +29,16 @@ struct TreeNodeValue{
     bool operator<(const TreeNodeValue &r) const { return val < r.val; }
 };
 
+struct Assignation{
+    int index;
+    int value;
+};
+
+struct TreeNodePartition{
+    TreeNode* node;
+    std::vector<Assignation> *partition;
+};
+
 class PLTree{
 public:
     PLTree();
@@ -58,4 +68,6 @@ private:
     void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);
+
+    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
 };

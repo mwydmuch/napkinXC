@@ -42,6 +42,8 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
         buildCompleteTree(labels.cols(), args.arity, false);
     else if(args.treeType == completeRandom)
         buildCompleteTree(labels.cols(), args.arity, true);
+    else if(args.treeType == topdown)
+        buildTreeTopDown(labels, features, args);
     else buildTree(labels, features, args);
 
     // For stats
@@ -315,6 +317,12 @@ void PLTree::loadTreeStructure(std::string file){
 void PLTree::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
 
 }
+
+void PLTree::buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
+
+}
+
+
 
 void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {
     std::cerr << "Building complete PLTree ...\n";

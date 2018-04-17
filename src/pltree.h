@@ -55,6 +55,7 @@ private:
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);
 };

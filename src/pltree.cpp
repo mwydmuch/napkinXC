@@ -458,7 +458,7 @@ void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {
 
     for(size_t i = 0; i < t; ++i){
         int label = -1;
-        TreeNode *parent;
+        TreeNode *parent = nullptr;
 
         if(i >= ti){
             if(randomizeTree) label = labelsOrder[i - ti];

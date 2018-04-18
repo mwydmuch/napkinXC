@@ -42,7 +42,12 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
         buildCompleteTree(labels.cols(), args.arity, true);
     else if(args.treeType == topdown)
         buildTreeTopDown(labels, features, args);
-    else buildTree(labels, features, args);
+    else if (args.treeType == kmeans)
+        buildTree(labels, features, args);
+    else {
+        std::cerr << "Unknown tree type\n";
+        exit(0);
+    }
 
     // For stats
     int nCount = 0, yCount = 0;
@@ -259,6 +264,7 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vec
             prediction.clear();
 
             predict(prediction, features.data()[r], bases, args.topK);
+            //std::cerr << prediction.size() << " " << args.topK << "\n";
 
             for (int i = 0; i < args.topK; ++i)
                 for (int j = 0; j < labels.sizes()[r]; ++j)
@@ -287,6 +293,7 @@ void PLTree::loadTreeStructure(std::string file){
     for (auto i = 0; i < t; ++i) {
         TreeNode *n = new TreeNode();
         n->index = i;
+        n->label = -1;
         n->parent = nullptr;
         tree.push_back(n);
     }

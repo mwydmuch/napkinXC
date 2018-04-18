@@ -21,6 +21,7 @@ Args::Args() {
     hash = 0;
     bias = true;
     biasValue = 1.0;
+    C = 1.0;
     norm = true;
     threshold = 0.1;
 
@@ -84,6 +85,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "-C")
+                C = std::stof(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -298,6 +301,9 @@ void Args::printHelp(){
                         Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
                         L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                         See: https://github.com/cjlin1/liblinear
+        -C              Inverse of regularization strength; must be a positive float.
+                        Like in support vector machines, smaller values specify stronger
+                        regularization. (default = 0.1)
         -e, --eps       Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
         --bias          Add bias term (default = 1)

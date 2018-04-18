@@ -418,9 +418,16 @@ void PLTree::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Arg
 }
 
 void PLTree::buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
+    int n = features.rows(); // number of instances
+    std::vector<int> active(0), left(0), right(0);
+
+    for(int i=0; i < n; i++ ) active.push_back(i);
 
 }
 
+void PLTree::cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args){
+
+}
 
 
 void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {

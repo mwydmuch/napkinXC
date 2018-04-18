@@ -82,7 +82,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     parameter C = {
         .solver_type = args.solverType,
         .eps = args.eps,
-        .C = 1,
+        .C = args.C,
         //.nr_weight = 0,
         //.weight_label = NULL,
         //.weight = NULL,

@@ -22,6 +22,7 @@ public:
     bool header;
     bool bias;
     double biasValue;
+    double C;
     bool norm;
     int hash;
     double threshold;

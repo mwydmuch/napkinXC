@@ -30,7 +30,7 @@ Args::Args() {
     eps = 0.1;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
-    labelsWeights = false;
+    labelsWeights = true;
 
     // Tree options
     tree = "";

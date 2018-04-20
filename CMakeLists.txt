@@ -14,7 +14,7 @@ file(GLOB_RECURSE SOURCES
     src/liblinear/*.cpp
     src/blas/*.c)
 
-add_executable(nxml ${SOURCES})
+add_executable(nxml ${SOURCES} src/online_training.h src/online_training.cpp)
 
 target_include_directories(nxml PUBLIC
     src

@@ -9,6 +9,7 @@
 
 #include "base.h"
 #include "linear.h"
+#include "online_training.h"
 
 
 Base::Base(){
@@ -79,24 +80,42 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         .bias = (args.bias > 0 ? 1.0 : -1.0)
     };
 
-    parameter C = {
-        .solver_type = args.solverType,
-        .eps = args.eps,
-        .C = args.C,
-        //.nr_weight = 0,
-        //.weight_label = NULL,
-        //.weight = NULL,
-        .nr_weight = labelsCount,
-        .weight_label = labels,
-        .weight = labelsWeights,
-        .p = 0,
-        .init_sol = NULL
-    };
 
-    auto output = check_parameter(&P, &C);
-    assert(output == NULL);
+    model *M = nullptr;
+    if (args.optimizerType==libliner) {
+        parameter C = {
+                .solver_type = args.solverType,
+                .eps = args.eps,
+                .C = args.C,
+                //.nr_weight = 0,
+                //.weight_label = NULL,
+                //.weight = NULL,
+                .nr_weight = labelsCount,
+                .weight_label = labels,
+                .weight = labelsWeights,
+                .p = 0,
+                .init_sol = NULL
+        };
 
-    model* M = train_linear(&P, &C);
+        auto output = check_parameter(&P, &C);
+        assert(output == NULL);
+
+        M = train_linear(&P, &C);
+    } else if (args.optimizerType==sgd) {
+        online_parameter OC = {
+                .iter = args.iter,
+                .eta = args.eta,
+                .nr_weight = labelsCount,
+                .weight_label = labels,
+                .weight = labelsWeights,
+                .p = 0,
+                .init_sol = NULL
+
+        };
+
+
+        M = train_online(&P, &OC);
+    }
     assert(M->nr_class <= 2);
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
 
@@ -107,7 +126,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     classCount = M->nr_class;
     W = M->w;
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC
-        || args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
+                || args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
 
     // Delete LibLinear model
     delete[] M->label;

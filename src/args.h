@@ -9,6 +9,7 @@
 #include "types.h"
 
 enum TreeType { completeInOrder, completeRandom, complete, given, topdown, kmeans };
+enum OptimizerType {libliner, sgd};
 
 class Args{
 public:
@@ -26,10 +27,13 @@ public:
     bool norm;
     int hash;
     double threshold;
+    int iter;
+    double eta;
 
     // Training options
     int threads;
     int solverType;
+    int optimizerType;
     double eps;
     bool labelsWeights;
 

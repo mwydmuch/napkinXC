@@ -31,6 +31,9 @@ Args::Args() {
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     labelsWeights = true;
+    optimizerType = libliner;
+    iter = 50;
+    eta = 0.5;
 
     // Tree options
     tree = "";
@@ -109,7 +112,14 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
-
+            else if (args[ai] == "--optimizer") {
+                if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
+                else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
+                else{
+                    std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
             // Tree options
             else if (args[ai] == "--tree")
                 tree = std::string(args.at(ai + 1));
@@ -307,6 +317,7 @@ void Args::printHelp(){
         -e, --eps       Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
         --bias          Add bias term (default = 1)
+        --optimizer     libliner or sgd
 
         Tree:
         -a, --arity     Arity of a tree (default = 2)

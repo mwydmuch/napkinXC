@@ -34,6 +34,7 @@ public:
     int threads;
     int solverType;
     int optimizerType;
+    std::string optimizerName;
     double eps;
     bool labelsWeights;
 

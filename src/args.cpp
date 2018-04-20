@@ -117,6 +117,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 }
             }
             else if (args[ai] == "--optimizer") {
+                optimizerName = args.at(ai + 1);
                 if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
                 else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
                 else{
@@ -281,7 +282,9 @@ void Args::printArgs(){
             << "\n  Input: " << input
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
             << "\n  Model: " << model
-            << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+            << "\n    Optimizer: " << optimizerName
+            << "\n    LIBLINEAR: Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+            << "\n    SGD: eta: " << eta << ", iter: " << iter
             << "\n    Tree type: " << treeTypeName << ", arity: " << arity
             << "\n  Threads: " << threads << "\n";
     }

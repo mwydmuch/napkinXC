@@ -90,6 +90,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "-C")
                 C = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--eta")
+                eta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--iter")
+                iter = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -318,6 +322,8 @@ void Args::printHelp(){
                         See: https://github.com/cjlin1/liblinear
         --bias          Add bias term (default = 1)
         --optimizer     libliner or sgd
+        --eta           step size of sgd
+        --iter          number of epochs of sgd
 
         Tree:
         -a, --arity     Arity of a tree (default = 2)

@@ -157,8 +157,8 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
 void PLTree::predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, int k){
     std::priority_queue<TreeNodeValue> nQueue;
 
-    //double val = bases[treeRoot->index]->predictProbability(features);
-    double val = -bases[treeRoot->index]->predictLoss(features);
+    double val = bases[treeRoot->index]->predictProbability(features);
+    //double val = -bases[treeRoot->index]->predictLoss(features);
     nQueue.push({treeRoot, val});
 
     while (!nQueue.empty()) {
@@ -172,8 +172,8 @@ void PLTree::predict(std::vector<TreeNodeValue>& prediction, Feature* features, 
                 break;
         } else {
             for(const auto& child : nVal.node->children){
-                //val = nVal.val * bases[child->index]->predictProbability(features); // When using probability
-                val = nVal.val - bases[child->index]->predictLoss(features); // When using loss
+                val = nVal.val * bases[child->index]->predictProbability(features); // When using probability
+                //val = nVal.val - bases[child->index]->predictLoss(features); // When using loss
                 nQueue.push({child, val});
             }
         }

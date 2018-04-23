@@ -96,8 +96,8 @@ model* train_online(const problem *prob, const online_parameter *param)
         for(i=0; i<l; i++){
             feature_node * const xi=x[i];
             double pred = sparse_operator::dot( model_->w, xi);
-            if (deb)
-                std::cerr << i << ". " << pred << "\n";
+//            if (deb)
+//                std::cerr << i << ". " << pred << "\n";
             double label = (y[i]>0.5) ? 1.0 : -1.0;
             double importance = (y[i]>0.5) ? param->weight[1] : param->weight[0];
 
@@ -108,17 +108,25 @@ model* train_online(const problem *prob, const online_parameter *param)
                 sparse_operator::axpy(a*negativeGrad, xi, model_->w);
             }
         }
-//        if (deb) {
-//        double s2 = 0.0;
-//        for (j = 0; j < w_size; j++)
-//            s2 += (model_->w[j] * model_->w[j]);
-//        s2 = sqrt(s2);
-            //        std::cerr << "-->  L2 " << t << ". " << s2 << "\n";
+        if (deb) {
+            double s2 = 0.0;
+            for (j = 0; j < w_size; j++)
+                s2 += (model_->w[j] * model_->w[j]);
+            s2 = sqrt(s2);
+            std::cerr << "-->  L2 " << t << ". " << s2 << "\n";
 
-//        for(j=0; j<w_size; j++)
-//            model_->w[j] /= s2;
-  //      }
+        //        for(j=0; j<w_size; j++)
+        //            model_->w[j] /= s2;
+        //        }
+        }
     }
+
+//    double s2 = 0.0;
+//    for (j = 0; j < w_size; j++)
+//        s2 += (model_->w[j] * model_->w[j]);
+//    s2 = sqrt(s2);
+//    if (isnan(s2) || isinf(s2))
+//        std::cerr << "-->  L2 " << t << ". " << s2 << "\n";
 
     return model_;
 }

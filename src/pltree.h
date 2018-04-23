@@ -39,6 +39,24 @@ struct TreeNodePartition{
     std::vector<Assignation> *partition;
 };
 
+class FreqTuple{
+public:
+    int64_t f;
+    TreeNode* node;
+public:
+    FreqTuple(int64_t f_, TreeNode* node_){
+        f=f_; node=node_;
+    }
+    int64_t getFrequency() const { return f;}
+};
+
+struct DereferenceCompareNode : public std::binary_function<FreqTuple*, FreqTuple*, bool>{
+    bool operator()(const FreqTuple* lhs, const FreqTuple* rhs) const {
+        return lhs->getFrequency() > rhs->getFrequency();
+    }
+};
+
+
 class PLTree{
 public:
     PLTree();
@@ -65,8 +83,9 @@ private:
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
+    void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
+//    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+//    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);
 

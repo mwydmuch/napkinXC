@@ -135,6 +135,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
                 else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
                 else if (args.at(ai + 1) == "complete") treeType = complete;
+                else if (args.at(ai + 1) == "huffman") treeType = huffman;
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
                     printHelp();

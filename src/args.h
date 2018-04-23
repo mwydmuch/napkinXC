@@ -8,7 +8,7 @@
 #include <string>
 #include "types.h"
 
-enum TreeType { completeInOrder, completeRandom, complete, given, topdown, kmeans };
+enum TreeType { completeInOrder, completeRandom, complete, given, topdown, kmeans, huffman };
 enum OptimizerType {libliner, sgd};
 
 class Args{

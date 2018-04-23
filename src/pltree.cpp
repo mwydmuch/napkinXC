@@ -40,8 +40,10 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
         buildCompleteTree(labels.cols(), args.arity, false);
     else if(args.treeType == completeRandom)
         buildCompleteTree(labels.cols(), args.arity, true);
-    else if(args.treeType == topdown)
-        buildTreeTopDown(labels, features, args);
+//    else if(args.treeType == topdown)
+//        buildTreeTopDown(labels, features, args);
+    else if(args.treeType == huffman)
+        buildHuffmanPLTree(labels, args);
     else if (args.treeType == kmeans)
         buildTree(labels, features, args);
     else {
@@ -424,17 +426,87 @@ void PLTree::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Arg
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
 }
 
-void PLTree::buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
-    int n = features.rows(); // number of instances
-    std::vector<int> active(0), left(0), right(0);
 
-    for(int i=0; i < n; i++ ) active.push_back(i);
+void PLTree::buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args){
+    std::cout << "Building PLT with Huffman tree ...\n";
 
+    k = labels.cols();
+
+    std::cout << "  Compute labels frequencies ...\n";
+    std::vector<int64_t> freq(k);
+    for(int i=0; i<k; i++) freq[i]=0;
+    for(int r=0; r<labels.rows(); r++) {
+        int rSize = labels.sizes()[r];
+        auto rLabels = labels.data()[r];
+
+        for (int i = 0; i < rSize; ++i) freq[rLabels[i]]++;
+    }
+
+    std::priority_queue<FreqTuple*, std::vector<FreqTuple*>, DereferenceCompareNode> freqheap;
+    for(int i=0; i<k; i++) {
+        TreeNode* n = new TreeNode();
+        n->index = tree.size();
+        n->label = i;
+        treeLeaves[n->label] = n;
+        tree.push_back(n);
+
+        FreqTuple* f = new FreqTuple(freq[i], n);
+        freqheap.push(f);
+
+        //std::cout << "Leaf: " << n->label << ", Node: " << n->n << ", Freq: " << freq[i] << "\n";
+    }
+
+    while (1) {
+        std::vector<FreqTuple*> toMerge;
+        for(int a = 0; a < args.arity; ++a){
+            FreqTuple* tmp = freqheap.top();
+            freqheap.pop();
+            toMerge.push_back(tmp);
+
+            if (freqheap.empty()) break;
+        }
+
+        TreeNode* parent = new TreeNode();
+        parent->index = tree.size();
+        parent->label = -1;
+
+        int64_t aggregatedFrequency = 0;
+        for( FreqTuple* e : toMerge){
+            e->node->parent = parent;
+            parent->children.push_back(e->node);
+            aggregatedFrequency += e->getFrequency();
+        }
+
+        tree.push_back(parent);
+
+        if (freqheap.empty()) {
+            treeRoot = parent;
+            treeRoot->parent = nullptr;
+            break;
+        }
+
+        FreqTuple* tup = new FreqTuple(aggregatedFrequency,parent);
+        freqheap.push(tup);
+    }
+
+    t = tree.size();  // size of the tree
+    std::cout << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << args.arity << "\n";
 }
 
-void PLTree::cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args){
 
-}
+
+
+//void PLTree::buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
+//    int n = features.rows(); // number of instances
+//    std::vector<int> active(0), left(0), right(0);
+//
+//    for(int i=0; i < n; i++ ) active.push_back(i);
+//
+//}
+//
+//void PLTree::cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args){
+//
+//}
 
 
 void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {

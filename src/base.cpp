@@ -245,7 +245,16 @@ void Base::save(std::string outfile){
     out.close();
 }
 
-void Base::save(std::ostream& out){
+void Base::print(){
+    if(classCount > 1) {
+        for(int i = 0; i < wSize; ++i){
+            std::cerr<<W[i]<<";";
+        }
+        std::cerr<<std::endl;
+    }
+}
+
+void Base::save(std::ostream& out, Args& args){
     out.write((char*) &classCount, sizeof(classCount));
     out.write((char*) &firstClass, sizeof(firstClass));
 

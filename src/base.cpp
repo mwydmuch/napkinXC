@@ -239,9 +239,9 @@ void Base::threshold(double threshold){
     }
 }
 
-void Base::save(std::string outfile){
+void Base::save(std::string outfile, Args& args){
     std::ofstream out(outfile);
-    save(out);
+    save(out, args);
     out.close();
 }
 
@@ -289,13 +289,13 @@ void Base::save(std::ostream& out, Args& args){
     //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << sparseSize/1024 << "/" << denseSize/1024 << "K\n";
 }
 
-void Base::load(std::string infile, bool sparseWeights){
+void Base::load(std::string infile, Args& args){
     std::ifstream in(infile);
-    load(in, sparseWeights);
+    load(in, args);
     in.close();
 }
 
-void Base::load(std::istream& in, bool sparseWeights) {
+void Base::load(std::istream& in, Args& args) {
     in.read((char*) &classCount, sizeof(classCount));
     in.read((char*) &firstClass, sizeof(firstClass));
 
@@ -308,7 +308,7 @@ void Base::load(std::istream& in, bool sparseWeights) {
         in.read((char*) &loadSparse, sizeof(loadSparse));
 
         // Decide on weights coding
-        sparse = sparseWeights && mapSize() < denseSize();
+        sparse = args.sparseWeights && mapSize() < denseSize();
 
         if(sparse) mapW = new std::unordered_map<int, double>();
         else {

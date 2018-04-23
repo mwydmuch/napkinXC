@@ -301,7 +301,6 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
         buildBalancedTree(labels.cols(), args.arity, false);
     else if(args.treeType == balancedRandom)
         buildBalancedTree(labels.cols(), args.arity, true);
-    else buildTree(labels, features, args);
 //    else if(args.treeType == topdown)
 //        buildTreeTopDown(labels, features, args);
     else if(args.treeType == huffman)
@@ -394,7 +393,7 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
         for(int i = 0; i < results.size(); ++i) {
             printProgress(i, results.size());
             Base* base = results[i].get();
-            base->save(out);
+            base->save(out, args);
             delete base;
         }
     } else {
@@ -402,7 +401,7 @@ void PLTree::trainFixed(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
             printProgress(i, tree.size());
             Base base;
             base.train(features.cols(), binLabels[tree[i]->index], binFeatures[tree[i]->index], args);
-            base.save(out);
+            base.save(out, args);
         }
     }
     out.close();

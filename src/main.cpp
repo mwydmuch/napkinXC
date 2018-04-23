@@ -25,7 +25,7 @@ void test(Args &args) {
     for(int i = 0; i < tree.nodes(); ++i) {
         printProgress(i, tree.nodes());
         bases.emplace_back(new Base());
-        bases.back()->load(in, args.sparseWeights);
+        bases.back()->load(in, args);
     }
     in.close();
 
@@ -55,9 +55,9 @@ void shrink(Args &args) {
     std::ofstream out(args.model + "/weights.bin");
     for (int i = 0; i < tree.nodes(); ++i){
         Base base;
-        base.load(in, false);
+        base.load(in, args);
         base.threshold(args.threshold);
-        base.save(out);
+        base.save(out, args);
     }
     in.close();
     out.close();

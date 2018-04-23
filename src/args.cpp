@@ -20,24 +20,32 @@ Args::Args() {
     header = true;
     hash = 0;
     bias = true;
+    biasValue = 1.0;
+    C = 1.0;
     norm = true;
     threshold = 0.1;
-    sparseWeights = true;
 
     // Training options
-    threads = getCpuCount() - 1;
+    threads = getCpuCount();
     eps = 0.1;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
+    labelsWeights = true;
+    optimizerType = libliner;
+    iter = 50;
+    eta = 0.5;
 
     // Tree options
     tree = "";
     arity = 2;
     treeType = completeInOrder;
     treeTypeName = "completeInOrder";
+    maxLeaves = 4;
 
     // Prediction options
     topK = 1;
+    sparseWeights = true;
+    discount = 1.0;
 
     // Private
     hFeatures = -1;
@@ -47,6 +55,11 @@ Args::Args() {
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
+
+    if(command != "train" && command != "test" && command != "shrink"){
+        std::cerr << "Unknown command type: " << command << std::endl;
+        printHelp();
+    }
 
     for (int ai = 2; ai < args.size(); ai += 2) {
         if (args[ai][0] != '-') {
@@ -75,8 +88,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--sparseWeights")
-                sparseWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "-C")
+                C = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--eta")
+                eta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--iter")
+                iter = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -87,19 +104,27 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
-                if (args.at(ai + 1) == "L2R_LR") solverType = L2R_LR;
+                if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
+                else if (args.at(ai + 1) == "L2R_LR") solverType = L2R_LR;
+                else if (args.at(ai + 1) == "L1R_LR") solverType = L1R_LR;
                 else if (args.at(ai + 1) == "L2R_L2LOSS_SVC_DUAL") solverType = L2R_L2LOSS_SVC_DUAL;
                 else if (args.at(ai + 1) == "L2R_L2LOSS_SVC") solverType = L2R_L2LOSS_SVC;
                 else if (args.at(ai + 1) == "L2R_L1LOSS_SVC_DUAL") solverType = L2R_L1LOSS_SVC_DUAL;
                 else if (args.at(ai + 1) == "L1R_L2LOSS_SVC") solverType = L1R_L2LOSS_SVC;
-                else if (args.at(ai + 1) == "L1R_LR") solverType = L1R_LR;
-                else if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
                 else {
                     std::cerr << "Unknown solver type: " << args.at(ai + 1) << std::endl;
                     printHelp();
                 }
             }
-
+            else if (args[ai] == "--optimizer") {
+                optimizerName = args.at(ai + 1);
+                if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
+                else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
+                else{
+                    std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
             // Tree options
             else if (args[ai] == "--tree")
                 tree = std::string(args.at(ai + 1));
@@ -113,6 +138,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "complete") treeType = complete;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
+                else if (args.at(ai + 1) == "huffman") treeType = huffman;
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -123,6 +149,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--to"
                                          "pK")
                 topK = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--sparseWeights")
+                sparseWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--discount")
+                discount = std::stof(args.at(ai + 1)) != 0;
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();
@@ -189,7 +219,7 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     if(bias && !header){
         for(int r = 0; r < features.rows(); ++r) {
             features.data()[r][features.sizes()[r] - 1].index = features.cols() - 1;
-            features.data()[r][features.sizes()[r] - 1].value = 1.0;
+            features.data()[r][features.sizes()[r] - 1].value = biasValue;
         }
     }
 
@@ -246,9 +276,9 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
 
     // Add bias feature
     if(bias && hFeatures < 0)
-        lFeatures.push_back({lFeatures.back().index + 1, 1.0});
+        lFeatures.push_back({lFeatures.back().index + 1, biasValue});
     else if(bias)
-        lFeatures.push_back({hFeatures + 1, 1.0});
+        lFeatures.push_back({hFeatures + 1, biasValue});
 }
 
 void Args::printArgs(){
@@ -257,7 +287,9 @@ void Args::printArgs(){
             << "\n  Input: " << input
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
             << "\n  Model: " << model
-            << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+            << "\n    Optimizer: " << optimizerName
+            << "\n    LIBLINEAR: Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+            << "\n    SGD: eta: " << eta << ", iter: " << iter
             << "\n    Tree type: " << treeTypeName << ", arity: " << arity
             << "\n  Threads: " << threads << "\n";
     }
@@ -282,7 +314,7 @@ void Args::printHelp(){
         -t, --threads   Number of threads used for training and testing (default = -1)
                         Note: -1 to use #cpus - 1, 0 to use #cpus
         --header        Input contains header (default = 1)
-                        Header format: #lines #features #labels
+                        Header fo   rmat: #lines #features #labels
         --hash          Size of hashing space (default = -1)
                         Note: -1 to disable
 
@@ -291,9 +323,15 @@ void Args::printHelp(){
                         Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
                         L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                         See: https://github.com/cjlin1/liblinear
+        -C              Inverse of regularization strength; must be a positive float.
+                        Like in support vector machines, smaller values specify stronger
+                        regularization. (default = 0.1)
         -e, --eps       Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
         --bias          Add bias term (default = 1)
+        --optimizer     libliner or sgd
+        --eta           step size of sgd
+        --iter          number of epochs of sgd
 
         Tree:
         -a, --arity     Arity of a tree (default = 2)

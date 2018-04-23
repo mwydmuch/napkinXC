@@ -44,6 +44,33 @@ struct JobResult{
     std::vector<int> labels;
 };
 
+struct Assignation{
+    int index;
+    int value;
+};
+
+struct TreeNodePartition{
+    TreeNode* node;
+    std::vector<Assignation> *partition;
+};
+
+class FreqTuple{
+public:
+    int64_t f;
+    TreeNode* node;
+public:
+    FreqTuple(int64_t f_, TreeNode* node_){
+        f=f_; node=node_;
+    }
+    int64_t getFrequency() const { return f;}
+};
+
+struct DereferenceCompareNode : public std::binary_function<FreqTuple*, FreqTuple*, bool>{
+    bool operator()(const FreqTuple* lhs, const FreqTuple* rhs) const {
+        return lhs->getFrequency() > rhs->getFrequency();
+    }
+};
+
 
 class PLTree{
 public:
@@ -82,9 +109,14 @@ private:
     struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
 
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+    void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
+//    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+//    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
     void loadTreeStructure(std::string file);
+
     void printTree(TreeNode *n);
+    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
 };

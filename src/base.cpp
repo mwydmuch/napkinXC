@@ -79,16 +79,12 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         .bias = (args.bias > 0 ? 1.0 : -1.0)
     };
 
-
     model *M = nullptr;
-    if (args.optimizerType==libliner) {
+    if (args.optimizerType == libliner) {
         parameter C = {
                 .solver_type = args.solverType,
                 .eps = args.eps,
-                .C = args.C,
-                //.nr_weight = 0,
-                //.weight_label = NULL,
-                //.weight = NULL,
+                .C = args.cost,
                 .nr_weight = labelsCount,
                 .weight_label = labels,
                 .weight = labelsWeights,
@@ -98,9 +94,9 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
 
         auto output = check_parameter(&P, &C);
         assert(output == NULL);
-
         M = train_linear(&P, &C);
-    } else if (args.optimizerType==sgd) {
+
+    } else if (args.optimizerType == sgd) {
         online_parameter OC = {
                 .iter = args.iter,
                 .eta = args.eta,
@@ -112,9 +108,9 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
 
         };
 
-
         M = train_online(&P, &OC);
     }
+
     assert(M->nr_class <= 2);
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
 
@@ -248,7 +244,8 @@ void Base::save(std::string outfile, Args& args){
     out.close();
 }
 
-void Base::print(){
+// TODO add support for other representations
+void Base::printWeights(){
     if(classCount > 1) {
         for(int i = 0; i < wSize; ++i){
             std::cerr<<W[i]<<";";

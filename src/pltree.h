@@ -27,9 +27,9 @@ struct TreeNode{
 
 struct TreeNodeValue{
     TreeNode* node;
-    double val; // Node's value/probability
+    double value; // Node's value/probability
 
-    bool operator<(const TreeNodeValue &r) const { return val < r.val; }
+    bool operator<(const TreeNodeValue &r) const { return value < r.value; }
 };
 
 struct NodeJob{
@@ -107,6 +107,8 @@ private:
     std::vector<TreeNode*> tree; // Pointers to tree nodes
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
+
+    // Tree building methods
     void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                         std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void addRootToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
@@ -121,7 +123,7 @@ private:
     void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
 //    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 //    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
-    // Tree building and
+
     void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, Args &args);
     void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
@@ -129,6 +131,8 @@ private:
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
     void loadTreeStructure(std::string file);
 
-    void printTree(TreeNode *n);
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
+
+    void printTree(TreeNode *n);
+    void printTree();
 };

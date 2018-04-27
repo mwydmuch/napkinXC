@@ -35,11 +35,8 @@ public:
     void save(std::ostream& out, Args& args);
     void load(std::string infile, Args& args);
     void load(std::istream& in, Args& args);
-//    void save(std::string outfile);
-//    void save(std::ostream& out);
-//    void load(std::string infile, bool sparseWeights = true);
-//    void load(std::istream& in, bool sparseWeights = true);
-    void print();
+
+    void printWeights();
 
 private:
     bool sparse;

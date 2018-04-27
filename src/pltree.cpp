@@ -249,36 +249,6 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
     args.save(args.model + "/args.bin");
 }
 
-
-void PLTree::printTree(TreeNode *root){
-//DFS
-//    if(n->parent != nullptr){
-//        std::cout<<"(index-"<<n->index<<":label-"<<n->label<<":parent-"<<n->parent->index<<")";
-//    } else {
-//        std::cout<<"(index-"<<n->index<<":label-"<<n->label<<":parent-"<<")";
-//    }
-//    for(auto c : n->children) printTree(c);
-
-//BFS
-    std::queue<int> q;
-    q.push(0);
-    int n;
-
-    while(!q.empty()){
-        n = q.front();
-        q.pop();
-        if(tree[n]->parent != nullptr){
-            std::cout<<"(index-"<<tree[n]->index<<":label-"<<tree[n]->label<<":parent-"<<tree[n]->parent->index<<")";
-        } else {
-            std::cout<<"(index-"<<tree[n]->index<<":label-"<<tree[n]->label<<":parent-"<<")";
-        }
-        for(auto c : tree[n]->children){
-            q.push(c->index);
-        }
-    }
-
-}
-
 void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
     rng.seed(args.seed);
 
@@ -432,14 +402,14 @@ void PLTree::predict(std::vector<TreeNodeValue>& prediction, Feature* features, 
         nQueue.pop();
 
         if(nVal.node->label >= 0){
-            prediction.push_back({nVal.node, nVal.val}); // When using probability
-            //prediction.push_back({nVal.node, exp(nVal.val)}); // When using loss
+            prediction.push_back({nVal.node, nVal.value}); // When using probability
+            //prediction.push_back({nVal.node, exp(nVal.value)}); // When using loss
             if (prediction.size() >= k)
                 break;
         } else {
             for(const auto& child : nVal.node->children){
-                val = nVal.val * bases[child->index]->predictProbability(features); // When using probability
-                //val = nVal.val - bases[child->index]->predictLoss(features); // When using loss
+                val = nVal.value * bases[child->index]->predictProbability(features); // When using probability
+                //val = nVal.value - bases[child->index]->predictLoss(features); // When using loss
                 nQueue.push({child, val});
             }
         }
@@ -1012,4 +982,58 @@ void PLTree::load(std::istream& in){
     }
 
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
+}
+
+void PLTree::printTree(TreeNode *root){
+//DFS
+//    if(n->parent != nullptr){
+//        std::cout<<"(index-"<<n->index<<":label-"<<n->label<<":parent-"<<n->parent->index<<")";
+//    } else {
+//        std::cout<<"(index-"<<n->index<<":label-"<<n->label<<":parent-"<<")";
+//    }
+//    for(auto c : n->children) printTree(c);
+
+//BFS
+    std::queue<int> q;
+    q.push(0);
+    int n;
+
+    while(!q.empty()){
+        n = q.front();
+        q.pop();
+        if(tree[n]->parent != nullptr){
+            std::cout<<"(index-"<<tree[n]->index<<":label-"<<tree[n]->label<<":parent-"<<tree[n]->parent->index<<")";
+        } else {
+            std::cout<<"(index-"<<tree[n]->index<<":label-"<<tree[n]->label<<":parent-"<<")";
+        }
+        for(auto c : tree[n]->children){
+            q.push(c->index);
+        }
+    }
+
+}
+
+void PLTree::printTree(){
+    std::unordered_set<TreeNode*> nSet;
+    std::queue<TreeNode*> nQueue;
+    nQueue.push(treeRoot);
+    nSet.insert(treeRoot);
+    int depth = 0;
+
+    while(!nQueue.empty()){
+        TreeNode* n = nQueue.front();
+        nQueue.pop();
+
+        if(nSet.count(n->parent)){
+            nSet.clear();
+            std::cerr << "\nDepth " << ++depth << ":";
+        }
+
+        nSet.insert(n);
+        std::cerr << " " << n->index;
+        if(n->parent) std::cerr << "(" << n->parent->index << ")";
+        for(auto c : n->children) nQueue.push(c);
+    }
+
+    std::cerr << "\n";
 }

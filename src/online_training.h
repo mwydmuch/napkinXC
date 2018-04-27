@@ -1,11 +1,9 @@
-//
-// Created by Robert Busa-Fekete on 4/19/18.
-//
+/**
+ * Copyright (c) 2018 by Robert Istvan Busa-Fekete
+ * All rights reserved.
+ */
 
-#ifndef NAPKINXML_ONLINE_TRAINING_H
-#define NAPKINXML_ONLINE_TRAINING_H
-
-#endif //NAPKINXML_ONLINE_TRAINING_H
+#pragma once
 
 struct online_parameter {
     int iter;
@@ -16,6 +14,5 @@ struct online_parameter {
     double p;
     double *init_sol;
 };
-
 
 struct model* train_online(const struct problem *prob, const struct online_parameter *param);

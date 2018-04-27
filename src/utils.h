@@ -99,5 +99,6 @@ inline int getCpuCount(){
 
 // Prints progress
 inline void printProgress(int state, int max){
-    std::cerr << "  " << state << " / " << max << "\r";
+    //std::cerr << "  " << state << " / " << max << "\r";
+    if(state % (max / 100) == 0) std::cerr << "  " << state / (max / 100) << "%\r";
 }

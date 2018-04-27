@@ -1,8 +1,7 @@
-//
-// Created by Robert Busa-Fekete on 4/19/18.
-//
-
-#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
+/**
+ * Copyright (c) 2018 by Robert Istvan Busa-Fekete
+ * All rights reserved.
+ */
 
 #include <liblinear/linear.h>
 #include <cstdlib>
@@ -10,6 +9,7 @@
 #include <iostream>
 #include "online_training.h"
 
+#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 
 class sparse_operator
 {

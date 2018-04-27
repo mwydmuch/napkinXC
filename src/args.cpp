@@ -352,12 +352,13 @@ void Args::printHelp(){
 
         Tree:
         -a, --arity     Arity of a tree (default = 2)
-        --maxLeaves
+        --maxLeaves     Maximum number of leaves (labels) in one internal node.
         --tree          File with tree structure
         --treeType      Type of a tree to build if file with structure is not provided
                         Tree types: completeInOrder, completeRandom
+
         K-Means tree:
-        --kMeansEps
+        --kMeansEps     Stopping criteria for K-Means clustering (default = 0.01)
     )HELP";
     exit(EXIT_FAILURE);
 }

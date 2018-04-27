@@ -39,6 +39,7 @@ Args::Args() {
     treeType = completeInOrder;
     treeTypeName = "completeInOrder";
     maxLeaves = 2;
+    kMeansEps = 0.01;
 
     // Prediction options
     topK = 1;
@@ -99,6 +100,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "-c" || args[ai] == "--cost")
                 cost = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--labelsWeights")
+                labelsWeights = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
                 if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
@@ -123,6 +126,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 maxLeaves = std::stoi(args.at(ai + 1));
                 maxLeavesSet = true;
             }
+            else if (args[ai] == "--kMeansEps")
+                kMeansEps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
@@ -296,7 +301,7 @@ void Args::printHelp(){
         -t, --threads   Number of threads used for training and testing (default = -1)
                         Note: -1 to use #cpus - 1, 0 to use #cpus
         --header        Input contains header (default = 1)
-                        Header fo   rmat: #lines #features #labels
+                        Header format: #lines #features #labels
         --hash          Size of hashing space (default = -1)
                         Note: -1 to disable
         --seed          Model's seed
@@ -309,6 +314,7 @@ void Args::printHelp(){
         -e, --eps       Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
         --bias          Add bias term (default = 1)
+        --labelsWeights //TODO//
 
         Tree:
         -a, --arity     Arity of a tree (default = 2)

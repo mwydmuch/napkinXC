@@ -75,7 +75,7 @@ private:
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
     // Tree building and
-    void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, int centroids);
+    void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, Args &args);
     void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);

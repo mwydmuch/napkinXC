@@ -317,12 +317,14 @@ void PLTree::loadTreeStructure(std::string file){
     std::cout << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
 }
 
-// Heuristic? Balanced K-means++ clustering
-void PLTree::balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, int centroids){
-    std::cerr << "balancedKMeans ...\n Partition: " << partition->size() << ", centroids: " << centroids << "\n";
-
+// Heuristic? Balanced K-Means clustering
+void PLTree::balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, Args &args){
     int labels = partition->size();
     int features = labelsFeatures.cols();
+    int centroids = args.arity;
+
+    //std::cerr << "balancedKMeans ...\n  Partition: " << partition->size() << ", centroids: " << centroids << "\n";
+
     int maxPartitionSize = static_cast<int>(ceil(static_cast<double>(labels) / centroids));
 
     // Test split - balanced tree
@@ -339,12 +341,12 @@ void PLTree::balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<
         setVector(labelsFeatures.row(dist(rng)), centroidsFeatures[i]);
     }
 
-    double oldCos = INT_MIN, newCos = -1, acc = 0.1;
+    double oldCos = INT_MIN, newCos = -1;
 
     std::vector<LabelsDistances> distances(labels);
     for(int i=0; i < labels; ++i ) distances[i].values.resize(centroids);
 
-    while(newCos - oldCos >= acc){
+    while(newCos - oldCos >= args.kMeansEps){
         std::vector<int> centroidsSizes(centroids, 0);
         //std::cerr << "  newCos: " << newCos << ", oldCos: " << oldCos << "\n";
 
@@ -402,6 +404,7 @@ void PLTree::balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<
     }
 }
 
+// TODO: Make it parallel
 void PLTree::buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
     SRMatrix<Feature> labelsFeatures;
 
@@ -456,7 +459,7 @@ void PLTree::buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& feature
         nQueue.pop();
 
         if(nPart.partition->size() > args.maxLeaves){
-            balancedKMeans(nPart.partition, labelsFeatures, args.arity);
+            balancedKMeans(nPart.partition, labelsFeatures, args);
             std::vector<LabelsAssignation>** partitions = new std::vector<LabelsAssignation>*[args.arity];
             for(int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<LabelsAssignation>();
             for(auto p : *nPart.partition) partitions[p.value]->push_back({p.index, 0});

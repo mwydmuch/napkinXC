@@ -161,7 +161,7 @@ void SRMatrix<T>::load(std::istream& in) {
         int size;
         in.read((char*) &size, sizeof(size));
         T* newRow = new T[size + 1];
-        s.push_back(s);
+        s.push_back(size);
         r.push_back(newRow);
 
         for (int j = 0; j <= size; ++j)

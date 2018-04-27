@@ -40,6 +40,7 @@ public:
     TreeType treeType;
     std::string tree;
     int maxLeaves;
+    double kMeansEps;
 
     // Prediction options
     int topK;

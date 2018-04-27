@@ -9,6 +9,8 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <tuple>
+#include <algorithm>
 #include <random>
 
 #include "args.h"
@@ -30,6 +32,19 @@ struct TreeNodeValue{
     bool operator<(const TreeNodeValue &r) const { return val < r.val; }
 };
 
+struct NodeJob{
+    int parent;
+    std::vector<int> labels;
+    std::vector<int> instances;
+};
+
+struct JobResult{
+    Base *base;
+    int parent;
+    std::vector<int> instances;
+    std::vector<int> labels;
+};
+
 struct LabelsAssignation{
     int index;
     int value;
@@ -46,6 +61,24 @@ struct TreeNodePartition{
     TreeNode* node;
     std::vector<LabelsAssignation> *partition;
 };
+
+class FreqTuple{
+public:
+    int64_t f;
+    TreeNode* node;
+public:
+    FreqTuple(int64_t f_, TreeNode* node_){
+        f=f_; node=node_;
+    }
+    int64_t getFrequency() const { return f;}
+};
+
+struct DereferenceCompareNode : public std::binary_function<FreqTuple*, FreqTuple*, bool>{
+    bool operator()(const FreqTuple* lhs, const FreqTuple* rhs) const {
+        return lhs->getFrequency() > rhs->getFrequency();
+    }
+};
+
 
 class PLTree{
 public:
@@ -74,11 +107,28 @@ private:
     std::vector<TreeNode*> tree; // Pointers to tree nodes
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
+    void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
+                        std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
+    void addRootToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
+                               std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
+    void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+    void trainFixed(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+//    std::vector<struct JobResult> processJob(int index, std::vector<int>& jobInstances, std::vector<int>& jobLabels,
+//                                             std::ofstream& out,SRMatrix<Label>& labels, SRMatrix<Feature>& features,
+//                                             Args& args);
+    struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+
+    void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
+//    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+//    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
     // Tree building and
     void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, int centroids);
     void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
+    void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
+    TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
     void loadTreeStructure(std::string file);
 
+    void printTree(TreeNode *n);
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
 };

@@ -22,6 +22,7 @@ Args::Args() {
     hash = 0;
     bias = true;
     biasValue = 1.0;
+    C = 1.0;
     norm = true;
     threshold = 0.1;
 
@@ -31,7 +32,10 @@ Args::Args() {
     cost = 1.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
-    labelsWeights = false;
+    labelsWeights = true;
+    optimizerType = libliner;
+    iter = 50;
+    eta = 0.5;
 
     // Tree options
     tree = "";
@@ -89,6 +93,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "-C")
+                C = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--eta")
+                eta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--iter")
+                iter = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -113,7 +123,15 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
-
+            else if (args[ai] == "--optimizer") {
+                optimizerName = args.at(ai + 1);
+                if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
+                else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
+                else{
+                    std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
             // Tree options
             else if (args[ai] == "--tree")
                 tree = std::string(args.at(ai + 1));
@@ -127,7 +145,11 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
                 else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
+                else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
+                else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "kMeans") treeType = kMeans;
+                else if (args.at(ai + 1) == "topDown") treeType = topDown;
+                else if (args.at(ai + 1) == "huffman") treeType = huffman;
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -135,7 +157,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
 
             // Prediction options
-            else if (args[ai] == "--topK")
+            else if (args[ai] == "--to"
+                                         "pK")
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--sparseWeights")
                 sparseWeights = std::stoi(args.at(ai + 1)) != 0;
@@ -271,8 +294,10 @@ void Args::printArgs(){
             << "\n  Input: " << input
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
             << "\n  Model: " << model
-            << "\n    Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
-            << "\n    Tree type: " << treeTypeName << ", arity: " << arity << ", maxLeaves: " << maxLeaves
+            << "\n    Optimizer: " << optimizerName
+            << "\n    LIBLINEAR: Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
+            << "\n    SGD: eta: " << eta << ", iter: " << iter
+            << "\n    Tree type: " << treeTypeName << ", arity: " << arity
             << "\n  Threads: " << threads << "\n";
     }
     else if (command == "shrink")
@@ -306,9 +331,15 @@ void Args::printHelp(){
                         Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
                         L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                         See: https://github.com/cjlin1/liblinear
+        -C              Inverse of regularization strength; must be a positive float.
+                        Like in support vector machines, smaller values specify stronger
+                        regularization. (default = 0.1)
         -e, --eps       Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
         --bias          Add bias term (default = 1)
+        --optimizer     libliner or sgd
+        --eta           step size of sgd
+        --iter          number of epochs of sgd
 
         Tree:
         -a, --arity     Arity of a tree (default = 2)

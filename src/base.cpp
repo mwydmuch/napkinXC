@@ -9,6 +9,7 @@
 
 #include "base.h"
 #include "linear.h"
+#include "online_training.h"
 
 
 Base::Base(){
@@ -78,21 +79,42 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         .bias = (args.bias > 0 ? 1.0 : -1.0)
     };
 
-    parameter C = {
-        .solver_type = args.solverType,
-        .eps = args.eps,
-        .C = args.cost,
-        .nr_weight = labelsCount,
-        .weight_label = labels,
-        .weight = labelsWeights,
-        .p = 0,
-        .init_sol = NULL
-    };
 
-    auto output = check_parameter(&P, &C);
-    assert(output == NULL);
+    model *M = nullptr;
+    if (args.optimizerType==libliner) {
+        parameter C = {
+                .solver_type = args.solverType,
+                .eps = args.eps,
+                .C = args.C,
+                //.nr_weight = 0,
+                //.weight_label = NULL,
+                //.weight = NULL,
+                .nr_weight = labelsCount,
+                .weight_label = labels,
+                .weight = labelsWeights,
+                .p = 0,
+                .init_sol = NULL
+        };
 
-    model* M = train_linear(&P, &C);
+        auto output = check_parameter(&P, &C);
+        assert(output == NULL);
+
+        M = train_linear(&P, &C);
+    } else if (args.optimizerType==sgd) {
+        online_parameter OC = {
+                .iter = args.iter,
+                .eta = args.eta,
+                .nr_weight = labelsCount,
+                .weight_label = labels,
+                .weight = labelsWeights,
+                .p = 0,
+                .init_sol = NULL
+
+        };
+
+
+        M = train_online(&P, &OC);
+    }
     assert(M->nr_class <= 2);
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
 
@@ -103,7 +125,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     classCount = M->nr_class;
     W = M->w;
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC
-        || args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
+                || args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
 
     // Delete LibLinear model
     delete[] M->label;
@@ -220,13 +242,22 @@ void Base::threshold(double threshold){
     }
 }
 
-void Base::save(std::string outfile){
+void Base::save(std::string outfile, Args& args){
     std::ofstream out(outfile);
-    save(out);
+    save(out, args);
     out.close();
 }
 
-void Base::save(std::ostream& out){
+void Base::print(){
+    if(classCount > 1) {
+        for(int i = 0; i < wSize; ++i){
+            std::cerr<<W[i]<<";";
+        }
+        std::cerr<<std::endl;
+    }
+}
+
+void Base::save(std::ostream& out, Args& args){
     out.write((char*) &classCount, sizeof(classCount));
     out.write((char*) &firstClass, sizeof(firstClass));
 
@@ -261,13 +292,13 @@ void Base::save(std::ostream& out){
     //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << sparseSize/1024 << "/" << denseSize/1024 << "K\n";
 }
 
-void Base::load(std::string infile, bool sparseWeights){
+void Base::load(std::string infile, Args& args){
     std::ifstream in(infile);
-    load(in, sparseWeights);
+    load(in, args);
     in.close();
 }
 
-void Base::load(std::istream& in, bool sparseWeights) {
+void Base::load(std::istream& in, Args& args) {
     in.read((char*) &classCount, sizeof(classCount));
     in.read((char*) &firstClass, sizeof(firstClass));
 
@@ -280,7 +311,7 @@ void Base::load(std::istream& in, bool sparseWeights) {
         in.read((char*) &loadSparse, sizeof(loadSparse));
 
         // Decide on weights coding
-        sparse = sparseWeights && mapSize() < denseSize();
+        sparse = args.sparseWeights && mapSize() < denseSize();
 
         if(sparse) mapW = new std::unordered_map<int, double>();
         else {

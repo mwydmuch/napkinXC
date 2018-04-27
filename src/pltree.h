@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <random>
 
 #include "args.h"
 #include "types.h"
@@ -29,14 +30,21 @@ struct TreeNodeValue{
     bool operator<(const TreeNodeValue &r) const { return val < r.val; }
 };
 
-struct Assignation{
+struct LabelsAssignation{
     int index;
     int value;
 };
 
+struct LabelsDistances{
+    int index;
+    std::vector<Feature> values;
+
+    bool operator<(const LabelsDistances &r) const { return values[0].value < r.values[0].value; }
+};
+
 struct TreeNodePartition{
     TreeNode* node;
-    std::vector<Assignation> *partition;
+    std::vector<LabelsAssignation> *partition;
 };
 
 class PLTree{
@@ -57,6 +65,8 @@ public:
     void load(std::istream& in);
 
 private:
+    std::default_random_engine rng;
+
     int k; // Number of labels, should be equal to treeLeaves.size()
     int t; // Number of tree nodes, should be equal to tree.size()
 
@@ -64,7 +74,9 @@ private:
     std::vector<TreeNode*> tree; // Pointers to tree nodes
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
-    void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+    // Tree building and
+    void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, int centroids);
+    void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);
 

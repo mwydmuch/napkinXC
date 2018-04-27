@@ -8,13 +8,15 @@
 #include <string>
 #include "types.h"
 
-enum TreeType { completeInOrder, completeRandom, complete, given };
+enum TreeType { completeInOrder, completeRandom, kMeans };
 
 class Args{
 public:
     Args();
 
     std::string command;
+
+    int seed;
 
     // Input/output options
     std::string input;
@@ -30,6 +32,7 @@ public:
     int threads;
     int solverType;
     double eps;
+    double cost;
     bool labelsWeights;
 
     // Tree options
@@ -41,7 +44,6 @@ public:
     // Prediction options
     int topK;
     bool sparseWeights;
-    double discount;
 
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);

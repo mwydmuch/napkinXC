@@ -8,7 +8,7 @@
 #include <string>
 #include "types.h"
 
-enum TreeType { completeInOrder, completeRandom, complete, given, topDown, balancedInOrder, balancedRandom, kmeans, huffman };
+enum TreeType { completeInOrder, completeRandom, complete, given, topDown, balancedInOrder, balancedRandom, kMeans, huffman };
 enum OptimizerType {libliner, sgd};
 
 class Args{
@@ -16,6 +16,8 @@ public:
     Args();
 
     std::string command;
+
+    int seed;
 
     // Input/output options
     std::string input;
@@ -36,6 +38,7 @@ public:
     int optimizerType;
     std::string optimizerName;
     double eps;
+    double cost;
     bool labelsWeights;
 
     // Tree options
@@ -47,7 +50,6 @@ public:
     // Prediction options
     int topK;
     bool sparseWeights;
-    double discount;
 
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);

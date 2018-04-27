@@ -34,7 +34,7 @@ Base::~Base(){
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
 
-    if(binLabels.size() == 0){
+    if(binLabels.empty()){
         firstClass = 0;
         classCount = 0;
         return;
@@ -45,7 +45,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         if(l == 1.0) ++positiveLabel;
 
     if(positiveLabel == 0 || positiveLabel == binLabels.size()){
-        firstClass = binLabels[0];
+        firstClass = static_cast<int>(binLabels[0]);
         classCount = 1;
         return;
     }
@@ -64,8 +64,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         if(binLabels.size() - positiveLabel > positiveLabel){
             labelsWeights[0] = 1.0;
             labelsWeights[1] = 1.0 + log(static_cast<double>(binLabels.size() - positiveLabel) / positiveLabel);
-        }
-        else{
+        } else{
             labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabel) / (binLabels.size() - positiveLabel));
             labelsWeights[1] = 1.0;
         }
@@ -119,7 +118,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     assert(M->nr_class <= 2);
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
 
-    // Set base attributes
+    // Set base's attributes
     sparse = false;
     wSize = n;
     firstClass = M->label[0];
@@ -134,7 +133,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     if(labelsWeights != NULL) delete[] labelsWeights;
     delete M;
 
-    // Apply threshold and calculate number of zero weights
+    // Apply threshold and calculate number of non-zero weights
     threshold(args.threshold);
     if(sparseSize() < denseSize()) toSparse();
 }
@@ -172,7 +171,8 @@ double Base::predictLoss(Feature* features){
 double Base::predictProbability(Feature* features){
     if(classCount < 2) return static_cast<double>(firstClass);
     double val = predictValue(features);
-    val = 1.0 / (1.0 + exp(-val)); // Probability
+    if(hingeLoss) val = 1.0 / (1.0 + exp(-2 * val)); // Probability for squared Hinge loss solver
+    else val = 1.0 / (1.0 + exp(-val)); // Probability
     return val;
 }
 
@@ -200,7 +200,10 @@ void Base::toDense(){
             mapW = nullptr;
         } else if(sparseW != nullptr){
             Feature* f = sparseW;
-            while(f->index != -1) W[f->index] = f->value;
+            while(f->index != -1){
+                W[f->index] = f->value;
+                ++f;
+            }
             delete[] sparseW;
             sparseW = nullptr;
         }

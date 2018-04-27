@@ -10,14 +10,78 @@
 #include <thread>
 #include <iostream>
 
-// Returns number of available cpus
-inline int getCpuCount(){
-    return std::thread::hardware_concurrency();
+
+// Math utils
+template<typename T>
+inline T dotVectors(Feature* vector1, const T* vector2, int size){
+    T val = 0;
+    Feature* f = vector1;
+    while(f->index != -1 && f->index < size) {
+        val += f->value * vector2[f->index];
+        ++f;
+    }
+    return val;
 }
 
-// Fowler–Noll–Vo hash
 template<typename T>
-uint32_t hash(T& v){
+inline T dotVectors(Feature* vector1, const std::vector<T>& vector2){
+    dotVectors(vector1, vector2.data(), vector2.size());
+}
+
+template<typename T>
+inline void setVector(Feature* vector1, T* vector2, int size){
+    Feature* f = vector1;
+    while(f->index != -1 && f->index < size){
+        vector2[f->index] = f->value;
+        ++f;
+    }
+}
+
+template<typename T>
+inline void setVector(Feature* vector1, std::vector<T>& vector2) {
+    setVector(vector1, vector2.data(), vector2.size());
+}
+
+template<typename T>
+inline void addVector(Feature* vector1, T* vector2, int size){
+    Feature* f = vector1;
+    while(f->index != -1 && f->index < size){
+        vector2[f->index] += f->value;
+        ++f;
+    }
+}
+
+template<typename T>
+inline void addVector(Feature* vector1, std::vector<T>& vector2) {
+    addVector(vector1, vector2.data(), vector2.size());
+}
+
+template <typename T>
+inline void unitNorm(T* data, int size){
+    T norm = 0;
+    for(int f = 0; f < size; ++f) norm += data[f] * data[f];
+    norm = std::sqrt(norm);
+    for(int f = 0; f < size; ++f) data[f] /= norm;
+}
+
+inline void unitNorm(Feature* data, int size){
+    double norm = 0;
+    for(int f = 0; f < size; ++f) norm += data[f].value * data[f].value;
+    norm = std::sqrt(norm);
+    for(int f = 0; f < size; ++f) data[f].value /= norm;
+}
+
+template <typename T>
+inline void unitNorm(std::vector<T>& vector){
+    unitNorm(vector.data(), vector.size());
+}
+
+
+// Other utils
+
+// Fowler–Noll–Vo hash
+template <typename T>
+inline uint32_t hash(T& v){
     size_t size = sizeof(T);
     uint8_t* bytes = reinterpret_cast<uint8_t*>(&v);
     uint32_t h = 2166136261;
@@ -26,6 +90,11 @@ uint32_t hash(T& v){
         h = h * 16777619;
     }
     return h;
+}
+
+// Returns number of available cpus
+inline int getCpuCount(){
+    return std::thread::hardware_concurrency();
 }
 
 // Prints progress

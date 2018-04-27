@@ -23,7 +23,7 @@ public:
     double predictProbability(Feature* features);
 
     int inline denseSize(){ return wSize * sizeof(double); }
-    int inline mapSize(){ return nonZeroW * (2 * sizeof(int) + sizeof(double)); }
+    int inline mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(double)); }
     int inline sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
 
     void toMap(); // from W to mapW

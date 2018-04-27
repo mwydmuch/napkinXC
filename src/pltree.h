@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <tuple>
 #include <algorithm>
+#include <random>
 
 #include "args.h"
 #include "types.h"
@@ -44,14 +45,21 @@ struct JobResult{
     std::vector<int> labels;
 };
 
-struct Assignation{
+struct LabelsAssignation{
     int index;
     int value;
 };
 
+struct LabelsDistances{
+    int index;
+    std::vector<Feature> values;
+
+    bool operator<(const LabelsDistances &r) const { return values[0].value < r.values[0].value; }
+};
+
 struct TreeNodePartition{
     TreeNode* node;
-    std::vector<Assignation> *partition;
+    std::vector<LabelsAssignation> *partition;
 };
 
 class FreqTuple{
@@ -90,6 +98,8 @@ public:
     void load(std::istream& in);
 
 private:
+    std::default_random_engine rng;
+
     int k; // Number of labels, should be equal to treeLeaves.size()
     int t; // Number of tree nodes, should be equal to tree.size()
 
@@ -108,10 +118,12 @@ private:
 //                                             Args& args);
     struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
 
-    void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
 //    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 //    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
+    // Tree building and
+    void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, int centroids);
+    void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );

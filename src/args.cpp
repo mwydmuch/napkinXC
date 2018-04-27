@@ -13,6 +13,7 @@
 
 Args::Args() {
     command = "";
+    seed = time(0);
 
     // Input/output options
     input = "";
@@ -28,6 +29,7 @@ Args::Args() {
     // Training options
     threads = getCpuCount();
     eps = 0.1;
+    cost = 1.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     labelsWeights = true;
@@ -40,21 +42,22 @@ Args::Args() {
     arity = 2;
     treeType = completeInOrder;
     treeTypeName = "completeInOrder";
-    maxLeaves = 4;
+    maxLeaves = 2;
 
     // Prediction options
     topK = 1;
     sparseWeights = true;
-    discount = 1.0;
 
     // Private
-    hFeatures = -1;
-    hLabels = -1;
+    hFeatures = 0;
+    hLabels = 0;
 }
 
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
+
+    bool maxLeavesSet = false;
 
     if(command != "train" && command != "test" && command != "shrink"){
         std::cerr << "Unknown command type: " << command << std::endl;
@@ -72,6 +75,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 std::cerr << "Here is the help! Usage:" << std::endl;
                 printHelp();
             }
+            else if (args[ai] == "--seed")
+                seed = std::stoi(args.at(ai + 1));
 
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
@@ -102,6 +107,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if(threads == -1) threads = getCpuCount() - 1;
             } else if (args[ai] == "-e" || args[ai] == "--eps")
                 eps = std::stof(args.at(ai + 1));
+            else if (args[ai] == "-c" || args[ai] == "--cost")
+                cost = std::stof(args.at(ai + 1));
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
                 if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
@@ -130,13 +137,17 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 tree = std::string(args.at(ai + 1));
             else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--maxLeaves") {
+                maxLeaves = std::stoi(args.at(ai + 1));
+                maxLeavesSet = true;
+            }
             else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
                 else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
                 else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
-                else if (args.at(ai + 1) == "complete") treeType = complete;
+                else if (args.at(ai + 1) == "kMeans") treeType = kMeans;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
                 else {
@@ -151,8 +162,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--sparseWeights")
                 sparseWeights = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--discount")
-                discount = std::stof(args.at(ai + 1)) != 0;
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();
@@ -168,6 +177,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         std::cerr << "Empty input or model path." << std::endl;
         printHelp();
     }
+
+    if(!maxLeavesSet) maxLeaves = arity;
 }
 
 // Reads train/test data to sparse matrix
@@ -182,6 +193,7 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
 
     // Read header
     // Format: #rows #features #labels
+    // TODO: add validation
     if(header){
         size_t nextPos, pos = 0;
         getline(in, line);
@@ -191,14 +203,16 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
         pos = nextPos + 1;
 
         nextPos = line.find_first_of(" ", pos);
-        if(hFeatures < 0) hFeatures = std::stoi(line.substr(pos, nextPos - pos));
+        if(!hFeatures) hFeatures = std::stoi(line.substr(pos, nextPos - pos));
         pos = nextPos + 1;
 
         nextPos = line.find_first_of(" ", pos);
-        if(hLabels < 0) hLabels = std::stoi(line.substr(pos, nextPos - pos));
+        if(!hLabels) hLabels = std::stoi(line.substr(pos, nextPos - pos));
 
         std::cerr << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << std::endl;
     }
+
+    if(hash != 0) hFeatures = hash;
 
     std::vector<Label> lLabels;
     std::vector<Feature> lFeatures;
@@ -223,8 +237,8 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
         }
     }
 
-    if(hLabels < 0) hLabels = labels.cols();
-    if(hFeatures < 0) hFeatures = features.cols() - (bias ? 1 : 0);
+    if(!hLabels) hLabels = labels.cols();
+    if(!hFeatures) hFeatures = features.cols() - (bias ? 1 : 0);
 
     // Checks
     assert(labels.rows() == features.rows());
@@ -250,29 +264,22 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
 
     while((nextPos = line.find_first_of(",: ", pos))){
         // Label
-        if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' '))
+        if((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' '))
             lLabels.push_back(std::stoi(line.substr(pos, nextPos - pos)));
 
         // Feature (LibLinear ignore feature 0)
-        else if (line[pos - 1] == ' ' && line[nextPos] == ':')
+        else if(line[pos - 1] == ' ' && line[nextPos] == ':')
             lFeatures.push_back({std::stoi(line.substr(pos, nextPos - pos)) + 1, 1.0});
 
-        else if (line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
+        else if(line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
             lFeatures.back().value = std::stof(line.substr(pos, nextPos - pos));
 
-        if (nextPos == std::string::npos) break;
+        if(nextPos == std::string::npos) break;
         pos = nextPos + 1;
     }
 
     // Norm row
-    if (norm){
-        double norm = 0;
-        for(int f = 0; f < lFeatures.size(); ++f)
-            norm += lFeatures[f].value * lFeatures[f].value;
-        norm = std::sqrt(norm);
-        for(int f = 0; f < lFeatures.size(); ++f)
-            lFeatures[f].value /= norm;
-    }
+    if(norm) unitNorm(lFeatures);
 
     // Add bias feature
     if(bias && hFeatures < 0)
@@ -317,6 +324,7 @@ void Args::printHelp(){
                         Header fo   rmat: #lines #features #labels
         --hash          Size of hashing space (default = -1)
                         Note: -1 to disable
+        --seed          Model's seed
 
         Base classifier:
         -s, --solver    LibLinear solver (default = L2R_LR_DUAL)

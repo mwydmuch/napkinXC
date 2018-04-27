@@ -5,16 +5,29 @@ set(napkinXML_VERSION_MAJOR 0)
 set(napkinXML_VERSION_MINOR 1)
 set(napkinXML_PATCH_VERSION 0)
 
-#set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_CXX_FLAGS " -std=c++11 -pthread -funroll-loops -O3")
+# Set the release mode if not specified
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# Add pthread for Linux
+if(UNIX AND NOT APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+endif()
+
+# Add more aggressive optimization for Release build
+if(CMAKE_BUILD_TYPE MATCHES Release)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
+endif(CMAKE_BUILD_TYPE MATCHES Release)
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp
     src/liblinear/*.cpp
     src/blas/*.c)
 
-add_executable(nxml ${SOURCES} src/online_training.h src/online_training.cpp)
+add_executable(nxml ${SOURCES})
 
 target_include_directories(nxml PUBLIC
     src

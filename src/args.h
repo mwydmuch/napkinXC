@@ -8,7 +8,7 @@
 #include <string>
 #include "types.h"
 
-enum TreeType { completeInOrder, completeRandom, complete, given, topDown, balancedInOrder, balancedRandom, kMeans, huffman };
+enum TreeType { completeInOrder, completeRandom, complete, given, topDown, balancedInOrder, balancedRandom, kMeans, huffman, kMeansWithProjection };
 enum OptimizerType {libliner, sgd};
 
 class Args{
@@ -29,8 +29,6 @@ public:
     bool norm;
     int hash;
     double threshold;
-    int iter;
-    double eta;
 
     // Training options
     int threads;
@@ -40,6 +38,8 @@ public:
     double eps;
     double cost;
     bool labelsWeights;
+    int iter;
+    double eta;
 
     // Tree options
     int arity;
@@ -47,6 +47,7 @@ public:
     std::string tree;
     int maxLeaves;
     double kMeansEps;
+    int projectDim;
 
     // Prediction options
     int topK;

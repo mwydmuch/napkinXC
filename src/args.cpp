@@ -24,6 +24,7 @@ Args::Args() {
     biasValue = 1.0;
     norm = true;
     threshold = 0.1;
+    projectDim = 20;
 
     // Training options
     threads = getCpuCount();
@@ -97,6 +98,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--iter")
                 iter = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--projectDim")
+                projectDim = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -150,6 +153,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
                 else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
+                else if (args.at(ai + 1) == "kMeansWithProjection" ) treeType = kMeansWithProjection;
                 else if (args.at(ai + 1) == "kMeans") treeType = kMeans;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
@@ -356,6 +360,7 @@ void Args::printHelp(){
         --tree          File with tree structure
         --treeType      Type of a tree to build if file with structure is not provided
                         Tree types: completeInOrder, completeRandom
+        --projectDim    Number or random direction
 
         K-Means tree:
         --kMeansEps     Stopping criteria for K-Means clustering (default = 0.01)

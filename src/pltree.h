@@ -125,6 +125,7 @@ private:
 //    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
 
     void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, Args &args);
+    void balancedKMeansWithRandomProjection(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
@@ -135,4 +136,10 @@ private:
 
     void printTree(TreeNode *n);
     void printTree();
+
+    void getRandomProjection(std::vector<std::vector<double>> &data, int projectDim, int dim);
+
+    void computeLabelRepresentation(SRMatrix<Feature> &labelsFeatures, std::vector<std::vector<double>> &randomMatrix,
+                                    std::vector<LabelsAssignation> *partition, std::vector<std::vector<int>>& labelToIndices,
+                                    SRMatrix<Feature>& features, Args &args);
 };

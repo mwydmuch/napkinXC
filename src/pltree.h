@@ -105,37 +105,43 @@ private:
 
     // Tree building methods
 
-    // Kalina's top down
+    // Top down
     // TODO: clean this a little bit
     void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                         std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void addRootToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                                std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-//    std::vector<struct JobResult> processJob(int index, std::vector<int>& jobInstances, std::vector<int>& jobLabels,
-//                                             std::ofstream& out,SRMatrix<Label>& labels, SRMatrix<Feature>& features,
-//                                             Args& args);
     struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-
     void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
-//    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-//    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
     void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
 
+    // TODO: do we need this?
+    /*
+    std::vector<struct JobResult> processJob(int index, std::vector<int>& jobInstances, std::vector<int>& jobLabels,
+                                         std::ofstream& out,SRMatrix<Label>& labels, SRMatrix<Feature>& features,
+                                         Args& args);
+    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
+    */
 
-    // Robert's random projection
-    void getRandomProjection(std::vector<std::vector<double>> &data, int projectDim, int dim);
+    // Random projection
+    void generateRandomProjection(std::vector<std::vector<double>>& data, int projectDim, int dim);
+    void projectLabelsRepresentation(SRMatrix<Feature>& labelsFeatures, std::vector<std::vector<double>>& randomMatrix,
+                                    std::vector<std::vector<int>>& labelToIndices, SRMatrix<Feature>& features, Args &args);
+    void balancedKMeansWithRandomProjection(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 
-    void computeLabelRepresentation(SRMatrix<Feature> &labelsFeatures, std::vector<std::vector<double>> &randomMatrix,
-                                    std::vector<LabelsAssignation> *partition, std::vector<std::vector<int>>& labelToIndices,
-                                    SRMatrix<Feature>& features, Args &args);
+    // Hierarchical K-Means
+    void buildLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+    void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
 
-    // Cleaned tree building methods
-    void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
+    // Just random complete tree
+    void buildCompleteTree(int labelCount, int arity, bool randomizeOrder = false);
+
+    // Custom tree structure from file
     void loadTreeStructure(std::string file);
 
+    // Tree building utils
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
-
 };

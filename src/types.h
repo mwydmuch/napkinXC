@@ -23,9 +23,15 @@ template <typename T>
 class SRMatrix {
 public:
     SRMatrix();
+    SRMatrix(int rows, int cols);
     ~SRMatrix();
+
     void appendRow(const std::vector<T>& row);
     void appendRow(const T* row, const int size);
+
+    // Inefficient operation
+    void appendToRow(const int index, const std::vector<T>& row);
+    void appendToRow(const int index, const T* data, const int size = 1);
 
     // Row multiplication
     template <typename U>
@@ -73,6 +79,20 @@ SRMatrix<T>::SRMatrix(){
 }
 
 template <typename T>
+SRMatrix<T>::SRMatrix(int rows, int cols){
+    m = rows;
+    n = cols;
+
+    for(int i = 0; i < m; ++i){
+        s.push_back(n);
+        T* newRow = new T[n + 1];
+        for(int j = 0; j < n; ++j) std::memset(&newRow[j], j, sizeof(int)); // Set next index
+        std::memset(&newRow[n], -1, sizeof(int)); // Add termination feature (-1)
+        r.push_back(newRow);
+    }
+}
+
+template <typename T>
 SRMatrix<T>::~SRMatrix(){
     clear();
 }
@@ -89,7 +109,7 @@ void SRMatrix<T>::appendRow(const T* row, const int size){
 
     T* newRow = new T[size + 1];
     std::memcpy(newRow, row, size * sizeof(T));
-    std::memset(&newRow[size], -1, sizeof(T)); // Add termination feature (-1)
+    std::memset(&newRow[size], -1, sizeof(int)); // Add termination feature (-1)
     r.push_back(newRow);
 
     if(size > 0){
@@ -98,6 +118,23 @@ void SRMatrix<T>::appendRow(const T* row, const int size){
     }
 
     m = r.size();
+}
+
+template <typename T>
+inline void SRMatrix<T>::appendToRow(const int index, const std::vector<T>& data){
+    appendToRow(index, data.data(), data.size());
+}
+
+template <typename T>
+inline void SRMatrix<T>::appendToRow(const int index, const T* data, const int size){
+    int rSize = s[index];
+    T* newRow = new T[s[index] + size + 1];
+    std::memcpy(newRow, r[index], rSize * sizeof(T));
+    std::memcpy(newRow + rSize, data, size * sizeof(T));
+    std::memset(&newRow[size], -1, sizeof(int)); // Add termination feature (-1)
+    delete[] r[index];
+    r[index] = newRow;
+    s[index] += size;
 }
 
 template <typename T>

@@ -21,9 +21,8 @@
 PLTree::PLTree(){}
 
 PLTree::~PLTree() {
-    for(size_t i = 0; i < tree.size(); ++i){
+    for(size_t i = 0; i < tree.size(); ++i)
         delete tree[i];
-    }
 }
 
 Base* nodeTrainThread(int i, int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
@@ -45,10 +44,6 @@ std::vector<std::vector<int>> splitLabels(std::vector<int> labels, const Args &a
     return labelSplits;
 }
 
-//std::vector<struct JobResult> processJob(int index, const std::vector<int> &jobInstances,
-//                                         const std::vector<int> &jobLabels, std::ofstream &out,
-//                                         SRMatrix<Label> &labels, SRMatrix<Feature> &features,
-//                                         Args &args){
 std::vector<struct JobResult> processJob(int index, const std::vector<int>& jobInstances,
                                          const std::vector<int>& jobLabels, std::ofstream& out,
                                          SRMatrix<Label>& labels, SRMatrix<Feature>& features,
@@ -258,19 +253,22 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
     } else {
 
         // Create a tree structure
-        if(!args.tree.empty()) loadTreeStructure(args.tree);
-        else if(args.treeType == completeInOrder)
+        if (!args.tree.empty()) loadTreeStructure(args.tree);
+        else if (args.treeType == completeInOrder)
             buildCompleteTree(labels.cols(), args.arity, false);
-        else if(args.treeType == completeRandom)
+        else if (args.treeType == completeRandom)
             buildCompleteTree(labels.cols(), args.arity, true);
-        else if(args.treeType == balancedInOrder)
+        else if (args.treeType == balancedInOrder)
             buildBalancedTree(labels.cols(), args.arity, false);
-        else if(args.treeType == balancedRandom)
+        else if (args.treeType == balancedRandom)
             buildBalancedTree(labels.cols(), args.arity, true);
-        else if(args.treeType == huffman)
+        else if (args.treeType == huffman)
             buildHuffmanPLTree(labels, args);
-        else if (args.treeType == hierarchicalKMeans)
-            buildKMeansTree(labels, features, args);
+        else if (args.treeType == hierarchicalKMeans) {
+            SRMatrix<Feature> labelsFeatures;
+            buildLabelsFeaturesMatrix(labelsFeatures, labels, features);
+            buildKMeansTree(labelsFeatures, args);
+        }
         else if(args.treeType == kMeansWithProjection)
             balancedKMeansWithRandomProjection(labels, features, args);
         else {
@@ -569,49 +567,46 @@ TreeNodePartition kMeansThread(TreeNodePartition nPart, SRMatrix<Feature>& label
     return nPart;
 }
 
-void PLTree::buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
-    SRMatrix<Feature> labelsFeatures;
-
+// TODO: Make it parallel
+void PLTree::buildLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     std::cerr << "Building labels' features matrix ...\n";
 
-    // Build labels' averaged features matrix
-    {
-        std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
+    std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
 
-        int rows = features.rows();
-        assert(rows == labels.rows());
+    int rows = features.rows();
+    assert(rows == labels.rows());
 
-        for(int r = 0; r < rows; ++r){
-            printProgress(r, rows);
-            int rFeaturesSize = features.sizes()[r];
-            int rLabelsSize = labels.sizes()[r];
-            auto rFeatures = features.data()[r];
-            auto rLabels = labels.data()[r];
+    for(int r = 0; r < rows; ++r){
+        printProgress(r, rows);
+        int rFeaturesSize = features.sizes()[r];
+        int rLabelsSize = labels.sizes()[r];
+        auto rFeatures = features.data()[r];
+        auto rLabels = labels.data()[r];
 
-            for (int i = 0; i < rFeaturesSize; ++i){
-                for (int j = 0; j < rLabelsSize; ++j){
-                    if (!tmpLabelsFeatures[rLabels[j]].count(rFeatures[i].index))
-                        tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = 0;
-                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] += rFeatures[i].value;
-                }
+        for (int i = 0; i < rFeaturesSize; ++i){
+            for (int j = 0; j < rLabelsSize; ++j){
+                if (!tmpLabelsFeatures[rLabels[j]].count(rFeatures[i].index))
+                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = 0;
+                tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] += rFeatures[i].value;
             }
-        }
-
-        for(int l = 0; l < labels.cols(); ++l){
-            std::vector<Feature> labelFeatures;
-            for(const auto& f : tmpLabelsFeatures[l])
-                labelFeatures.push_back({f.first, f.second});
-            std::sort(labelFeatures.begin(), labelFeatures.end());
-            unitNorm(labelFeatures);
-            labelsFeatures.appendRow(labelFeatures);
         }
     }
 
+    for(int l = 0; l < labels.cols(); ++l){
+        std::vector<Feature> labelFeatures;
+        for(const auto& f : tmpLabelsFeatures[l])
+            labelFeatures.push_back({f.first, f.second});
+        std::sort(labelFeatures.begin(), labelFeatures.end());
+        unitNorm(labelFeatures);
+        labelsFeatures.appendRow(labelFeatures);
+    }
+}
+
+void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
     std::cerr << "Hierarchical K-Means clustering in " << args.threads << " threads ...\n";
 
-    // Hierarchical K-Means
     treeRoot = createTreeNode();
-    k = labels.cols();
+    k = labelsFeatures.rows();
 
     std::uniform_int_distribution<int> kMeansSeeder(0, INT_MAX);
 
@@ -682,140 +677,80 @@ void PLTree::buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& feature
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
 }
 
+void PLTree::balancedKMeansWithRandomProjection(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) {
 
-// TODO: Make it parallel
-void PLTree::balancedKMeansWithRandomProjection(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
-    bool clusterDebugging = false;
-
-    k = labels.cols();
-    std::cerr << "  Compute label to indices ...\n";
-    std::vector<std::vector<int>> labelToIndices(k);
-    for(int r=0; r<labels.rows(); r++) {
-        int rSize = labels.sizes()[r];
-        auto rLabels = labels.data()[r];
-
-        for (int i = 0; i < rSize; ++i) labelToIndices[rLabels[i]].push_back(r);
-    }
-
+    int k = labels.cols();
     int n = features.rows();
     int dim = features.cols();
 
-    // random projection matrix
-    std::vector<std::vector<double>> randomMatrix(args.projectDim);
-    for(int i=0; i<args.projectDim; i++ ) randomMatrix[i].resize(dim);
-    getRandomProjection(randomMatrix, args.projectDim, dim);
-
-    // allocate memory for projetion matrix
-    SRMatrix<Feature> labelsFeatures;
-    for(int l = 0; l < labels.cols(); ++l){
-        std::vector<Feature> labelFeatures(args.projectDim);
-        for(int i=0; i<args.projectDim; i++ ) {
-            labelFeatures[i].index=i;
-            labelFeatures[i].value=0.0;
-        }
-        labelsFeatures.appendRow(labelFeatures);
+    std::cerr << "  Compute label to indices ...\n";
+    std::vector<std::vector<int>> labelToIndices(k);
+    for (int r = 0; r < n; ++r) {
+        int rSize = labels.size(r);
+        auto rLabels = labels.row(r);
+        for (int i = 0; i < rSize; ++i) labelToIndices[rLabels[i]].push_back(r);
     }
 
+    // Apply random projection
+    std::vector<std::vector<double>> randomMatrix;
+    generateRandomProjection(randomMatrix, args.projectDim, dim);
+    SRMatrix<Feature> labelsFeatures(k, args.projectDim);
+    projectLabelsRepresentation(labelsFeatures, randomMatrix, labelToIndices, features, args);
 
-    // Hierarchical K-means
-    treeRoot = createTreeNode();
-    k = labels.cols();
-
-    std::vector<LabelsAssignation>* partition = new std::vector<LabelsAssignation>(k);
-    for(int i = 0; i < k; ++i) (*partition)[i].index = i;
-    std::queue<TreeNodePartition> nQueue;
-    nQueue.push({treeRoot, partition});
-
-    // compute random projection for labels
-
-    std::cerr << "  Embedding dim: " << args.projectDim << "\n";
-    computeLabelRepresentation(labelsFeatures, randomMatrix, partition, labelToIndices, features, args);
-
-
-    while(!nQueue.empty()) {
-        TreeNodePartition nPart = nQueue.front(); // Current node
-        nQueue.pop();
-        if (clusterDebugging)
-            std::cerr << " --> " << nPart.partition->size() << "\n";
-        if(nPart.partition->size() > args.maxLeaves){
-            //
-//            getRandomProjection(randomMatrix, args.projectDim, dim);
-//            computeLabelRepresentation(labelsFeatures, randomMatrix, nPart.partition, labelToIndices, features, args);
-            balancedKMeans(nPart.partition, labelsFeatures, args);
-            std::vector<LabelsAssignation>** partitions = new std::vector<LabelsAssignation>*[args.arity];
-            for(int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<LabelsAssignation>();
-            for(auto p : *nPart.partition) partitions[p.value]->push_back({p.index, 0});
-            if (clusterDebugging){
-                for(int i = 0; i < args.arity; ++i){
-                    std::cerr << "    --> Cluster size: " << partitions[i]->size() << "\n";
-                }
-            }
-
-
-            // Create children
-            for(int i = 0; i < args.arity; ++i){
-                TreeNode* n = createTreeNode(nPart.node);
-                nQueue.push({n, partitions[i]});
-            }
-        } else
-            for(int i = 0; i < nPart.partition->size(); ++i)
-                createTreeNode(nPart.node, (*nPart.partition)[i].index);
-
-        delete nPart.partition;
-    }
-
-    t = tree.size();
-    assert(k == treeLeaves.size());
-    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
+    // Build tree using hierarchical K-Means
+    buildKMeansTree(labelsFeatures, args);
 }
 
-void PLTree::computeLabelRepresentation(SRMatrix<Feature>& labelsFeatures, std::vector<std::vector<double>>& randomMatrix, std::vector<LabelsAssignation>* partition, std::vector<std::vector<int>>& labelToIndices, SRMatrix<Feature>& features, Args &args){
-    double scale = 1.0/sqrt((double)features.cols());
-    std::default_random_engine generator;
-    std::normal_distribution<double> distribution(0.0,scale);
+void PLTree::projectLabelsRepresentation(SRMatrix<Feature>& labelsFeatures, std::vector<std::vector<double>>& randomMatrix,
+                                        std::vector<std::vector<int>>& labelToIndices, SRMatrix<Feature>& features, Args &args){
+
+    int labels = labelToIndices.size();
+
+    double scale = 1.0/sqrt(static_cast<double>(features.cols()));
+    std::normal_distribution<double> distribution(0.0, scale);
 
     std::cerr << "  Compute projected values ...\n";
-    for(int i=0; i < (*partition).size(); i++ ){
-        printProgress(i, (*partition).size());
-        int currentLabel =  (*partition)[i].index;
-        auto labelVector = labelsFeatures.data()[currentLabel];
+    for(int i=0; i < labels; i++ ){
+        printProgress(i, labels);
+        int currentLabel = i;
+        auto labelVector = labelsFeatures.row(i);
 
-        if (labelToIndices[currentLabel].size()>0) {
+        if (labelToIndices[currentLabel].size() > 0) {
             for (int j = 0; j < labelToIndices[currentLabel].size(); j++) {
 
                 int currentDataPoint = labelToIndices[currentLabel][j];
-                auto rFeatures = features.data()[currentDataPoint];
-                int rFeaturesSize = features.sizes()[currentDataPoint];
+                auto rFeatures = features.row(currentDataPoint);
+                int rFeaturesSize = features.size(currentDataPoint);
 
-
-                for (int l = 0; l < args.projectDim; l++) {
+                for (int l = 0; l < args.projectDim; l++)
                     for (int k = 0; k < rFeaturesSize; k++)
                         labelVector[l].value += rFeatures[k].value * randomMatrix[l][rFeatures[k].index];
-                    }
+                for (int l = 0; l < args.projectDim; l++)
+                    labelVector[l].value /= labelToIndices[currentLabel].size();
+
+                // Print row from labels' features matrix
+                /*
                 for (int l = 0; l < args.projectDim; l++) {
-                    labelVector[l].value /= ((double) labelToIndices[currentLabel].size());
-                }
-//                for (int l = 0; l < args.projectDim; l++) {
-//                    std::cout << labelsFeatures.data()[currentLabel][l].value << " ";
-//                }
-//                std::cout << "\n";
+                    std::cout << labelsFeatures.data()[currentLabel][l].value << " ";
+                std::cout << "\n";
+                */
             }
         } else {
-            for (int l = 0; l < args.projectDim; l++) {
-                labelVector[l].value = distribution(generator);
-            }
+            for (int l = 0; l < args.projectDim; l++)
+                labelVector[l].value = distribution(rng);
         }
     }
 }
 
-void PLTree::getRandomProjection(std::vector<std::vector<double>>& randomMatrix, int projectDim, int dim ){
-    double scale = 1.0/sqrt((double)dim);
-    std::default_random_engine generator;
-    std::normal_distribution<double> distribution(0.0,scale);
-    for(int i=0; i<projectDim; i++){ // args.projectDim
-        for(int j=0; j<dim; j++){ // dim
-            randomMatrix[i][j]=distribution(generator);
-        }
+void PLTree::generateRandomProjection(std::vector<std::vector<double>>& randomMatrix, int projectDim, int dim){
+    double scale = 1.0 / std::sqrt(static_cast<double>(dim));
+    std::normal_distribution<double> distribution(0.0, scale);
+
+    randomMatrix.resize(projectDim);
+    for(int i = 0; i < projectDim; ++i) { // args.projectDim
+        randomMatrix[i].resize(dim);
+        for (int j = 0; j < dim; ++j) // dim
+            randomMatrix[i][j] = distribution(rng);
     }
 }
 
@@ -950,24 +885,21 @@ void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << arity << "\n";
 }
 
+/*
+void PLTree::buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
+    int n = features.rows(); // number of instances
+    std::vector<int> active(0), left(0), right(0);
 
+    for(int i=0; i < n; i++ ) active.push_back(i);
 
+}
 
-//void PLTree::buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
-//    int n = features.rows(); // number of instances
-//    std::vector<int> active(0), left(0), right(0);
-//
-//    for(int i=0; i < n; i++ ) active.push_back(i);
-//
-//}
-//
-//void PLTree::cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args){
-//
-//}
+void PLTree::cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args){
 
+}
+*/
 
-
-void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {
+void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeOrder) {
     std::cerr << "Building complete PLTree ...\n";
 
     k = labelCount;
@@ -976,25 +908,26 @@ void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeTree) {
     int ti = t - k;
 
     std::vector<int> labelsOrder;
-    if (randomizeTree){
-        for (auto i = 0; i < k; ++i) labelsOrder.push_back(i);
+    if (randomizeOrder){
+        labelsOrder.resize(k);
+        for (auto i = 0; i < k; ++i) labelsOrder[i] = i;
         std::shuffle(labelsOrder.begin(), labelsOrder.end(), rng);
     }
 
-    for(size_t i = 0; i < t; ++i){
+    treeRoot = createTreeNode();
+    for(size_t i = 1; i < t; ++i){
         int label = -1;
         TreeNode *parent = nullptr;
 
         if(i >= ti){
-            if(randomizeTree) label = labelsOrder[i - ti];
+            if(randomizeOrder) label = labelsOrder[i - ti];
             else label = i - ti;
         }
 
-        if(i > 0) parent = tree[static_cast<int>(floor(static_cast<double>(i - 1) / arity))];
+        parent = tree[static_cast<int>(floor(static_cast<double>(i - 1) / arity))];
         createTreeNode(parent, label);
     }
 
-    treeRoot = tree[0];
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << arity << "\n";
 }
 

@@ -24,7 +24,7 @@ Args::Args() {
     biasValue = 1.0;
     norm = true;
     threshold = 0.1;
-    projectDim = 20;
+    projectDim = 100;
 
     // Training options
     threads = getCpuCount();

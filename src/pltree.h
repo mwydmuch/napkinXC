@@ -105,6 +105,7 @@ private:
 
     // Tree building methods
 
+    // Kalina's top down
     // TODO: clean this a little bit
     void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                         std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
@@ -123,10 +124,18 @@ private:
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
 
 
+    // Robert's random projection
+    void getRandomProjection(std::vector<std::vector<double>> &data, int projectDim, int dim);
+
+    void computeLabelRepresentation(SRMatrix<Feature> &labelsFeatures, std::vector<std::vector<double>> &randomMatrix,
+                                    std::vector<LabelsAssignation> *partition, std::vector<std::vector<int>>& labelToIndices,
+                                    SRMatrix<Feature>& features, Args &args);
+
     // Cleaned tree building methods
     void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);
 
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
+
 };

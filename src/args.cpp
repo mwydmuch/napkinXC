@@ -24,6 +24,7 @@ Args::Args() {
     biasValue = 1.0;
     norm = true;
     threshold = 0.1;
+    projectDim = 20;
 
     // Training options
     threads = getCpuCount();
@@ -97,6 +98,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--eta")
+                eta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--iter")
+                iter = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--projectDim")
+                projectDim = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -157,6 +164,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "hierarchicalKMeans") treeType = hierarchicalKMeans;
+                else if (args.at(ai + 1) == "kMeansWithProjection" ) treeType = kMeansWithProjection;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
                 else {
@@ -202,7 +210,7 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
 
     // Read header
     // Format: #rows #features #labels
-    // TODO: add some validation
+    // TODO: add validation
     if(header){
         size_t nextPos, pos = 0;
         getline(in, line);
@@ -370,6 +378,9 @@ void Args::printHelp(){
         K-Means tree:
         --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
         --kMeansBalanced    Use balanced K-Means clustering (default = 1)
+
+        Random projection:
+        --projectDim        Number or random direction
     )HELP";
     exit(EXIT_FAILURE);
 }

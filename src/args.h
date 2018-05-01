@@ -13,6 +13,7 @@ enum TreeType {
     completeInOrder,
     completeRandom,
     hierarchicalKMeans,
+    kMeansWithProjection,
     topDown,
     balancedInOrder,
     balancedRandom,
@@ -39,8 +40,6 @@ public:
     bool norm;
     int hash;
     double threshold;
-    int iter;
-    double eta;
 
     // Training options
     int threads;
@@ -50,12 +49,15 @@ public:
     double eps;
     double cost;
     bool labelsWeights;
+    int iter;
+    double eta;
 
     // Tree options
     int arity;
     TreeType treeType;
     std::string tree;
     int maxLeaves;
+    int projectDim;
 
     // K-Means tree options
     double kMeansEps;

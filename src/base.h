@@ -50,4 +50,5 @@ private:
     double* W;
     std::unordered_map<int, double>* mapW;
     Feature* sparseW;
+
 };

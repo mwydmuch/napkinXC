@@ -32,6 +32,7 @@ Args::Args() {
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     labelsWeights = true;
+    optimizerName = "libliner";
     optimizerType = libliner;
     iter = 50;
     eta = 0.5;
@@ -42,7 +43,10 @@ Args::Args() {
     treeType = completeInOrder;
     treeTypeName = "completeInOrder";
     maxLeaves = 2;
-    kMeansEps = 0.01;
+
+    // K-Means tree options
+    kMeansEps = 0.001;
+    kMeansBalanced = true;
 
     // Prediction options
     topK = 1;
@@ -93,10 +97,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--eta")
-                eta = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--iter")
-                iter = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -132,6 +132,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
+            else if (args[ai] == "-e" || args[ai] == "--eta")
+                eta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--iter")
+                iter = std::stoi(args.at(ai + 1));
 
             // Tree options
             else if (args[ai] == "--tree")
@@ -144,13 +148,15 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
             else if (args[ai] == "--kMeansEps")
                 kMeansEps = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--kMeansBalanced")
+                kMeansBalanced = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
                 else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
                 else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
-                else if (args.at(ai + 1) == "kMeans") treeType = kMeans;
+                else if (args.at(ai + 1) == "hierarchicalKMeans") treeType = hierarchicalKMeans;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
                 else {
@@ -196,7 +202,7 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
 
     // Read header
     // Format: #rows #features #labels
-    // TODO: add validation
+    // TODO: add some validation
     if(header){
         size_t nextPos, pos = 0;
         getline(in, line);
@@ -249,10 +255,11 @@ void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     assert(hLabels >= labels.cols());
     assert(hFeatures + 1 + (bias ? 1 : 0) >= features.cols() );
 
+    // Print data
     /*
     for (int r = 0; r < features.rows(); ++r){
-       for(int c = 0; c < features.sizes()[r]; ++c)
-           std::cerr << features.data()[r][c].index << ":" << features.data()[r][c].value << " ";
+       for(int c = 0; c < features.size(r); ++c)
+           std::cerr << features.row(r)[c].index << ":" << features.row(r)[c].value << " ";
        std::cerr << "\n";
     }
     */
@@ -297,11 +304,14 @@ void Args::printArgs(){
             << "\n  Input: " << input
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
             << "\n  Model: " << model
-            << "\n    Optimizer: " << optimizerName
-            << "\n    LIBLINEAR: Solver: " << solverName << ", eps: " << eps << ", threshold: " << threshold
-            << "\n    SGD: eta: " << eta << ", iter: " << iter
-            << "\n    Tree type: " << treeTypeName << ", arity: " << arity
-            << "\n  Threads: " << threads << "\n";
+            << "\n    Optimizer: " << optimizerName;
+        if(optimizerType == libliner)
+            std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
+        else if(optimizerType == sgd)
+            std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
+        std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
+        if(treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced;
+        std::cerr << "\n  Threads: " << threads << "\n";
     }
     else if (command == "shrink")
         std::cerr << "napkinXML - " << command
@@ -319,46 +329,47 @@ void Args::printHelp(){
 
     Args:
         General:
-        -i, --input     Input dataset in LibSvm format
-        -m, --model     Model's dir
-        -t, --threads   Number of threads used for training and testing (default = -1)
-                        Note: -1 to use #cpus - 1, 0 to use #cpus
-        --header        Input contains header (default = 1)
-                        Header format: #lines #features #labels
-        --hash          Size of hashing space (default = -1)
-                        Note: -1 to disable
-        --seed          Model's seed
+        -i, --input         Input dataset in LibSvm format
+        -m, --model         Model's dir
+        -t, --threads       Number of threads used for training and testing (default = -1)
+                            Note: -1 to use #cpus - 1, 0 to use #cpus
+        --header            Input contains header (default = 1)
+                            Header format: #lines #features #labels
+        --hash              Size of hashing space (default = 0)
+                            Note: 0 to disable
+        --seed              Model's seed
 
         Base classifiers:
-        --optimizer     Use Libliner or SGD (default = libliner)
-                        Optimizerers: liblinear, sgd
-        --bias          Add bias term (default = 1)
-        --labelsWeights Increase the weight of minority labels in base classifiers (default = 1)
+        --optimizer         Use Libliner or SGD (default = libliner)
+                            Optimizerers: liblinear, sgd
+        --bias              Add bias term (default = 1)
+        --labelsWeights     Increase the weight of minority labels in base classifiers (default = 1)
 
-        Liblinear:
-        -s, --solver    LibLinear solver (default = L2R_LR_DUAL)
-                        Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
-                        L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
-                        See: https://github.com/cjlin1/liblinear
-        -c, -C, --cost  Inverse of regularization strength; must be a positive float.
-                        Like in support vector machines, smaller values specify stronger
-                        regularization. (default = 0.1)
-        -e, --eps       Stopping criteria (default = 0.1)
-                        See: https://github.com/cjlin1/liblinear
+        LibLinear:
+        -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
+                            Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
+                            L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+                            See: https://github.com/cjlin1/liblinear
+        -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
+                            Like in support vector machines, smaller values specify stronger
+                            regularization. (default = 1.0)
+        -e, --eps           Stopping criteria (default = 0.1)
+                            See: https://github.com/cjlin1/liblinear
 
         SGD:
-        -e, --eta       step size of sgd
-        --iter          number of epochs of sgd
+        -e, --eta           step size of SGD
+        --iter              number of epochs of SGD
 
         Tree:
-        -a, --arity     Arity of a tree (default = 2)
-        --maxLeaves     Maximum number of leaves (labels) in one internal node.
-        --tree          File with tree structure
-        --treeType      Type of a tree to build if file with structure is not provided
-                        Tree types: completeInOrder, completeRandom
+        -a, --arity         Arity of a tree (default = 2)
+        --maxLeaves         Maximum number of leaves (labels) in one internal node.
+        --tree              File with tree structure
+        --treeType          Type of a tree to build if file with structure is not provided
+                            Tree types: completeInOrder, completeRandom
 
         K-Means tree:
-        --kMeansEps     Stopping criteria for K-Means clustering (default = 0.01)
+        --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
+        --kMeansBalanced    Use balanced K-Means clustering (default = 1)
     )HELP";
     exit(EXIT_FAILURE);
 }
@@ -370,6 +381,7 @@ void Args::save(std::string outfile){
 }
 
 void Args::save(std::ostream& out){
+    //TODO: save names and other parameters that are displayed
     out.write((char*) &hFeatures, sizeof(hFeatures));
     out.write((char*) &hLabels, sizeof(hLabels));
     out.write((char*) &bias, sizeof(bias));

@@ -8,8 +8,18 @@
 #include <string>
 #include "types.h"
 
-enum TreeType { completeInOrder, completeRandom, complete, given, topDown, balancedInOrder, balancedRandom, kMeans, huffman };
-enum OptimizerType {libliner, sgd};
+// All tree tree types
+enum TreeType {
+    completeInOrder,
+    completeRandom,
+    hierarchicalKMeans,
+    topDown,
+    balancedInOrder,
+    balancedRandom,
+    huffman
+};
+
+enum OptimizerType { libliner, sgd };
 
 class Args{
 public:
@@ -46,7 +56,10 @@ public:
     TreeType treeType;
     std::string tree;
     int maxLeaves;
+
+    // K-Means tree options
     double kMeansEps;
+    bool kMeansBalanced;
 
     // Prediction options
     int topK;

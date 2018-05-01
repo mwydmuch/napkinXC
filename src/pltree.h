@@ -16,6 +16,7 @@
 #include "args.h"
 #include "types.h"
 #include "base.h"
+#include "kmeans.h"
 
 struct TreeNode{
     int index; // Index of the base predictor
@@ -27,9 +28,15 @@ struct TreeNode{
 
 struct TreeNodeValue{
     TreeNode* node;
-    double value; // Node's value/probability
+    double value; // Node's value/probability/loss
 
     bool operator<(const TreeNodeValue &r) const { return value < r.value; }
+};
+
+// For buildKMeansTree
+struct TreeNodePartition{
+    TreeNode* node;
+    std::vector<Assignation>* partition;
 };
 
 struct NodeJob{
@@ -43,23 +50,6 @@ struct JobResult{
     int parent;
     std::vector<int> instances;
     std::vector<int> labels;
-};
-
-struct LabelsAssignation{
-    int index;
-    int value;
-};
-
-struct LabelsDistances{
-    int index;
-    std::vector<Feature> values;
-
-    bool operator<(const LabelsDistances &r) const { return values[0].value < r.values[0].value; }
-};
-
-struct TreeNodePartition{
-    TreeNode* node;
-    std::vector<LabelsAssignation> *partition;
 };
 
 class FreqTuple{
@@ -97,6 +87,8 @@ public:
     void load(std::string infile);
     void load(std::istream& in);
 
+    void printTree(TreeNode *root = nullptr);
+
 private:
     std::default_random_engine rng;
 
@@ -107,14 +99,18 @@ private:
     std::vector<TreeNode*> tree; // Pointers to tree nodes
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
+    // Training
+    void trainTreeStructure(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
+
 
     // Tree building methods
+
+    // TODO: clean this a little bit
     void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                         std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void addRootToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                                std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    void trainFixed(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
 //    std::vector<struct JobResult> processJob(int index, std::vector<int>& jobInstances, std::vector<int>& jobLabels,
 //                                             std::ofstream& out,SRMatrix<Label>& labels, SRMatrix<Feature>& features,
 //                                             Args& args);
@@ -123,16 +119,14 @@ private:
     void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
 //    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 //    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
-
-    void balancedKMeans(std::vector<LabelsAssignation>* partition, SRMatrix<Feature>& labelsFeatures, Args &args);
-    void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
+
+
+    // Cleaned tree building methods
+    void buildKMeansTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+    void buildCompleteTree(int labelCount, int arity, bool randomizeTree = false);
     void loadTreeStructure(std::string file);
 
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
-
-    void printTree(TreeNode *n);
-    void printTree();
 };

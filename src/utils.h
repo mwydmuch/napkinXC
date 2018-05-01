@@ -10,9 +10,10 @@
 #include <thread>
 #include <iostream>
 
-
 // Math utils
-template<typename T>
+
+// Sparse vector dot dense vector
+template <typename T>
 inline T dotVectors(Feature* vector1, const T* vector2, int size){
     T val = 0;
     Feature* f = vector1;
@@ -23,12 +24,19 @@ inline T dotVectors(Feature* vector1, const T* vector2, int size){
     return val;
 }
 
-template<typename T>
+template <typename T>
 inline T dotVectors(Feature* vector1, const std::vector<T>& vector2){
     dotVectors(vector1, vector2.data(), vector2.size());
 }
 
-template<typename T>
+// Sparse vector dot sparse vector
+// TODO
+inline double dotVectors(Feature* vector1, Feature* vector2){
+    return 0;
+}
+
+// Sets values of dense vector using sparse vector
+template <typename T>
 inline void setVector(Feature* vector1, T* vector2, int size){
     Feature* f = vector1;
     while(f->index != -1 && f->index < size){
@@ -37,12 +45,13 @@ inline void setVector(Feature* vector1, T* vector2, int size){
     }
 }
 
-template<typename T>
+template <typename T>
 inline void setVector(Feature* vector1, std::vector<T>& vector2) {
     setVector(vector1, vector2.data(), vector2.size());
 }
 
-template<typename T>
+// Adds values of sparse vector to dense vector
+template <typename T>
 inline void addVector(Feature* vector1, T* vector2, int size){
     Feature* f = vector1;
     while(f->index != -1 && f->index < size){
@@ -51,11 +60,12 @@ inline void addVector(Feature* vector1, T* vector2, int size){
     }
 }
 
-template<typename T>
+template <typename T>
 inline void addVector(Feature* vector1, std::vector<T>& vector2) {
     addVector(vector1, vector2.data(), vector2.size());
 }
 
+// Unit norm
 template <typename T>
 inline void unitNorm(T* data, int size){
     T norm = 0;

@@ -244,16 +244,6 @@ void Base::save(std::string outfile, Args& args){
     out.close();
 }
 
-// TODO add support for other representations
-void Base::printWeights(){
-    if(classCount > 1) {
-        for(int i = 0; i < wSize; ++i){
-            std::cerr<<W[i]<<";";
-        }
-        std::cerr<<std::endl;
-    }
-}
-
 void Base::save(std::ostream& out, Args& args){
     out.write((char*) &classCount, sizeof(classCount));
     out.write((char*) &firstClass, sizeof(firstClass));
@@ -338,4 +328,22 @@ void Base::load(std::istream& in, Args& args) {
     }
     //std::cerr << "  Loaded base: sparse: " << sparse << ", classCount: " << classCount << ", firstClass: " << firstClass << ", weights: "
     //    << nonZeroW << "/" << wSize << ", size: " << nonZeroW * (2 * sizeof(int) + sizeof(double))/1024 << "/" << wSize * sizeof(double)/1024 << "K\n";
+}
+
+void Base::printWeights(){
+    if (W != nullptr)
+        for(int i = 0; i < wSize; ++i) std::cerr << W[i] <<" ";
+    else if (mapW != nullptr)
+        for(int i = 0; i < wSize; ++i) {
+            auto w = mapW->find(i);
+            if(w != mapW->end()) std::cerr << w->first << ":" << w->second <<" ";
+        }
+    else if (sparseW != nullptr) {
+        Feature* f = sparseW;
+        while(f->index != -1 && f->index < wSize) {
+            std::cerr << f->index << ":" << f->value << " ";
+            ++f;
+        }
+    } else std::cerr << "No weights";
+    std::cerr << "\n";
 }

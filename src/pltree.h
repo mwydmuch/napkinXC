@@ -39,6 +39,13 @@ struct TreeNodePartition{
     std::vector<Assignation>* partition;
 };
 
+struct TreeNodeFrequency{
+    TreeNode* node;
+    int frequency;
+
+    bool operator<(const TreeNodeFrequency &r) const { return frequency < r.frequency; }
+};
+
 struct NodeJob{
     int parent;
     std::vector<int> labels;
@@ -51,24 +58,6 @@ struct JobResult{
     std::vector<int> instances;
     std::vector<int> labels;
 };
-
-class FreqTuple{
-public:
-    int64_t f;
-    TreeNode* node;
-public:
-    FreqTuple(int64_t f_, TreeNode* node_){
-        f=f_; node=node_;
-    }
-    int64_t getFrequency() const { return f;}
-};
-
-struct DereferenceCompareNode : public std::binary_function<FreqTuple*, FreqTuple*, bool>{
-    bool operator()(const FreqTuple* lhs, const FreqTuple* rhs) const {
-        return lhs->getFrequency() > rhs->getFrequency();
-    }
-};
-
 
 class PLTree{
 public:
@@ -87,8 +76,6 @@ public:
     void load(std::string infile);
     void load(std::istream& in);
 
-    void printTree(TreeNode *root = nullptr);
-
 private:
     std::default_random_engine rng;
 
@@ -105,7 +92,7 @@ private:
 
     // Tree building methods
 
-    // Top down
+    // Top down, definitions in pltree_topdown.cpp
     // TODO: clean this a little bit
     void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
                         std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
@@ -113,7 +100,6 @@ private:
                                std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    void buildHuffmanPLTree(SRMatrix<Label>& labels, Args &args);
     void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
 
@@ -133,15 +119,19 @@ private:
     void balancedKMeansWithRandomProjection(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 
     // Hierarchical K-Means
-    void buildLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
+
+    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
 
     // Just random complete tree
     void buildCompleteTree(int labelCount, int arity, bool randomizeOrder = false);
+    void buildHuffmanTree(SRMatrix<Label>& labels, Args &args);
 
-    // Custom tree structure from file
+    // Custom tree structure
     void loadTreeStructure(std::string file);
+    void saveTreeStructure(std::string file);
 
     // Tree building utils
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
+    void printTree(TreeNode *root = nullptr);
 };

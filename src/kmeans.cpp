@@ -3,15 +3,16 @@
  * All rights reserved.
  */
 
-#include "kmeans.h"
-
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <climits>
+
+#include "kmeans.h"
 #include "utils.h"
 
-// Heuristic (Balanced) K-Means clustering
-// Partition is returned via reference
+// (Heuristic) Balanced K-Means clustering
+// Partition is returned via reference, calculated for cosine distance
 void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures,
                     int centroids, double eps, bool balanced, int seed){
 

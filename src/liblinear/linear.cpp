@@ -1336,8 +1336,8 @@ void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, do
 		}
 
 		iter++;
-//		if(iter % 10 == 0)
-//			info(".");
+		//if(iter % 10 == 0)
+		//	info(".");
 
 		if(Gmax < eps)
 			break;
@@ -1347,20 +1347,22 @@ void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, do
 
 	}
 
-//	info("\noptimization finished, #iter = %d\n",iter);
-//	if (iter >= max_iter)
-//		info("\nWARNING: reaching max number of iterations\nUsing -s 0 may be faster (also see FAQ)\n\n");
+	/*
+	info("\noptimization finished, #iter = %d\n",iter);
+	if (iter >= max_iter)
+		info("\nWARNING: reaching max number of iterations\nUsing -s 0 may be faster (also see FAQ)\n\n");
 
-	// calculate objective value
+	 calculate objective value
 
-//	double v = 0;
-//	for(i=0; i<w_size; i++)
-//		v += w[i] * w[i];
-//	v *= 0.5;
-//	for(i=0; i<l; i++)
-//		v += alpha[2*i] * log(alpha[2*i]) + alpha[2*i+1] * log(alpha[2*i+1])
-//			- upper_bound[GETI(i)] * log(upper_bound[GETI(i)]);
-//	info("Objective value = %lf\n", v);
+	double v = 0;
+	for(i=0; i<w_size; i++)
+		v += w[i] * w[i];
+	v *= 0.5;
+	for(i=0; i<l; i++)
+		v += alpha[2*i] * log(alpha[2*i]) + alpha[2*i+1] * log(alpha[2*i+1])
+			- upper_bound[GETI(i)] * log(upper_bound[GETI(i)]);
+	info("Objective value = %lf\n", v);
+	*/
 
 	delete [] xTx;
 	delete [] alpha;
@@ -1896,8 +1898,8 @@ static void solve_l1r_lr(
 			QP_Gmax_old = QP_Gmax_new;
 		}
 
-//		if(iter >= max_iter)
-//			info("WARNING: reaching max number of inner iterations\n");
+		//if(iter >= max_iter)
+		//	info("WARNING: reaching max number of inner iterations\n");
 
 		delta = 0;
 		w_norm_new = 0;
@@ -1979,13 +1981,15 @@ static void solve_l1r_lr(
 		newton_iter++;
 		Gmax_old = Gmax_new;
 
-//		info("iter %3d  #CD cycles %d\n", newton_iter, iter);
+		//info("iter %3d  #CD cycles %d\n", newton_iter, iter);
 	}
 
-//	info("=========================\n");
-//	info("optimization finished, #iter = %d\n", newton_iter);
-//	if(newton_iter >= max_newton_iter)
-//		info("WARNING: reaching max number of iterations\n");
+	/*
+	info("=========================\n");
+	info("optimization finished, #iter = %d\n", newton_iter);
+	if(newton_iter >= max_newton_iter)
+		info("WARNING: reaching max number of iterations\n");
+	 */
 
 	// calculate objective value
 
@@ -2003,8 +2007,8 @@ static void solve_l1r_lr(
 		else
 			v += C[GETI(j)]*log(1+exp_wTx[j]);
 
-//	info("Objective value = %lf\n", v);
-//	info("#nonzeros/#features = %d/%d\n", nnz, w_size);
+	//info("Objective value = %lf\n", v);
+	//info("#nonzeros/#features = %d/%d\n", nnz, w_size);
 
 	delete [] index;
 	delete [] y;
@@ -2634,15 +2638,15 @@ void find_parameter_C(const problem *prob, const parameter *param, int nr_fold, 
 			*best_rate = current_rate;
 		}
 
-		info("log2c=%7.2f\trate=%g\n",log(param1.C)/log(2.0),100.0*current_rate);
+		//info("log2c=%7.2f\trate=%g\n",log(param1.C)/log(2.0),100.0*current_rate);
 		num_unchanged_w++;
 		if(num_unchanged_w == 3)
 			break;
 		param1.C = param1.C*ratio;
 	}
 
-	if(param1.C > max_C && max_C > start_C)
-		info("warning: maximum C reached.\n");
+	//if(param1.C > max_C && max_C > start_C)
+	//	info("warning: maximum C reached.\n");
 	free(fold_start);
 	free(perm);
 	free(target);

@@ -8,11 +8,8 @@
 #include <vector>
 #include "types.h"
 
-// Heuristic (Balanced) K-Means clustering
-struct Assignation{
-    int index;
-    int value;
-};
+// (Heuristic) Balanced K-Means clustering
+typedef IntFeature Assignation;
 
 struct Distances{
     int index;
@@ -21,6 +18,6 @@ struct Distances{
     bool operator<(const Distances &r) const { return values[0].value < r.values[0].value; }
 };
 
-// Partition is returned via reference
+// Partition is returned via reference, calculated for cosine distance
 void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures,
                     int centroids, double eps, bool balanced, int seed);

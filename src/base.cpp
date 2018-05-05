@@ -94,6 +94,18 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
 
         auto output = check_parameter(&P, &C);
         assert(output == NULL);
+
+        if(args.cost < 0 && binLabels.size() > 100){
+            // list of C to check:
+            double cvC[4] = {4.0, 8.0, 16.0, 32.0};
+
+            double bestC = cvC[0];
+            double bestAcc = 0;
+
+            find_parameter_C(&P, &C, 1, 4, 32, &bestC, &bestAcc);
+            C.C = bestC;
+        } else if(args.cost < 0) C.C = 8;
+
         M = train_linear(&P, &C);
 
     } else if (args.optimizerType == sgd) {

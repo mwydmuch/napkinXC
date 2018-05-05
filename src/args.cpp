@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cassert>
 #include <cmath>
+
 #include "args.h"
 #include "linear.h"
 #include "utils.h"
@@ -361,6 +362,7 @@ void Args::printHelp(){
         -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
                             Like in support vector machines, smaller values specify stronger
                             regularization. (default = 1.0)
+                            Note: -1 to automatically find best value for each node.
         -e, --eps           Stopping criteria (default = 0.1)
                             See: https://github.com/cjlin1/liblinear
 

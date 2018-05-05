@@ -11,12 +11,17 @@
 #include <cstring>
 #include <vector>
 #include <fstream>
+
 #include "linear.h"
 
-#include <iostream>
-
 typedef int Label;
-typedef feature_node Feature;
+typedef feature_node DoubleFeature;
+typedef DoubleFeature Feature;
+
+struct IntFeature{
+    int index;
+    int value;
+};
 
 // Elastic sparse row matrix, type T needs to contain int at offset 0!
 template <typename T>

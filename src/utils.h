@@ -10,21 +10,22 @@
 #include <unordered_map>
 #include <thread>
 #include <iostream>
+#include <algorithm>
 
 #include "types.h"
 
 // Data utils
-void computeLabelsFrequencies(std::vector<int>& labelsFreq, SRMatrix<Label>& labels);
+void computeLabelsFrequencies(std::vector<int>& labelsFreq, const SRMatrix<Label>& labels);
 
-void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features);
 
-void computeLabelsExamples(std::vector<std::vector<double>>& labelsExamples, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+void computeLabelsExamples(std::vector<std::vector<Example>>& labelsFeatures, const SRMatrix<Label>& labels);
 
 
 // Math utils
 
 template <typename T, typename U>
-inline T argMax(std::unordered_map<T, U>& map){
+inline T argMax(const std::unordered_map<T, U>& map){
     auto pMax = std::max_element(map.begin(), map.end(),
                                  [](const std::pair<T, U>& p1, const std::pair<T, U>& p2)
                                  { return p1.second < p2.second; });
@@ -32,7 +33,7 @@ inline T argMax(std::unordered_map<T, U>& map){
 }
 
 template <typename T, typename U>
-inline T argMin(std::unordered_map<T, U>& map){
+inline T argMin(const std::unordered_map<T, U>& map){
     auto pMin = std::min_element(map.begin(), map.end(),
                                  [](const std::pair<T, U>& p1, const std::pair<T, U>& p2)
                                  { return p1.second < p2.second; });
@@ -41,12 +42,12 @@ inline T argMin(std::unordered_map<T, U>& map){
 
 
 template <typename T>
-inline size_t argMax(std::vector<T>& vector){
+inline size_t argMax(const std::vector<T>& vector){
     return std::distance(vector.begin(), std::max_element(vector.begin(), vector.end()));
 }
 
 template <typename T>
-inline size_t argMin(std::vector<T>& vector){
+inline size_t argMin(const std::vector<T>& vector){
     return std::distance(vector.begin(), std::min_element(vector.begin(), vector.end()));
 }
 
@@ -156,10 +157,10 @@ inline void printProgress(int state, int max){
 // Files utils
 
 // Joins two paths
-std::string joinPath(std::string path1, std::string path2);
+std::string joinPath(const std::string& path1, const std::string& path2);
 
 // Checks filename
-void checkFileName(std::string filename, bool read = true);
+void checkFileName(const std::string& filename, bool read = true);
 
 // Checks dirname
-void checkDirName(std::string dirname);
+void checkDirName(const std::string& dirname);

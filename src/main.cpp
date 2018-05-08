@@ -18,20 +18,7 @@ void test(Args &args) {
 
     PLTree tree;
     tree.load(args.model + "/tree.bin");
-
-    std::cerr << "Loading base classifiers ...\n";
-    std::vector<Base*> bases;
-    std::ifstream in(args.model + "/weights.bin");
-    for(int i = 0; i < tree.nodes(); ++i) {
-        printProgress(i, tree.nodes());
-        bases.emplace_back(new Base());
-        bases.back()->load(in, args);
-    }
-    in.close();
-
-    tree.test(labels, features, bases, args);
-
-    for(auto base : bases) delete base;
+    tree.test(labels, features, args);
 }
 
 void train(Args &args) {

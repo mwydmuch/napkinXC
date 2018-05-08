@@ -9,7 +9,7 @@
 
 // Data utils
 
-void computeLabelsFrequencies(std::vector<int>& labelsFreq, SRMatrix<Label>& labels){
+void computeLabelsFrequencies(std::vector<int>& labelsFreq, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' frequencies ...\n";
 
     labelsFreq.clear();
@@ -25,7 +25,7 @@ void computeLabelsFrequencies(std::vector<int>& labelsFreq, SRMatrix<Label>& lab
 }
 
 // TODO: Make it parallel
-void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features){
     std::cerr << "Computing labels' features matrix ...\n";
 
     std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
@@ -59,10 +59,11 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Lab
     }
 }
 
-void computeLabelsExamples(std::vector<std::vector<double>>& labelsExamples, SRMatrix<Label>& labels){
+void computeLabelsExamples(std::vector<std::vector<Example>>& labelsExamples, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' examples ...\n";
 
     labelsExamples.clear();
+    labelsExamples.resize(labels.cols());
     int rows = labels.rows();
 
     for(int r = 0; r < rows; ++r){
@@ -76,7 +77,7 @@ void computeLabelsExamples(std::vector<std::vector<double>>& labelsExamples, SRM
 // Files utils
 
 // Joins two paths
-std::string joinPath(std::string path1, std::string path2){
+std::string joinPath(const std::string& path1, const std::string& path2){
     char sep = '/';
 
     std::string joined = path1;
@@ -88,7 +89,7 @@ std::string joinPath(std::string path1, std::string path2){
 }
 
 // Checks filename
-void checkFileName(std::string filename, bool read){
+void checkFileName(const std::string& filename, bool read){
     bool valid;
     if(read) {
         std::ifstream in(filename);
@@ -101,7 +102,7 @@ void checkFileName(std::string filename, bool read){
 }
 
 // Checks dirname
-void checkDirName(std::string dirname){
+void checkDirName(const std::string& dirname){
     std::string tmpFile = joinPath(dirname, ".checkTmp");
     std::ofstream out(tmpFile);
     if(!out.good()) throw "Invalid dirname: \"" + dirname +"\"!";

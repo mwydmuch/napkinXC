@@ -15,6 +15,7 @@
 #include "linear.h"
 
 typedef int Label;
+typedef int Example;
 typedef feature_node DoubleFeature;
 typedef DoubleFeature Feature;
 
@@ -49,7 +50,7 @@ public:
     inline T** data(){ return r.data(); }
 
     // Returns row as T*
-    inline T* row(const int index){ return r[index]; }
+    inline T* row(const int index) const { return r[index]; }
 
     // Access row also by [] operator
     inline T& operator[](const int index) { return r[index]; }
@@ -58,11 +59,11 @@ public:
     inline std::vector<int>& sizes(){ return s; }
 
     // Returns single row size
-    inline int size(const int index){ return s[index]; }
+    inline int size(const int index) const { return s[index]; }
 
     // Returns size of matrix
-    inline int rows(){ return m; }
-    inline int cols(){ return n; }
+    inline int rows() const { return m; }
+    inline int cols() const { return n; }
 
     void clear();
     void save(std::string outfile);
@@ -196,15 +197,15 @@ void SRMatrix<T>::load(std::istream& in) {
     in.read((char*) &m, sizeof(m));
     in.read((char*) &n, sizeof(n));
 
-    r.reserve(m);
-    s.reserve(m);
+    r.resize(m);
+    s.resize(m);
 
     for(int i = 0; i < m; ++i) {
         int size;
         in.read((char*) &size, sizeof(size));
         T* newRow = new T[size + 1];
-        s.push_back(size);
-        r.push_back(newRow);
+        s[i] = size;
+        r[i] = newRow;
 
         for (int j = 0; j <= size; ++j)
             in.read((char *) &r[i][j], sizeof(T));

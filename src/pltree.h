@@ -18,12 +18,16 @@
 #include "base.h"
 #include "kmeans.h"
 
+class KNN;
+
 struct TreeNode{
-    int index; // Index of the base predictor
+    int index; // Index of the base classifier
     int label; // -1 means it is internal node
 
     TreeNode* parent; // Pointer to the parent node
     std::vector<TreeNode*> children; // Pointers to the children nodes
+
+    bool kNNnode; // Index of the kNN classifier, -1 means the node does not use kNN classifier
 };
 
 struct TreeNodeValue{
@@ -33,12 +37,13 @@ struct TreeNodeValue{
     bool operator<(const TreeNodeValue &r) const { return value < r.value; }
 };
 
-// For buildKMeansTree
+// For K-Means based trees
 struct TreeNodePartition{
     TreeNode* node;
     std::vector<Assignation>* partition;
 };
 
+// For Huffman based trees
 struct TreeNodeFrequency{
     TreeNode* node;
     int frequency;
@@ -65,8 +70,8 @@ public:
     ~PLTree();
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, int k);
-    void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<Base*>& bases, Args& args);
+    void predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args);
+    void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 
     inline int nodes() { return t; }
     inline int labels() { return k; }
@@ -87,8 +92,7 @@ private:
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
     // Training
-    void trainTreeStructure(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-
+    void trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 
     // Tree building methods
 
@@ -121,10 +125,15 @@ private:
     // Hierarchical K-Means
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
 
-    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+    // Some experimental tree structures
+    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::vector<int>& labelsFreq, Args& args);
+
+    void buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<int>& labelsFreq, Args& args);
 
     // Just random complete tree
     void buildCompleteTree(int labelCount, int arity, bool randomizeOrder = false);
+
+    // Huffman tree
     void buildHuffmanTree(SRMatrix<Label>& labels, Args &args);
 
     // Custom tree structure

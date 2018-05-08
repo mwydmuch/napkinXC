@@ -54,6 +54,10 @@ Args::Args() {
     topK = 1;
     sparseWeights = true;
 
+    // KNN options
+    useKNN = true;
+    kNNK = 10;
+
     // Private
     hFeatures = 0;
     hLabels = 0;
@@ -168,6 +172,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "kMeansWithProjection" ) treeType = kMeansWithProjection;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
+                else if (args.at(ai + 1) == "leaveFreqBehind") treeType = leaveFreqBehind;
+                else if (args.at(ai + 1) == "kMeansHuffman") treeType = kMeansHuffman;
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -175,11 +181,14 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
 
             // Prediction options
-            else if (args[ai] == "--to"
-                                         "pK")
+            else if (args[ai] == "--topK")
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--sparseWeights")
                 sparseWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--kNNK")
+                kNNK = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--useKNN")
+                useKNN = std::stoi(args.at(ai + 1)) != 0;
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();

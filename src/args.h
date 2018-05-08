@@ -17,7 +17,9 @@ enum TreeType {
     topDown,
     balancedInOrder,
     balancedRandom,
-    huffman
+    huffman,
+    leaveFreqBehind,
+    kMeansHuffman
 };
 
 enum OptimizerType { libliner, sgd };
@@ -66,6 +68,10 @@ public:
     // Prediction options
     int topK;
     bool sparseWeights;
+
+    // KNN options
+    bool useKNN;
+    int kNNK;
 
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);

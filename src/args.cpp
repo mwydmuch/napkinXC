@@ -166,6 +166,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "hierarchicalKMeans") treeType = hierarchicalKMeans;
                 else if (args.at(ai + 1) == "kMeansWithProjection" ) treeType = kMeansWithProjection;
+                else if (args.at(ai + 1) == "kMeansinstanceBalancing" ) treeType = kMeansinstanceBalancing;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
                 else {

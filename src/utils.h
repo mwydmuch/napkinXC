@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 #include <unordered_map>
 #include <thread>
 #include <iostream>

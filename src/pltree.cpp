@@ -56,6 +56,22 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
             computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
             buildKMeansTree(labelsFeatures, args);
         }
+        else if (args.treeType == kMeansinstanceBalancing) {
+            SRMatrix<Feature> labelsFeatures;
+            computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
+
+            int k = labels.cols();
+            std::cerr << "  Compute label to indices ...\n";
+            std::vector<std::unordered_set<int>> labelToIndices(k);
+            for (int r = 0; r < features.rows(); ++r) {
+                int rSize = labels.size(r);
+                auto rLabels = labels.row(r);
+                for (int i = 0; i < rSize; ++i) labelToIndices[rLabels[i]].insert(r);
+            }
+
+
+            buildKMeansTree(labelsFeatures, labelToIndices, args);
+        }
         else if(args.treeType == kMeansWithProjection)
             balancedKMeansWithRandomProjection(labels, features, args);
         else {
@@ -328,6 +344,12 @@ TreeNodePartition kMeansThread(TreeNodePartition nPart, SRMatrix<Feature>& label
     return nPart;
 }
 
+TreeNodePartition kMeansThreadInstanceBalancing(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures,std::vector<std::unordered_set<int>> labelToIndices, Args& args, int seed){
+    kMeansInstanceBalancing(nPart.partition, labelsFeatures, labelToIndices, args.arity, args.kMeansEps, args.kMeansBalanced, seed);
+    return nPart;
+}
+
+
 void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
     std::cerr << "Hierarchical K-Means clustering in " << args.threads << " threads ...\n";
 
@@ -402,6 +424,84 @@ void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
     assert(k == treeLeaves.size());
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
 }
+
+
+void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, std::vector<std::unordered_set<int>> labelToIndices, Args& args){
+    std::cerr << "Hierarchical K-Means clustering with instance based balancing in " << args.threads << " threads ...\n";
+
+    treeRoot = createTreeNode();
+    k = labelsFeatures.rows();
+
+    std::uniform_int_distribution<int> kMeansSeeder(0, INT_MAX);
+
+    auto partition = new std::vector<Assignation>(k);
+    for(int i = 0; i < k; ++i) (*partition)[i].index = i;
+
+    if(args.threads > 1){
+        // Run clustering in parallel
+        ThreadPool tPool(args.threads);
+        std::vector<std::future<TreeNodePartition>> results;
+
+        TreeNodePartition rootPart = {treeRoot, partition};
+        results.emplace_back(tPool.enqueue(kMeansThreadInstanceBalancing, rootPart, std::ref(labelsFeatures), std::ref(labelToIndices),
+                                           std::ref(args), kMeansSeeder(rng)));
+
+        for(int r = 0; r < results.size(); ++r) {
+            // Enqueuing new clustering tasks in the main thread ensures determinism
+            TreeNodePartition nPart = results[r].get();
+
+            // This needs to be done this way in case of imbalanced K-Means
+            auto partitions = new std::vector<Assignation>* [args.arity];
+            for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
+            for (auto a : *nPart.partition) partitions[a.value]->push_back({a.index, 0});
+
+            for (int i = 0; i < args.arity; ++i) {
+                TreeNode *n = createTreeNode(nPart.node);
+
+                if(partitions[i]->size() <= args.maxLeaves) {
+                    for (auto& a : *partitions[i]) createTreeNode(n, a.index);
+                    delete partitions[i];
+                } else {
+                    TreeNodePartition childPart = {n, partitions[i]};
+                    results.emplace_back(tPool.enqueue(kMeansThread, childPart, std::ref(labelsFeatures),
+                                                       std::ref(args), kMeansSeeder(rng)));
+                }
+            }
+
+            delete nPart.partition;
+        }
+    } else {
+        std::queue<TreeNodePartition> nQueue;
+        nQueue.push({treeRoot, partition});
+
+        while (!nQueue.empty()) {
+            TreeNodePartition nPart = nQueue.front(); // Current node
+            nQueue.pop();
+
+            if (nPart.partition->size() > args.maxLeaves) {
+                kMeansInstanceBalancing(nPart.partition, labelsFeatures, labelToIndices, args.arity, args.kMeansEps, args.kMeansBalanced, kMeansSeeder(rng));
+                auto partitions = new std::vector<Assignation>* [args.arity];
+                for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
+                for (auto a : *nPart.partition) partitions[a.value]->push_back({a.index, 0});
+
+                // Create children
+                for (int i = 0; i < args.arity; ++i) {
+                    TreeNode *n = createTreeNode(nPart.node);
+                    nQueue.push({n, partitions[i]});
+                }
+            } else
+                for (auto& a : *nPart.partition) createTreeNode(nPart.node, a.index);
+
+            delete nPart.partition;
+        }
+    }
+
+    t = tree.size();
+    assert(k == treeLeaves.size());
+    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
+}
+
+
 
 void PLTree::balancedKMeansWithRandomProjection(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) {
 

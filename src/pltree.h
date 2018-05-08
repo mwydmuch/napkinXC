@@ -120,6 +120,7 @@ private:
 
     // Hierarchical K-Means
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
+    void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, std::vector<std::unordered_set<int>> labelToIndices, Args &args);
 
     void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
 

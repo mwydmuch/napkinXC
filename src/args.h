@@ -14,6 +14,7 @@ enum TreeType {
     completeRandom,
     hierarchicalKMeans,
     kMeansWithProjection,
+    kMeansinstanceBalancing,
     topDown,
     balancedInOrder,
     balancedRandom,

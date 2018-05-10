@@ -17,6 +17,7 @@
 #include "types.h"
 #include "base.h"
 #include "kmeans.h"
+#include "utils.h"
 
 class KNN;
 
@@ -27,7 +28,7 @@ struct TreeNode{
     TreeNode* parent; // Pointer to the parent node
     std::vector<TreeNode*> children; // Pointers to the children nodes
 
-    bool kNNnode; // Index of the kNN classifier, -1 means the node does not use kNN classifier
+    bool kNNNode; // Node uses K-NN classifier
 };
 
 struct TreeNodeValue{
@@ -126,9 +127,9 @@ private:
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
 
     // Some experimental tree structures
-    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::vector<int>& labelsFreq, Args& args);
+    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, Args& args);
 
-    void buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<int>& labelsFreq, Args& args);
+    void buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, SRMatrix<Label>& labels, Args& args);
 
     // Just random complete tree
     void buildCompleteTree(int labelCount, int arity, bool randomizeOrder = false);

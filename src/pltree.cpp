@@ -15,7 +15,6 @@
 #include <climits>
 
 #include "pltree.h"
-#include "utils.h"
 #include "threads.h"
 #include "knn.h"
 
@@ -59,17 +58,17 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
         }
         else if (args.treeType == leaveFreqBehind) {
             SRMatrix<Feature> labelsFeatures;
-            std::vector<int> labelsFreq;
+            std::vector<Frequency> labelsFreq;
             computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
             computeLabelsFrequencies(labelsFreq, labels);
             buildLeaveFreqBehindTree(labelsFeatures, labelsFreq, args);
         }
         else if (args.treeType == kMeansHuffman) {
             SRMatrix<Feature> labelsFeatures;
-            std::vector<int> labelsFreq;
+            std::vector<Frequency> labelsFreq;
             computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
             computeLabelsFrequencies(labelsFreq, labels);
-            buildKMeansHuffmanTree(labelsFeatures, labelsFreq, args);
+            buildKMeansHuffmanTree(labelsFeatures, labelsFreq, labels, args);
         }
         else if(args.treeType == kMeansWithProjection)
             balancedKMeansWithRandomProjection(labels, features, args);
@@ -121,11 +120,11 @@ void PLTree::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
         if (rSize > 0){
             for (int i = 0; i < rSize; ++i) {
                 TreeNode *n = treeLeaves[rLabels[i]];
-                //if(!n->parent->kNNnode) nPositive.insert(n); //kNN base classifiers will be left empty
+                //if(!n->parent->kNNNode) nPositive.insert(n); //kNN base classifiers will be left empty
                 nPositive.insert(n);
                 while (n->parent) {
                     n = n->parent;
-                    //if(!n->parent->kNNnode) nPositive.insert(n);
+                    //if(!n->parent->kNNNode) nPositive.insert(n);
                     nPositive.insert(n);
                 }
             }
@@ -192,36 +191,40 @@ void PLTree::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
               << "\n  Labels per point: " << static_cast<double>(yCount) / rows
               << "\n";
 
-    std::vector<std::vector<Example>> labelsExamples;
-    computeLabelsExamples(labelsExamples, labels);
+    if(args.kNN) {
+        std::vector<std::vector<Example>> labelsExamples;
+        computeLabelsExamples(labelsExamples, labels);
 
-    std::cerr << "Starting build kNN classifier ...\n";
+        std::cerr << "Starting build kNN classifier ...\n";
 
-    std::ofstream kNNOut(joinPath(args.model, "knn.bin"));
-    for(const auto& n : tree){
-        if(n->kNNnode) {
-            KNN knn;
-            knn.build(n->children, labelsExamples);
-            knn.save(kNNOut);
+        int kNNNodes = 0, kNNChildren = 0;
+        std::ofstream kNNOut(joinPath(args.model, "knn.bin"));
+        for (const auto &n : tree) {
+            if (n->kNNNode) {
+                KNN knn;
+                knn.build(n->children, labelsExamples);
+                knn.save(kNNOut);
+
+                ++kNNNodes;
+                kNNChildren += n->children.size();
+            }
         }
+        kNNOut.close();
+        std::cerr << "  K-NN nodes: " << kNNNodes << ", K-NN children: " << kNNChildren << "\n";
+
+        std::cerr << "Saving training data ...\n";
+        std::ofstream trainOut(joinPath(args.model, "train.bin"));
+        labels.save(trainOut);
+        features.save(trainOut);
+        trainOut.close();
     }
-    kNNOut.close();
 
-    // Save data
-
-    // Save trees
+    // Save tree
     save(joinPath(args.model, "tree.bin"));
     saveTreeStructure(joinPath(args.model, "tree.txt"));
 
     // Save args
     args.save(joinPath(args.model, "args.bin"));
-
-    // Save examples
-    std::cerr << "Saving training data ...\n";
-    std::ofstream trainOut(joinPath(args.model, "train.bin"));
-    labels.save(trainOut);
-    features.save(trainOut);
-    trainOut.close();
 
     std::cerr << "All done\n";
 }
@@ -245,10 +248,10 @@ void PLTree::predict(std::vector<TreeNodeValue>& prediction, Feature* features, 
             if (prediction.size() >= args.topK)
                 break;
         } else {
-            if(nVal.node->kNNnode && args.useKNN){ // KNN supports only probabilities
+            if(nVal.node->kNNNode && args.kNN){ // KNN supports only probabilities
                 TreeNode* n = nVal.node;
                 std::vector<Feature> result;
-                kNNs[nVal.node->index]->predict(features, args.kNNK, result);
+                kNNs[nVal.node->index]->predict(features, args.kNN, result);
                 for(const auto& r : result){
                     val = nVal.value * r.value;
                     nQueue.push({tree[r.index], val});
@@ -319,25 +322,32 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
     }
     weightsIn.close();
 
-    std::cerr << "Loading training data ...\n";
     SRMatrix<Label> trainLabels;
     SRMatrix<Feature> trainFeatures;
-    std::ifstream trainIn(joinPath(args.model, "train.bin"));
-    trainLabels.load(trainIn);
-    trainFeatures.load(trainIn);
-    trainIn.close();
-
-    std::cerr << "Loading kNN classifiers ...\n";
     std::vector<KNN*> kNNs;
-    std::ifstream kNNIn(joinPath(args.model, "knn.bin"));
-    for(int i = 0; i < t; ++i) {
-        printProgress(i, t);
-        if(tree[i]->kNNnode) {
-            kNNs.emplace_back(new KNN(&trainLabels, &trainFeatures));
-            kNNs.back()->load(kNNIn);
-        } else kNNs.push_back(nullptr);
+
+    if(args.kNN) {
+        std::cerr << "Loading kNN classifiers ...\n";
+        int kNNNodes = 0, kNNChildren = 0;
+        std::ifstream kNNIn(joinPath(args.model, "knn.bin"));
+        for (int i = 0; i < t; ++i) {
+            printProgress(i, t);
+            if (tree[i]->kNNNode) {
+                kNNs.emplace_back(new KNN(&trainLabels, &trainFeatures));
+                kNNs.back()->load(kNNIn);
+                ++kNNNodes;
+                kNNChildren += tree[i]->children.size();
+            } else kNNs.push_back(nullptr);
+        }
+        kNNIn.close();
+        std::cerr << "  K-NN nodes: " << kNNNodes << ", K-NN children: " << kNNChildren << "\n";
+
+        std::cerr << "Loading training data ...\n";
+        std::ifstream trainIn(joinPath(args.model, "train.bin"));
+        trainLabels.load(trainIn);
+        trainFeatures.load(trainIn);
+        trainIn.close();
     }
-    kNNIn.close();
 
     std::cerr << "Starting testing ...\n";
 
@@ -399,18 +409,25 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
     std::cerr << "All done\n";
 }
 
-TreeNodePartition kMeansThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed){
+TreeNodePartition treeNodeKMeansThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed){
     kMeans(nPart.partition, labelsFeatures, args.arity, args.kMeansEps, args.kMeansBalanced, seed);
     return nPart;
 }
 
-void PLTree::buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::vector<int>& labelsFreq, Args& args){
+std::vector<Assignation>* partitionKMeansThread(std::vector<Assignation>* partition, SRMatrix<Feature>& labelsFeatures, Args& args, int seed){
+    kMeans(partition, labelsFeatures, args.arity, args.kMeansEps, args.kMeansBalanced, seed);
+    return partition;
+}
+
+void PLTree::buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, Args& args){
     std::cerr << "\"Leave Freq Behind\" tree in " << args.threads << " threads ...\n";
 
     treeRoot = createTreeNode();
     k = labelsFeatures.rows();
 
     std::uniform_int_distribution<int> kMeansSeeder(0, INT_MAX);
+
+    int kNNLabels = 0, kNNNodes = 0;
 
     auto partition = new std::vector<Assignation>(k);
     for(int i = 0; i < k; ++i) (*partition)[i].index = i;
@@ -421,14 +438,14 @@ void PLTree::buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::ve
         std::vector<std::future<TreeNodePartition>> results;
 
         TreeNodePartition rootPart = {treeRoot, partition};
-        results.emplace_back(tPool.enqueue(kMeansThread, rootPart, std::ref(labelsFeatures),
+        results.emplace_back(tPool.enqueue(treeNodeKMeansThread, rootPart, std::ref(labelsFeatures),
                                            std::ref(args), kMeansSeeder(rng)));
 
         for(int r = 0; r < results.size(); ++r) {
             // Enqueuing new clustering tasks in the main thread ensures determinism
             TreeNodePartition nPart = results[r].get();
 
-            // This needs to be done this way in case of imbalanced K-Means
+            // This needs to be done this way in case of imbalance K-Means
             auto partitions = new std::vector<Assignation>* [args.arity];
             for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
             for (auto a : *nPart.partition) partitions[a.value]->push_back({a.index, 0});
@@ -437,12 +454,33 @@ void PLTree::buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::ve
                 TreeNode *n = createTreeNode(nPart.node);
 
                 if(partitions[i]->size() <= args.maxLeaves) {
-                    n->kNNnode = true;
-                    for (const auto& a : *partitions[i]) createTreeNode(n, a.index);
+                    /*
+                    double avg = 0;
+                    for (const auto& a : *partitions[i]){
+                        avg += labelsFreq[a.index].value;
+                    }
+
+                    avg /= partitions[i]->size();
+                     */
+                    double avg = args.kNNMaxFreq;
+                    TreeNode* kNNN = nullptr;
+                    for (const auto& a : *partitions[i]){
+                        if(labelsFreq[a.index].value > avg) createTreeNode(n, a.index);
+                        else{
+                            if(kNNN == nullptr){
+                                kNNN = createTreeNode(n);
+                                kNNN->kNNNode = true;
+                                ++kNNNodes;
+                            }
+                            createTreeNode(kNNN, a.index);
+                            ++kNNLabels;
+                        }
+                    }
+
                     delete partitions[i];
                 } else {
                     TreeNodePartition childPart = {n, partitions[i]};
-                    results.emplace_back(tPool.enqueue(kMeansThread, childPart, std::ref(labelsFeatures),
+                    results.emplace_back(tPool.enqueue(treeNodeKMeansThread, childPart, std::ref(labelsFeatures),
                                                        std::ref(args), kMeansSeeder(rng)));
                 }
             }
@@ -477,13 +515,85 @@ void PLTree::buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::ve
 
     t = tree.size();
     assert(k == treeLeaves.size());
-    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
+    std::cerr << "  Nodes: " << tree.size() << ", K-NN nodes: " << kNNNodes << ", leaves: " << treeLeaves.size() << ", K-NN leaves: " << kNNLabels << "\n";
 
 }
 
-void PLTree::buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<int>& labelsFreq, Args& args){
+// TODO: Finish this method
+void PLTree::buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, SRMatrix<Label>& labels, Args& args){
     std::cerr << "\"K-Means X Huffman\" tree in " << args.threads << " threads ...\n";
 
+    treeRoot = createTreeNode();
+    k = labelsFeatures.rows();
+
+    std::uniform_int_distribution<int> kMeansSeeder(0, INT_MAX);
+
+    std::vector<std::vector<Assignation>*> finalPartition;
+    std::vector<Assignation>* partition = new std::vector<Assignation>(k);
+    for(int i = 0; i < k; ++i) (*partition)[i].index = i;
+
+    if(args.threads > 1){
+        // Run clustering in parallel
+        ThreadPool tPool(args.threads);
+        std::vector<std::future<std::vector<Assignation>*>> results;
+        results.emplace_back(tPool.enqueue(partitionKMeansThread, partition, std::ref(labelsFeatures),
+                                           std::ref(args), kMeansSeeder(rng)));
+
+        for(int r = 0; r < results.size(); ++r) {
+            // Enqueuing new clustering tasks in the main thread ensures determinism
+            partition = results[r].get();
+
+            // This needs to be done this way in case of imbalanced K-Means
+            auto partitions = new std::vector<Assignation>* [args.arity];
+            for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
+            for (auto a : *partition) partitions[a.value]->push_back({a.index, 0});
+
+            for (int i = 0; i < args.arity; ++i) {
+                if(partitions[i]->size() <= args.maxLeaves) finalPartition.push_back(partitions[i]);
+                else results.emplace_back(tPool.enqueue(partitionKMeansThread, partitions[i], std::ref(labelsFeatures),
+                                                       std::ref(args), kMeansSeeder(rng)));
+            }
+
+            delete partition;
+        }
+    } else {
+        std::queue<std::vector<Assignation>*> nQueue;
+        nQueue.push(partition);
+
+        while (!nQueue.empty()) {
+            partition = nQueue.front();
+            nQueue.pop();
+
+            if (partition->size() > args.maxLeaves) {
+                kMeans(partition, labelsFeatures, args.arity, args.kMeansEps, args.kMeansBalanced, kMeansSeeder(rng));
+                auto partitions = new std::vector<Assignation>* [args.arity];
+                for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
+                for (auto a : *partition) partitions[a.value]->push_back({a.index, 0});
+
+                for (int i = 0; i < args.arity; ++i) nQueue.push(partitions[i]);
+                delete partition;
+            } else finalPartition.push_back(partition);
+        }
+    }
+
+    // Calculate clusters probability
+    std::priority_queue<TreeNodeFrequency> nodeFreq;
+    for(int c = 0; c < finalPartition.size(); ++c){
+        std::unordered_set<int> partitionsLabels;
+        for(const auto& a : *finalPartition[c])
+            partitionsLabels.insert(a.index);
+
+        int freq = 0;
+        int rows = labels.rows();
+        for(int r = 0; r < rows; ++r){
+
+        }
+    }
+
+    // Build Huffman tree on top of clusters
+    t = tree.size();
+    assert(k == treeLeaves.size());
+    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
 }
 
 
@@ -504,7 +614,7 @@ void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
         std::vector<std::future<TreeNodePartition>> results;
 
         TreeNodePartition rootPart = {treeRoot, partition};
-        results.emplace_back(tPool.enqueue(kMeansThread, rootPart, std::ref(labelsFeatures),
+        results.emplace_back(tPool.enqueue(treeNodeKMeansThread, rootPart, std::ref(labelsFeatures),
                                            std::ref(args), kMeansSeeder(rng)));
 
         for(int r = 0; r < results.size(); ++r) {
@@ -517,15 +627,22 @@ void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
             for (auto a : *nPart.partition) partitions[a.value]->push_back({a.index, 0});
 
             for (int i = 0; i < args.arity; ++i) {
+                if(partitions[i]->empty()) continue;
+                else if(partitions[i]->size() == 1){
+                    createTreeNode(nPart.node, partitions[i]->front().index);
+                    delete partitions[i];
+                    continue;
+                }
+
                 TreeNode *n = createTreeNode(nPart.node);
 
                 if(partitions[i]->size() <= args.maxLeaves) {
-                    n->kNNnode = true;
+                    n->kNNNode = true;
                     for (const auto& a : *partitions[i]) createTreeNode(n, a.index);
                     delete partitions[i];
                 } else {
                     TreeNodePartition childPart = {n, partitions[i]};
-                    results.emplace_back(tPool.enqueue(kMeansThread, childPart, std::ref(labelsFeatures),
+                    results.emplace_back(tPool.enqueue(treeNodeKMeansThread, childPart, std::ref(labelsFeatures),
                                                        std::ref(args), kMeansSeeder(rng)));
                 }
             }
@@ -645,14 +762,14 @@ void PLTree::buildHuffmanTree(SRMatrix<Label>& labels, Args &args){
     std::cout << "Building Huffman PLTree ...\n";
 
     k = labels.cols();
-    
-    std::vector<int> labelsFreq;
+
+    std::vector<Frequency> labelsFreq;
     computeLabelsFrequencies(labelsFreq, labels);
 
     std::priority_queue<TreeNodeFrequency> freqQueue;
     for(int i = 0; i < k; i++) {
         TreeNode* n = createTreeNode(nullptr, i);
-        freqQueue.push({n, labelsFreq[i]});
+        freqQueue.push({n, labelsFreq[i].value});
     }
     
     while(!freqQueue.empty()){
@@ -788,7 +905,7 @@ TreeNode* PLTree::createTreeNode(TreeNode* parent, int label){
     n->index = tree.size();
     n->label = label;
     n->parent = parent;
-    n->kNNnode = false;
+    n->kNNNode = false;
     if(label >= 0) treeLeaves[n->label] = n;
     if(parent != nullptr) parent->children.push_back(n);
     tree.push_back(n);
@@ -813,7 +930,7 @@ void PLTree::save(std::ostream& out){
         TreeNode *n = tree[i];
         out.write((char*) &n->index, sizeof(n->index));
         out.write((char*) &n->label, sizeof(n->label));
-        out.write((char*) &n->kNNnode, sizeof(n->kNNnode));
+        out.write((char*) &n->kNNNode, sizeof(n->kNNNode));
     }
 
     int rootN = treeRoot->index;
@@ -845,7 +962,7 @@ void PLTree::load(std::istream& in){
         TreeNode *n = new TreeNode();
         in.read((char*) &n->index, sizeof(n->index));
         in.read((char*) &n->label, sizeof(n->label));
-        in.read((char*) &n->kNNnode, sizeof(n->kNNnode));
+        in.read((char*) &n->kNNNode, sizeof(n->kNNNode));
 
         tree.push_back(n);
         if (n->label >= 0) treeLeaves[n->label] = n;

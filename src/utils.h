@@ -14,8 +14,11 @@
 
 #include "types.h"
 
+
+typedef IntFeature Frequency;
+
 // Data utils
-void computeLabelsFrequencies(std::vector<int>& labelsFreq, const SRMatrix<Label>& labels);
+void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels);
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features);
 

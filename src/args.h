@@ -70,8 +70,8 @@ public:
     bool sparseWeights;
 
     // KNN options
-    bool useKNN;
-    int kNNK;
+    int kNN;
+    int kNNMaxFreq;
 
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);

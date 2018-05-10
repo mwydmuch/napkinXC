@@ -68,17 +68,25 @@ void KNN::predict(Feature* features, int k, std::vector<Feature>& result){
 
     std::sort(distances.begin(), distances.end());
 
-    std::unordered_map<int, int> labelsCounts;
+    std::unordered_map<int, double> labelsValues;
+    int sumOfSimilarities = 0;
     for(int i = 0; i < k; ++i){
         int pIndex = distances[i].index;
+        double pSimilarity = 1.0 - distances[i].value;
+        sumOfSimilarities += pSimilarity;
         int pSize = pointsLabels->size(pIndex);
         auto pLabels = pointsLabels->row(pIndex);
-        for(int j = 0; j < pSize; ++j) ++labelsCounts[pLabels[j]];
+
+        // Simple version
+        //for(int j = 0; j < pSize; ++j) ++labelsValues[pLabels[j]];
+
+        // Probability based on similarity
+        for(int j = 0; j < pSize; ++j) labelsValues[pLabels[j]] += pSimilarity;
     }
 
     // Calculate posterior probabilities
-    for(const auto& l : labelsCounts)
-        if(labels.count(l.first)) result.push_back({l.first, static_cast<double>(l.second) / k});
+    for(const auto& l : labelsValues)
+        if(labels.count(l.first)) result.push_back({l.first, static_cast<double>(l.second) / k / sumOfSimilarities});
 }
 
 void KNN::save(std::string outfile){

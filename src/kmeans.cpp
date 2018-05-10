@@ -24,9 +24,12 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
     //if(balanced) std::cerr << "Balanced K-Means ...\n  Partition: " << partition->size() << ", centroids: " << centroids << "\n";
     //else std::cerr << "K-Means ...\n  Partition: " << partition->size() << ", centroids: " << centroids << "\n";
 
-    int maxPartitionSize;
-    if(balanced) maxPartitionSize = static_cast<int>(ceil(static_cast<double>(points) / centroids));
-    else maxPartitionSize = points - 1;
+    int maxPartitionSize = points - 1, maxWithOneMore = 0;
+    if(balanced){
+        maxPartitionSize = points / centroids + 1;
+        maxWithOneMore = points % centroids;
+    }
+
 
     // Test split - balanced tree
     /*
@@ -77,7 +80,10 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
                 int cIndex = distances[i].values[j].index;
                 int lIndex = distances[i].index;
 
-                if(centroidsSizes[cIndex] < maxPartitionSize) {
+                if(centroidsSizes[cIndex] < maxPartitionSize ||
+                        (centroidsSizes[cIndex] < maxPartitionSize + 1 && maxWithOneMore)) {
+
+                    if(centroidsSizes[cIndex] == maxPartitionSize) --maxWithOneMore;
                     (*partition)[lIndex].value = cIndex;
                     ++centroidsSizes[cIndex];
                     newCos += distances[i].values[j].value;

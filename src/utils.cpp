@@ -9,18 +9,22 @@
 
 // Data utils
 
-void computeLabelsFrequencies(std::vector<int>& labelsFreq, const SRMatrix<Label>& labels){
+void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' frequencies ...\n";
 
     labelsFreq.clear();
     labelsFreq.resize(labels.cols());
+    for(int i = 0; i < labelsFreq.size(); ++i) {
+        labelsFreq[i].index = i;
+        labelsFreq[i].value = 0;
+    }
     int rows = labels.rows();
 
     for(int r = 0; r < rows; ++r) {
         printProgress(r, rows);
         int rSize = labels.size(r);
         auto rLabels = labels.row(r);
-        for (int i = 0; i < rSize; ++i) ++labelsFreq[rLabels[i]];
+        for (int i = 0; i < rSize; ++i) ++labelsFreq[rLabels[i]].value;
     }
 }
 

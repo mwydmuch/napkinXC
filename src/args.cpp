@@ -55,8 +55,8 @@ Args::Args() {
     sparseWeights = true;
 
     // KNN options
-    useKNN = true;
-    kNNK = 10;
+    kNN = 5;
+    kNNMaxFreq = 10;
 
     // Private
     hFeatures = 0;
@@ -185,10 +185,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--sparseWeights")
                 sparseWeights = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--kNNK")
-                kNNK = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--useKNN")
-                useKNN = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--kNN")
+                kNN = std::stoi(args.at(ai + 1));
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();

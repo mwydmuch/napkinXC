@@ -268,7 +268,7 @@ void PLTree::predict(std::vector<TreeNodeValue>& prediction, Feature* features, 
 
 std::mutex testMutex;
 int pointTestThread(PLTree* tree, Label* labels, Feature* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs,
-    Args& args, std::vector<int>& correctAt){
+    Args& args, std::vector<int>& correctAt, std::vector<std::unordered_set<int>>& coveredAt){
 
     std::vector<TreeNodeValue> prediction;
     tree->predict(prediction, features, bases, kNNs, args);
@@ -279,6 +279,7 @@ int pointTestThread(PLTree* tree, Label* labels, Feature* features, std::vector<
         while(labels[++l] > -1)
             if (prediction[i].node->label == labels[l]){
                 ++correctAt[i];
+                coveredAt[i].insert(prediction[i].node->label);
                 break;
             }
     }
@@ -288,7 +289,8 @@ int pointTestThread(PLTree* tree, Label* labels, Feature* features, std::vector<
 }
 
 int batchTestThread(PLTree* tree, SRMatrix<Label>& labels, SRMatrix<Feature>& features,
-    std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args& args, int startRow, int stopRow, std::vector<int>& correctAt){
+    std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args& args, int startRow, int stopRow,
+    std::vector<int>& correctAt, std::vector<std::unordered_set<int>>& coveredAt){
 
     std::vector<int> localCorrectAt (args.topK);
     for(int r = startRow; r < stopRow; ++r){
@@ -299,6 +301,7 @@ int batchTestThread(PLTree* tree, SRMatrix<Label>& labels, SRMatrix<Feature>& fe
             for (int j = 0; j < labels.size(r); ++j)
                 if (prediction[i].node->label == labels.row(r)[j]){
                     ++localCorrectAt[i];
+                    coveredAt[i].insert(prediction[i].node->label);
                     break;
                 }
     }
@@ -352,6 +355,7 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
     std::cerr << "Starting testing ...\n";
 
     std::vector<int> correctAt(args.topK);
+    std::vector<std::unordered_set<int>> coveredAt(args.topK);
     int rows = features.rows();
     assert(rows == labels.rows());
 
@@ -363,8 +367,8 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
         std::vector<std::future<int>> results;
 
         for(int r = 0; r < rows; ++r)
-            results.emplace_back(tPool.enqueue(pointTestThread, this, labels.row(r), features.row(r),
-                                               std::ref(bases), std::ref(kNNs), std::ref(args), std::ref(correctAt)));
+            results.emplace_back(tPool.enqueue(pointTestThread, this, labels.row(r), features.row(r), std::ref(bases),
+                                               std::ref(kNNs), std::ref(args), std::ref(correctAt), std::ref(coveredAt)));
 
         for(int i = 0; i < results.size(); ++i) {
             printProgress(i, results.size());
@@ -391,16 +395,19 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
                 for (int j = 0; j < labels.sizes()[r]; ++j)
                     if (prediction[i].node->label == labels.data()[r][j]){
                         ++correctAt[i];
+                        coveredAt[i].insert(prediction[i].node->label);
                         break;
                     }
             printProgress(r, rows);
         }
     }
 
-    double precisionAt = 0;
+    double precisionAt = 0, coverageAt;
     for (int i = 0; i < args.topK; ++i) {
+        if(i > 0) for(const auto& l : coveredAt[i - 1]) coveredAt[i].insert(l);
         precisionAt += correctAt[i];
-        std::cerr << "P@" << i + 1 << ": " << precisionAt / (rows * (i + 1)) << "\n";
+        coverageAt = coveredAt[i].size();
+        std::cerr << "P@" << i + 1 << ": " << precisionAt / (rows * (i + 1)) << ", C@" << i + 1 << ": " << coverageAt / labels.cols() << "\n";
     }
 
     for(auto base : bases) delete base;

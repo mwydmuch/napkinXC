@@ -60,12 +60,13 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         labels[0] = 0;
         labels[1] = 1;
 
+        int negativeLabel = binLabels.size() - positiveLabel;
         labelsWeights = new double[2];
-        if(binLabels.size() - positiveLabel > positiveLabel){
+        if(negativeLabel > positiveLabel){
             labelsWeights[0] = 1.0;
-            labelsWeights[1] = 1.0 + log(static_cast<double>(binLabels.size() - positiveLabel) / positiveLabel);
+            labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabel) / positiveLabel);
         } else{
-            labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabel) / (binLabels.size() - positiveLabel));
+            labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabel) / negativeLabel);
             labelsWeights[1] = 1.0;
         }
     }

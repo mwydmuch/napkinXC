@@ -637,7 +637,7 @@ void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
                 TreeNode *n = createTreeNode(nPart.node);
 
                 if(partitions[i]->size() <= args.maxLeaves) {
-                    n->kNNNode = true;
+                    //n->kNNNode = true;
                     for (const auto& a : *partitions[i]) createTreeNode(n, a.index);
                     delete partitions[i];
                 } else {

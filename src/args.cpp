@@ -30,7 +30,7 @@ Args::Args() {
     // Training options
     threads = getCpuCount();
     eps = 0.1;
-    cost = 1.0;
+    cost = 10.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     labelsWeights = true;
@@ -42,9 +42,11 @@ Args::Args() {
     // Tree options
     tree = "";
     arity = 2;
-    treeType = completeInOrder;
-    treeTypeName = "completeInOrder";
-    maxLeaves = 2;
+    //treeType = completeInOrder;
+    //treeTypeName = "completeInOrder";
+    treeType = hierarchicalKMeans;
+    treeTypeName = "hierarchicalKMeans";
+    maxLeaves = 100;
 
     // K-Means tree options
     kMeansEps = 0.001;
@@ -55,8 +57,8 @@ Args::Args() {
     sparseWeights = true;
 
     // KNN options
-    kNN = 5;
-    kNNMaxFreq = 10;
+    kNN = 1;
+    kNNMaxFreq = 25;
 
     // Private
     hFeatures = 0;

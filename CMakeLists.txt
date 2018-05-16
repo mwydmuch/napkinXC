@@ -19,7 +19,7 @@ endif()
 
 # Add more aggressive optimization for Release build
 if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
 endif(CMAKE_BUILD_TYPE MATCHES Release)
 
 file(GLOB_RECURSE SOURCES

@@ -230,6 +230,7 @@ void PLTree::trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, 
     args.save(args.model + "/args.bin");
 }
 
+/*
 void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
     std::cerr << "Building balanced PLTree ...\n";
 
@@ -292,6 +293,7 @@ void PLTree::buildBalancedTree(int labelCount, int arity, bool randomizeTree) {
 
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << arity << "\n";
 }
+*/
 
 /*
 void PLTree::buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){

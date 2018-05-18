@@ -51,6 +51,7 @@ Args::Args() {
     // K-Means tree options
     kMeansEps = 0.001;
     kMeansBalanced = true;
+    kMeansRandomSplit = false;
 
     // Prediction options
     topK = 1;
@@ -327,8 +328,12 @@ void Args::printArgs(){
             std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
         else if(optimizerType == sgd)
             std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
-        std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
-        if(treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced;
+        if(tree.empty()) {
+            std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
+            if (treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced;
+            if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
+                std::cerr << ", max leaves: " << maxLeaves;
+        }
         std::cerr << "\n  Threads: " << threads << "\n";
     }
     else if (command == "shrink")

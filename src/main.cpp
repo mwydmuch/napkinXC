@@ -12,12 +12,12 @@
 void test(Args &args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
-    args.load(args.model + "/args.bin");
+    args.load(joinPath(args.model, "args.bin"));
     args.printArgs();
     args.readData(labels, features);
 
     PLTree tree;
-    tree.load(args.model + "/tree.bin");
+    tree.load(joinPath(args.model, "tree.bin"));
     tree.test(labels, features, args);
 }
 
@@ -30,6 +30,17 @@ void train(Args &args) {
 
     PLTree tree;
     tree.train(labels, features, args);
+}
+
+void buildTree(Args &args) {
+    args.printArgs();
+
+    SRMatrix<Label> labels;
+    SRMatrix<Feature> features;
+    args.readData(labels, features);
+
+    PLTree tree;
+    tree.buildTreeStructure(labels, features, args);
 }
 
 void shrink(Args &args) {
@@ -59,6 +70,8 @@ int main(int argc, char** argv) {
         train(args);
     else if(args.command == "test")
         test(args);
+    else if(args.command == "tree")
+        buildTree(args);
     else if(args.command == "shrink")
         shrink(args);
     else

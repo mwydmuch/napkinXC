@@ -64,6 +64,7 @@ public:
     // K-Means tree options
     double kMeansEps;
     bool kMeansBalanced;
+    bool kMeansRandomSplit; // Test option
 
     // Prediction options
     int topK;

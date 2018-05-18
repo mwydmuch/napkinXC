@@ -25,10 +25,46 @@ PLTree::~PLTree() {
         delete tree[i];
 }
 
-Base* nodeTrainThread(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
-    Base* base = new Base();
-    base->train(n, binLabels, binFeatures, args);
-    return base;
+void PLTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+    // Create a tree structure
+    if (args.treeType == completeInOrder)
+        buildCompleteTree(labels.cols(), false, args);
+    else if (args.treeType == completeRandom)
+        buildCompleteTree(labels.cols(), true, args);
+    else if (args.treeType == balancedInOrder)
+        buildBalancedTree(labels.cols(), false, args);
+    else if (args.treeType == balancedRandom)
+        buildBalancedTree(labels.cols(), true, args);
+    else if (args.treeType == huffman)
+        buildHuffmanTree(labels, args);
+    else if (args.treeType == hierarchicalKMeans) {
+        SRMatrix<Feature> labelsFeatures;
+        computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
+        buildKMeansTree(labelsFeatures, args);
+    }
+    else if (args.treeType == leaveFreqBehind) {
+        SRMatrix<Feature> labelsFeatures;
+        std::vector<Frequency> labelsFreq;
+        computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
+        computeLabelsFrequencies(labelsFreq, labels);
+        buildLeaveFreqBehindTree(labelsFeatures, labelsFreq, args);
+    }
+    else if (args.treeType == kMeansHuffman) {
+        SRMatrix<Feature> labelsFeatures;
+        std::vector<Frequency> labelsFreq;
+        computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
+        computeLabelsFrequencies(labelsFreq, labels);
+        buildKMeansHuffmanTree(labelsFeatures, labelsFreq, labels, args);
+    }
+    else if(args.treeType == kMeansWithProjection)
+        balancedKMeansWithRandomProjection(labels, features, args);
+    else {
+        std::cerr << "Unknown tree type\n";
+        exit(0);
+    }
+
+    // Save structure
+    saveTreeStructure(joinPath(args.model, "tree.txt"));
 }
 
 void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
@@ -38,48 +74,18 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
         // Top down building and training
         trainTopDown(labels, features, args);
     } else {
-
-        // Create a tree structure
         if (!args.tree.empty()) loadTreeStructure(args.tree);
-        else if (args.treeType == completeInOrder)
-            buildCompleteTree(labels.cols(), args.arity, false);
-        else if (args.treeType == completeRandom)
-            buildCompleteTree(labels.cols(), args.arity, true);
-        else if (args.treeType == balancedInOrder)
-            buildBalancedTree(labels.cols(), args.arity, false);
-        else if (args.treeType == balancedRandom)
-            buildBalancedTree(labels.cols(), args.arity, true);
-        else if (args.treeType == huffman)
-            buildHuffmanTree(labels, args);
-        else if (args.treeType == hierarchicalKMeans) {
-            SRMatrix<Feature> labelsFeatures;
-            computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
-            buildKMeansTree(labelsFeatures, args);
-        }
-        else if (args.treeType == leaveFreqBehind) {
-            SRMatrix<Feature> labelsFeatures;
-            std::vector<Frequency> labelsFreq;
-            computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
-            computeLabelsFrequencies(labelsFreq, labels);
-            buildLeaveFreqBehindTree(labelsFeatures, labelsFreq, args);
-        }
-        else if (args.treeType == kMeansHuffman) {
-            SRMatrix<Feature> labelsFeatures;
-            std::vector<Frequency> labelsFreq;
-            computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
-            computeLabelsFrequencies(labelsFreq, labels);
-            buildKMeansHuffmanTree(labelsFeatures, labelsFreq, labels, args);
-        }
-        else if(args.treeType == kMeansWithProjection)
-            balancedKMeansWithRandomProjection(labels, features, args);
-        else {
-            std::cerr << "Unknown tree type\n";
-            exit(0);
-        }
+        else buildTreeStructure(labels, features, args);
 
         // Train the tree structure
         trainTreeStructure(labels, features, args);
     }
+}
+
+Base* nodeTrainThread(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
+    Base* base = new Base();
+    base->train(n, binLabels, binFeatures, args);
+    return base;
 }
 
 void PLTree::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
@@ -221,7 +227,6 @@ void PLTree::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
 
     // Save tree
     save(joinPath(args.model, "tree.bin"));
-    saveTreeStructure(joinPath(args.model, "tree.txt"));
 
     // Save args
     args.save(joinPath(args.model, "args.bin"));
@@ -805,12 +810,66 @@ void PLTree::buildHuffmanTree(SRMatrix<Label>& labels, Args &args){
     std::cout << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << args.arity << "\n";
 }
 
+void PLTree::buildBalancedTree(int labelCount, bool randomizeOrder, Args &args) {
+    std::cerr << "Building balanced PLTree ...\n";
 
-void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeOrder) {
+    treeRoot = createTreeNode();
+    k = labelCount;
+
+
+
+    auto partition = new std::vector<Assignation>(k);
+    for(int i = 0; i < k; ++i) (*partition)[i].index = i;
+
+    std::queue<TreeNodePartition> nQueue;
+    nQueue.push({treeRoot, partition});
+
+    while (!nQueue.empty()) {
+        TreeNodePartition nPart = nQueue.front(); // Current node
+        nQueue.pop();
+        std::cerr << nPart.partition->size() << "\n";
+        if (nPart.partition->size() > args.maxLeaves) {
+
+            auto partitions = new std::vector<Assignation>* [args.arity];
+            for(int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
+
+            int maxPartitionSize = nPart.partition->size() / args.arity;
+            int maxWithOneMore = nPart.partition->size() % args.arity;
+            int nextPartition = maxPartitionSize + (maxWithOneMore > 0 ? 1 : 0);
+            int partitionNumber = 0;
+            for (int i = 0; i < nPart.partition->size(); ++i) {
+                auto a = nPart.partition->at(i);
+                if (i == nextPartition) {
+                    ++partitionNumber;
+                    --maxWithOneMore;
+                    nextPartition += maxPartitionSize + (maxWithOneMore > 0 ? 1 : 0);
+                    assert(partitionNumber < args.arity);
+                }
+                partitions[a.value]->push_back({a.index, partitionNumber});
+            }
+            assert(nextPartition == nPart.partition->size());
+
+            // Create children
+            for (int i = 0; i < args.arity; ++i) {
+                TreeNode *n = createTreeNode(nPart.node);
+                nQueue.push({n, partitions[i]});
+            }
+        } else
+            for (const auto& a : *nPart.partition) createTreeNode(nPart.node, a.index);
+
+        delete nPart.partition;
+    }
+
+    t = tree.size();
+    assert(k == treeLeaves.size());
+    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
+}
+
+void PLTree::buildCompleteTree(int labelCount, bool randomizeOrder, Args &args) {
     std::cerr << "Building complete PLTree ...\n";
 
     k = labelCount;
-    t = static_cast<int>(ceil(static_cast<double>(arity * k - 1) / (arity - 1)));
+    t = static_cast<int>(ceil(static_cast<double>(args.arity * k - 1) / (args.arity - 1)));
 
     int ti = t - k;
 
@@ -831,11 +890,11 @@ void PLTree::buildCompleteTree(int labelCount, int arity, bool randomizeOrder) {
             else label = i - ti;
         }
 
-        parent = tree[static_cast<int>(floor(static_cast<double>(i - 1) / arity))];
+        parent = tree[static_cast<int>(floor(static_cast<double>(i - 1) / args.arity))];
         createTreeNode(parent, label);
     }
 
-    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << arity << "\n";
+    std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << ", arity: " << args.arity << "\n";
 }
 
 void PLTree::loadTreeStructure(std::string file){

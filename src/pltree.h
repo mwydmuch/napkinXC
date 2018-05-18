@@ -70,6 +70,7 @@ public:
     PLTree();
     ~PLTree();
 
+    void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args);
     void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
@@ -105,7 +106,6 @@ private:
                                std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
     void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
     struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
     TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
 
     // TODO: do we need this?
@@ -131,8 +131,9 @@ private:
 
     void buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, SRMatrix<Label>& labels, Args& args);
 
-    // Just random complete tree
-    void buildCompleteTree(int labelCount, int arity, bool randomizeOrder = false);
+    // Just random complete and balance tree
+    void buildCompleteTree(int labelCount, bool randomizeOrder, Args &args);
+    void buildBalancedTree(int labelCount, bool randomizeOrder, Args &args);
 
     // Huffman tree
     void buildHuffmanTree(SRMatrix<Label>& labels, Args &args);

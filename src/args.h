@@ -29,7 +29,6 @@ public:
     Args();
 
     std::string command;
-
     int seed;
 
     // Input/output options
@@ -64,7 +63,6 @@ public:
     // K-Means tree options
     double kMeansEps;
     bool kMeansBalanced;
-    bool kMeansRandomSplit; // Test option
 
     // Prediction options
     int topK;

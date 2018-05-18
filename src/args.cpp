@@ -51,7 +51,6 @@ Args::Args() {
     // K-Means tree options
     kMeansEps = 0.001;
     kMeansBalanced = true;
-    kMeansRandomSplit = false;
 
     // Prediction options
     topK = 1;
@@ -69,8 +68,6 @@ Args::Args() {
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
-
-    bool maxLeavesSet = false;
 
     if(command != "train" && command != "test" && command != "shrink"){
         std::cerr << "Unknown command type: " << command << std::endl;
@@ -157,10 +154,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 tree = std::string(args.at(ai + 1));
             else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--maxLeaves") {
+            else if (args[ai] == "--maxLeaves")
                 maxLeaves = std::stoi(args.at(ai + 1));
-                maxLeavesSet = true;
-            }
             else if (args[ai] == "--kMeansEps")
                 kMeansEps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--kMeansBalanced")
@@ -205,8 +200,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         std::cerr << "Empty input or model path." << std::endl;
         printHelp();
     }
-
-    if(!maxLeavesSet) maxLeaves = arity;
 }
 
 // Reads train/test data to sparse matrix

@@ -816,10 +816,10 @@ void PLTree::buildBalancedTree(int labelCount, bool randomizeOrder, Args &args) 
     treeRoot = createTreeNode();
     k = labelCount;
 
-
-
     auto partition = new std::vector<Assignation>(k);
     for(int i = 0; i < k; ++i) (*partition)[i].index = i;
+
+    if (randomizeOrder) std::shuffle(partition->begin(), partition->end(), rng);
 
     std::queue<TreeNodePartition> nQueue;
     nQueue.push({treeRoot, partition});
@@ -827,9 +827,7 @@ void PLTree::buildBalancedTree(int labelCount, bool randomizeOrder, Args &args) 
     while (!nQueue.empty()) {
         TreeNodePartition nPart = nQueue.front(); // Current node
         nQueue.pop();
-        std::cerr << nPart.partition->size() << "\n";
         if (nPart.partition->size() > args.maxLeaves) {
-
             auto partitions = new std::vector<Assignation>* [args.arity];
             for(int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
 
@@ -837,15 +835,16 @@ void PLTree::buildBalancedTree(int labelCount, bool randomizeOrder, Args &args) 
             int maxWithOneMore = nPart.partition->size() % args.arity;
             int nextPartition = maxPartitionSize + (maxWithOneMore > 0 ? 1 : 0);
             int partitionNumber = 0;
+
             for (int i = 0; i < nPart.partition->size(); ++i) {
-                auto a = nPart.partition->at(i);
                 if (i == nextPartition) {
                     ++partitionNumber;
                     --maxWithOneMore;
                     nextPartition += maxPartitionSize + (maxWithOneMore > 0 ? 1 : 0);
                     assert(partitionNumber < args.arity);
                 }
-                partitions[a.value]->push_back({a.index, partitionNumber});
+                auto a = nPart.partition->at(i);
+                partitions[partitionNumber]->push_back({a.index, 0});
             }
             assert(nextPartition == nPart.partition->size());
 

@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <queue>
 #include <tuple>
 #include <algorithm>
 #include <random>
@@ -17,9 +18,8 @@
 #include "types.h"
 #include "base.h"
 #include "kmeans.h"
+#include "knn.h"
 #include "utils.h"
-
-class KNN;
 
 struct TreeNode{
     int index; // Index of the base classifier
@@ -72,7 +72,10 @@ public:
 
     void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args);
+
+    template<typename T>
+    void predict(std::vector<TreeNodeValue>& prediction, T* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args);
+
     void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 
     inline int nodes() { return t; }
@@ -146,3 +149,42 @@ private:
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
     void printTree(TreeNode *root = nullptr);
 };
+
+template<typename T>
+void PLTree::predict(std::vector<TreeNodeValue>& prediction, T* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args){
+    std::priority_queue<TreeNodeValue> nQueue;
+
+    // Note: loss prediction gets worse results for tree with higher arity then 2
+    double val = bases[treeRoot->index]->predictProbability(features);
+    //double val = -bases[treeRoot->index]->predictLoss(features);
+    nQueue.push({treeRoot, val});
+
+    while (!nQueue.empty()) {
+        TreeNodeValue nVal = nQueue.top(); // Current node
+        nQueue.pop();
+
+        //std::cerr << "HEAP -> " << nVal.node->index << " " << nVal.value << "\n";
+
+        if(nVal.node->label >= 0){
+            prediction.push_back({nVal.node, nVal.value}); // When using probability
+            //prediction.push_back({nVal.node, exp(nVal.value)}); // When using loss
+            if (prediction.size() >= args.topK)
+                break;
+        } else {
+            if(nVal.node->kNNNode && args.kNN){ // KNN supports only probabilities
+                TreeNode* n = nVal.node;
+                std::vector<Feature> result;
+                kNNs[nVal.node->index]->predict(features, args.kNN, result);
+                for(const auto& r : result){
+                    val = nVal.value * r.value;
+                    nQueue.push({tree[r.index], val});
+                }
+            }
+            for(const auto& child : nVal.node->children){
+                val = nVal.value * bases[child->index]->predictProbability(features); // When using probability
+                //val = nVal.value - bases[child->index]->predictLoss(features); // When using loss
+                nQueue.push({child, val});
+            }
+        }
+    }
+}

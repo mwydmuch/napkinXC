@@ -44,6 +44,9 @@ public:
     inline U dotRow(const int index, const std::vector<U>& vector);
 
     template <typename U>
+    inline U dotRow(const int index, const U* vector);
+
+    template <typename U>
     inline U dotRow(const int index, const U* vector, const int size);
 
     // Returns data as T**
@@ -64,6 +67,7 @@ public:
     // Returns size of matrix
     inline int rows() const { return m; }
     inline int cols() const { return n; }
+    inline int cells() const { return c; }
 
     void clear();
     void save(std::string outfile);
@@ -74,6 +78,7 @@ public:
 private:
     int m; // Row count
     int n; // Col count
+    int c; // Non zero cells count
     std::vector<int> s; // Rows' sizes
     std::vector<T*> r; // Rows
 };
@@ -82,12 +87,14 @@ template <typename T>
 SRMatrix<T>::SRMatrix(){
     m = 0;
     n = 0;
+    c = 0;
 }
 
 template <typename T>
 SRMatrix<T>::SRMatrix(int rows, int cols){
     m = rows;
     n = cols;
+    c = m * n;
 
     for(int i = 0; i < m; ++i){
         s.push_back(n);
@@ -124,6 +131,7 @@ void SRMatrix<T>::appendRow(const T* row, const int size){
     }
 
     m = r.size();
+    c += size;
 }
 
 template <typename T>
@@ -141,6 +149,7 @@ inline void SRMatrix<T>::appendToRow(const int index, const T* data, const int s
     delete[] r[index];
     r[index] = newRow;
     s[index] += size;
+    c += size;
 }
 
 template <typename T>
@@ -156,6 +165,12 @@ inline U SRMatrix<T>::dotRow(const int index, const U* vector, const int size){
 }
 
 template <typename T>
+template <typename U>
+inline U SRMatrix<T>::dotRow(const int index, const U* vector){ // Version without size checks
+    return dotVectors(r[index], vector);
+}
+
+template <typename T>
 void SRMatrix<T>::clear(){
     for(auto row : r) delete[] row;
     r.clear();
@@ -163,6 +178,7 @@ void SRMatrix<T>::clear(){
 
     m = 0;
     n = 0;
+    c = 0;
 }
 
 template <typename T>
@@ -206,6 +222,7 @@ void SRMatrix<T>::load(std::istream& in) {
         T* newRow = new T[size + 1];
         s[i] = size;
         r[i] = newRow;
+        c += size;
 
         for (int j = 0; j <= size; ++j)
             in.read((char *) &r[i][j], sizeof(T));

@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "knn.h"
+#include "pltree.h"
 #include "utils.h"
 
 // Multi Label K-Nearest Neighbor Search
@@ -47,6 +48,14 @@ void KNN::build(const std::vector<int>& supportedLabels, const std::vector<std::
 }
 
 void KNN::predict(Feature* features, int k, std::vector<Feature>& result){
+    // Turn query's sparse vector to dense
+    std::vector<double> denseFeatures(pointsFeatures->cols());
+    setVector(features, denseFeatures);
+
+    predict(denseFeatures.data(), k, result);
+}
+
+void KNN::predict(double* features, int k, std::vector<Feature>& result){
     result.clear();
     if(points.empty()) return;
 
@@ -55,15 +64,11 @@ void KNN::predict(Feature* features, int k, std::vector<Feature>& result){
 
     k = std::min(k, static_cast<int>(points.size()));
 
-    // Turn query's sparse vector to dense
-    std::vector<double> denseFeatures(pointsFeatures->cols());
-    setVector(features, denseFeatures);
-
     // Calculate distances and select k nearest
     std::vector<Feature> distances(points.size());
     for(int i = 0; i < points.size(); ++i){
         distances[i].index = i;
-        distances[i].value = pointsFeatures->dotRow(i, denseFeatures);
+        distances[i].value = pointsFeatures->dotRow(i, features);
     }
 
     std::sort(distances.begin(), distances.end());

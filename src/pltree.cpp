@@ -7,16 +7,15 @@
 #include <unordered_set>
 #include <algorithm>
 #include <vector>
-#include <queue>
 #include <list>
 #include <chrono>
 #include <random>
 #include <cmath>
 #include <climits>
+#include <iomanip>
 
 #include "pltree.h"
 #include "threads.h"
-#include "knn.h"
 
 PLTree::PLTree(){}
 
@@ -74,7 +73,7 @@ void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& a
         // Top down building and training
         trainTopDown(labels, features, args);
     } else {
-        if (!args.tree.empty()) loadTreeStructure(args.tree);
+        if (!args.treeStructure.empty()) loadTreeStructure(args.treeStructure);
         else buildTreeStructure(labels, features, args);
 
         // Train the tree structure
@@ -234,43 +233,6 @@ void PLTree::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
     std::cerr << "All done\n";
 }
 
-void PLTree::predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args){
-    std::priority_queue<TreeNodeValue> nQueue;
-
-    // Note: loss prediction gets worse results for tree with higher arity then 2
-
-    double val = bases[treeRoot->index]->predictProbability(features);
-    //double val = -bases[treeRoot->index]->predictLoss(features);
-    nQueue.push({treeRoot, val});
-
-    while (!nQueue.empty()) {
-        TreeNodeValue nVal = nQueue.top(); // Current node
-        nQueue.pop();
-
-        if(nVal.node->label >= 0){
-            prediction.push_back({nVal.node, nVal.value}); // When using probability
-            //prediction.push_back({nVal.node, exp(nVal.value)}); // When using loss
-            if (prediction.size() >= args.topK)
-                break;
-        } else {
-            if(nVal.node->kNNNode && args.kNN){ // KNN supports only probabilities
-                TreeNode* n = nVal.node;
-                std::vector<Feature> result;
-                kNNs[nVal.node->index]->predict(features, args.kNN, result);
-                for(const auto& r : result){
-                    val = nVal.value * r.value;
-                    nQueue.push({tree[r.index], val});
-                }
-            }
-            for(const auto& child : nVal.node->children){
-                val = nVal.value * bases[child->index]->predictProbability(features); // When using probability
-                //val = nVal.value - bases[child->index]->predictLoss(features); // When using loss
-                nQueue.push({child, val});
-            }
-        }
-    }
-}
-
 std::mutex testMutex;
 int pointTestThread(PLTree* tree, Label* labels, Feature* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs,
     Args& args, std::vector<int>& correctAt, std::vector<std::unordered_set<int>>& coveredAt){
@@ -293,27 +255,40 @@ int pointTestThread(PLTree* tree, Label* labels, Feature* features, std::vector<
     return 0;
 }
 
-int batchTestThread(PLTree* tree, SRMatrix<Label>& labels, SRMatrix<Feature>& features,
-    std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args& args, int startRow, int stopRow,
+int batchTestThread(int threadId, PLTree* tree, SRMatrix<Label>& labels, SRMatrix<Feature>& features,
+    std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args& args, const int startRow, const int stopRow,
     std::vector<int>& correctAt, std::vector<std::unordered_set<int>>& coveredAt){
 
+    //std::cerr << "  Thread " << threadId << " predicting rows from " << startRow << " to " << stopRow << "\n";
+
     std::vector<int> localCorrectAt (args.topK);
+    std::vector<std::unordered_set<int>> localCoveredAt(args.topK);
+
+    std::vector<double> denseFeatures(features.cols());
+
     for(int r = startRow; r < stopRow; ++r){
+        setVector(features.row(r), denseFeatures, -1);
+
         std::vector<TreeNodeValue> prediction;
-        tree->predict(prediction, features.row(r), bases, kNNs, args);
+        tree->predict(prediction, denseFeatures.data(), bases, kNNs, args);
 
         for (int i = 0; i < args.topK; ++i)
             for (int j = 0; j < labels.size(r); ++j)
                 if (prediction[i].node->label == labels.row(r)[j]){
                     ++localCorrectAt[i];
-                    coveredAt[i].insert(prediction[i].node->label);
+                    localCoveredAt[i].insert(prediction[i].node->label);
                     break;
                 }
+
+        setVectorToZeros(features.row(r), denseFeatures, -1);
+        if(!threadId) printProgress(r - startRow, stopRow - startRow);
     }
 
     testMutex.lock();
-    for (int i = 0; i < args.topK; ++i)
+    for (int i = 0; i < args.topK; ++i) {
         correctAt[i] += localCorrectAt[i];
+        for(const auto& l : localCoveredAt[i]) coveredAt[i].insert(l);
+    }
     testMutex.unlock();
 
     return 0;
@@ -357,7 +332,7 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
         trainIn.close();
     }
 
-    std::cerr << "Starting testing ...\n";
+    std::cerr << "Starting testing in " << args.threads << " threads ...\n";
 
     std::vector<int> correctAt(args.topK);
     std::vector<std::unordered_set<int>> coveredAt(args.topK);
@@ -367,7 +342,9 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
     if(args.threads > 1){
         // Run prediction in parallel
 
-        // Pool
+        // Thread pool
+        // Implements method with examples in sparse representation
+        /*
         ThreadPool tPool(args.threads);
         std::vector<std::future<int>> results;
 
@@ -379,23 +356,27 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
             printProgress(i, results.size());
             results[i].get();
         }
+         */
 
         // Batches
-        /*
+        // Implements method with example in dense representation
         ThreadSet tSet;
         int tRows = ceil(static_cast<double>(rows)/args.threads);
         for(int t = 0; t < args.threads; ++t)
-            tSet.add(batchTestThread, this, std::ref(labels), std::ref(features), std::ref(bases),
-                args.topK, t * tRows, std::min((t + 1) * tRows, labels.rows()), std::ref(precisionAt));
+            tSet.add(batchTestThread, t, this, std::ref(labels), std::ref(features), std::ref(bases), std::ref(kNNs),
+                     std::ref(args), t * tRows, std::min((t + 1) * tRows, labels.rows()), std::ref(correctAt), std::ref(coveredAt));
         tSet.joinAll();
-        */
 
     } else {
         std::vector<TreeNodeValue> prediction;
-        for(int r = 0; r < rows; ++r){
-            prediction.clear();
-            predict(prediction, features.data()[r], bases, kNNs, args);
 
+        std::vector<double> denseFeatures(features.cols());
+
+        for(int r = 0; r < rows; ++r){
+            setVector(features.row(r), denseFeatures, -1);
+
+            prediction.clear();
+            predict(prediction, denseFeatures.data(), bases, kNNs, args);
             for (int i = 0; i < args.topK; ++i)
                 for (int j = 0; j < labels.sizes()[r]; ++j)
                     if (prediction[i].node->label == labels.data()[r][j]){
@@ -403,16 +384,22 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
                         coveredAt[i].insert(prediction[i].node->label);
                         break;
                     }
+
+            setVectorToZeros(features.row(r), denseFeatures, -1);
             printProgress(r, rows);
         }
     }
 
     double precisionAt = 0, coverageAt;
+    std::cerr << std::setprecision(5);
     for (int i = 0; i < args.topK; ++i) {
+        int k = i + 1;
         if(i > 0) for(const auto& l : coveredAt[i - 1]) coveredAt[i].insert(l);
         precisionAt += correctAt[i];
         coverageAt = coveredAt[i].size();
-        std::cerr << "P@" << i + 1 << ": " << precisionAt / (rows * (i + 1)) << ", C@" << i + 1 << ": " << coverageAt / labels.cols() << "\n";
+        std::cerr << "P@" << k << ": " << precisionAt / (rows * k)
+                  << ", R@" << k << ": " << precisionAt / labels.cells()
+                  << ", C@" << k << ": " << coverageAt / labels.cols() << "\n";
     }
 
     for(auto base : bases) delete base;

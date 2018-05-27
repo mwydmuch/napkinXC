@@ -9,7 +9,8 @@
 #include <unordered_set>
 
 #include "types.h"
-#include "pltree.h"
+
+struct TreeNode;
 
 // Multi Label K-Nearest Neighbor Search
 class KNN{
@@ -21,6 +22,7 @@ public:
     void build(const std::vector<TreeNode*>& supportedLabels, const std::vector<std::vector<Example>>& labelsPoints);
     void build(const std::vector<int>& supportedLabels, const std::vector<std::vector<Example>>& labelsPoints);
     void predict(Feature* features, int k, std::vector<Feature>& result);
+    void predict(double* features, int k, std::vector<Feature>& result);
 
     void save(std::string outfile);
     void save(std::ostream& out);

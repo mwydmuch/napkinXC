@@ -10,10 +10,10 @@
 #include "base.h"
 #include "linear.h"
 #include "online_training.h"
+#include "utils.h"
 
 
 Base::Base(){
-    sparse = false;
     hingeLoss = false;
 
     wSize = 0;
@@ -128,7 +128,6 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
 
     // Set base's attributes
-    sparse = false;
     wSize = n;
     firstClass = M->label[0];
     classCount = M->nr_class;
@@ -147,41 +146,30 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     if(sparseSize() < denseSize()) toSparse();
 }
 
-double Base::predictValue(Feature* features){
+double Base::predictValue(double* features){
     double val = 0;
-    Feature* f = features;
 
-    if(sparse){
-        while(f->index != -1) {
-            auto w = mapW->find(f->index - 1);
-            if(w != mapW->end()) val += w->second * f->value;
-            ++f;
-        }
-    } else {
-        while(f->index != -1) {
-            val += W[f->index - 1] * f->value;
-            ++f;
-        }
-    }
+    if(sparseW) val = dotVectors(sparseW, features); // Dense features dot sparse weights
+    else throw "Prediction using dense features require sparse weights!\n";
 
     if(firstClass == 0) val *= -1;
     return val;
 }
 
-double Base::predictLoss(Feature* features){
-    if(classCount < 2) return -static_cast<double>(firstClass);
-    double val = predictValue(features);
+double Base::predictValue(Feature* features){
+    double val = 0;
 
-    if(hingeLoss) val = std::pow(fmax(0, 1 - val), 2); // Hinge squared loss
-    else val = log(1 + exp(-val)); // Log loss
-    return val;
-}
+    if(mapW){ // Sparse features dot sparse weights in hash map
+        Feature* f = features;
+        while(f->index != -1) {
+            auto w = mapW->find(f->index - 1);
+            if(w != mapW->end()) val += w->second * f->value;
+            ++f;
+        }
+    } else if (W) val = dotVectors(features, W); // Sparse features dot dense weights
+    else throw "Prediction using sparse features and sparse weights is not supported!\n";
 
-double Base::predictProbability(Feature* features){
-    if(classCount < 2) return static_cast<double>(firstClass);
-    double val = predictValue(features);
-    if(hingeLoss) val = 1.0 / (1.0 + exp(-2 * val)); // Probability for squared Hinge loss solver
-    else val = 1.0 / (1.0 + exp(-val)); // Probability
+    if(firstClass == 0) val *= -1;
     return val;
 }
 
@@ -194,7 +182,6 @@ void Base::toMap(){
             if(W[i] != 0) mapW->insert({i, W[i]});
         delete[] W;
         W = nullptr;
-        sparse = true;
     }
 }
 
@@ -216,8 +203,6 @@ void Base::toDense(){
             delete[] sparseW;
             sparseW = nullptr;
         }
-
-        sparse = false;
     }
 }
 
@@ -238,7 +223,6 @@ void Base::toSparse(){
 
         delete[] W;
         W = nullptr;
-        sparse = true;
     }
 }
 
@@ -263,7 +247,8 @@ void Base::save(std::ostream& out, Args& args){
 
     if(classCount > 1) {
         // Decide on optimal file coding
-        bool saveSparse = sparseSize() < denseSize();
+        //bool saveSparse = sparseSize() < denseSize();
+        bool saveSparse = true;
 
         out.write((char*) &hingeLoss, sizeof(hingeLoss));
         out.write((char*) &wSize, sizeof(wSize));
@@ -271,7 +256,7 @@ void Base::save(std::ostream& out, Args& args){
         out.write((char*) &saveSparse, sizeof(saveSparse));
 
         if(saveSparse){
-            if(sparse){
+            if(sparseW){
                 Feature* f = sparseW;
                 while(f->index != -1) {
                     out.write((char*) &f->index, sizeof(f->index));
@@ -289,7 +274,7 @@ void Base::save(std::ostream& out, Args& args){
         } else out.write((char*) W, wSize * sizeof(double));
     }
     //std::cerr << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
-    //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << sparseSize/1024 << "/" << denseSize/1024 << "K\n";
+    //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << size()/1024 << "/" << denseSize()/1024 << "K\n";
 }
 
 void Base::load(std::string infile, Args& args){
@@ -310,47 +295,44 @@ void Base::load(std::istream& in, Args& args) {
         in.read((char*) &nonZeroW, sizeof(nonZeroW));
         in.read((char*) &loadSparse, sizeof(loadSparse));
 
-        // Decide on weights coding
-        sparse = args.sparseWeights && mapSize() < denseSize();
-
-        if(sparse) mapW = new std::unordered_map<int, double>();
-        else {
-            W = new double[wSize];
-            std::memset(W, 0, wSize * sizeof(double));
-        }
-
         if(loadSparse){
+            sparseW = new Feature[nonZeroW + 1];
+            sparseW[nonZeroW].index = -1;
             int index;
             double w;
 
             for (int i = 0; i < nonZeroW; ++i) {
                 in.read((char*) &index, sizeof(index));
                 in.read((char*) &w, sizeof(w));
-                if (mapW != nullptr) mapW->insert({index, w});
-                else W[index] = w;
+                if (sparseW != nullptr){
+                    sparseW[i].index = index;
+                    sparseW[i].value = w;
+                }
             }
         } else {
-            if (sparse) {
-                double w;
-                for (int i = 0; i < wSize; ++i) {
-                    in.read((char*) &w, sizeof(w));
-                    if (w != 0) mapW->insert({i, w});
-                }
-            } else in.read((char*) W, wSize * sizeof(double));
+            W = new double[wSize];
+            std::memset(W, 0, wSize * sizeof(double));
+            in.read((char*) W, wSize * sizeof(double));
         }
     }
+
     //std::cerr << "  Loaded base: sparse: " << sparse << ", classCount: " << classCount << ", firstClass: " << firstClass << ", weights: "
-    //    << nonZeroW << "/" << wSize << ", size: " << nonZeroW * (2 * sizeof(int) + sizeof(double))/1024 << "/" << wSize * sizeof(double)/1024 << "K\n";
+    //    << nonZeroW << "/" << wSize << ", size: " << size()/1024 << "/" << denseSize()/1024 << "K\n";
+}
+
+size_t Base::size(){
+    if(W) return denseSize();
+    if(mapW) return mapSize();
+    if(sparseW) return sparseSize();
+    return 0;
 }
 
 void Base::printWeights(){
     if (W != nullptr)
         for(int i = 0; i < wSize; ++i) std::cerr << W[i] <<" ";
     else if (mapW != nullptr)
-        for(int i = 0; i < wSize; ++i) {
-            auto w = mapW->find(i);
-            if(w != mapW->end()) std::cerr << w->first << ":" << w->second <<" ";
-        }
+        for (const auto& f : *mapW)
+            std::cerr << f.first << ":" << f.second << " ";
     else if (sparseW != nullptr) {
         Feature* f = sparseW;
         while(f->index != -1 && f->index < wSize) {

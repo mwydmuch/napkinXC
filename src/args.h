@@ -40,7 +40,7 @@ public:
     double C;
     bool norm;
     int hash;
-    double threshold;
+    int maxFeatures;
 
     // Training options
     int threads;
@@ -49,6 +49,7 @@ public:
     std::string optimizerName;
     double eps;
     double cost;
+    double threshold;
     bool labelsWeights;
     int iter;
     double eta;
@@ -56,7 +57,7 @@ public:
     // Tree options
     int arity;
     TreeType treeType;
-    std::string tree;
+    std::string treeStructure;
     int maxLeaves;
     int projectDim;
 

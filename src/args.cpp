@@ -24,7 +24,7 @@ Args::Args() {
     bias = true;
     biasValue = 1.0;
     norm = true;
-    threshold = 0.1;
+    maxFeatures = -1;
     projectDim = 100;
 
     // Training options
@@ -38,9 +38,10 @@ Args::Args() {
     optimizerType = libliner;
     iter = 50;
     eta = 0.5;
+    threshold = 0.1;
 
     // Tree options
-    tree = "";
+    treeStructure = "";
     arity = 2;
     //treeType = completeInOrder;
     //treeTypeName = "completeInOrder";
@@ -107,6 +108,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--iter")
                 iter = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--maxFeatures")
+                maxFeatures = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--projectDim")
                 projectDim = std::stoi(args.at(ai + 1));
 
@@ -150,8 +153,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 iter = std::stoi(args.at(ai + 1));
 
             // Tree options
-            else if (args[ai] == "--tree")
-                tree = std::string(args.at(ai + 1));
             else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--maxLeaves")
@@ -160,6 +161,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 kMeansEps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--kMeansBalanced")
                 kMeansBalanced = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--treeStructure")
+                treeStructure = std::string(args.at(ai + 1));
             else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
@@ -300,6 +303,12 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
         pos = nextPos + 1;
     }
 
+    // Select subset of most important features
+    if(maxFeatures > 0) {
+        std::sort(lFeatures.rbegin(), lFeatures.rend());
+        lFeatures.resize(std::min(100, static_cast<int>(lFeatures.size())));
+    }
+
     // Norm row
     if(norm) unitNorm(lFeatures);
 
@@ -321,7 +330,7 @@ void Args::printArgs(){
             std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
         else if(optimizerType == sgd)
             std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
-        if(tree.empty()) {
+        if(treeStructure.empty()) {
             std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
             if (treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced;
             if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)

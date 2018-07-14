@@ -39,6 +39,7 @@ void PLTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
     else if (args.treeType == hierarchicalKMeans) {
         SRMatrix<Feature> labelsFeatures;
         computeLabelsFeaturesMatrix(labelsFeatures, labels, features);
+        labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
         buildKMeansTree(labelsFeatures, args);
     }
     else if (args.treeType == leaveFreqBehind) {
@@ -69,16 +70,11 @@ void PLTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
 void PLTree::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
     rng.seed(args.seed);
 
-    if(args.treeType == topDown){
-        // Top down building and training
-        trainTopDown(labels, features, args);
-    } else {
-        if (!args.treeStructure.empty()) loadTreeStructure(args.treeStructure);
-        else buildTreeStructure(labels, features, args);
+    if (!args.treeStructure.empty()) loadTreeStructure(args.treeStructure);
+    else buildTreeStructure(labels, features, args);
 
-        // Train the tree structure
-        trainTreeStructure(labels, features, args);
-    }
+    // Train the tree structure
+    trainTreeStructure(labels, features, args);
 }
 
 Base* nodeTrainThread(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
@@ -196,6 +192,7 @@ void PLTree::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
               << "\n  Labels per point: " << static_cast<double>(yCount) / rows
               << "\n";
 
+    // KNNs TODO: Make it works in parallel
     if(args.kNN) {
         std::vector<std::vector<Example>> labelsExamples;
         computeLabelsExamples(labelsExamples, labels);
@@ -226,9 +223,6 @@ void PLTree::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
 
     // Save tree
     save(joinPath(args.model, "tree.bin"));
-
-    // Save args
-    args.save(joinPath(args.model, "args.bin"));
 
     std::cerr << "All done\n";
 }
@@ -595,7 +589,6 @@ void PLTree::buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vect
     std::cerr << "  Nodes: " << tree.size() << ", leaves: " << treeLeaves.size() << "\n";
 }
 
-
 void PLTree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
     std::cerr << "Hierarchical K-Means clustering in " << args.threads << " threads ...\n";
 
@@ -755,7 +748,6 @@ void PLTree::generateRandomProjection(std::vector<std::vector<double>>& randomMa
             randomMatrix[i][j] = distribution(rng);
     }
 }
-
 
 void PLTree::buildHuffmanTree(SRMatrix<Label>& labels, Args &args){
     std::cout << "Building Huffman PLTree ...\n";

@@ -16,9 +16,12 @@
 
 
 typedef IntFeature Frequency;
+typedef DoubleFeature Probability;
 
 // Data utils
 void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels);
+
+void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels);
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features);
 
@@ -195,7 +198,7 @@ inline int getCpuCount(){
 // Prints progress
 inline void printProgress(int state, int max){
     //std::cerr << "  " << state << " / " << max << "\r";
-    if(state % (max / 100) == 0) std::cerr << "  " << state / (max / 100) << "%\r";
+    if(max > 100 && state % (max / 100) == 0) std::cerr << "  " << state / (max / 100) << "%\r";
 }
 
 // Files utils

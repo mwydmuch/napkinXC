@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cassert>
 #include <cmath>
+#include <iomanip>
 
 #include "args.h"
 #include "linear.h"
@@ -58,7 +59,7 @@ Args::Args() {
     sparseWeights = true;
 
     // KNN options
-    kNN = 1;
+    kNN = 0;
     kNNMaxFreq = 25;
 
     // Private
@@ -304,10 +305,12 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
     }
 
     // Select subset of most important features
+    /*
     if(maxFeatures > 0) {
         std::sort(lFeatures.rbegin(), lFeatures.rend());
         lFeatures.resize(std::min(100, static_cast<int>(lFeatures.size())));
     }
+     */
 
     // Norm row
     if(norm) unitNorm(lFeatures);
@@ -365,33 +368,34 @@ void Args::printHelp(){
         --seed              Model's seed
 
         Base classifiers:
-        --optimizer         Use Libliner or SGD (default = libliner)
-                            Optimizerers: liblinear, sgd
+        --optimizer         Use LibLiner or SGD (default = libliner)
+                            Optimizers: liblinear, sgd
         --bias              Add bias term (default = 1)
         --labelsWeights     Increase the weight of minority labels in base classifiers (default = 1)
 
         LibLinear:
         -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
                             Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
-                            L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+                                               L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                             See: https://github.com/cjlin1/liblinear
         -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
                             Like in support vector machines, smaller values specify stronger
-                            regularization. (default = 1.0)
+                            regularization. (default = 10.0)
                             Note: -1 to automatically find best value for each node.
         -e, --eps           Stopping criteria (default = 0.1)
                             See: https://github.com/cjlin1/liblinear
 
         SGD:
-        -e, --eta           step size of SGD
-        --iter              number of epochs of SGD
+        -e, --eta           Step size of SGD
+        --iter              Number of epochs of SGD
 
         Tree:
         -a, --arity         Arity of a tree (default = 2)
-        --maxLeaves         Maximum number of leaves (labels) in one internal node.
+        --maxLeaves         Maximum number of leaves (labels) in one internal node. (default = 100)
         --tree              File with tree structure
         --treeType          Type of a tree to build if file with structure is not provided
-                            Tree types: completeInOrder, completeRandom
+                            Tree types: hierarchicalKMeans, huffman, completeInOrder, completeRandom,
+                                        balancedInOrder, balancedRandom,
 
         K-Means tree:
         --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
@@ -399,6 +403,9 @@ void Args::printHelp(){
 
         Random projection:
         --projectDim        Number or random direction
+
+        K-NNs:
+        --kNN               Number of nearest neighbors used for prediction
     )HELP";
     exit(EXIT_FAILURE);
 }

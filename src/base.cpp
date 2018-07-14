@@ -6,6 +6,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <random>
 
 #include "base.h"
 #include "linear.h"
@@ -53,6 +54,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     int labelsCount = 0;
     int* labels = NULL;
     double* labelsWeights = NULL;
+    int negativeLabel = static_cast<int>(binLabels.size()) - positiveLabel;
 
     if(args.labelsWeights){
         labelsCount = 2;
@@ -60,7 +62,6 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         labels[0] = 0;
         labels[1] = 1;
 
-        int negativeLabel = binLabels.size() - positiveLabel;
         labelsWeights = new double[2];
         if(negativeLabel > positiveLabel){
             labelsWeights[0] = 1.0;
@@ -71,12 +72,16 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         }
     }
 
+    auto y = binLabels.data();
+    auto x = binFeatures.data();
+    int l = static_cast<int>(binLabels.size());
+
     assert(binLabels.size() == binFeatures.size());
     problem P = {
-        .l = static_cast<int>(binLabels.size()),
+        .l = l,
         .n = n,
-        .y = binLabels.data(),
-        .x = binFeatures.data(),
+        .y = y,
+        .x = x,
         .bias = (args.bias > 0 ? 1.0 : -1.0)
     };
 

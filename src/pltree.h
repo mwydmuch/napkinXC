@@ -77,6 +77,7 @@ public:
     void predict(std::vector<TreeNodeValue>& prediction, T* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args);
 
     void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+    void predict(SRMatrix<Feature>& features, Args& args);
 
     inline int nodes() { return t; }
     inline int labels() { return k; }
@@ -98,27 +99,6 @@ private:
 
     // Training
     void trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-
-    // Tree building methods
-
-    // Top down, definitions in pltree_topdown.cpp
-    // TODO: clean this a little bit
-    void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
-                        std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
-    void addRootToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
-                               std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
-    void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
-
-    // TODO: do we need this?
-    /*
-    std::vector<struct JobResult> processJob(int index, std::vector<int>& jobInstances, std::vector<int>& jobLabels,
-                                         std::ofstream& out,SRMatrix<Label>& labels, SRMatrix<Feature>& features,
-                                         Args& args);
-    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
-    */
 
     // Random projection
     void generateRandomProjection(std::vector<std::vector<double>>& data, int projectDim, int dim);

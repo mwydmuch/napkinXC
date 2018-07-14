@@ -28,6 +28,20 @@ void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix
     }
 }
 
+void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels){
+    std::cerr << "Computing labels' probabilities ...\n";
+
+    std::vector<Frequency> labelsFreq;
+    computeLabelsFrequencies(labelsFreq, labels);
+
+    labelsProb.clear();
+    labelsProb.resize(labels.cols());
+    for(int i = 0; i < labelsFreq.size(); ++i) {
+        labelsProb[i].index = i;
+        labelsProb[i].value = static_cast<double>(labelsFreq[i].value) / labels.rows();
+    }
+}
+
 // TODO: Make it parallel
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features){
     std::cerr << "Computing labels' features matrix ...\n";
@@ -43,12 +57,12 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
         int rLabelsSize = labels.size(r);
         auto rFeatures = features.row(r);
         auto rLabels = labels.row(r);
-
         for (int i = 0; i < rFeaturesSize; ++i){
             for (int j = 0; j < rLabelsSize; ++j){
-                if (!tmpLabelsFeatures[rLabels[j]].count(rFeatures[i].index))
-                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = 0;
-                tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] += rFeatures[i].value;
+                auto f = tmpLabelsFeatures[rLabels[j]].find(rFeatures[i].index);
+                if(f == tmpLabelsFeatures[rLabels[j]].end())
+                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = rFeatures[i].value;
+                else (*f).second += rFeatures[i].value;
             }
         }
     }

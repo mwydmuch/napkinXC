@@ -22,6 +22,13 @@ typedef DoubleFeature Feature;
 struct IntFeature{
     int index;
     int value;
+
+    bool operator<(const IntFeature &r) const { return value < r.value; }
+
+    friend std::ostream& operator<<(std::ostream& os, const IntFeature& f) {
+        os << f.index << ":" << f.value;
+        return os;
+    }
 };
 
 // Elastic sparse row matrix, type T needs to contain int at offset 0!
@@ -64,6 +71,9 @@ public:
     // Returns single row size
     inline int size(const int index) const { return s[index]; }
 
+    // Returns transposed matrix
+    SRMatrix<T> transopose();
+
     // Returns size of matrix
     inline int rows() const { return m; }
     inline int cols() const { return n; }
@@ -72,6 +82,8 @@ public:
     void clear();
     void save(std::string outfile);
     void save(std::ostream& out);
+    void saveAsText(std::string outfile);
+    void saveAsText(std::ostream& out);
     void load(std::string infile);
     void load(std::istream& in);
 
@@ -171,6 +183,13 @@ inline U SRMatrix<T>::dotRow(const int index, const U* vector){ // Version witho
 }
 
 template <typename T>
+inline SRMatrix<T> SRMatrix<T>::transopose() {
+    SRMatrix<T> tMatrix;
+    return tMatrix;
+}
+
+
+template <typename T>
 void SRMatrix<T>::clear(){
     for(auto row : r) delete[] row;
     r.clear();
@@ -190,12 +209,30 @@ void SRMatrix<T>::save(std::string outfile){
 
 template <typename T>
 void SRMatrix<T>::save(std::ostream& out){
-    out.write((char*) &m, sizeof(m));
-    out.write((char*) &n, sizeof(n));
+    out << m << " " << n << "\n";
     for(int i = 0; i < m; ++i){
-        out.write((char*) &s[i], sizeof(s[i]));
-        for(int j = 0; j <= s[i]; ++j)
-            out.write((char *) &r[i][j], sizeof(T));
+        out << s[i];
+        for(int j = 0; j < s[i]; ++j)
+            out << " " << r[i][j];
+        out << "\n";
+    }
+}
+
+template <typename T>
+void SRMatrix<T>::saveAsText(std::string outfile) {
+    std::ofstream out(outfile);
+    saveAsText(out);
+    out.close();
+}
+
+template <typename T>
+void SRMatrix<T>::saveAsText(std::ostream& out) {
+    out << m << " " << n << "\n";
+    for (int i = 0; i < m; ++i) {
+        out << s[i];
+        for (int j = 0; j < s[i]; ++j)
+            out << " " << r[i][j];
+        out << "\n";
     }
 }
 

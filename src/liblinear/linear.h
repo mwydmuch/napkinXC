@@ -2,20 +2,26 @@
 #define _LIBLINEAR_H
 
 #define LIBLINEAR_VERSION 220
+#include <iostream>
+
+struct feature_node
+{
+    int index;
+    double value;
+
+	bool operator<(const feature_node &r) const { return value < r.value; }
+
+    friend std::ostream& operator<<(std::ostream& os, const feature_node& fn) {
+        os << fn.index << ":" << fn.value;
+        return os;
+    }
+};
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 extern int liblinear_version;
-
-struct feature_node
-{
-	int index;
-	double value;
-
-	bool operator<(const feature_node &r) const { return value < r.value; }
-};
 
 struct problem
 {

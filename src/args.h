@@ -18,7 +18,9 @@ enum TreeType {
     topDown,
     balancedInOrder,
     balancedRandom,
-    huffman
+    huffman,
+    leaveFreqBehind,
+    kMeansHuffman
 };
 
 enum OptimizerType { libliner, sgd };
@@ -28,7 +30,6 @@ public:
     Args();
 
     std::string command;
-
     int seed;
 
     // Input/output options
@@ -40,7 +41,7 @@ public:
     double C;
     bool norm;
     int hash;
-    double threshold;
+    int maxFeatures;
 
     // Training options
     int threads;
@@ -49,6 +50,7 @@ public:
     std::string optimizerName;
     double eps;
     double cost;
+    double threshold;
     bool labelsWeights;
     int iter;
     double eta;
@@ -56,7 +58,7 @@ public:
     // Tree options
     int arity;
     TreeType treeType;
-    std::string tree;
+    std::string treeStructure;
     int maxLeaves;
     int projectDim;
 
@@ -67,6 +69,10 @@ public:
     // Prediction options
     int topK;
     bool sparseWeights;
+
+    // KNN options
+    int kNN;
+    int kNNMaxFreq;
 
     void parseArgs(const std::vector<std::string>& args);
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);

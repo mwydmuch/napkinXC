@@ -9,32 +9,60 @@
 #include "pltree.h"
 #include "utils.h"
 
+void train(Args &args) {
+    SRMatrix<Label> labels;
+    SRMatrix<Feature> features;
+
+    // Load train data
+    args.printArgs();
+    args.readData(labels, features);
+
+    // Train and save tree
+    PLTree tree;
+    tree.train(labels, features, args);
+
+    // Save args
+    args.save(joinPath(args.model, "args.bin"));
+}
+
 void test(Args &args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
-    args.load(args.model + "/args.bin");
+
+    // Load args and test data
+    args.load(joinPath(args.model, "args.bin"));
     args.printArgs();
     args.readData(labels, features);
 
+    // Load tree
     PLTree tree;
-    tree.load(args.model + "/tree.bin");
-
-    std::cerr << "Loading base classifiers ...\n";
-    std::vector<Base*> bases;
-    std::ifstream in(args.model + "/weights.bin");
-    for(int i = 0; i < tree.nodes(); ++i) {
-        printProgress(i, tree.nodes());
-        bases.emplace_back(new Base());
-        bases.back()->load(in, args);
-    }
-    in.close();
-
-    tree.test(labels, features, bases, args);
-
-    for(auto base : bases) delete base;
+    tree.load(joinPath(args.model, "tree.bin"));
+    tree.test(labels, features, args);
 }
 
-void train(Args &args) {
+void predict(Args &args) {
+    // Load args
+    args.load(joinPath(args.model, "args.bin"));
+    args.printArgs();
+
+    PLTree tree;
+    tree.load(joinPath(args.model, "tree.bin"));
+
+    // Predict data from cin and output to cout
+    if(args.input == "-"){
+        //TODO
+    }
+
+    // Read data from file and output prediction to output
+    else {
+        SRMatrix<Label> labels;
+        SRMatrix<Feature> features;
+        args.readData(labels, features);
+        //TODO
+    }
+}
+
+void buildTree(Args &args) {
     args.printArgs();
 
     SRMatrix<Label> labels;
@@ -42,7 +70,7 @@ void train(Args &args) {
     args.readData(labels, features);
 
     PLTree tree;
-    tree.train(labels, features, args);
+    tree.buildTreeStructure(labels, features, args);
 }
 
 void shrink(Args &args) {
@@ -66,12 +94,18 @@ void shrink(Args &args) {
 int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);
     Args args = Args();
+
+    // Parse args
     args.parseArgs(arg);
 
     if(args.command == "train")
         train(args);
     else if(args.command == "test")
         test(args);
+    else if(args.command == "predict")
+        predict(args);
+    else if(args.command == "tree")
+        buildTree(args);
     else if(args.command == "shrink")
         shrink(args);
     else

@@ -9,6 +9,7 @@
 #include <fstream>
 #include <vector>
 #include <unordered_map>
+#include <queue>
 #include <tuple>
 #include <algorithm>
 #include <random>
@@ -17,13 +18,17 @@
 #include "types.h"
 #include "base.h"
 #include "kmeans.h"
+#include "knn.h"
+#include "utils.h"
 
 struct TreeNode{
-    int index; // Index of the base predictor
+    int index; // Index of the base classifier
     int label; // -1 means it is internal node
 
     TreeNode* parent; // Pointer to the parent node
     std::vector<TreeNode*> children; // Pointers to the children nodes
+
+    bool kNNNode; // Node uses K-NN classifier
 };
 
 struct TreeNodeValue{
@@ -33,12 +38,13 @@ struct TreeNodeValue{
     bool operator<(const TreeNodeValue &r) const { return value < r.value; }
 };
 
-// For buildKMeansTree
+// For K-Means based trees
 struct TreeNodePartition{
     TreeNode* node;
     std::vector<Assignation>* partition;
 };
 
+// For Huffman based trees
 struct TreeNodeFrequency{
     TreeNode* node;
     int frequency;
@@ -64,9 +70,14 @@ public:
     PLTree();
     ~PLTree();
 
+    void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void predict(std::vector<TreeNodeValue>& prediction, Feature* features, std::vector<Base*>& bases, int k);
-    void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<Base*>& bases, Args& args);
+
+    template<typename T>
+    void predict(std::vector<TreeNodeValue>& prediction, T* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args);
+
+    void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+    void predict(SRMatrix<Feature>& features, Args& args);
 
     inline int nodes() { return t; }
     inline int labels() { return k; }
@@ -87,30 +98,7 @@ private:
     std::unordered_map<int, TreeNode*> treeLeaves; // Leaves map
 
     // Training
-    void trainTreeStructure(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-
-
-    // Tree building methods
-
-    // Top down, definitions in pltree_topdown.cpp
-    // TODO: clean this a little bit
-    void addModelToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
-                        std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
-    void addRootToTree(Base *model, int parent, std::vector<int> &labels, std::vector<int> &instances,
-                               std::ofstream &out, Args &args, std::vector<NodeJob> &nextLevelJobs);
-    void trainTopDown(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    struct JobResult trainRoot(SRMatrix<Label> &labels, SRMatrix<Feature> &features, Args &args);
-    void buildBalancedTree(int labelCount, int arity, bool randomizeTree);
-    TreeNode* buildBalancedTreeRec(std::vector<int>::const_iterator begin, std::vector<int>::const_iterator end );
-
-    // TODO: do we need this?
-    /*
-    std::vector<struct JobResult> processJob(int index, std::vector<int>& jobInstances, std::vector<int>& jobLabels,
-                                         std::ofstream& out,SRMatrix<Label>& labels, SRMatrix<Feature>& features,
-                                         Args& args);
-    void buildTreeTopDown(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-    void cut(SRMatrix<Label>& labels, SRMatrix<Feature>& features, std::vector<int>& active, std::vector<int>& left, std::vector<int>& right, Args &args);
-    */
+    void trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 
     // Random projection
     void generateRandomProjection(std::vector<std::vector<double>>& data, int projectDim, int dim);
@@ -122,10 +110,16 @@ private:
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, std::vector<std::unordered_set<int>> labelToIndices, Args &args);
 
-    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+    // Some experimental tree structures
+    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, Args& args);
 
-    // Just random complete tree
-    void buildCompleteTree(int labelCount, int arity, bool randomizeOrder = false);
+    void buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, SRMatrix<Label>& labels, Args& args);
+
+    // Just random complete and balance tree
+    void buildCompleteTree(int labelCount, bool randomizeOrder, Args &args);
+    void buildBalancedTree(int labelCount, bool randomizeOrder, Args &args);
+
+    // Huffman tree
     void buildHuffmanTree(SRMatrix<Label>& labels, Args &args);
 
     // Custom tree structure
@@ -136,3 +130,42 @@ private:
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
     void printTree(TreeNode *root = nullptr);
 };
+
+template<typename T>
+void PLTree::predict(std::vector<TreeNodeValue>& prediction, T* features, std::vector<Base*>& bases, std::vector<KNN*>& kNNs, Args &args){
+    std::priority_queue<TreeNodeValue> nQueue;
+
+    // Note: loss prediction gets worse results for tree with higher arity then 2
+    double val = bases[treeRoot->index]->predictProbability(features);
+    //double val = -bases[treeRoot->index]->predictLoss(features);
+    nQueue.push({treeRoot, val});
+
+    while (!nQueue.empty()) {
+        TreeNodeValue nVal = nQueue.top(); // Current node
+        nQueue.pop();
+
+        //std::cerr << "HEAP -> " << nVal.node->index << " " << nVal.value << "\n";
+
+        if(nVal.node->label >= 0){
+            prediction.push_back({nVal.node, nVal.value}); // When using probability
+            //prediction.push_back({nVal.node, exp(nVal.value)}); // When using loss
+            if (prediction.size() >= args.topK)
+                break;
+        } else {
+            if(nVal.node->kNNNode && args.kNN){ // KNN supports only probabilities
+                TreeNode* n = nVal.node;
+                std::vector<Feature> result;
+                kNNs[nVal.node->index]->predict(features, args.kNN, result);
+                for(const auto& r : result){
+                    val = nVal.value * r.value;
+                    nQueue.push({tree[r.index], val});
+                }
+            }
+            for(const auto& child : nVal.node->children){
+                val = nVal.value * bases[child->index]->predictProbability(features); // When using probability
+                //val = nVal.value - bases[child->index]->predictLoss(features); // When using loss
+                nQueue.push({child, val});
+            }
+        }
+    }
+}

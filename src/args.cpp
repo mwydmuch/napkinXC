@@ -7,6 +7,7 @@
 #include <fstream>
 #include <cassert>
 #include <cmath>
+#include <iomanip>
 
 #include "args.h"
 #include "linear.h"
@@ -24,13 +25,13 @@ Args::Args() {
     bias = true;
     biasValue = 1.0;
     norm = true;
-    threshold = 0.1;
+    maxFeatures = -1;
     projectDim = 100;
 
     // Training options
     threads = getCpuCount();
     eps = 0.1;
-    cost = 1.0;
+    cost = 10.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     labelsWeights = true;
@@ -38,13 +39,16 @@ Args::Args() {
     optimizerType = libliner;
     iter = 50;
     eta = 0.5;
+    threshold = 0.1;
 
     // Tree options
-    tree = "";
+    treeStructure = "";
     arity = 2;
-    treeType = completeInOrder;
-    treeTypeName = "completeInOrder";
-    maxLeaves = 2;
+    //treeType = completeInOrder;
+    //treeTypeName = "completeInOrder";
+    treeType = hierarchicalKMeans;
+    treeTypeName = "hierarchicalKMeans";
+    maxLeaves = 100;
 
     // K-Means tree options
     kMeansEps = 0.001;
@@ -54,6 +58,10 @@ Args::Args() {
     topK = 1;
     sparseWeights = true;
 
+    // KNN options
+    kNN = 0;
+    kNNMaxFreq = 25;
+
     // Private
     hFeatures = 0;
     hLabels = 0;
@@ -62,8 +70,6 @@ Args::Args() {
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
-
-    bool maxLeavesSet = false;
 
     if(command != "train" && command != "test" && command != "shrink"){
         std::cerr << "Unknown command type: " << command << std::endl;
@@ -103,6 +109,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--iter")
                 iter = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--maxFeatures")
+                maxFeatures = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--projectDim")
                 projectDim = std::stoi(args.at(ai + 1));
 
@@ -146,18 +154,16 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 iter = std::stoi(args.at(ai + 1));
 
             // Tree options
-            else if (args[ai] == "--tree")
-                tree = std::string(args.at(ai + 1));
             else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--maxLeaves") {
+            else if (args[ai] == "--maxLeaves")
                 maxLeaves = std::stoi(args.at(ai + 1));
-                maxLeavesSet = true;
-            }
             else if (args[ai] == "--kMeansEps")
                 kMeansEps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--kMeansBalanced")
                 kMeansBalanced = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--treeStructure")
+                treeStructure = std::string(args.at(ai + 1));
             else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
@@ -169,6 +175,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "kMeansinstanceBalancing" ) treeType = kMeansinstanceBalancing;
                 else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
+                else if (args.at(ai + 1) == "leaveFreqBehind") treeType = leaveFreqBehind;
+                else if (args.at(ai + 1) == "kMeansHuffman") treeType = kMeansHuffman;
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -176,11 +184,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
 
             // Prediction options
-            else if (args[ai] == "--to"
-                                         "pK")
+            else if (args[ai] == "--topK")
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--sparseWeights")
                 sparseWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--kNN")
+                kNN = std::stoi(args.at(ai + 1));
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();
@@ -196,8 +205,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         std::cerr << "Empty input or model path." << std::endl;
         printHelp();
     }
-
-    if(!maxLeavesSet) maxLeaves = arity;
 }
 
 // Reads train/test data to sparse matrix
@@ -298,6 +305,14 @@ void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<
         pos = nextPos + 1;
     }
 
+    // Select subset of most important features
+    /*
+    if(maxFeatures > 0) {
+        std::sort(lFeatures.rbegin(), lFeatures.rend());
+        lFeatures.resize(std::min(100, static_cast<int>(lFeatures.size())));
+    }
+     */
+
     // Norm row
     if(norm) unitNorm(lFeatures);
 
@@ -319,8 +334,12 @@ void Args::printArgs(){
             std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
         else if(optimizerType == sgd)
             std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
-        std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
-        if(treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced;
+        if(treeStructure.empty()) {
+            std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
+            if (treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced;
+            if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
+                std::cerr << ", max leaves: " << maxLeaves;
+        }
         std::cerr << "\n  Threads: " << threads << "\n";
     }
     else if (command == "shrink")
@@ -350,33 +369,34 @@ void Args::printHelp(){
         --seed              Model's seed
 
         Base classifiers:
-        --optimizer         Use Libliner or SGD (default = libliner)
-                            Optimizerers: liblinear, sgd
+        --optimizer         Use LibLiner or SGD (default = libliner)
+                            Optimizers: liblinear, sgd
         --bias              Add bias term (default = 1)
         --labelsWeights     Increase the weight of minority labels in base classifiers (default = 1)
 
         LibLinear:
         -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
                             Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
-                            L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+                                               L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                             See: https://github.com/cjlin1/liblinear
         -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
                             Like in support vector machines, smaller values specify stronger
-                            regularization. (default = 1.0)
+                            regularization. (default = 10.0)
                             Note: -1 to automatically find best value for each node.
         -e, --eps           Stopping criteria (default = 0.1)
                             See: https://github.com/cjlin1/liblinear
 
         SGD:
-        -e, --eta           step size of SGD
-        --iter              number of epochs of SGD
+        -e, --eta           Step size of SGD
+        --iter              Number of epochs of SGD
 
         Tree:
         -a, --arity         Arity of a tree (default = 2)
-        --maxLeaves         Maximum number of leaves (labels) in one internal node.
+        --maxLeaves         Maximum number of leaves (labels) in one internal node. (default = 100)
         --tree              File with tree structure
         --treeType          Type of a tree to build if file with structure is not provided
-                            Tree types: completeInOrder, completeRandom
+                            Tree types: hierarchicalKMeans, huffman, completeInOrder, completeRandom,
+                                        balancedInOrder, balancedRandom,
 
         K-Means tree:
         --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
@@ -384,6 +404,9 @@ void Args::printHelp(){
 
         Random projection:
         --projectDim        Number or random direction
+
+        K-NNs:
+        --kNN               Number of nearest neighbors used for prediction
     )HELP";
     exit(EXIT_FAILURE);
 }

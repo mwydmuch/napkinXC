@@ -20,16 +20,21 @@ public:
 
     void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
     double predictValue(Feature* features);
-    double predictLoss(Feature* features);
-    double predictProbability(Feature* features);
+    double predictValue(double* features);
 
-    int inline denseSize(){ return wSize * sizeof(double); }
-    int inline mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(double)); }
-    int inline sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
+    template<typename U>
+    double predictLoss(U* features);
+    template<typename U>
+    double predictProbability(U* features);
 
-    void toMap(); // from W to mapW
-    void toDense(); // from sparseW or mapW to W
-    void toSparse(); // from W to sparseW
+    inline size_t denseSize(){ return wSize * sizeof(double); }
+    inline size_t mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(double)); }
+    inline size_t sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
+    size_t size();
+
+    void toMap(); // From dense weights (W) to sparse weights in hashmap (mapW)
+    void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)
+    void toSparse(); // From dense (W) to sparse weights (sparseW)
     void threshold(double threshold);
 
     void save(std::string outfile, Args& args);
@@ -40,7 +45,6 @@ public:
     void printWeights();
 
 private:
-    bool sparse;
     bool hingeLoss;
 
     int wSize;
@@ -53,3 +57,21 @@ private:
     Feature* sparseW;
 
 };
+
+template<typename U>
+double Base::predictLoss(U* features){
+    if(classCount < 2) return -static_cast<double>(firstClass);
+    double val = predictValue(features);
+    if(hingeLoss) val = std::pow(fmax(0, 1 - val), 2); // Hinge squared loss
+    else val = log(1 + exp(-val)); // Log loss
+    return val;
+}
+
+template<typename U>
+double Base::predictProbability(U* features){
+    if(classCount < 2) return static_cast<double>(firstClass);
+    double val = predictValue(features);
+    if(hingeLoss) val = 1.0 / (1.0 + exp(-2 * val)); // Probability for squared Hinge loss solver
+    else val = 1.0 / (1.0 + exp(-val)); // Probability
+    return val;
+}

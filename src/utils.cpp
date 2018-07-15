@@ -9,23 +9,41 @@
 
 // Data utils
 
-void computeLabelsFrequencies(std::vector<int>& labelsFreq, SRMatrix<Label>& labels){
+void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' frequencies ...\n";
 
     labelsFreq.clear();
     labelsFreq.resize(labels.cols());
+    for(int i = 0; i < labelsFreq.size(); ++i) {
+        labelsFreq[i].index = i;
+        labelsFreq[i].value = 0;
+    }
     int rows = labels.rows();
 
     for(int r = 0; r < rows; ++r) {
         printProgress(r, rows);
         int rSize = labels.size(r);
         auto rLabels = labels.row(r);
-        for (int i = 0; i < rSize; ++i) ++labelsFreq[rLabels[i]];
+        for (int i = 0; i < rSize; ++i) ++labelsFreq[rLabels[i]].value;
+    }
+}
+
+void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels){
+    std::cerr << "Computing labels' probabilities ...\n";
+
+    std::vector<Frequency> labelsFreq;
+    computeLabelsFrequencies(labelsFreq, labels);
+
+    labelsProb.clear();
+    labelsProb.resize(labels.cols());
+    for(int i = 0; i < labelsFreq.size(); ++i) {
+        labelsProb[i].index = i;
+        labelsProb[i].value = static_cast<double>(labelsFreq[i].value) / labels.rows();
     }
 }
 
 // TODO: Make it parallel
-void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features){
     std::cerr << "Computing labels' features matrix ...\n";
 
     std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
@@ -39,12 +57,12 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Lab
         int rLabelsSize = labels.size(r);
         auto rFeatures = features.row(r);
         auto rLabels = labels.row(r);
-
         for (int i = 0; i < rFeaturesSize; ++i){
             for (int j = 0; j < rLabelsSize; ++j){
-                if (!tmpLabelsFeatures[rLabels[j]].count(rFeatures[i].index))
-                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = 0;
-                tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] += rFeatures[i].value;
+                auto f = tmpLabelsFeatures[rLabels[j]].find(rFeatures[i].index);
+                if(f == tmpLabelsFeatures[rLabels[j]].end())
+                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = rFeatures[i].value;
+                else (*f).second += rFeatures[i].value;
             }
         }
     }
@@ -59,10 +77,11 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, SRMatrix<Lab
     }
 }
 
-void computeLabelsExamples(std::vector<std::vector<double>>& labelsExamples, SRMatrix<Label>& labels){
+void computeLabelsExamples(std::vector<std::vector<Example>>& labelsExamples, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' examples ...\n";
 
     labelsExamples.clear();
+    labelsExamples.resize(labels.cols());
     int rows = labels.rows();
 
     for(int r = 0; r < rows; ++r){
@@ -76,7 +95,7 @@ void computeLabelsExamples(std::vector<std::vector<double>>& labelsExamples, SRM
 // Files utils
 
 // Joins two paths
-std::string joinPath(std::string path1, std::string path2){
+std::string joinPath(const std::string& path1, const std::string& path2){
     char sep = '/';
 
     std::string joined = path1;
@@ -88,7 +107,7 @@ std::string joinPath(std::string path1, std::string path2){
 }
 
 // Checks filename
-void checkFileName(std::string filename, bool read){
+void checkFileName(const std::string& filename, bool read){
     bool valid;
     if(read) {
         std::ifstream in(filename);
@@ -101,7 +120,7 @@ void checkFileName(std::string filename, bool read){
 }
 
 // Checks dirname
-void checkDirName(std::string dirname){
+void checkDirName(const std::string& dirname){
     std::string tmpFile = joinPath(dirname, ".checkTmp");
     std::ofstream out(tmpFile);
     if(!out.good()) throw "Invalid dirname: \"" + dirname +"\"!";

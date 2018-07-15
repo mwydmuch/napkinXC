@@ -11,11 +11,12 @@ if [ ! -e "data/${DATASET_NAME}" ]; then
 fi
 
 if [ ! -e nxml ]; then
-    rm CMakeCache.txt
+    rm -f CMakeCache.txt
     cmake -DCMAKE_BUILD_TYPE=Release
-    make
+    make -j
 fi
 
+rm -r $MODEL
 if [ ! -e $MODEL ]; then
     mkdir -p $MODEL
     time ./nxml train -i ${DATASET}_train.txt -m $MODEL -t -1 $ARGS

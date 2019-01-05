@@ -10,17 +10,13 @@
 
 // All tree tree types
 enum TreeType {
+    hierarchicalKMeans,
+    huffman,
     completeInOrder,
     completeRandom,
-    hierarchicalKMeans,
-    kMeansWithProjection,
-    kMeansinstanceBalancing,
-    topDown,
     balancedInOrder,
     balancedRandom,
-    huffman,
-    leaveFreqBehind,
-    kMeansHuffman
+    custom
 };
 
 enum OptimizerType { libliner, sgd };
@@ -65,6 +61,7 @@ public:
     // K-Means tree options
     double kMeansEps;
     bool kMeansBalanced;
+    bool kMeansWeightedFeatures;
 
     // Prediction options
     int topK;

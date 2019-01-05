@@ -24,7 +24,8 @@ void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix
 
 void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels);
 
-void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features);
+void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
+                                 const SRMatrix<Feature>& features, bool weightedFeatures = false);
 
 void computeLabelsExamples(std::vector<std::vector<Example>>& labelsFeatures, const SRMatrix<Label>& labels);
 

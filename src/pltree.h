@@ -100,27 +100,15 @@ private:
     // Training
     void trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 
-    // Random projection
-    void generateRandomProjection(std::vector<std::vector<double>>& data, int projectDim, int dim);
-    void projectLabelsRepresentation(SRMatrix<Feature>& labelsFeatures, std::vector<std::vector<double>>& randomMatrix,
-                                    std::vector<std::vector<int>>& labelToIndices, SRMatrix<Feature>& features, Args &args);
-    void balancedKMeansWithRandomProjection(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
-
     // Hierarchical K-Means
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
-    void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, std::vector<std::unordered_set<int>> labelToIndices, Args &args);
 
-    // Some experimental tree structures
-    void buildLeaveFreqBehindTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, Args& args);
-
-    void buildKMeansHuffmanTree(SRMatrix<Feature>& labelsFeatures, std::vector<Frequency>& labelsFreq, SRMatrix<Label>& labels, Args& args);
+    // Huffman tree
+    void buildHuffmanTree(SRMatrix<Label>& labels, Args &args);
 
     // Just random complete and balance tree
     void buildCompleteTree(int labelCount, bool randomizeOrder, Args &args);
     void buildBalancedTree(int labelCount, bool randomizeOrder, Args &args);
-
-    // Huffman tree
-    void buildHuffmanTree(SRMatrix<Label>& labels, Args &args);
 
     // Custom tree structure
     void loadTreeStructure(std::string file);

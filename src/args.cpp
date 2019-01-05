@@ -51,8 +51,9 @@ Args::Args() {
     maxLeaves = 100;
 
     // K-Means tree options
-    kMeansEps = 0.001;
+    kMeansEps = 0.0001;
     kMeansBalanced = true;
+    kMeansWeightedFeatures = false;
 
     // Prediction options
     topK = 1;
@@ -162,8 +163,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 kMeansEps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--kMeansBalanced")
                 kMeansBalanced = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--treeStructure")
+            else if (args[ai] == "--kMeansWeightedFeatures")
+                kMeansWeightedFeatures = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--treeStructure") {
                 treeStructure = std::string(args.at(ai + 1));
+                treeType = custom;
+            }
             else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
@@ -171,12 +176,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "hierarchicalKMeans") treeType = hierarchicalKMeans;
-                else if (args.at(ai + 1) == "kMeansWithProjection" ) treeType = kMeansWithProjection;
-                else if (args.at(ai + 1) == "kMeansinstanceBalancing" ) treeType = kMeansinstanceBalancing;
-                else if (args.at(ai + 1) == "topDown") treeType = topDown;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
-                else if (args.at(ai + 1) == "leaveFreqBehind") treeType = leaveFreqBehind;
-                else if (args.at(ai + 1) == "kMeansHuffman") treeType = kMeansHuffman;
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -336,7 +336,8 @@ void Args::printArgs(){
             std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
         if(treeStructure.empty()) {
             std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
-            if (treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced;
+            if (treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps
+                << ", balanced: " << kMeansBalanced << ", weighted features: " << kMeansWeightedFeatures;
             if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
                 std::cerr << ", max leaves: " << maxLeaves;
         }

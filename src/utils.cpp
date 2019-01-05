@@ -42,8 +42,9 @@ void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Lab
     }
 }
 
-// TODO: Make it parallel
-void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels, const SRMatrix<Feature>& features){
+// TODO: Make it work in parallel
+void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
+                                 const SRMatrix<Feature>& features, bool weightedFeatures){
     std::cerr << "Computing labels' features matrix ...\n";
 
     std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
@@ -60,9 +61,10 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
         for (int i = 0; i < rFeaturesSize; ++i){
             for (int j = 0; j < rLabelsSize; ++j){
                 auto f = tmpLabelsFeatures[rLabels[j]].find(rFeatures[i].index);
-                if(f == tmpLabelsFeatures[rLabels[j]].end())
-                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = rFeatures[i].value;
-                else (*f).second += rFeatures[i].value;
+                auto v = rFeatures[i].value;
+                if(weightedFeatures) v /= rLabelsSize;
+                if(f == tmpLabelsFeatures[rLabels[j]].end()) tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = v;
+                else (*f).second += v;
             }
         }
     }

@@ -9,6 +9,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <cmath>
 
 #include "args.h"
 #include "types.h"
@@ -62,8 +63,8 @@ template<typename U>
 double Base::predictLoss(U* features){
     if(classCount < 2) return -static_cast<double>(firstClass);
     double val = predictValue(features);
-    if(hingeLoss) val = std::pow(fmax(0, 1 - val), 2); // Hinge squared loss
-    else val = log(1 + exp(-val)); // Log loss
+    if(hingeLoss) val = std::pow(std::fmax(0, 1 - val), 2); // Hinge squared loss
+    else val = log(1 + std::exp(-val)); // Log loss
     return val;
 }
 
@@ -71,7 +72,7 @@ template<typename U>
 double Base::predictProbability(U* features){
     if(classCount < 2) return static_cast<double>(firstClass);
     double val = predictValue(features);
-    if(hingeLoss) val = 1.0 / (1.0 + exp(-2 * val)); // Probability for squared Hinge loss solver
-    else val = 1.0 / (1.0 + exp(-val)); // Probability
+    if(hingeLoss) val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
+    else val = 1.0 / (1.0 + std::exp(-val)); // Probability
     return val;
 }

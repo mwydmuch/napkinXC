@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <thread>
 #include <iostream>
-#include <algorithm>
+#include <cmath>
 
 #include "types.h"
 
@@ -29,9 +29,7 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
 
 void computeLabelsExamples(std::vector<std::vector<Example>>& labelsFeatures, const SRMatrix<Label>& labels);
 
-
 // Math utils
-
 template <typename T, typename U>
 inline T argMax(const std::unordered_map<T, U>& map){
     auto pMax = std::max_element(map.begin(), map.end(),

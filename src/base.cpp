@@ -3,7 +3,6 @@
  * All rights reserved.
  */
 
-#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -180,13 +179,22 @@ double Base::predictValue(Feature* features){
 
 void Base::toMap(){
     if(mapW == nullptr){
-        assert(W != nullptr);
-
         mapW = new std::unordered_map<int, double>();
-        for(int i = 0; i < wSize; ++i)
-            if(W[i] != 0) mapW->insert({i, W[i]});
-        delete[] W;
-        W = nullptr;
+
+        if(W != nullptr){
+            for(int i = 0; i < wSize; ++i)
+                if(W[i] != 0) mapW->insert({i, W[i]});
+            delete[] W;
+            W = nullptr;
+        } else if(sparseW != nullptr){
+            Feature* f = sparseW;
+            while(f->index != -1){
+                mapW->insert({f->index, f->value});
+                ++f;
+            }
+            delete[] sparseW;
+            sparseW = nullptr;
+        }
     }
 }
 
@@ -301,8 +309,9 @@ void Base::load(std::istream& in, Args& args) {
         in.read((char*) &loadSparse, sizeof(loadSparse));
 
         if(loadSparse){
-            sparseW = new Feature[nonZeroW + 1];
-            sparseW[nonZeroW].index = -1;
+            mapW = new std::unordered_map<int, double>();
+            //sparseW = new Feature[nonZeroW + 1];
+            //sparseW[nonZeroW].index = -1;
             int index;
             double w;
 
@@ -313,6 +322,7 @@ void Base::load(std::istream& in, Args& args) {
                     sparseW[i].index = index;
                     sparseW[i].value = w;
                 }
+                if (mapW != nullptr) mapW->insert({index, w});
             }
         } else {
             W = new double[wSize];

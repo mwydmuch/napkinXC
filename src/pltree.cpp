@@ -38,7 +38,7 @@ void PLTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
         buildHuffmanTree(labels, args);
     else if (args.treeType == hierarchicalKMeans) {
         SRMatrix<Feature> labelsFeatures;
-        computeLabelsFeaturesMatrix(labelsFeatures, labels, features, args.kMeansBalanced);
+        computeLabelsFeaturesMatrix(labelsFeatures, labels, features, args.kMeansWeightedFeatures);
         labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
         buildKMeansTree(labelsFeatures, args);
     }
@@ -242,13 +242,15 @@ int batchTestThread(int threadId, PLTree* tree, SRMatrix<Label>& labels, SRMatri
     std::vector<int> localCorrectAt (args.topK);
     std::vector<std::unordered_set<int>> localCoveredAt(args.topK);
 
-    std::vector<double> denseFeatures(features.cols());
+    //std::vector<double> denseFeatures(features.cols());
 
     for(int r = startRow; r < stopRow; ++r){
-        setVector(features.row(r), denseFeatures, -1);
+        //setVector(features.row(r), denseFeatures, -1);
 
         std::vector<TreeNodeValue> prediction;
-        tree->predict(prediction, denseFeatures.data(), bases, kNNs, args);
+        //tree->predict(prediction, denseFeatures.data(), bases, kNNs, args);
+        tree->predict(prediction, features.row(r), bases, kNNs, args);
+
 
         for (int i = 0; i < args.topK; ++i)
             for (int j = 0; j < labels.size(r); ++j)
@@ -258,7 +260,7 @@ int batchTestThread(int threadId, PLTree* tree, SRMatrix<Label>& labels, SRMatri
                     break;
                 }
 
-        setVectorToZeros(features.row(r), denseFeatures, -1);
+        //setVectorToZeros(features.row(r), denseFeatures, -1);
         if(!threadId) printProgress(r - startRow, stopRow - startRow);
     }
 
@@ -348,13 +350,14 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
     } else {
         std::vector<TreeNodeValue> prediction;
 
-        std::vector<double> denseFeatures(features.cols());
+        //std::vector<double> denseFeatures(features.cols());
 
         for(int r = 0; r < rows; ++r){
-            setVector(features.row(r), denseFeatures, -1);
+            //setVector(features.row(r), denseFeatures, -1);
 
             prediction.clear();
-            predict(prediction, denseFeatures.data(), bases, kNNs, args);
+            //predict(prediction, denseFeatures.data(), bases, kNNs, args);
+            predict(prediction, features.row(r), bases, kNNs, args);
             for (int i = 0; i < args.topK; ++i)
                 for (int j = 0; j < labels.sizes()[r]; ++j)
                     if (prediction[i].node->label == labels.data()[r][j]){
@@ -363,7 +366,7 @@ void PLTree::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
                         break;
                     }
 
-            setVectorToZeros(features.row(r), denseFeatures, -1);
+            //setVectorToZeros(features.row(r), denseFeatures, -1);
             printProgress(r, rows);
         }
     }

@@ -27,9 +27,9 @@ Base::Base(){
 }
 
 Base::~Base(){
-    if(W != nullptr) delete[] W;
-    if(mapW != nullptr) delete mapW;
-    if(sparseW != nullptr) delete[] sparseW;
+    delete[] W;
+    delete mapW;
+    delete[] sparseW;
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -248,13 +248,7 @@ void Base::threshold(double threshold){
     }
 }
 
-void Base::save(std::string outfile, Args& args){
-    std::ofstream out(outfile);
-    save(out, args);
-    out.close();
-}
-
-void Base::save(std::ostream& out, Args& args){
+void Base::save(std::ostream& out){
     out.write((char*) &classCount, sizeof(classCount));
     out.write((char*) &firstClass, sizeof(firstClass));
 
@@ -290,13 +284,7 @@ void Base::save(std::ostream& out, Args& args){
     //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << size()/1024 << "/" << denseSize()/1024 << "K\n";
 }
 
-void Base::load(std::string infile, Args& args){
-    std::ifstream in(infile);
-    load(in, args);
-    in.close();
-}
-
-void Base::load(std::istream& in, Args& args) {
+void Base::load(std::istream& in) {
     in.read((char*) &classCount, sizeof(classCount));
     in.read((char*) &firstClass, sizeof(firstClass));
 

@@ -4,9 +4,9 @@
  */
 
 #include "args.h"
+#include "data_reader.h"
+#include "model.h"
 #include "types.h"
-#include "base.h"
-#include "pltree.h"
 #include "utils.h"
 
 void train(Args &args) {
@@ -15,38 +15,45 @@ void train(Args &args) {
 
     // Load train data
     args.printArgs();
-    args.readData(labels, features);
+    std::shared_ptr<DataReader> reader = dataReaderFactory(args);
+    reader->readData(labels, features, args);
 
-    // Train and save tree
-    PLTree tree;
-    tree.train(labels, features, args);
+    // Create data reader and model
+    std::shared_ptr<Model> model = modelFactory(args);
+    model->train(labels, features, args);
 
-    // Save args
-    args.save(joinPath(args.model, "args.bin"));
+    // Save model, reader and args
+    reader->saveToFile(joinPath(args.output, "data_readear.bin"));
+    args.saveToFile(joinPath(args.output, "args.bin"));
 }
 
 void test(Args &args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
 
-    // Load args and test data
-    args.load(joinPath(args.model, "args.bin"));
+    // Load model args
+    args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
-    args.readData(labels, features);
 
-    // Load tree
-    PLTree tree;
-    tree.load(joinPath(args.model, "tree.bin"));
-    tree.test(labels, features, args);
+    // Create data reader and model
+    std::shared_ptr<DataReader> reader = dataReaderFactory(args);
+    reader->loadFromFile(joinPath(args.output, "data_readear.bin"));
+    reader->readData(labels, features, args);
+
+    // Load model
+    std::shared_ptr<Model> model = modelFactory(args);
+    model->load(args.output);
+    model->test(labels, features, args);
 }
 
+/*
 void predict(Args &args) {
     // Load args
-    args.load(joinPath(args.model, "args.bin"));
+    args.load(joinPath(args.output, "args.bin"));
     args.printArgs();
 
     PLTree tree;
-    tree.load(joinPath(args.model, "tree.bin"));
+    tree.load(joinPath(args.output, "tree.bin"));
 
     // Predict data from cin and output to cout
     if(args.input == "-"){
@@ -80,7 +87,7 @@ void shrink(Args &args) {
     tree.load(args.input + "/tree.bin");
 
     std::ifstream in(args.input + "/weights.bin");
-    std::ofstream out(args.model + "/weights.bin");
+    std::ofstream out(args.output + "/weights.bin");
     for (int i = 0; i < tree.nodes(); ++i){
         Base base;
         base.load(in, args);
@@ -90,6 +97,7 @@ void shrink(Args &args) {
     in.close();
     out.close();
 }
+ */
 
 int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);
@@ -102,12 +110,6 @@ int main(int argc, char** argv) {
         train(args);
     else if(args.command == "test")
         test(args);
-    else if(args.command == "predict")
-        predict(args);
-    else if(args.command == "tree")
-        buildTree(args);
-    else if(args.command == "shrink")
-        shrink(args);
     else
         args.printHelp();
 

@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <unordered_set>
+
 #include "types.h"
 
 // (Heuristic) Balanced K-Means clustering
@@ -21,4 +22,4 @@ struct Distances{
 
 // Partition is returned via reference, calculated for cosine distance
 void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures,
-                    int centroids, double eps, bool balanced, int seed);
+            int centroids, double eps, bool balanced, int seed);

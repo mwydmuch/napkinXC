@@ -203,6 +203,14 @@ inline void printProgress(int state, int max){
 
 // Files utils
 
+class FileHelper{
+public:
+    void saveToFile(std::string outfile);
+    virtual void save(std::ostream& out) = 0;
+    void loadFromFile(std::string infile);
+    virtual void load(std::istream& in) = 0;
+};
+
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2);
 

@@ -19,11 +19,11 @@ fi
 rm -r $MODEL
 if [ ! -e $MODEL ]; then
     mkdir -p $MODEL
-    time ./nxml train -i ${DATASET}_train.txt -m $MODEL -t -1 $ARGS
+    time ./nxml train -i ${DATASET}_train.txt -o $MODEL -t -1 $ARGS
     echo
 fi
 
-time ./nxml test -i ${DATASET}_test.txt -m $MODEL --topK 5 -t -1
+time ./nxml test -i ${DATASET}_test.txt -o $MODEL --topK 5 -t -1
 echo
 
 echo "Model dir: ${MODEL}"

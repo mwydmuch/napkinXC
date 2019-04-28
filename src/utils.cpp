@@ -96,6 +96,19 @@ void computeLabelsExamples(std::vector<std::vector<Example>>& labelsExamples, co
 
 // Files utils
 
+void FileHelper::saveToFile(std::string outfile){
+    std::ofstream out(outfile);
+    save(out);
+    out.close();
+}
+
+void FileHelper::loadFromFile(std::string infile){
+    checkFileName(infile);
+    std::ifstream in(infile);
+    load(in);
+    in.close();
+}
+
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2){
     char sep = '/';

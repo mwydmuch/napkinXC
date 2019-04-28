@@ -19,14 +19,17 @@ Args::Args() {
 
     // Input/output options
     input = "";
-    model = "";
+    output = "";
+    dataFormatName = "libsvm";
+    dataFormatType = libsvm;
+    modelName = "plt";
+    modelType = plt;
     header = true;
     hash = 0;
     bias = true;
     biasValue = 1.0;
     norm = true;
     maxFeatures = -1;
-    projectDim = 100;
 
     // Training options
     threads = getCpuCount();
@@ -58,21 +61,13 @@ Args::Args() {
     // Prediction options
     topK = 1;
     sparseWeights = true;
-
-    // KNN options
-    kNN = 0;
-    kNNMaxFreq = 25;
-
-    // Private
-    hFeatures = 0;
-    hLabels = 0;
 }
 
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
 
-    if(command != "train" && command != "test" && command != "shrink"){
+    if(command != "train" && command != "test"){
         std::cerr << "Unknown command type: " << command << std::endl;
         printHelp();
     }
@@ -94,8 +89,25 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
                 input = std::string(args.at(ai + 1));
-            else if (args[ai] == "-m" || args[ai] == "--model")
-                model = std::string(args.at(ai + 1));
+            else if (args[ai] == "-o" || args[ai] == "--output")
+                output = std::string(args.at(ai + 1));
+            else if (args[ai] == "-d" || args[ai] == "--dataFormat") {
+                treeTypeName = args.at(ai + 1);
+                if (args.at(ai + 1) == "libsvm") dataFormatType = libsvm;
+                else {
+                    std::cerr << "Unknown date format type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
+            else if (args[ai] == "-m" || args[ai] == "--model") {
+                modelName = args.at(ai + 1);
+                if (args.at(ai + 1) == "hsm") modelType = hsm;
+                else if (args.at(ai + 1) == "plt") modelType = plt;
+                else {
+                    std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
             else if (args[ai] == "--header")
                 header = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--bias")
@@ -112,8 +124,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 iter = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--maxFeatures")
                 maxFeatures = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--projectDim")
-                projectDim = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -188,8 +198,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--sparseWeights")
                 sparseWeights = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--kNN")
-                kNN = std::stoi(args.at(ai + 1));
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();
@@ -201,126 +209,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         }
     }
 
-    if (input.empty() || model.empty()) {
+    if (input.empty() || output.empty()) {
         std::cerr << "Empty input or model path." << std::endl;
         printHelp();
     }
-}
-
-// Reads train/test data to sparse matrix
-void Args::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
-    std::cerr << "Loading data from: " << input << std::endl;
-
-    std::ifstream in;
-    in.open(input);
-
-    int hRows = -1;
-    std::string line;
-
-    // Read header
-    // Format: #rows #features #labels
-    // TODO: add validation
-    if(header){
-        size_t nextPos, pos = 0;
-        getline(in, line);
-
-        nextPos = line.find_first_of(" ", pos);
-        hRows = std::stoi(line.substr(pos, nextPos - pos));
-        pos = nextPos + 1;
-
-        nextPos = line.find_first_of(" ", pos);
-        if(!hFeatures) hFeatures = std::stoi(line.substr(pos, nextPos - pos));
-        pos = nextPos + 1;
-
-        nextPos = line.find_first_of(" ", pos);
-        if(!hLabels) hLabels = std::stoi(line.substr(pos, nextPos - pos));
-
-        std::cerr << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << std::endl;
-    }
-
-    if(hash != 0) hFeatures = hash;
-
-    std::vector<Label> lLabels;
-    std::vector<Feature> lFeatures;
-
-    // Read examples
-    while (getline(in, line)){
-        lLabels.clear();
-        lFeatures.clear();
-
-        readLine(line, lLabels, lFeatures);
-
-        labels.appendRow(lLabels);
-        features.appendRow(lFeatures);
-    }
-
-    in.close();
-
-    if(bias && !header){
-        for(int r = 0; r < features.rows(); ++r) {
-            features.data()[r][features.sizes()[r] - 1].index = features.cols() - 1;
-            features.data()[r][features.sizes()[r] - 1].value = biasValue;
-        }
-    }
-
-    if(!hLabels) hLabels = labels.cols();
-    if(!hFeatures) hFeatures = features.cols() - (bias ? 1 : 0);
-
-    // Checks
-    assert(labels.rows() == features.rows());
-    if(header) assert(hRows == labels.rows());
-    assert(hLabels >= labels.cols());
-    assert(hFeatures + 1 + (bias ? 1 : 0) >= features.cols() );
-
-    // Print data
-    /*
-    for (int r = 0; r < features.rows(); ++r){
-       for(int c = 0; c < features.size(r); ++c)
-           std::cerr << features.row(r)[c].index << ":" << features.row(r)[c].value << " ";
-       std::cerr << "\n";
-    }
-    */
-
-    std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;
-}
-
-// Reads line in LibSvm format label,label,... feature(:value) feature(:value) ...
-void Args::readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures){
-    size_t nextPos, pos = line[0] == ' ' ? 1 : 0;
-    bool requiresSort = false;
-
-    while((nextPos = line.find_first_of(",: ", pos))){
-        // Label
-        if((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' '))
-            lLabels.push_back(std::stoi(line.substr(pos, nextPos - pos)));
-
-        // Feature (LibLinear ignore feature 0)
-        else if(line[pos - 1] == ' ' && line[nextPos] == ':')
-            lFeatures.push_back({std::stoi(line.substr(pos, nextPos - pos)) + 1, 1.0});
-
-        else if(line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
-            lFeatures.back().value = std::stof(line.substr(pos, nextPos - pos));
-
-        if(nextPos == std::string::npos) break;
-        pos = nextPos + 1;
-    }
-
-    // Select subset of most important features
-    /*
-    if(maxFeatures > 0) {
-        std::sort(lFeatures.rbegin(), lFeatures.rend());
-        lFeatures.resize(std::min(100, static_cast<int>(lFeatures.size())));
-    }
-     */
-
-    // Norm row
-    if(norm) unitNorm(lFeatures);
-
-    // Add bias feature
-    if(bias && hFeatures < 0)
-        lFeatures.push_back({lFeatures.back().index + 1, biasValue});
-    else if(bias)
-        lFeatures.push_back({hFeatures + 1, biasValue});
 }
 
 void Args::printArgs(){
@@ -328,7 +220,7 @@ void Args::printArgs(){
         std::cerr << "napkinXML - " << command
             << "\n  Input: " << input
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
-            << "\n  Model: " << model
+            << "\n  Model: " << output
             << "\n    Optimizer: " << optimizerName;
         if(optimizerType == libliner)
             std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
@@ -346,7 +238,7 @@ void Args::printArgs(){
     else if (command == "shrink")
         std::cerr << "napkinXML - " << command
             << "\n  Input model: " << input
-            << "\n  Output model: " << model
+            << "\n  Output model: " << output
             << "\n  Threshold: " << threshold << "\n";
 }
 
@@ -403,40 +295,21 @@ void Args::printHelp(){
         --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
         --kMeansBalanced    Use balanced K-Means clustering (default = 1)
 
-        Random projection:
-        --projectDim        Number or random direction
-
-        K-NNs:
-        --kNN               Number of nearest neighbors used for prediction
     )HELP";
     exit(EXIT_FAILURE);
 }
 
-void Args::save(std::string outfile){
-    std::ofstream out(outfile);
-    save(out);
-    out.close();
-}
-
 void Args::save(std::ostream& out){
     //TODO: save names and other parameters that are displayed
-    out.write((char*) &hFeatures, sizeof(hFeatures));
-    out.write((char*) &hLabels, sizeof(hLabels));
     out.write((char*) &bias, sizeof(bias));
     out.write((char*) &norm, sizeof(norm));
     out.write((char*) &hash, sizeof(hash));
-}
-
-void Args::load(std::string infile){
-    std::ifstream in(infile);
-    load(in);
-    in.close();
+    out.write((char*) &modelType, sizeof(modelType));
 }
 
 void Args::load(std::istream& in){
-    in.read((char*) &hFeatures, sizeof(hFeatures));
-    in.read((char*) &hLabels, sizeof(hLabels));
     in.read((char*) &bias, sizeof(bias));
     in.read((char*) &norm, sizeof(norm));
     in.read((char*) &hash, sizeof(hash));
+    in.read((char*) &modelType, sizeof(modelType));
 }

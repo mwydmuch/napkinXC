@@ -6,9 +6,19 @@
 #pragma once
 
 #include <string>
+
 #include "types.h"
+#include "utils.h"
 
 // All tree tree types
+enum ModelType {
+    ova,
+    br,
+    hsm,
+    plt
+};
+
+
 enum TreeType {
     hierarchicalKMeans,
     huffman,
@@ -21,7 +31,9 @@ enum TreeType {
 
 enum OptimizerType { libliner, sgd };
 
-class Args{
+enum DataFormatType { libsvm };
+
+class Args: public FileHelper{
 public:
     Args();
 
@@ -30,7 +42,9 @@ public:
 
     // Input/output options
     std::string input;
-    std::string model;
+    std::string output;
+    DataFormatType dataFormatType;
+    ModelType modelType;
     bool header;
     bool bias;
     double biasValue;
@@ -42,8 +56,7 @@ public:
     // Training options
     int threads;
     int solverType;
-    int optimizerType;
-    std::string optimizerName;
+    OptimizerType optimizerType;
     double eps;
     double cost;
     double threshold;
@@ -56,7 +69,6 @@ public:
     TreeType treeType;
     std::string treeStructure;
     int maxLeaves;
-    int projectDim;
 
     // K-Means tree options
     double kMeansEps;
@@ -67,25 +79,17 @@ public:
     int topK;
     bool sparseWeights;
 
-    // KNN options
-    int kNN;
-    int kNNMaxFreq;
-
     void parseArgs(const std::vector<std::string>& args);
-    void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);
-    void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures);
     void printArgs();
     void printHelp();
 
-    void save(std::string outfile);
-    void save(std::ostream& out);
-    void load(std::string infile);
-    void load(std::istream& in);
+    void save(std::ostream& out) override;
+    void load(std::istream& in) override;
 
 private:
-    int hLabels;
-    int hFeatures;
-
     std::string solverName;
     std::string treeTypeName;
+    std::string optimizerName;
+    std::string modelName;
+    std::string dataFormatName;
 };

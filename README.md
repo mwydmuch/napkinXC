@@ -1,8 +1,9 @@
 # napkinXML
 
-Extremely simple and fast extreme multi-label classifier based on Probabilistic Label Tree (PLT) algorithm.
+Extremely simple and fast extreme multi-label classifier.
 
 Right now it implements:
+- Binary Relevance (BR)) and Probabilistic Label Tree (PLT) algorithm.
 - LibLinear and SGD solvers for tree nodes,
 - Online prediction,
 - Basic complete, Huffman and balanced tree structures,
@@ -10,12 +11,11 @@ Right now it implements:
 - Loading custom tree structures,
 - KNN for super-labels (last level nodes with a large number of leaves)
 
-Please note that this library is still under development and serves as a base for experiments that aim to improve PLT algorithm.
+Please note that this library is still under development and serves as a base for experiments.
 Some of the features may not be listed in options below.
 
 ## Build
 ```
-rm -f CMakeCache.txt
 cmake -DCMAKE_BUILD_TYPE=Release
 make
 ```
@@ -32,14 +32,16 @@ Commands:
 Args:
     General:
     -i, --input         Input dataset in LibSvm format
-    -m, --model         Model's dir
+    -o, --output        Output (model) dir
+    -m, --model         Model type (default = plt):
+                        Models: br, plt
+    -d, --dataFormat    Type of data format (default = libsvm):
+                        Supported data formats: libsvm
     -t, --threads       Number of threads used for training and testing (default = -1)
                         Note: -1 to use #cpus - 1, 0 to use #cpus
     --header            Input contains header (default = 1)
-                        Header format: #lines #features #labels
-    --hash              Size of hashing space (default = 0)
-                        Note: 0 to disable
-    --seed              Model's seed
+                        Header format for libsvm: #lines #features #labels
+    --seed              Seed
 
     Base classifiers:
     --optimizer         Use LibLiner or SGD (default = libliner)
@@ -74,12 +76,6 @@ Args:
     K-Means tree:
     --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
     --kMeansBalanced    Use balanced K-Means clustering (default = 1)
-
-    Random projection:
-    --projectDim        Number or random direction
-
-    K-NNs:
-    --kNN               Number of nearest neighbors used for prediction
 
 ```
 

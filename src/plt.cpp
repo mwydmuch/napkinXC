@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2018 by Marek Wydmuch, Kalina Jasinska, Robert Istvan Busa-Fekete
+ * Copyright (c) 2019 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -8,8 +9,6 @@
 #include <algorithm>
 #include <vector>
 #include <list>
-#include <chrono>
-#include <random>
 #include <cmath>
 #include <climits>
 
@@ -22,6 +21,8 @@ PLT::PLT(){
 
 PLT::~PLT() {
     delete tree;
+    for(size_t i = 0; i < bases.size(); ++i)
+        delete bases[i];
 }
 
 

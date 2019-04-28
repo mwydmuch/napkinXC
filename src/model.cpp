@@ -8,18 +8,20 @@
 #include <iomanip>
 
 #include "model.h"
+#include "br.h"
 #include "plt.h"
 #include "threads.h"
 
 std::shared_ptr<Model> modelFactory(Args &args){
     std::shared_ptr<Model> model = nullptr;
     switch (args.modelType) {
+        case ModelType::br :
+            model = std::static_pointer_cast<Model>(std::make_shared<BR>());
+            break;
         case ModelType::plt :
             model = std::static_pointer_cast<Model>(std::make_shared<PLT>());
             break;
-//        case ModelType::hsm :
-//            model = std::static_pointer_cast<Model>(std::make_shared<HSM>());
-//            break;
+
     }
 
     return model;
@@ -68,7 +70,6 @@ int batchTestThread(int threadId, Model* model, SRMatrix<Label>& labels, SRMatri
         std::vector<Prediction> prediction;
         //tree->predict(prediction, denseFeatures.data(), bases, kNNs, args);
         model->predict(prediction, features.row(r), args);
-
 
         for (int i = 0; i < args.topK; ++i)
             for (int j = 0; j < labels.size(r); ++j)

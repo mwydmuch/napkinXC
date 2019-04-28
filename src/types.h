@@ -62,6 +62,9 @@ public:
     // Returns row as T*
     inline T* row(const int index) const { return r[index]; }
 
+    // Returns std::vector<T*>&
+    inline std::vector<T*>& allRows() { return r; }
+
     // Access row also by [] operator
     inline T& operator[](const int index) { return r[index]; }
 
@@ -80,11 +83,10 @@ public:
     inline int cells() const { return c; }
 
     void clear();
-    void save(std::string outfile);
+    void saveToFile(std::string outfile);
     void save(std::ostream& out);
-    void saveAsText(std::string outfile);
-    void saveAsText(std::ostream& out);
-    void load(std::string infile);
+    void saveAsTextFile(std::string outfile);
+    void loadFromFile(std::string infile);
     void load(std::istream& in);
 
 private:
@@ -201,7 +203,7 @@ void SRMatrix<T>::clear(){
 }
 
 template <typename T>
-void SRMatrix<T>::save(std::string outfile){
+void SRMatrix<T>::saveToFile(std::string outfile){
     std::ofstream out(outfile);
     save(out);
     out.close();
@@ -219,14 +221,8 @@ void SRMatrix<T>::save(std::ostream& out){
 }
 
 template <typename T>
-void SRMatrix<T>::saveAsText(std::string outfile) {
+void SRMatrix<T>::saveAsTextFile(std::string outfile) {
     std::ofstream out(outfile);
-    saveAsText(out);
-    out.close();
-}
-
-template <typename T>
-void SRMatrix<T>::saveAsText(std::ostream& out) {
     out << m << " " << n << "\n";
     for (int i = 0; i < m; ++i) {
         out << s[i];
@@ -234,10 +230,11 @@ void SRMatrix<T>::saveAsText(std::ostream& out) {
             out << " " << r[i][j];
         out << "\n";
     }
+    out.close();
 }
 
 template <typename T>
-void SRMatrix<T>::load(std::string infile){
+void SRMatrix<T>::loadFromFile(std::string infile){
     std::ifstream in(infile);
     load(in);
     in.close();

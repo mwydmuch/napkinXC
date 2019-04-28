@@ -101,7 +101,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
-                if (args.at(ai + 1) == "hsm") modelType = hsm;
+                if (args.at(ai + 1) == "br") modelType = br;
+                else if (args.at(ai + 1) == "hsm") modelType = hsm;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
@@ -219,19 +220,27 @@ void Args::printArgs(){
     if (command == "train" || command == "test"){
         std::cerr << "napkinXML - " << command
             << "\n  Input: " << input
+            << "\n    Data format: " << dataFormatType
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
             << "\n  Model: " << output
+            << "\n    Type: " << modelName
             << "\n    Optimizer: " << optimizerName;
         if(optimizerType == libliner)
             std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
         else if(optimizerType == sgd)
             std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
-        if(treeStructure.empty()) {
-            std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
-            if (treeType == hierarchicalKMeans) std::cerr << ", k-means eps: " << kMeansEps
-                << ", balanced: " << kMeansBalanced << ", weighted features: " << kMeansWeightedFeatures;
-            if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
-                std::cerr << ", max leaves: " << maxLeaves;
+        if(modelType == plt){
+            if(treeStructure.empty()) {
+                std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
+                if (treeType == hierarchicalKMeans)
+                    std::cerr << ", k-means eps: " << kMeansEps
+                              << ", balanced: " << kMeansBalanced << ", weighted features: " << kMeansWeightedFeatures;
+                if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
+                    std::cerr << ", max leaves: " << maxLeaves;
+            }
+            else {
+                std::cerr << "\n    Tree: " << treeStructure;
+            }
         }
         std::cerr << "\n  Threads: " << threads << "\n";
     }
@@ -252,14 +261,16 @@ void Args::printHelp(){
     Args:
         General:
         -i, --input         Input dataset in LibSvm format
-        -m, --model         Model's dir
+        -o, --output        Output (model) dir
+        -m, --model         Model type (default = plt):
+                            Models: br, plt
+        -d, --dataFormat    Type of data format (default = libsvm):
+                            Supported data formats: libsvm
         -t, --threads       Number of threads used for training and testing (default = -1)
                             Note: -1 to use #cpus - 1, 0 to use #cpus
         --header            Input contains header (default = 1)
-                            Header format: #lines #features #labels
-        --hash              Size of hashing space (default = 0)
-                            Note: 0 to disable
-        --seed              Model's seed
+                            Header format for libsvm: #lines #features #labels
+        --seed              Seed
 
         Base classifiers:
         --optimizer         Use LibLiner or SGD (default = libliner)
@@ -305,6 +316,7 @@ void Args::save(std::ostream& out){
     out.write((char*) &norm, sizeof(norm));
     out.write((char*) &hash, sizeof(hash));
     out.write((char*) &modelType, sizeof(modelType));
+    out.write((char*) &dataFormatType, sizeof(dataFormatType));
 }
 
 void Args::load(std::istream& in){
@@ -312,4 +324,5 @@ void Args::load(std::istream& in){
     in.read((char*) &norm, sizeof(norm));
     in.read((char*) &hash, sizeof(hash));
     in.read((char*) &modelType, sizeof(modelType));
+    in.read((char*) &dataFormatType, sizeof(dataFormatType));
 }

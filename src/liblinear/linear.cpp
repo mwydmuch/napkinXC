@@ -20,8 +20,8 @@ template <class S, class T> static inline void clone(T*& dst, S* src, int n)
 	dst = new T[n];
 	memcpy((void *)dst,(void *)src,sizeof(T)*n);
 }
-#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 #define INF HUGE_VAL
+#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 
 static void print_string_stdout(const char *s)
 {
@@ -91,7 +91,7 @@ public:
 	void Hv(double *s, double *Hs);
 
 	int get_nr_variable(void);
-	void get_diagH(double *M);
+	void get_diag_preconditioner(double *M);
 
 private:
 	void Xv(double *v, double *Xv);
@@ -170,6 +170,27 @@ int l2r_lr_fun::get_nr_variable(void)
 	return prob->n;
 }
 
+void l2r_lr_fun::get_diag_preconditioner(double *M)
+{
+	int i;
+	int l = prob->l;
+	int w_size=get_nr_variable();
+	feature_node **x = prob->x;
+
+	for (i=0; i<w_size; i++)
+		M[i] = 1;
+
+	for (i=0; i<l; i++)
+	{
+		feature_node *s = x[i];
+		while (s->index!=-1)
+		{
+			M[s->index-1] += s->value*s->value*C[i]*D[i];
+			s++;
+		}
+	}
+}
+
 void l2r_lr_fun::Hv(double *s, double *Hs)
 {
 	int i;
@@ -190,27 +211,6 @@ void l2r_lr_fun::Hv(double *s, double *Hs)
 	}
 	for(i=0;i<w_size;i++)
 		Hs[i] = s[i] + Hs[i];
-}
-
-void l2r_lr_fun::get_diagH(double *M)
-{
-	int i;
-	int l = prob->l;
-	int w_size=get_nr_variable();
-	feature_node **x = prob->x;
-
-	for (i=0; i<w_size; i++)
-		M[i] = 1;
-
-	for (i=0; i<l; i++)
-	{
-		feature_node *s = x[i];
-		while (s->index!=-1)
-		{
-			M[s->index-1] += s->value*s->value*C[i]*D[i];
-			s++;
-		}
-	}
 }
 
 void l2r_lr_fun::Xv(double *v, double *Xv)
@@ -247,7 +247,7 @@ public:
 	void Hv(double *s, double *Hs);
 
 	int get_nr_variable(void);
-	void get_diagH(double *M);
+	void get_diag_preconditioner(double *M);
 
 protected:
 	void Xv(double *v, double *Xv);
@@ -327,7 +327,7 @@ int l2r_l2_svc_fun::get_nr_variable(void)
 	return prob->n;
 }
 
-void l2r_l2_svc_fun::get_diagH(double *M)
+void l2r_l2_svc_fun::get_diag_preconditioner(double *M)
 {
 	int i;
 	int w_size=get_nr_variable();
@@ -939,8 +939,8 @@ static void solve_l2r_l1l2_svc(
 		}
 
 		iter++;
-		if(iter % 10 == 0)
-			//info(".");
+		//if(iter % 10 == 0)
+		//	info(".");
 
 		if(PGmax_new - PGmin_new <= eps)
 		{
@@ -1161,6 +1161,8 @@ static void solve_l2r_l1l2_svr(
 		if(iter == 0)
 			Gnorm1_init = Gnorm1_new;
 		iter++;
+		//if(iter % 10 == 0)
+		//	info(".");
 
 		if(Gnorm1_new <= eps*Gnorm1_init)
 		{
@@ -1169,6 +1171,7 @@ static void solve_l2r_l1l2_svr(
 			else
 			{
 				active_size = l;
+				//info("*");
 				Gmax_old = INF;
 				continue;
 			}
@@ -1404,7 +1407,7 @@ static void solve_l1r_l2_svc(
 	double Gmax_new, Gnorm1_new;
 	double Gnorm1_init = -1.0; // Gnorm1_init is initialized at the first iteration
 	double d_old, d_diff;
-	double loss_old, loss_new;
+	double loss_old = 0, loss_new;
 	double appxcond, cond;
 
 	int *index = new int[w_size];
@@ -1595,7 +1598,8 @@ static void solve_l1r_l2_svc(
 		if(iter == 0)
 			Gnorm1_init = Gnorm1_new;
 		iter++;
-		if(iter % 10 == 0)
+		//if(iter % 10 == 0)
+		//	info(".");
 
 		if(Gnorm1_new <= eps*Gnorm1_init)
 		{
@@ -1604,6 +1608,7 @@ static void solve_l1r_l2_svc(
 			else
 			{
 				active_size = w_size;
+				//info("*");
 				Gmax_old = INF;
 				continue;
 			}
@@ -2273,7 +2278,7 @@ static void train_one(const problem *prob, const parameter *param, double *w, do
 static double calc_start_C(const problem *prob, const parameter *param)
 {
 	int i;
-	double xTx,max_xTx;
+	double xTx, max_xTx;
 	max_xTx = 0;
 	for(i=0; i<prob->l; i++)
 	{
@@ -2294,8 +2299,155 @@ static double calc_start_C(const problem *prob, const parameter *param)
 		min_C = 1.0 / (prob->l * max_xTx);
 	else if(param->solver_type == L2R_L2LOSS_SVC)
 		min_C = 1.0 / (2 * prob->l * max_xTx);
+	else if(param->solver_type == L2R_L2LOSS_SVR)
+	{
+		double sum_y, loss, y_abs;
+		double delta2 = 0.1;
+		sum_y = 0, loss = 0;
+		for(i=0; i<prob->l; i++)
+		{
+			y_abs = fabs(prob->y[i]);
+			sum_y += y_abs;
+			loss += max(y_abs - param->p, 0.0) * max(y_abs - param->p, 0.0);
+		}
+		if(loss > 0)
+			min_C = delta2 * delta2 * loss / (8 * sum_y * sum_y * max_xTx);
+		else
+			min_C = INF;
+	}
 
 	return pow( 2, floor(log(min_C) / log(2.0)) );
+}
+
+static double calc_max_p(const problem *prob, const parameter *param)
+{
+	int i;
+	double max_p = 0.0;
+	for(i = 0; i < prob->l; i++)
+		max_p = max(max_p, fabs(prob->y[i]));
+
+	return max_p;
+}
+
+static void find_parameter_C(const problem *prob, parameter *param_tmp, double start_C, double max_C, double *best_C, double *best_score, const int *fold_start, const int *perm, const problem *subprob, int nr_fold)
+{
+	// variables for CV
+	int i;
+	double *target = Malloc(double, prob->l);
+
+	// variables for warm start
+	double ratio = 2;
+	double **prev_w = Malloc(double*, nr_fold);
+	for(i = 0; i < nr_fold; i++)
+		prev_w[i] = NULL;
+	int num_unchanged_w = 0;
+	void (*default_print_string) (const char *) = liblinear_print_string;
+
+	if(param_tmp->solver_type == L2R_LR || param_tmp->solver_type == L2R_L2LOSS_SVC)
+		*best_score = 0.0;
+	else if(param_tmp->solver_type == L2R_L2LOSS_SVR)
+		*best_score = INF;
+	*best_C = start_C;
+
+	param_tmp->C = start_C;
+	while(param_tmp->C <= max_C)
+	{
+		//Output disabled for running CV at a particular C
+		set_print_string_function(&print_null);
+
+		for(i=0; i<nr_fold; i++)
+		{
+			int j;
+			int begin = fold_start[i];
+			int end = fold_start[i+1];
+
+			param_tmp->init_sol = prev_w[i];
+			struct model *submodel = train_linear(&subprob[i],param_tmp);
+
+			int total_w_size;
+			if(submodel->nr_class == 2)
+				total_w_size = subprob[i].n;
+			else
+				total_w_size = subprob[i].n * submodel->nr_class;
+
+			if(prev_w[i] == NULL)
+			{
+				prev_w[i] = Malloc(double, total_w_size);
+				for(j=0; j<total_w_size; j++)
+					prev_w[i][j] = submodel->w[j];
+			}
+			else if(num_unchanged_w >= 0)
+			{
+				double norm_w_diff = 0;
+				for(j=0; j<total_w_size; j++)
+				{
+					norm_w_diff += (submodel->w[j] - prev_w[i][j])*(submodel->w[j] - prev_w[i][j]);
+					prev_w[i][j] = submodel->w[j];
+				}
+				norm_w_diff = sqrt(norm_w_diff);
+
+				if(norm_w_diff > 1e-15)
+					num_unchanged_w = -1;
+			}
+			else
+			{
+				for(j=0; j<total_w_size; j++)
+					prev_w[i][j] = submodel->w[j];
+			}
+
+			for(j=begin; j<end; j++)
+				target[perm[j]] = predict(submodel,prob->x[perm[j]]);
+
+			free_and_destroy_model(&submodel);
+		}
+		set_print_string_function(default_print_string);
+
+		if(param_tmp->solver_type == L2R_LR || param_tmp->solver_type == L2R_L2LOSS_SVC)
+		{
+			int total_correct = 0;
+			for(i=0; i<prob->l; i++)
+				if(target[i] == prob->y[i])
+					++total_correct;
+			double current_rate = (double)total_correct/prob->l;
+			if(current_rate > *best_score)
+			{
+				*best_C = param_tmp->C;
+				*best_score = current_rate;
+			}
+
+			info("log2c=%7.2f\trate=%g\n",log(param_tmp->C)/log(2.0),100.0*current_rate);
+		}
+		else if(param_tmp->solver_type == L2R_L2LOSS_SVR)
+		{
+			double total_error = 0.0;
+			for(i=0; i<prob->l; i++)
+			{
+				double y = prob->y[i];
+				double v = target[i];
+				total_error += (v-y)*(v-y);
+			}
+			double current_error = total_error/prob->l;
+			if(current_error < *best_score)
+			{
+				*best_C = param_tmp->C;
+				*best_score = current_error;
+			}
+
+			info("log2c=%7.2f\tp=%7.2f\tMean squared error=%g\n",log(param_tmp->C)/log(2.0),param_tmp->p,current_error);
+		}
+
+		num_unchanged_w++;
+		if(num_unchanged_w == 5)
+			break;
+		param_tmp->C = param_tmp->C*ratio;
+	}
+
+	if(param_tmp->C > max_C)
+		info("warning: maximum C reached.\n");
+	free(target);
+	for(i=0; i<nr_fold; i++)
+		free(prev_w[i]);
+	free(prev_w);
 }
 
 
@@ -2320,8 +2472,14 @@ model* train_linear(const problem *prob, const parameter *param)
 	if(check_regression_model(model_))
 	{
 		model_->w = Malloc(double, w_size);
-		for(i=0; i<w_size; i++)
-			model_->w[i] = 0;
+
+		if(param->init_sol != NULL)
+			for(i=0;i<w_size;i++)
+				model_->w[i] = param->init_sol[i];
+		else
+			for(i=0;i<w_size;i++)
+				model_->w[i] = 0;
+
 		model_->nr_class = 2;
 		model_->label = NULL;
 		train_one(prob, param, model_->w, 0, 0);
@@ -2508,24 +2666,16 @@ void cross_validation(const problem *prob, const parameter *param, int nr_fold, 
 	free(perm);
 }
 
-void find_parameter_C(const problem *prob, const parameter *param, int nr_fold, double start_C, double max_C, double *best_C, double *best_rate)
+
+void find_parameters(const problem *prob, const parameter *param, int nr_fold, double start_C, double start_p, double *best_C, double *best_p, double *best_score)
 {
-	// variables for CV
+	// prepare CV folds
+
 	int i;
 	int *fold_start;
 	int l = prob->l;
 	int *perm = Malloc(int, l);
-	double *target = Malloc(double, prob->l);
 	struct problem *subprob = Malloc(problem,nr_fold);
-
-	// variables for warm start
-	double ratio = 2;
-	double **prev_w = Malloc(double*, nr_fold);
-	for(i = 0; i < nr_fold; i++)
-		prev_w[i] = NULL;
-	int num_unchanged_w = 0;
-	struct parameter param1 = *param;
-	void (*default_print_string) (const char *) = liblinear_print_string;
 
 	if (nr_fold > l)
 	{
@@ -2570,93 +2720,60 @@ void find_parameter_C(const problem *prob, const parameter *param, int nr_fold, 
 
 	}
 
-	*best_rate = 0;
-	if(start_C <= 0)
-		start_C = calc_start_C(prob,param);
-	param1.C = start_C;
-
-	while(param1.C <= max_C)
+	struct parameter param_tmp = *param;
+	*best_p = -1;
+	if(param->solver_type == L2R_LR || param->solver_type == L2R_L2LOSS_SVC)
 	{
-		//Output disabled for running CV at a particular C
-		set_print_string_function(&print_null);
+		if(start_C <= 0)
+			start_C = calc_start_C(prob, &param_tmp);
+		double max_C = 1024;
+		start_C = min(start_C, max_C);
+		double best_C_tmp, best_score_tmp;
 
-		for(i=0; i<nr_fold; i++)
+		find_parameter_C(prob, &param_tmp, start_C, max_C, &best_C_tmp, &best_score_tmp, fold_start, perm, subprob, nr_fold);
+
+		*best_C = best_C_tmp;
+		*best_score = best_score_tmp;
+	}
+	else if(param->solver_type == L2R_L2LOSS_SVR)
+	{
+		double max_p = calc_max_p(prob, &param_tmp);
+		int num_p_steps = 20;
+		double max_C = 1048576;
+		*best_score = INF;
+
+		i = num_p_steps-1;
+		if(start_p > 0)
+			i = min((int)(start_p/(max_p/num_p_steps)), i);
+		for(; i >= 0; i--)
 		{
-			int j;
-			int begin = fold_start[i];
-			int end = fold_start[i+1];
-
-			param1.init_sol = prev_w[i];
-			struct model *submodel = train_linear(&subprob[i],&param1);
-
-			int total_w_size;
-			if(submodel->nr_class == 2)
-				total_w_size = subprob[i].n;
+			param_tmp.p = i*max_p/num_p_steps;
+			double start_C_tmp;
+			if(start_C <= 0)
+				start_C_tmp = calc_start_C(prob, &param_tmp);
 			else
-				total_w_size = subprob[i].n * submodel->nr_class;
+				start_C_tmp = start_C;
+			start_C_tmp = min(start_C_tmp, max_C);
+			double best_C_tmp, best_score_tmp;
 
-			if(prev_w[i] == NULL)
+			find_parameter_C(prob, &param_tmp, start_C_tmp, max_C, &best_C_tmp, &best_score_tmp, fold_start, perm, subprob, nr_fold);
+
+			if(best_score_tmp < *best_score)
 			{
-				prev_w[i] = Malloc(double, total_w_size);
-				for(j=0; j<total_w_size; j++)
-					prev_w[i][j] = submodel->w[j];
+				*best_p = param_tmp.p;
+				*best_C = best_C_tmp;
+				*best_score = best_score_tmp;
 			}
-			else if(num_unchanged_w >= 0)
-			{
-				double norm_w_diff = 0;
-				for(j=0; j<total_w_size; j++)
-				{
-					norm_w_diff += (submodel->w[j] - prev_w[i][j])*(submodel->w[j] - prev_w[i][j]);
-					prev_w[i][j] = submodel->w[j];
-				}
-				norm_w_diff = sqrt(norm_w_diff);
-
-				if(norm_w_diff > 1e-15)
-					num_unchanged_w = -1;
-			}
-			else
-			{
-				for(j=0; j<total_w_size; j++)
-					prev_w[i][j] = submodel->w[j];
-			}
-
-			for(j=begin; j<end; j++)
-				target[perm[j]] = predict(submodel,prob->x[perm[j]]);
-
-			free_and_destroy_model(&submodel);
 		}
-		set_print_string_function(default_print_string);
-
-		int total_correct = 0;
-		for(i=0; i<prob->l; i++)
-			if(target[i] == prob->y[i])
-				++total_correct;
-		double current_rate = (double)total_correct/prob->l;
-		if(current_rate > *best_rate)
-		{
-			*best_C = param1.C;
-			*best_rate = current_rate;
-		}
-
-		//info("log2c=%7.2f\trate=%g\n",log(param1.C)/log(2.0),100.0*current_rate);
-		num_unchanged_w++;
-		if(num_unchanged_w == 3)
-			break;
-		param1.C = param1.C*ratio;
 	}
 
-	//if(param1.C > max_C && max_C > start_C)
-	//	info("warning: maximum C reached.\n");
 	free(fold_start);
 	free(perm);
-	free(target);
 	for(i=0; i<nr_fold; i++)
 	{
 		free(subprob[i].x);
 		free(subprob[i].y);
-		free(prev_w[i]);
 	}
-	free(prev_w);
 	free(subprob);
 }
 
@@ -2798,14 +2915,14 @@ int save_model(const char *model_file_name, const struct model *model_)
 
 	fprintf(fp, "nr_feature %d\n", nr_feature);
 
-	fprintf(fp, "bias %.16g\n", model_->bias);
+	fprintf(fp, "bias %.17g\n", model_->bias);
 
 	fprintf(fp, "w\n");
 	for(i=0; i<w_size; i++)
 	{
 		int j;
 		for(j=0; j<nr_w; j++)
-			fprintf(fp, "%.16g ", model_->w[i*nr_w+j]);
+			fprintf(fp, "%.17g ", model_->w[i*nr_w+j]);
 		fprintf(fp, "\n");
 	}
 

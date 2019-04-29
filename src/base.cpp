@@ -13,6 +13,12 @@
 #include "utils.h"
 
 
+Base* baseTrain(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
+    Base* base = new Base();
+    base->train(n, binLabels, binFeatures, args);
+    return base;
+}
+
 Base::Base(){
     hingeLoss = false;
 
@@ -101,13 +107,10 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         assert(output == NULL);
 
         if(args.cost < 0 && binLabels.size() > 100){
-            // list of C to check:
-            double cvC[4] = {4.0, 8.0, 16.0, 32.0};
-
-            double bestC = cvC[0];
-            double bestAcc = 0;
-
-            find_parameter_C(&P, &C, 1, 4, 32, &bestC, &bestAcc);
+            double bestC = -1;
+            double bestP = -1;
+            double bestScore = -1;
+            find_parameters(&P, &C, 1, -1, -1, &bestC, &bestP, &bestScore);
             C.C = bestC;
         } else if(args.cost < 0) C.C = 8;
 
@@ -141,8 +144,8 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
 
     // Delete LibLinear model
     delete[] M->label;
-    if(labels != NULL) delete[] labels;
-    if(labelsWeights != NULL) delete[] labelsWeights;
+    delete[] labels;
+    delete[] labelsWeights;
     delete M;
 
     // Apply threshold and calculate number of non-zero weights

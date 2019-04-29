@@ -103,17 +103,16 @@ void TRON::tron(double *w)
 	if (gnorm <= eps*gnorm0)
 		search = 0;
 
-	iter = 1;
+	fun_obj->get_diag_preconditioner(M);
+	for(i=0; i<n; i++)
+		M[i] = (1-alpha_pcg) + alpha_pcg*M[i];
+	delta = sqrt(uTMv(n, g, M, g));
 
 	double *w_new = new double[n];
 	bool reach_boundary;
+	bool delta_adjusted = false;
 	while (iter <= max_iter && search)
 	{
-		fun_obj->get_diagH(M);
-		for(i=0; i<n; i++)
-			M[i] = (1-alpha_pcg) + alpha_pcg*M[i];
-		if (iter == 1)
-			delta = sqrt(uTMv(n, g, M, g));
 		cg_iter = trpcg(delta, g, M, s, r, &reach_boundary);
 
 		memcpy(w_new, w, sizeof(double)*n);
@@ -128,8 +127,11 @@ void TRON::tron(double *w)
 
 		// On the first iteration, adjust the initial step bound.
 		sMnorm = sqrt(uTMv(n, s, M, s));
-		if (iter == 1)
+		if (iter == 1 && !delta_adjusted)
+		{
 			delta = min(delta, sMnorm);
+			delta_adjusted = true;
+		}
 
 		// Compute prediction alpha*sMnorm of the step.
 		if (fnew - f - gs <= 0)
@@ -152,7 +154,7 @@ void TRON::tron(double *w)
 				delta = max(delta, min(alpha*sMnorm, sigma3*delta));
 		}
 
-		info("iter %2d act %5.3e pre %5.3e delta %5.3e f %5.3e |g| %5.3e CG %3d\n", iter, actred, prered, delta, f, gnorm, cg_iter);
+		//info("iter %2d act %5.3e pre %5.3e delta %5.3e f %5.3e |g| %5.3e CG %3d\n", iter, actred, prered, delta, f, gnorm, cg_iter);
 
 		if (actred > eta0*prered)
 		{
@@ -160,6 +162,9 @@ void TRON::tron(double *w)
 			memcpy(w, w_new, sizeof(double)*n);
 			f = fnew;
 			fun_obj->grad(w, g);
+			fun_obj->get_diag_preconditioner(M);
+			for(i=0; i<n; i++)
+				M[i] = (1-alpha_pcg) + alpha_pcg*M[i];
 
 			gnorm = dnrm2_(&n, g, &inc);
 			if (gnorm <= eps*gnorm0)
@@ -167,18 +172,18 @@ void TRON::tron(double *w)
 		}
 		if (f < -1.0e+32)
 		{
-			info("WARNING: f < -1.0e+32\n");
+			//info("WARNING: f < -1.0e+32\n");
 			break;
 		}
 		if (prered <= 0)
 		{
-			info("WARNING: prered <= 0\n");
+			//info("WARNING: prered <= 0\n");
 			break;
 		}
 		if (fabs(actred) <= 1.0e-12*fabs(f) &&
 		    fabs(prered) <= 1.0e-12*fabs(f))
 		{
-			info("WARNING: actred and prered too small\n");
+			//info("WARNING: actred and prered too small\n");
 			break;
 		}
 	}
@@ -212,8 +217,9 @@ int TRON::trpcg(double delta, double *g, double *M, double *s, double *r, bool *
 	zTr = ddot_(&n, z, &inc, r, &inc);
 	cgtol = eps_cg*sqrt(zTr);
 	int cg_iter = 0;
+	int max_cg_iter = max(n, 5);
 
-	while (1)
+	while (cg_iter < max_cg_iter)
 	{
 		if (sqrt(zTr) <= cgtol)
 			break;
@@ -226,7 +232,7 @@ int TRON::trpcg(double delta, double *g, double *M, double *s, double *r, bool *
 		double sMnorm = sqrt(uTMv(n, s, M, s));
 		if (sMnorm > delta)
 		{
-			info("cg reaches trust region boundary\n");
+			//info("cg reaches trust region boundary\n");
 			*reach_boundary = true;
 			alpha = -alpha;
 			daxpy_(&n, &alpha, d, &inc, s, &inc);
@@ -256,6 +262,9 @@ int TRON::trpcg(double delta, double *g, double *M, double *s, double *r, bool *
 		daxpy_(&n, &one, z, &inc, d, &inc);
 		zTr = znewTrnew;
 	}
+
+	if (cg_iter == max_cg_iter)
+		//info("WARNING: reaching maximal number of CG steps\n");
 
 	delete[] d;
 	delete[] Hd;

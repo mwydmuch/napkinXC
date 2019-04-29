@@ -19,7 +19,7 @@ public:
     Base();
     ~Base();
 
-    void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
+    void train(int n, std::vector<double>& labels, std::vector<Feature*>& features, Args &args);
     double predictValue(Feature* features);
     double predictValue(double* features);
 
@@ -74,3 +74,5 @@ double Base::predictProbability(T* features){
     else val = 1.0 / (1.0 + std::exp(-val)); // Probability
     return val;
 }
+
+Base* baseTrain(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args);

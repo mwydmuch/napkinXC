@@ -19,30 +19,18 @@ PLT::PLT(){
     tree = nullptr;
 }
 
-PLT::~PLT() {
+PLT::~PLT(){
     delete tree;
     for(size_t i = 0; i < bases.size(); ++i)
         delete bases[i];
 }
 
-
 void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
-    tree = new Tree();
+    std::cerr << "Building tree ...\n";
 
-    // Build tree structure
+    tree = new Tree();
     tree->buildTreeStructure(labels, features, args);
 
-    // Train the tree structure
-    trainTreeStructure(labels, features, args);
-}
-
-Base* nodeTrainThread(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
-    Base* base = new Base();
-    base->train(n, binLabels, binFeatures, args);
-    return base;
-}
-
-void PLT::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
     std::cerr << "Training tree ...\n";
 
     // For stats
@@ -61,7 +49,7 @@ void PLT::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feature
     std::unordered_set<TreeNode*> nPositive;
     std::unordered_set<TreeNode*> nNegative;
 
-    std::cerr << "Assigning points to nodes ...\n";
+    std::cerr << "Assigning data points to nodes ...\n";
 
     // Gather examples for each node
     for(int r = 0; r < rows; ++r){
@@ -120,7 +108,7 @@ void PLT::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feature
         std::vector<std::future<Base*>> results;
 
         for(const auto& n : tree->nodes)
-            results.emplace_back(tPool.enqueue(nodeTrainThread, features.cols(), std::ref(binLabels[n->index]),
+            results.emplace_back(tPool.enqueue(baseTrain, features.cols(), std::ref(binLabels[n->index]),
                                                std::ref(binFeatures[n->index]), std::ref(args)));
 
         // Saving in the main thread
@@ -140,15 +128,13 @@ void PLT::trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& feature
     }
     weightsOut.close();
 
-    std::cerr << "  Points count: " << rows
-              << "\n  Nodes per point: " << static_cast<double>(nCount) / rows
-              << "\n  Labels per point: " << static_cast<double>(yCount) / rows
+    std::cerr << "  Data points count: " << rows
+              << "\n  Nodes updates per data point: " << static_cast<double>(nCount) / rows
+              << "\n  Labels per data point: " << static_cast<double>(yCount) / rows
               << "\n";
 
     // Save tree
     tree->saveToFile(joinPath(args.output, "plt_tree.bin"));
-
-    std::cerr << "All done\n";
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
@@ -168,9 +154,10 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &
         if(nVal.node->label >= 0){
             prediction.push_back({nVal.node->label, nVal.value}); // When using probability
             //prediction.push_back({nVal.node, exp(nVal.value)}); // When using loss
-            if (prediction.size() >= args.topK)
+            if (args.topK > 0 && prediction.size() >= args.topK)
                 break;
-        } else {
+        }
+        if(nVal.node->children.size()){
             for(const auto& child : nVal.node->children){
                 val = nVal.value * bases[child->index]->predictProbability(features); // When using probability
                 //val = nVal.value - bases[child->index]->predictLoss(features); // When using loss
@@ -186,7 +173,7 @@ void PLT::load(std::string infile){
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "plt_tree.bin"));
 
-    std::cerr << "Loading base classifiers ...\n";
+    std::cerr << "  Loading base classifiers ...\n";
     std::ifstream weightsIn(joinPath(infile, "plt_weights.bin"));
     for(int i = 0; i < tree->t; ++i) {
         printProgress(i, tree->t);

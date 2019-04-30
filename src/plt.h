@@ -6,11 +6,9 @@
 
 #pragma once
 
-#include "args.h"
 #include "base.h"
 #include "model.h"
 #include "tree.h"
-#include "types.h"
 
 
 class PLT: public Model{
@@ -26,6 +24,4 @@ public:
 private:
     Tree* tree;
     std::vector<Base*> bases;
-
-    void trainTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 };

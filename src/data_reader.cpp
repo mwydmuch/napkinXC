@@ -17,7 +17,10 @@ std::shared_ptr<DataReader> dataReaderFactory(Args &args){
     return dataReader;
 }
 
-DataReader::DataReader(){}
+DataReader::DataReader(){
+    hLabels = -1;
+    hFeatures = -1;
+}
 
 DataReader::~DataReader(){}
 
@@ -39,6 +42,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     std::vector<Feature> lFeatures;
 
     // Read examples
+    int i = 0;
     while (getline(in, line)){
         lLabels.clear();
         lFeatures.clear();
@@ -71,7 +75,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     // Checks
     assert(labels.rows() == features.rows());
     assert(hLabels >= labels.cols());
-    assert(hFeatures + 1 + (bias ? 1 : 0) >= features.cols() );
+    assert(hFeatures + 1 + (args.bias ? 1 : 0) >= features.cols() );
 
     // Print data
     /*

@@ -8,20 +8,30 @@
 #include <iomanip>
 
 #include "model.h"
+#include "ovr.h"
 #include "br.h"
+#include "hsm.h"
 #include "plt.h"
 #include "threads.h"
+
 
 std::shared_ptr<Model> modelFactory(Args &args){
     std::shared_ptr<Model> model = nullptr;
     switch (args.modelType) {
+        case ModelType::ovr :
+            model = std::static_pointer_cast<Model>(std::make_shared<OVR>());
+            break;
         case ModelType::br :
             model = std::static_pointer_cast<Model>(std::make_shared<BR>());
+            break;
+        case ModelType::hsm :
+            model = std::static_pointer_cast<Model>(std::make_shared<HSM>());
             break;
         case ModelType::plt :
             model = std::static_pointer_cast<Model>(std::make_shared<PLT>());
             break;
-
+        default:
+            throw "Unknown model type!";
     }
 
     return model;
@@ -62,13 +72,9 @@ int batchTestThread(int threadId, Model* model, SRMatrix<Label>& labels, SRMatri
     std::vector<int> localCorrectAt (args.topK);
     std::vector<std::unordered_set<int>> localCoveredAt(args.topK);
 
-    //std::vector<double> denseFeatures(features.cols());
-
     for(int r = startRow; r < stopRow; ++r){
-        //setVector(features.row(r), denseFeatures, -1);
 
         std::vector<Prediction> prediction;
-        //tree->predict(prediction, denseFeatures.data(), bases, kNNs, args);
         model->predict(prediction, features.row(r), args);
 
         for (int i = 0; i < args.topK; ++i)
@@ -79,7 +85,6 @@ int batchTestThread(int threadId, Model* model, SRMatrix<Label>& labels, SRMatri
                     break;
                 }
 
-        //setVectorToZeros(features.row(r), denseFeatures, -1);
         if(!threadId) printProgress(r - startRow, stopRow - startRow);
     }
 
@@ -103,6 +108,8 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     std::vector<std::unordered_set<int>> coveredAt(args.topK);
     int rows = features.rows();
     assert(rows == labels.rows());
+
+    // TODO: Add measure prediction
 
     if(args.threads > 1){
         // Run prediction in parallel
@@ -134,14 +141,8 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
 
     } else {
         std::vector<Prediction> prediction;
-
-        //std::vector<double> denseFeatures(features.cols());
-
         for(int r = 0; r < rows; ++r){
-            //setVector(features.row(r), denseFeatures, -1);
-
             prediction.clear();
-            //predict(prediction, denseFeatures.data(), bases, kNNs, args);
             predict(prediction, features.row(r), args);
             for (int i = 0; i < args.topK; ++i)
                 for (int j = 0; j < labels.sizes()[r]; ++j)
@@ -151,7 +152,6 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
                         break;
                     }
 
-            //setVectorToZeros(features.row(r), denseFeatures, -1);
             printProgress(r, rows);
         }
     }
@@ -167,6 +167,4 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
                   << ", R@" << k << ": " << precisionAt / labels.cells()
                   << ", C@" << k << ": " << coverageAt / labels.cols() << "\n";
     }
-
-    std::cerr << "All done\n";
 }

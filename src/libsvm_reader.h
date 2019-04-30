@@ -8,8 +8,6 @@
 #include <string>
 
 #include "data_reader.h"
-#include "types.h"
-#include "utils.h"
 
 class LibSvmReader: public DataReader{
 public:

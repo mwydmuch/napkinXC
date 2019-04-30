@@ -201,6 +201,15 @@ inline void printProgress(int state, int max){
     if(max > 100 && state % (max / 100) == 0) std::cerr << "  " << state / (max / 100) << "%\r";
 }
 
+// Print vector
+template <typename T>
+void printVector(std::vector<T> vec){
+    for(size_t i = 0; i < vec.size(); ++i) {
+        if(i != 0) std::cerr << ", ";
+        std::cerr << vec[i];
+    }
+}
+
 // Files utils
 
 class FileHelper{

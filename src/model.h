@@ -8,8 +8,8 @@
 #include <string>
 #include <fstream>
 
-#include "types.h"
 #include "args.h"
+#include "types.h"
 
 struct Prediction{
     int label;

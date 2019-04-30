@@ -101,7 +101,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
-                if (args.at(ai + 1) == "br") modelType = br;
+                if (args.at(ai + 1) == "ovr") modelType = ovr;
+                else if (args.at(ai + 1) == "br") modelType = br;
                 else if (args.at(ai + 1) == "hsm") modelType = hsm;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
                 else {

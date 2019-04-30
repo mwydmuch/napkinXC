@@ -23,7 +23,7 @@ void train(Args &args) {
     model->train(labels, features, args);
 
     // Save model, reader and args
-    reader->saveToFile(joinPath(args.output, "data_readear.bin"));
+    reader->saveToFile(joinPath(args.output, "data_reader.bin"));
     args.saveToFile(joinPath(args.output, "args.bin"));
 }
 
@@ -37,7 +37,7 @@ void test(Args &args) {
 
     // Create data reader and model
     std::shared_ptr<DataReader> reader = dataReaderFactory(args);
-    reader->loadFromFile(joinPath(args.output, "data_readear.bin"));
+    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
 
     // Load model

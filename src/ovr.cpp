@@ -10,18 +10,18 @@
 #include <cmath>
 #include <climits>
 
-#include "br.h"
+#include "ovr.h"
 #include "threads.h"
 
 
-BR::BR(){}
+OVR::OVR(){}
 
-BR::~BR() {
+OVR::~OVR() {
     for(size_t i = 0; i < bases.size(); ++i)
         delete bases[i];
 }
 
-void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
     // Check data
     int rows = features.rows();
     int lCols = labels.cols();
@@ -45,16 +45,22 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
         for(int i = 0; i < binLabels.size(); ++i)
             binLabels[i].push_back(0.0);
 
-        if (rSize > 0) {
-            for (int i = 0; i < rSize; ++i) {
-                binLabels[rLabels[i]].back() = 1.0;
+        if(rSize == 1)
+            binLabels[rLabels[0]].back() = 1.0;
+        else {
+            if (rSize > 1)
+                throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
+            else if (rSize < 1){
+                std::cerr << "Example without label, skipping ...\n";
+                continue;
             }
         }
+
     }
 
     std::cerr << "Starting training in " << args.threads << " threads ...\n";
 
-    std::ofstream weightsOut(joinPath(args.output, "br_weights.bin"));
+    std::ofstream weightsOut(joinPath(args.output, "ovr_weights.bin"));
     weightsOut.write((char*) &lCols, sizeof(lCols));
     if(args.threads > 1){
         // Run learning in parallel
@@ -83,20 +89,26 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
     weightsOut.close();
 }
 
+void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+    double sum = 0;
+    for(int i = 0; i < bases.size(); ++i) {
+        double value = bases[i]->predictProbability(features);
+        sum += value;
+        prediction.push_back({i, value});
+    }
 
-void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
-    for(int i = 0; i < bases.size(); ++i)
-        prediction.push_back({i, bases[i]->predictProbability(features)});
+    for(auto& p : prediction)
+        p.value /= sum;
 
     sort(prediction.rbegin(), prediction.rend());
     if(args.topK > 0) prediction.resize(args.topK);
 }
 
-void BR::load(std::string infile){
-    std::cerr << "Loading BR model ...\n";
+void OVR::load(std::string infile){
+    std::cerr << "Loading OVR model ...\n";
 
     std::cerr << "Loading base classifiers ...\n";
-    std::ifstream weightsIn(joinPath(infile, "br_weights.bin"));
+    std::ifstream weightsIn(joinPath(infile, "ovr_weights.bin"));
 
     int size;
     weightsIn.read((char*) &size, sizeof(size));

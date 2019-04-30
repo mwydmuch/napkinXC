@@ -12,6 +12,7 @@
 
 // All tree tree types
 enum ModelType {
+    ovr,
     br,
     hsm,
     plt

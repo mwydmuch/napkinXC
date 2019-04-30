@@ -8,11 +8,11 @@
 #include "base.h"
 #include "model.h"
 
-
-class BR: public Model{
+// One against all
+class OVR: public Model{
 public:
-    BR();
-    ~BR() override;
+    OVR();
+    ~OVR() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;

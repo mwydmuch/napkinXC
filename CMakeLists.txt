@@ -24,15 +24,19 @@ endif(CMAKE_BUILD_TYPE MATCHES Release)
 
 file(GLOB_RECURSE SOURCES
     src/*.cpp
+    src/blas/*.c
+    src/data_readers/*.cpp
     src/liblinear/*.cpp
-    src/blas/*.c)
+    src/models/*.cpp)
 
 add_executable(nxml ${SOURCES})
 
 target_include_directories(nxml PUBLIC
     src
+    src/blas
+    src/data_readers
     src/liblinear
-    src/blas)
+    src/models)
 
 set_target_properties(nxml
     PROPERTIES

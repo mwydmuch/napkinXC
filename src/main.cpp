@@ -4,8 +4,8 @@
  */
 
 #include "args.h"
-#include "data_reader.h"
-#include "model.h"
+#include "data_readers/data_reader.h"
+#include "models/model.h"
 #include "types.h"
 #include "utils.h"
 

@@ -15,7 +15,7 @@
 #include <random>
 
 #include "base.h"
-#include "model.h"
+#include "models/model.h"
 #include "tree.h"
 
 

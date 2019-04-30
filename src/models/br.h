@@ -6,13 +6,13 @@
 #pragma once
 
 #include "base.h"
-#include "model.h"
+#include "models/model.h"
 
-// One against all
-class OVR: public Model{
+
+class BR: public Model{
 public:
-    OVR();
-    ~OVR() override;
+    BR();
+    ~BR() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;

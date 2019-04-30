@@ -18,7 +18,7 @@
 #include "args.h"
 #include "types.h"
 #include "base.h"
-#include "kmeans.h"
+#include "models/kmeans.h"
 #include "utils.h"
 
 // Tree node

@@ -4,9 +4,9 @@
 **/cmake_install.cmake
 **/Makefile
 
-nxml
-data
-models
+/nxml
+/data
+/models
 
 .idea
 .DS_Store

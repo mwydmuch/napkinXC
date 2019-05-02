@@ -4,27 +4,27 @@
  */
 
 #include "args.h"
-#include "data_readers/data_reader.h"
-#include "models/model.h"
+#include "data_reader.h"
+#include "model.h"
 #include "types.h"
 #include "utils.h"
+
 
 void train(Args &args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
 
-    // Load train data
     args.printArgs();
+    args.saveToFile(joinPath(args.output, "args.bin"));
+
+    // Create data reader and load train data
     std::shared_ptr<DataReader> reader = dataReaderFactory(args);
     reader->readData(labels, features, args);
+    reader->saveToFile(joinPath(args.output, "data_reader.bin"));
 
-    // Create data reader and model
+    // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = modelFactory(args);
     model->train(labels, features, args);
-
-    // Save model, reader and args
-    reader->saveToFile(joinPath(args.output, "data_reader.bin"));
-    args.saveToFile(joinPath(args.output, "args.bin"));
 }
 
 void test(Args &args) {
@@ -35,12 +35,12 @@ void test(Args &args) {
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
 
-    // Create data reader and model
+    // Create data reader and load test data
     std::shared_ptr<DataReader> reader = dataReaderFactory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
 
-    // Load model
+    // Load model and test
     std::shared_ptr<Model> model = modelFactory(args);
     model->load(args.output);
     model->test(labels, features, args);

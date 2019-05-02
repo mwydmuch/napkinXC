@@ -77,7 +77,7 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         }
 
         assert(path.size());
-        assert(path.back() == tree.root);
+        assert(path.back() == tree->root);
 
         for(int i = path.size() - 1; i >= 0; --i){
             TreeNode *n = path[i], *p = n->parent;
@@ -110,38 +110,11 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         pLen += path.size();
     }
 
-    std::cerr << "Starting training in " << args.threads << " threads ...\n";
-
-    std::ofstream weightsOut(joinPath(args.output, "hsm_weights.bin"));
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
-
-        for(const auto& n : tree->nodes)
-            results.emplace_back(tPool.enqueue(baseTrain, features.cols(), std::ref(binLabels[n->index]),
-                                               std::ref(binFeatures[n->index]), std::ref(args)));
-
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(weightsOut);
-            delete base;
-        }
-    } else {
-        for(int i = 0; i < tree->nodes.size(); ++i){
-            printProgress(i, tree->nodes.size());
-            Base base;
-            base.train(features.cols(), binLabels[tree->nodes[i]->index], binFeatures[tree->nodes[i]->index], args);
-            base.save(weightsOut);
-        }
-    }
-    weightsOut.close();
+    trainBases(joinPath(args.output, "hsm_weights.bin"), features.cols(), binLabels, binFeatures, args);
 
     std::cerr << "  Data points count: " << rows
               << "\n  Avg. path len: " << static_cast<double>(pLen) / rows
-              << "\n  Estimators updates per data point: " << static_cast<double>(eCount) / rows
+              << "\n  Estimators per data point: " << static_cast<double>(eCount) / rows
               << "\n";
 
     // Save tree
@@ -151,19 +124,19 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
 void HSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::priority_queue<TreeNodeValue> nQueue;
 
-    double val = bases[tree->root->index]->predictProbability(features);
-    assert(val == 1);
-    nQueue.push({tree->root, val});
+    double value = bases[tree->root->index]->predictProbability(features);
+    assert(value == 1);
+    nQueue.push({tree->root, value});
+
+    while (prediction.size() < args.topK && !nQueue.empty()) predictNext(nQueue, prediction, features);
+}
+
+void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features){
 
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
-        if(nVal.node->label >= 0){
-            prediction.push_back({nVal.node->label, nVal.value});
-            if (prediction.size() >= args.topK)
-                break;
-        }
         if(nVal.node->children.size()){
             if(nVal.node->children.size() == 2) {
                 double value = bases[nVal.node->children[0]->index]->predictProbability(features);
@@ -182,6 +155,10 @@ void HSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &
                     nQueue.push({nVal.node->children[i], nVal.value * values[i] / sum});
             }
         }
+        if(nVal.node->label >= 0){
+            prediction.push_back({nVal.node->label, nVal.value});
+            break;
+        }
     }
 }
 
@@ -190,14 +167,7 @@ void HSM::load(std::string infile){
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "hsm_tree.bin"));
-
-    std::cerr << "Loading base classifiers ...\n";
-    std::ifstream weightsIn(joinPath(infile, "hsm_weights.bin"));
-    for(int i = 0; i < tree->t; ++i) {
-        printProgress(i, tree->t);
-        bases.emplace_back(new Base());
-        bases.back()->load(weightsIn);
-    }
-    weightsIn.close();
+    bases = loadBases(joinPath(infile, "hsm_weights.bin"));
+    assert(bases.size() == tree->nodes.size());
 }
 

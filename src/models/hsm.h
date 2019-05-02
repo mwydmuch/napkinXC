@@ -15,7 +15,7 @@
 #include <random>
 
 #include "base.h"
-#include "models/model.h"
+#include "model.h"
 #include "tree.h"
 
 
@@ -29,7 +29,9 @@ public:
 
     void load(std::string infile) override;
 
-private:
+protected:
     Tree* tree;
     std::vector<Base*> bases;
+
+    void predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features);
 };

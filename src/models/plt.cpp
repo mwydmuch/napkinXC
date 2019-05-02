@@ -99,34 +99,7 @@ void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         yCount += rSize;
     }
 
-    std::cerr << "Starting training in " << args.threads << " threads ...\n";
-
-    std::ofstream weightsOut(joinPath(args.output, "plt_weights.bin"));
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
-
-        for(const auto& n : tree->nodes)
-            results.emplace_back(tPool.enqueue(baseTrain, features.cols(), std::ref(binLabels[n->index]),
-                                               std::ref(binFeatures[n->index]), std::ref(args)));
-
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(weightsOut);
-            delete base;
-        }
-    } else {
-        for(int i = 0; i < tree->nodes.size(); ++i){
-            printProgress(i, tree->nodes.size());
-            Base base;
-            base.train(features.cols(), binLabels[tree->nodes[i]->index], binFeatures[tree->nodes[i]->index], args);
-            base.save(weightsOut);
-        }
-    }
-    weightsOut.close();
+    trainBases(joinPath(args.output, "plt_weights.bin"), features.cols(), binLabels, binFeatures, args);
 
     std::cerr << "  Data points count: " << rows
               << "\n  Nodes updates per data point: " << static_cast<double>(nCount) / rows
@@ -145,24 +118,27 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &
     //double val = -bases[tree->root->index]->predictLoss(features);
     nQueue.push({tree->root, val});
 
+    while (prediction.size() < args.topK && !nQueue.empty()) predictNext(nQueue, prediction, features);
+}
+
+void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features) {
+
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top(); // Current node
         nQueue.pop();
 
         //std::cerr << "HEAP -> " << nVal.node->index << " " << nVal.value << "\n";
 
-        if(nVal.node->label >= 0){
-            prediction.push_back({nVal.node->label, nVal.value}); // When using probability
-            //prediction.push_back({nVal.node, exp(nVal.value)}); // When using loss
-            if (args.topK > 0 && prediction.size() >= args.topK)
-                break;
-        }
         if(nVal.node->children.size()){
             for(const auto& child : nVal.node->children){
-                val = nVal.value * bases[child->index]->predictProbability(features); // When using probability
-                //val = nVal.value - bases[child->index]->predictLoss(features); // When using loss
-                nQueue.push({child, val});
+                double value = nVal.value * bases[child->index]->predictProbability(features); // When using probability
+                //double value = nVal.value - bases[child->index]->predictLoss(features); // When using loss
+                nQueue.push({child, value});
             }
+        }
+        if(nVal.node->label >= 0){
+            prediction.push_back({nVal.node->label, nVal.value}); // When using probability
+            break;
         }
     }
 }
@@ -172,14 +148,7 @@ void PLT::load(std::string infile){
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "plt_tree.bin"));
-
-    std::cerr << "  Loading base classifiers ...\n";
-    std::ifstream weightsIn(joinPath(infile, "plt_weights.bin"));
-    for(int i = 0; i < tree->t; ++i) {
-        printProgress(i, tree->t);
-        bases.emplace_back(new Base());
-        bases.back()->load(weightsIn);
-    }
-    weightsIn.close();
+    bases = loadBases(joinPath(infile, "plt_weights.bin"));
+    assert(bases.size() == tree->nodes.size());
 }
 

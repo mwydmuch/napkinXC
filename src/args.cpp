@@ -61,6 +61,8 @@ Args::Args() {
     // Prediction options
     topK = 1;
     sparseWeights = true;
+
+    setBasedUType = uAlfaBeta;
 }
 
 // Parse args
@@ -105,8 +107,20 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "br") modelType = br;
                 else if (args.at(ai + 1) == "hsm") modelType = hsm;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
+                else if (args.at(ai + 1) == "ubop") modelType = ubop;
+                else if (args.at(ai + 1) == "rbop") modelType = rbop;
+                else if (args.at(ai + 1) == "hsmubop") modelType = hsmubop;
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
+            else if (args[ai] == "--setBasedU") {
+                if (args.at(ai + 1) == "uP") setBasedUType = uP;
+                else if (args.at(ai + 1) == "uF1") setBasedUType = uF1;
+                else if (args.at(ai + 1) == "uAlfaBeta") setBasedUType = uAlfaBeta;
+                else {
+                    std::cerr << "Unknown set based utiltity type: " << args.at(ai + 1) << std::endl;
                     printHelp();
                 }
             }

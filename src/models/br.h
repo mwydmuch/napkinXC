@@ -6,7 +6,7 @@
 #pragma once
 
 #include "base.h"
-#include "models/model.h"
+#include "model.h"
 
 
 class BR: public Model{
@@ -19,6 +19,6 @@ public:
 
     void load(std::string infile) override;
 
-private:
+protected:
     std::vector<Base*> bases;
 };

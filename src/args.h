@@ -15,9 +15,11 @@ enum ModelType {
     ovr,
     br,
     hsm,
-    plt
+    plt,
+    ubop,
+    rbop,
+    hsmubop
 };
-
 
 enum TreeType {
     hierarchicalKMeans,
@@ -32,6 +34,14 @@ enum TreeType {
 enum OptimizerType { libliner, sgd };
 
 enum DataFormatType { libsvm };
+
+enum SetBasedUType {
+    uP,
+    uF1,
+    uAlfa,
+    uAlfaBeta,
+    uDeltaGamma
+};
 
 class Args: public FileHelper{
 public:
@@ -85,6 +95,9 @@ public:
 
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
+
+    // Set based
+    SetBasedUType setBasedUType;
 
 private:
     std::string solverName;

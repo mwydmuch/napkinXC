@@ -29,12 +29,15 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
 
     // Examples selected for each node
     std::vector<std::vector<double>> binLabels(lCols);
+    std::vector<std::vector<Feature*>> binFeatures(lCols);
 
-    std::cerr << "Assigning labels ...\n";
+    std::cerr << "Assigning labels for base estimators ...\n";
 
     // Gather examples for each node
-    for(int i = 0; i < binLabels.size(); ++i)
+    for(int i = 0; i < binLabels.size(); ++i) {
         binLabels[i].reserve(rows);
+        binFeatures[i] = features.allRows();
+    }
 
     for(int r = 0; r < rows; ++r){
         printProgress(r, rows);
@@ -52,35 +55,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
         }
     }
 
-    std::cerr << "Starting training in " << args.threads << " threads ...\n";
-
-    std::ofstream weightsOut(joinPath(args.output, "br_weights.bin"));
-    weightsOut.write((char*) &lCols, sizeof(lCols));
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
-
-        for(int i = 0; i < binLabels.size(); ++i)
-            results.emplace_back(tPool.enqueue(baseTrain, features.cols(), std::ref(binLabels[i]),
-                                               std::ref(features.allRows()), std::ref(args)));
-
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(weightsOut);
-            delete base;
-        }
-    } else {
-        for(int i = 0; i < binLabels.size(); ++i){
-            printProgress(i, binLabels.size());
-            Base base;
-            base.train(features.cols(), binLabels[i], features.allRows(), args);
-            base.save(weightsOut);
-        }
-    }
-    weightsOut.close();
+    trainBases(joinPath(args.output, "br_weights.bin"), features.cols(), binLabels, binFeatures, args);
 }
 
 
@@ -94,17 +69,6 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &a
 
 void BR::load(std::string infile){
     std::cerr << "Loading BR model ...\n";
-
-    std::cerr << "Loading base classifiers ...\n";
-    std::ifstream weightsIn(joinPath(infile, "br_weights.bin"));
-
-    int size;
-    weightsIn.read((char*) &size, sizeof(size));
-    for(int i = 0; i < size; ++i) {
-        printProgress(i, size);
-        bases.emplace_back(new Base());
-        bases.back()->load(weightsIn);
-    }
-    weightsIn.close();
+    bases = loadBases(joinPath(infile, "br_weights.bin"));
 }
 

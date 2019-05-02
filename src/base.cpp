@@ -10,14 +10,9 @@
 #include "base.h"
 #include "linear.h"
 #include "online_training.h"
+#include "threads.h"
 #include "utils.h"
 
-
-Base* baseTrain(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args){
-    Base* base = new Base();
-    base->train(n, binLabels, binFeatures, args);
-    return base;
-}
 
 Base::Base(){
     hingeLoss = false;
@@ -347,4 +342,70 @@ void Base::printWeights(){
         }
     } else std::cerr << "No weights";
     std::cerr << "\n";
+}
+
+
+// Base utils
+
+Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
+    Base* base = new Base();
+    base->train(n, baseLabels, baseFeatures, args);
+    return base;
+}
+
+void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                 std::vector<std::vector<Feature*>>& baseFeatures, Args& args){
+
+    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
+
+    std::ofstream out(outfile);
+    assert(baseLabels.size() == baseFeatures.size());
+    int size = baseLabels.size();
+
+    out.write((char*) &size, sizeof(size));
+    if(args.threads > 1){
+        // Run learning in parallel
+        ThreadPool tPool(args.threads);
+        std::vector<std::future<Base*>> results;
+
+        for(int i = 0; i < baseLabels.size(); ++i)
+            results.emplace_back(tPool.enqueue(trainBase, n, std::ref(baseLabels[i]),
+                                               std::ref(baseFeatures[i]), std::ref(args)));
+
+        // Saving in the main thread
+        for(int i = 0; i < results.size(); ++i) {
+            printProgress(i, results.size());
+            Base* base = results[i].get();
+            base->save(out);
+            delete base;
+        }
+    } else {
+        // Run training in the main thread
+        for(int i = 0; i < baseLabels.size(); ++i){
+            printProgress(i, baseLabels.size());
+            Base base;
+            base.train(n, baseLabels[i], baseFeatures[i], args);
+            base.save(out);
+        }
+    }
+    out.close();
+}
+
+std::vector<Base*> loadBases(std::string infile){
+    std::cerr << "Loading base estimators ...\n";
+    
+    std::vector<Base*> bases;
+
+    std::ifstream in(infile);
+    int size;
+    in.read((char*) &size, sizeof(size));
+    bases.reserve(size);
+    for(int i = 0; i < size; ++i) {
+        printProgress(i, size);
+        bases.emplace_back(new Base());
+        bases.back()->load(in);
+    }
+    in.close();
+    
+    return bases;
 }

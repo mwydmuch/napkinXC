@@ -25,6 +25,9 @@ void train(Args &args) {
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = modelFactory(args);
     model->train(labels, features, args);
+    model->printInfo();
+
+    std::cerr << "All done!\n";
 }
 
 void test(Args &args) {
@@ -44,6 +47,9 @@ void test(Args &args) {
     std::shared_ptr<Model> model = modelFactory(args);
     model->load(args.output);
     model->test(labels, features, args);
+    model->printInfo();
+
+    std::cerr << "All done!\n";
 }
 
 /*

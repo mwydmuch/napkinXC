@@ -17,6 +17,8 @@
 
 PLT::PLT(){
     tree = nullptr;
+    nCount = 0;
+    rCount = 0;
 }
 
 PLT::~PLT(){
@@ -32,9 +34,6 @@ void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     tree->buildTreeStructure(labels, features, args);
 
     std::cerr << "Training tree ...\n";
-
-    // For stats
-    long nCount = 0, yCount = 0;
 
     // Check data
     int rows = features.rows();
@@ -96,15 +95,10 @@ void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         }
 
         nCount += nPositive.size() + nNegative.size();
-        yCount += rSize;
+        ++rCount;
     }
 
     trainBases(joinPath(args.output, "plt_weights.bin"), features.cols(), binLabels, binFeatures, args);
-
-    std::cerr << "  Data points count: " << rows
-              << "\n  Nodes updates per data point: " << static_cast<double>(nCount) / rows
-              << "\n  Labels per data point: " << static_cast<double>(yCount) / rows
-              << "\n";
 
     // Save tree
     tree->saveToFile(joinPath(args.output, "plt_tree.bin"));
@@ -117,6 +111,8 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &
     double val = bases[tree->root->index]->predictProbability(features);
     //double val = -bases[tree->root->index]->predictLoss(features);
     nQueue.push({tree->root, val});
+    ++nCount;
+    ++rCount;
 
     while (prediction.size() < args.topK && !nQueue.empty()) predictNext(nQueue, prediction, features);
 }
@@ -135,6 +131,7 @@ void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
                 //double value = nVal.value - bases[child->index]->predictLoss(features); // When using loss
                 nQueue.push({child, value});
             }
+            nCount += nVal.node->children.size();
         }
         if(nVal.node->label >= 0){
             prediction.push_back({nVal.node->label, nVal.value}); // When using probability
@@ -152,3 +149,8 @@ void PLT::load(std::string infile){
     assert(bases.size() == tree->nodes.size());
 }
 
+void PLT::printInfo(){
+    std::cerr << "PLT additional stats:"
+              << "\n  Mean # nodes per data point: " << static_cast<double>(nCount) / rCount
+              << "\n";
+}

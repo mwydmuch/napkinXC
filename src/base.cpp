@@ -349,6 +349,8 @@ void Base::printWeights(){
 
 Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
     Base* base = new Base();
+    //printVector(baseLabels);
+    //printVector(baseFeatures);
     base->train(n, baseLabels, baseFeatures, args);
     return base;
 }
@@ -369,8 +371,7 @@ void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& ba
         std::vector<std::future<Base*>> results;
 
         for(int i = 0; i < baseLabels.size(); ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, std::ref(baseLabels[i]),
-                                               std::ref(baseFeatures[i]), std::ref(args)));
+            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i], args));
 
         // Saving in the main thread
         for(int i = 0; i < results.size(); ++i) {
@@ -385,6 +386,42 @@ void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& ba
             printProgress(i, baseLabels.size());
             Base base;
             base.train(n, baseLabels[i], baseFeatures[i], args);
+            base.save(out);
+        }
+    }
+    out.close();
+}
+
+void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                std::vector<Feature*>& baseFeatures, Args& args){
+
+    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
+
+    std::ofstream out(outfile);
+    int size = baseLabels.size();
+
+    out.write((char*) &size, sizeof(size));
+    if(args.threads > 1){
+        // Run learning in parallel
+        ThreadPool tPool(args.threads);
+        std::vector<std::future<Base*>> results;
+
+        for(int i = 0; i < baseLabels.size(); ++i)
+            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, args));
+
+        // Saving in the main thread
+        for(int i = 0; i < results.size(); ++i) {
+            printProgress(i, results.size());
+            Base* base = results[i].get();
+            base->save(out);
+            delete base;
+        }
+    } else {
+        // Run training in the main thread
+        for(int i = 0; i < baseLabels.size(); ++i){
+            printProgress(i, baseLabels.size());
+            Base base;
+            base.train(n, baseLabels[i], baseFeatures, args);
             base.save(out);
         }
     }

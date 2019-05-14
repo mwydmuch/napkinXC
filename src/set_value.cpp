@@ -70,6 +70,17 @@ double g_alfa_beta(int pSize, double alfa, double beta, int K){
     return 1.0 - alfa * pow(static_cast<double>(pSize - 1) / (K - 1), beta);
 }
 
+SetBasedU::SetBasedU(){
+    name = "virtual U";
+}
+
+SetBasedU::SetBasedU(Args& args){
+    name = "virtual U";
+}
+
+U_P::U_P(Args& args){
+    name = "uP";
+}
 
 double U_P::u(double c, const std::vector<Prediction>& prediction, int k){
     return u_P(c, prediction);
@@ -77,6 +88,10 @@ double U_P::u(double c, const std::vector<Prediction>& prediction, int k){
 
 double U_P::g(int pSize, int k){
     return g_P(pSize);
+}
+
+U_F1::U_F1(Args& args){
+    name = "uF1";
 }
 
 double U_F1::u(double c, const std::vector<Prediction>& prediction, int k){
@@ -87,12 +102,18 @@ double U_F1::g(int pSize, int k){
     return g_F1(pSize);
 }
 
+U_AlfaBeta::U_AlfaBeta(Args& args){
+    alfa = args.alfa;
+    beta = args.beta;
+    name = "uAlfaBeta(" + std::to_string(alfa) + ", " + std::to_string(beta) + ")";
+}
+
 double U_AlfaBeta::u(double c, const std::vector<Prediction>& prediction, int k) {
-    return u_alfa_beta(c, prediction, 1.0, 1.0, k);
+    return u_alfa_beta(c, prediction, alfa, beta, k);
 }
 
 double U_AlfaBeta::g(int pSize, int k){
-    return g_alfa_beta(pSize, 1.0, 1.0, k);
+    return g_alfa_beta(pSize, alfa, beta, k);
 }
 
 
@@ -100,16 +121,16 @@ std::shared_ptr<SetBasedU> setBasedUFactory(Args& args){
     std::shared_ptr<SetBasedU> u = nullptr;
     switch (args.setBasedUType) {
         case uP :
-            u = std::static_pointer_cast<SetBasedU>(std::make_shared<U_P>());
+            u = std::static_pointer_cast<SetBasedU>(std::make_shared<U_P>(args));
             break;
         case uF1 :
-            u = std::static_pointer_cast<SetBasedU>(std::make_shared<U_F1>());
+            u = std::static_pointer_cast<SetBasedU>(std::make_shared<U_F1>(args));
             break;
         case uAlfaBeta :
-            u = std::static_pointer_cast<SetBasedU>(std::make_shared<U_AlfaBeta>());
+            u = std::static_pointer_cast<SetBasedU>(std::make_shared<U_AlfaBeta>(args));
             break;
         default:
-            throw "Unknown set based utiltiy type!";
+            throw "Unknown set based utility type!";
     }
 
     return u;

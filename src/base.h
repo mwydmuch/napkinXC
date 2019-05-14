@@ -83,4 +83,7 @@ Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& b
 void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                 std::vector<std::vector<Feature*>>& baseFeatures, Args& args);
 
+void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                std::vector<Feature*>& baseFeatures, Args& args);
+
 std::vector<Base*> loadBases(std::string infile);

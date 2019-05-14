@@ -98,6 +98,8 @@ public:
 
     // Set based
     SetBasedUType setBasedUType;
+    double alfa;
+    double beta;
 
 private:
     std::string solverName;

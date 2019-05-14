@@ -29,15 +29,12 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
 
     // Examples selected for each node
     std::vector<std::vector<double>> binLabels(lCols);
-    std::vector<std::vector<Feature*>> binFeatures(lCols);
 
     std::cerr << "Assigning labels for base estimators ...\n";
 
     // Gather examples for each node
-    for(int i = 0; i < binLabels.size(); ++i) {
+    for(int i = 0; i < binLabels.size(); ++i)
         binLabels[i].reserve(rows);
-        binFeatures[i] = features.allRows();
-    }
 
     for(int r = 0; r < rows; ++r){
         printProgress(r, rows);
@@ -55,7 +52,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
         }
     }
 
-    trainBases(joinPath(args.output, "br_weights.bin"), features.cols(), binLabels, binFeatures, args);
+    trainBasesWithSameFeatures(joinPath(args.output, "br_weights.bin"), features.cols(), binLabels, features.allRows(), args);
 }
 
 

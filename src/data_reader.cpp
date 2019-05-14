@@ -18,8 +18,8 @@ std::shared_ptr<DataReader> dataReaderFactory(Args &args){
 }
 
 DataReader::DataReader(){
-    hLabels = -1;
-    hFeatures = -1;
+    hLabels = 0;
+    hFeatures = 0;
 }
 
 DataReader::~DataReader(){}
@@ -44,6 +44,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     // Read examples
     int i = 0;
     while (getline(in, line)){
+
         lLabels.clear();
         lFeatures.clear();
 
@@ -53,7 +54,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
         if(args.norm) unitNorm(lFeatures);
 
         // Add bias feature
-        if(args.bias && hFeatures < 0) lFeatures.push_back({lFeatures.back().index + 1, args.biasValue});
+        if(args.bias && !hFeatures) lFeatures.push_back({lFeatures.back().index + 1, args.biasValue});
         else if(args.bias) lFeatures.push_back({hFeatures + 1, args.biasValue});
 
         labels.appendRow(lLabels);
@@ -86,7 +87,19 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     }
     */
 
+    // Print info about loaded data
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (args.bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;
+
+    // Print data stats
+    std::cerr << "Data stats:"
+              << "\n  # data points: " << features.rows()
+              << "\n  # uniq features: " << features.cols()
+              << "\n  # uniq labels: " << labels.cols()
+              << "\n  Mean # labels per data point: " << static_cast<double>(labels.cells()) / labels.rows()
+              << "\n  Mean # features per data point: " << static_cast<double>(features.cells()) / features.rows()
+              << "\n  Mean # data points per label: " << static_cast<double>(labels.cols()) / labels.cells()
+              << "\n  Mean # data points per feature: " << static_cast<double>(features.cols()) / features.cells()
+              << "\n";
 }
 
 void DataReader::save(std::ostream& out){
@@ -98,4 +111,3 @@ void DataReader::load(std::istream& in){
     in.read((char*) &hFeatures, sizeof(hFeatures));
     in.read((char*) &hLabels, sizeof(hLabels));
 }
-

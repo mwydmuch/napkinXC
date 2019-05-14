@@ -42,7 +42,7 @@ void LibSvmReader::readLine(std::string& line, std::vector<Label>& lLabels, std:
 
         // Feature index
         else if(line[pos - 1] == ' ' && line[nextPos] == ':') {
-            int index = std::stoi(line.substr(pos, nextPos - pos)) + 1; // Feature (LibLinear ignore feature 0)
+            int index = std::stoi(line.substr(pos, nextPos - pos));// + 1; // Feature (LibLinear ignore feature 0)
             if(lFeatures.size() && lFeatures.back().index > index)
                 requiresSort = true;
             lFeatures.push_back({index, 1.0});

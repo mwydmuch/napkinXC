@@ -29,14 +29,11 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     assert(rows == labels.rows());
 
     std::vector<std::vector<double>> binLabels(lCols);
-    std::vector<std::vector<Feature*>> binFeatures(lCols);
 
     std::cerr << "Assigning labels for base estimators ...\n";
 
-    for(int i = 0; i < binLabels.size(); ++i) {
+    for(int i = 0; i < binLabels.size(); ++i)
         binLabels[i].reserve(rows);
-        binFeatures[i] = features.allRows();
-    }
 
     for(int r = 0; r < rows; ++r){
         printProgress(r, rows);
@@ -50,8 +47,11 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         if(rSize == 1)
             binLabels[rLabels[0]].back() = 1.0;
         else {
-            if (rSize > 1)
-                throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
+            if (rSize > 1) {
+                //std::cerr << "Encountered example with more then 1 label! OVR is multi-class classifier, use BR instead!";
+                continue;
+                //throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
+            }
             else if (rSize < 1){
                 std::cerr << "Example without label, skipping ...\n";
                 continue;
@@ -59,7 +59,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         }
     }
 
-    trainBases(joinPath(args.output, "ovr_weights.bin"), features.cols(), binLabels, binFeatures, args);
+    trainBasesWithSameFeatures(joinPath(args.output, "ovr_weights.bin"), features.cols(), binLabels, features.allRows(), args);
 }
 
 void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){

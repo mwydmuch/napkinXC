@@ -33,28 +33,45 @@ double g_alfa_beta(int pSize, double alfa, double beta, int K);
 
 class SetBasedU {
 public:
+    SetBasedU();
+    SetBasedU(Args& args);
+
     virtual double u(double c, const std::vector<Prediction>& prediction, int k) = 0;
     virtual double g(int pSize, int k) = 0;
 
     bool checkstop(int pSize, int k);
+    inline std::string getName(){ return name; }
+
+protected:
+    std::string name;
 };
 
 class U_P: public SetBasedU{
+public:
+    U_P(Args& args);
+
     double u(double c, const std::vector<Prediction>& prediction, int k) override;
     double g(int pSize, int k) override;
 };
 
 class U_F1: public SetBasedU{
+public:
+    U_F1(Args& args);
+
     double u(double c, const std::vector<Prediction>& prediction, int k) override;
     double g(int pSize, int k) override;
 };
 
 class U_AlfaBeta: public SetBasedU{
+public:
+    U_AlfaBeta(Args& args);
+
     double u(double c, const std::vector<Prediction>& prediction, int k) override;
     double g(int pSize, int k) override;
+
+protected:
+    double alfa;
+    double beta;
 };
 
-
 std::shared_ptr<SetBasedU> setBasedUFactory(Args& args);
-
-

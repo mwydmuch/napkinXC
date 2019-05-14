@@ -5,20 +5,29 @@ set -e
 DATASET_NAME=$1
 shift
 ARGS="$@"
-MODEL=models/${DATASET_NAME}_$(echo "${ARGS}" | tr " " "_")
+MODEL_NAME="${DATASET_NAME}_$(echo "${ARGS}" | tr " " "_")"
+MODEL=models/${MODEL_NAME}
 DATASET_DIR=data/${DATASET_NAME}
 DATASET_FILE=${DATASET_DIR}/${DATASET_NAME}
+THREADS=-1
 
-RESULTS=results/${DATASET_NAME}_$(echo "${ARGS}" | tr " " "_")
+OUTPUT=outputs/${MODEL_NAME}
+mkdir -p outputs
+
+RESULTS=results/${MODEL_NAME}
 mkdir -p results
 
-U=(uP uF1 uAlfaBeta)
+U=("uP" "uF1" "uAlfaBeta --alfa 1.0 --beta 1.0" "uAlfaBeta --alfa 1.0 --beta 0.5" "uAlfaBeta --alfa 1.0 --beta 5.0")
+
 
 if [ ! -e $DATASET_DIR ]; then
     bash get_data.sh $DATASET_NAME
 fi
 
-if [ -e "${DATASET_FILE}_train.txt" ]; then
+if [ -e "${DATASET_FILE}.train.remapped" ]; then
+    TRAIN_FILE="${DATASET_FILE}.train.remapped"
+    TEST_FILE="${DATASET_FILE}.test.remapped"
+elif [ -e "${DATASET_FILE}_train.txt" ]; then
     TRAIN_FILE="${DATASET_FILE}_train.txt"
     TEST_FILE="${DATASET_FILE}_test.txt"
 elif [ -e "${DATASET_FILE}.train" ]; then
@@ -32,19 +41,34 @@ if [ ! -e nxml ]; then
     make -j
 fi
 
-rm -rf $MODEL
+#rm -rf $MODEL
 if [ ! -e $MODEL ]; then
     echo "Train ..."
     mkdir -p $MODEL
-    (time ./nxml train -i $TRAIN_FILE -o $MODEL -t -1 $ARGS) > ${RESULTS} 2>&1
+    (time ./nxml train -i $TRAIN_FILE -o $MODEL -t $THREADS $ARGS --header 0) > ${OUTPUT}_train 2>&1
+    echo "Model dir: ${MODEL}" >> ${OUTPUT}_train 2>&1
+    echo "Model size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" >> ${OUTPUT}_train 2>&1
 fi
 
+echo "${MODEL_NAME}" > ${RESULTS}
+echo "Train ${u}" >> ${RESULTS}
+grep "Mean # estimators per data point" ${OUTPUT}_train >> ${RESULTS}
+grep "Model size" ${OUTPUT}_train >> ${RESULTS}
+grep "user" ${OUTPUT}_train >> ${RESULTS}
+grep "real" ${OUTPUT}_train >> ${RESULTS}
 
 for u in "${U[@]}"; do
-    echo "Utility ${u}..."
-    (time ./nxml test -i $TEST_FILE -o $MODEL -t -1 --setBasedU ${u}) >> ${RESULTS} 2>&1
+    base_u=$(echo ${u} | cut -f 1 -d " ")
+    full_u=$(echo "${u}" | tr " " "_")
+    echo "Test with utility ${u} ..."
+    (time ./nxml test -i $TEST_FILE -o $MODEL -t $THREADS --header 0 --setBasedU ${u}) > ${OUTPUT}_test_${full_u} 2>&1
+
+    echo "Test ${u}" >> ${RESULTS}
+    grep "Acc" ${OUTPUT}_test_${full_u} >> ${RESULTS}
+    grep ${base_u} ${OUTPUT}_test_${full_u} >> ${RESULTS}
+    grep "Mean pred. size" ${OUTPUT}_test_${full_u} >> ${RESULTS}
+    grep "Mean # estimators per data point" ${OUTPUT}_test_${full_u} >> ${RESULTS}
+    grep "user" ${OUTPUT}_test_${full_u} >> ${RESULTS}
+    grep "real" ${OUTPUT}_test_${full_u} >> ${RESULTS}
 done
 
-
-echo "Model dir: ${MODEL}" >> ${RESULTS} 2>&1
-echo "Model size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" >> ${RESULTS} 2>&1

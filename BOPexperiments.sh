@@ -2,11 +2,16 @@
 
 #bash remap_datasets.sh
 
-DATASETS=(sector aloi.bin imageNet LSHTC1 Dmoz)
+DATASETS=(aloi.bin)
 
 for d in "${DATASETS[@]}"; do
     echo "${d} tests..."
-    bash testBOP.sh $d -m hsmubop --treeType completeRandom --header 0
-    bash testBOP.sh $d -m hsmubop --treeType hierarchicalKMeans --header 0 --maxLeaves 16
-    bash testBOP.sh $d -m ubop --header 0
+    if [ -e "data/${d}/${d}.hier" ]; then
+        bash testBOP.sh $d -m hsmubop --treeStructure "data/${d}/${d}.hier"
+    fi
+    bash testBOP.sh $d -m hsmubop --treeType completeRandom
+    bash testBOP.sh $d -m hsmubop --treeType hierarchicalKMeans --maxLeaves 16
+    bash testBOP.sh $d -m ubop
+    #bash testBOP.sh $d -m rbop
+    #bash testBOP.sh $d -m hsmrbop
 done

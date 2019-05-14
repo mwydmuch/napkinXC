@@ -33,7 +33,8 @@ void HSMUBOP::predict(std::vector<Prediction>& prediction, Feature* features, Ar
         else {
             P -= prediction.back().value;
             prediction.pop_back();
-            if(u->checkstop(prediction.size(), tree->k)) break;
+            //if(u->checkstop(prediction.size(), tree->k)) break;
+            break;
         }
     }
 }

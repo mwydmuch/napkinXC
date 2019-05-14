@@ -29,9 +29,15 @@ public:
 
     void load(std::string infile) override;
 
+    void printInfo() override;
+
 protected:
     Tree* tree;
     std::vector<Base*> bases;
 
     void predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features);
+
+    int eCount; // Number of updated/evaluated classifiers during training or prediction
+    int pLen; // Len of the path
+    int rCount;
 };

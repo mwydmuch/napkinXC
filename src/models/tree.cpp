@@ -5,6 +5,7 @@
  */
 
 #include <cassert>
+#include <sstream>
 #include <unordered_set>
 #include <algorithm>
 #include <vector>
@@ -275,6 +276,7 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args &args) {
     std::cerr << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
+
 void Tree::loadTreeStructure(std::string file){
     std::cerr << "Loading Tree structure from: " << file << "...\n";
 
@@ -286,9 +288,22 @@ void Tree::loadTreeStructure(std::string file){
     root = createTreeNode();
     for (int i = 1; i < t; ++i) createTreeNode();
 
-    for (auto i = 0; i < t - 1; ++i) {
-        int parent, child, label;
-        in >> parent >> child >> label;
+    std::cout << "  Header: nodes: " << t << ", leaves: " << k << "\n";
+
+    std::string line;
+    while(std::getline(in, line)){
+        if(!line.length()) continue;
+
+        int parent, child, label = -1;
+        std::string sLabel;
+
+        std::istringstream lineISS(line);
+        lineISS >> parent >> child >> sLabel;
+        //std::cout << parent << " " << child << " " << sLabel << " ";
+        if(sLabel.size())
+            label = std::stoi(sLabel);
+
+        //std::cout << parent << " " << child << " " << label << "\n";
 
         if(child >= t) throw "Node index is higher then specified number of nodes!";
         if(parent >= t) throw "Parent index is higher then specified number of nodes!";
@@ -296,7 +311,6 @@ void Tree::loadTreeStructure(std::string file){
 
         if(parent == -1){
             root = nodes[child];
-            --i;
             continue;
         }
 
@@ -322,22 +336,22 @@ void Tree::loadTreeStructure(std::string file){
 
     assert(nodes.size() == t);
     assert(leaves.size() == k);
-    std::cout << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+    std::cout << "  Loaded: nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
 void Tree::saveTreeStructure(std::string file) {
     std::cerr << "Saving Tree structure to: " << file << "...\n";
 
     std::ofstream out(file);
-    out << t << " " << k << "\n";
+    out << k << " " << t << "\n";
     for (auto &n : nodes) {
-        if (n->parent == nullptr) out << -1;
-        else out << n->parent->index;
+        if (n->parent != nullptr) out << n->parent->index;
+        //else out << -1
 
         out << " " << n->index << " ";
 
         if (n->label >= 0) out << n->label;
-        else out << -1;
+        //else out << -1;
 
         out << "\n";
     }

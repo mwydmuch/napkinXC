@@ -110,38 +110,31 @@ int batchTestThread(int threadId, Model* model, SRMatrix<Label>& labels, SRMatri
 
 int batchTestThread2(int threadId, Model* model, SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
                     const int startRow, const int stopRow,
-                    double& gacc, double& gu_alfa, double& gu_alfa_beta, double& gu_delta_gamma, double& gu_P, double& gu_F1, double& gpSize){
+                    double& gAcc, double& gSetValue, double& gPSize){
 
     //std::cerr << "  Thread " << threadId << " predicting rows from " << startRow << " to " << stopRow << "\n";
 
     // Set based measures
-    double lacc = 0, lu_alfa = 0, lu_alfa_beta = 0, lu_delta_gamma = 0, lu_P = 0, lu_F1 = 0, lpSize = 0;
+    double lAcc = 0, lSetValue = 0, lPSize = 0;
+    auto setValueU = setBasedUFactory(args);
 
     for(int r = startRow; r < stopRow; ++r){
 
         std::vector<Prediction> prediction;
         model->predict(prediction, features.row(r), args);
 
-        lacc += acc(labels.row(r)[0], prediction);
-        //lu_alfa += u_alfa(labels.row(r)[0], prediction, 0.5);
-        lu_alfa_beta += u_alfa_beta(labels.row(r)[0], prediction, 1.0, 1.0, labels.cols());
-        //lu_delta_gamma += u_delta_gamma(labels.row(r)[0], prediction, 1, 1);
-        lu_P += u_P(labels.row(r)[0], prediction);
-        lu_F1 += u_F1(labels.row(r)[0], prediction);
-        lpSize += prediction.size();
+        lAcc += acc(labels.row(r)[0], prediction);
+        lSetValue += setValueU->u(labels.row(r)[0], prediction, labels.cols());
+        lPSize += prediction.size();
 
         if(!threadId) printProgress(r - startRow, stopRow - startRow);
     }
 
     testMutex.lock();
 
-    gacc += lacc;
-    gu_alfa += lu_alfa;
-    gu_alfa_beta += lu_alfa_beta,
-    gu_delta_gamma += lu_delta_gamma;
-    gu_P += lu_P;
-    gu_F1 += lu_F1;
-    gpSize += lpSize;
+    gAcc += lAcc;
+    gSetValue += lSetValue;
+    gPSize += lPSize;
 
     testMutex.unlock();
 
@@ -160,7 +153,8 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     assert(rows == labels.rows());
 
     // TODO: Rewrite test part
-    double gacc = 0, gu_alfa = 0, gu_alfa_beta = 0, gu_delta_gamma = 0, gu_P = 0, gu_F1 = 0, gpSize = 0;
+    double gAcc = 0, gSetValue = 0, gPSize = 0;
+    auto setValueU = setBasedUFactory(args);
 
     if(args.threads > 1){
         // Run prediction in parallel
@@ -195,8 +189,7 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
         for(int t = 0; t < args.threads; ++t)
             tSet.add(batchTestThread2, t, this, std::ref(labels), std::ref(features), std::ref(args),
                      t * tRows, std::min((t + 1) * tRows, labels.rows()),
-                     std::ref(gacc), std::ref(gu_alfa), std::ref(gu_alfa_beta), std::ref(gu_delta_gamma), std::ref(gu_P),
-                     std::ref(gu_F1), std::ref(gpSize));
+                     std::ref(gAcc), std::ref(gSetValue), std::ref(gPSize));
         tSet.joinAll();
 
     } else {
@@ -230,13 +223,9 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     }
      */
 
-    std::cerr << std::setprecision(5);
-    std::cerr << "Acc: " << gacc / rows << "\n"
-              << "uP: " << gu_P / rows<< "\n"
-              << "uF1: " << gu_F1 / rows<< "\n"
-              << "uAlfa: " << gu_alfa / rows<< "\n"
-              << "uAlfaBeta: " << gu_alfa_beta / rows<< "\n"
-              << "uDeltaGamma: " << gu_delta_gamma / rows<< "\n"
-              << "Avg. P Size: " << gpSize / rows<< "\n";
-
+    std::cerr << std::setprecision(5)
+              << "Results:"
+              << "\n  Acc: " << gAcc / rows
+              << "\n  " << setValueU->getName() << ": " << gSetValue / rows
+              << "\n  Mean pred. size: " << gPSize / rows<< "\n";
 }

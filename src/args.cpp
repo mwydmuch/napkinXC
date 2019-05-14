@@ -24,7 +24,7 @@ Args::Args() {
     dataFormatType = libsvm;
     modelName = "plt";
     modelType = plt;
-    header = true;
+    header = false;
     hash = 0;
     bias = true;
     biasValue = 1.0;
@@ -47,10 +47,10 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    //treeType = completeInOrder;
-    //treeTypeName = "completeInOrder";
-    treeType = hierarchicalKMeans;
-    treeTypeName = "hierarchicalKMeans";
+    treeType = completeInOrder;
+    treeTypeName = "completeInOrder";
+    //treeType = hierarchicalKMeans;
+    //treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
     // K-Means tree options
@@ -63,6 +63,8 @@ Args::Args() {
     sparseWeights = true;
 
     setBasedUType = uAlfaBeta;
+    alfa = 1.0;
+    beta = 1.0;
 }
 
 // Parse args
@@ -124,6 +126,11 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
+            else if (args[ai] == "--alfa")
+                alfa = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--beta")
+                beta = std::stof(args.at(ai + 1));
+
             else if (args[ai] == "--header")
                 header = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--bias")

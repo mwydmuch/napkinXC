@@ -65,6 +65,7 @@ public:
 
     // Training options
     int threads;
+    size_t mem;
     int solverType;
     OptimizerType optimizerType;
     double eps;

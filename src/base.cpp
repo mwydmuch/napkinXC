@@ -393,14 +393,18 @@ void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& ba
 }
 
 void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                std::vector<Feature*>& baseFeatures, Args& args){
-
-    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
-
+                                std::vector<Feature*>& baseFeatures, Args& args){
     std::ofstream out(outfile);
     int size = baseLabels.size();
-
     out.write((char*) &size, sizeof(size));
+    trainBasesWithSameFeatures(out, n, baseLabels, baseFeatures, args);
+    out.close();
+}
+
+void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
+                                std::vector<Feature*>& baseFeatures, Args& args){
+
+    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
     if(args.threads > 1){
         // Run learning in parallel
         ThreadPool tPool(args.threads);
@@ -425,7 +429,6 @@ void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vec
             base.save(out);
         }
     }
-    out.close();
 }
 
 std::vector<Base*> loadBases(std::string infile){

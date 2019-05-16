@@ -33,6 +33,7 @@ Args::Args() {
 
     // Training options
     threads = getCpuCount();
+    mem = 16;
     eps = 0.1;
     cost = 10.0;
     solverType = L2R_LR_DUAL;

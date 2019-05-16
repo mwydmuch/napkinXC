@@ -29,8 +29,6 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
 
     // Examples selected for each node
     std::vector<std::vector<double>> binLabels(lCols);
-    for(int i = 0; i < lCols; ++i)
-        binLabels[i].reserve(rows);
 
     std::cerr << "Assigning labels for base estimators ...\n";
 

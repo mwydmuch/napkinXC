@@ -455,3 +455,22 @@ void Tree::printTree(TreeNode *rootNode){
 
     std::cerr << "\n";
 }
+
+int Tree::numberOfLeaves(TreeNode *rootNode){
+    if(rootNode == nullptr) // Root node
+        return leaves.size();
+
+    int lCount = 0;
+    std::queue<TreeNode*> nQueue;
+    nQueue.push(rootNode);
+
+    while(!nQueue.empty()){
+        TreeNode* n = nQueue.front();
+        nQueue.pop();
+
+        if(n->label >= 0) ++lCount;
+        for(auto c : n->children) nQueue.push(c);
+    }
+
+    return lCount;
+}

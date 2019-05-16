@@ -15,8 +15,9 @@
 #include "threads.h"
 
 #include "set_value.h"
-#include "hsm_ubop.h"
 #include "ubop.h"
+#include "rbop.h"
+#include "hsm_ubop.h"
 
 
 std::shared_ptr<Model> modelFactory(Args &args){
@@ -36,6 +37,9 @@ std::shared_ptr<Model> modelFactory(Args &args){
             break;
         case ubop :
             model = std::static_pointer_cast<Model>(std::make_shared<UBOP>());
+            break;
+        case rbop :
+            model = std::static_pointer_cast<Model>(std::make_shared<RBOP>());
             break;
         case hsmubop :
             model = std::static_pointer_cast<Model>(std::make_shared<HSMUBOP>());

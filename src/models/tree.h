@@ -70,6 +70,8 @@ public:
     std::vector<TreeNode*> nodes; // Pointers to tree nodes
     std::unordered_map<int, TreeNode*> leaves; // Leaves map;
 
+    // Helper methods
+    int numberOfLeaves(TreeNode *rootNode = nullptr);
 
 private:
     // TODO: make global rng
@@ -87,7 +89,7 @@ private:
 
     // Tree building utils
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
-    void printTree(TreeNode *root = nullptr);
+    void printTree(TreeNode *rootNode = nullptr);
 
     // Custom tree structure
     void loadTreeStructure(std::string file);

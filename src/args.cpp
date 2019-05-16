@@ -65,6 +65,7 @@ Args::Args() {
     setBasedUType = uAlfaBeta;
     alfa = 1.0;
     beta = 1.0;
+    epsilon = 0.0;
 }
 
 // Parse args
@@ -118,6 +119,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 }
             }
             else if (args[ai] == "--setBasedU") {
+                setValueUName = args.at(ai + 1);
                 if (args.at(ai + 1) == "uP") setBasedUType = uP;
                 else if (args.at(ai + 1) == "uF1") setBasedUType = uF1;
                 else if (args.at(ai + 1) == "uAlfaBeta") setBasedUType = uAlfaBeta;
@@ -129,6 +131,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--alfa")
                 alfa = std::stof(args.at(ai + 1));
             else if (args[ai] == "--beta")
+                beta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--epsilon")
                 beta = std::stof(args.at(ai + 1));
 
             else if (args[ai] == "--header")
@@ -245,12 +249,15 @@ void Args::printArgs(){
             << "\n    Data format: " << dataFormatType
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
             << "\n  Model: " << output
-            << "\n    Type: " << modelName
-            << "\n    Optimizer: " << optimizerName;
-        if(optimizerType == libliner)
-            std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
-        else if(optimizerType == sgd)
-            std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
+            << "\n    Type: " << modelName;
+        if(command == "train") {
+            std::cerr << "\n    Optimizer: " << optimizerName;
+            if (optimizerType == libliner)
+                std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost
+                          << ", threshold: " << threshold;
+            else if (optimizerType == sgd)
+                std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
+        }
         if(modelType == plt){
             if(treeStructure.empty()) {
                 std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
@@ -263,6 +270,10 @@ void Args::printArgs(){
             else {
                 std::cerr << "\n    Tree: " << treeStructure;
             }
+        }
+        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == hsmubop)) {
+            std::cerr << "\n  Set-value: " << setValueUName << ", alfa: " << alfa
+                      << ", beta: " << beta << ", epsilon: " << epsilon;
         }
         std::cerr << "\n  Threads: " << threads << "\n";
     }

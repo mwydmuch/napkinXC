@@ -100,6 +100,7 @@ public:
     SetBasedUType setBasedUType;
     double alfa;
     double beta;
+    double epsilon;
 
 private:
     std::string solverName;
@@ -107,4 +108,5 @@ private:
     std::string optimizerName;
     std::string modelName;
     std::string dataFormatName;
+    std::string setValueUName;
 };

@@ -56,6 +56,7 @@ grep "Mean # estimators per data point" ${OUTPUT}_train >> ${RESULTS}
 grep "Model size" ${OUTPUT}_train >> ${RESULTS}
 grep "user" ${OUTPUT}_train >> ${RESULTS}
 grep "real" ${OUTPUT}_train >> ${RESULTS}
+echo >> ${RESULTS}
 
 for u in "${U[@]}"; do
     base_u=$(echo ${u} | cut -f 1 -d " ")
@@ -70,5 +71,6 @@ for u in "${U[@]}"; do
     grep "Mean # estimators per data point" ${OUTPUT}_test_${full_u} >> ${RESULTS}
     grep "user" ${OUTPUT}_test_${full_u} >> ${RESULTS}
     grep "real" ${OUTPUT}_test_${full_u} >> ${RESULTS}
+    echo >> ${RESULTS}
 done
 

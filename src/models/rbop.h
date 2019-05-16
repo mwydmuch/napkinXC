@@ -5,18 +5,12 @@
 
 #pragma once
 
-#include "base.h"
-#include "model.h"
+#include "hsm.h"
 
 // One against all
-class RBOP: public Model{
+class RBOP: public HSM{
 public:
     RBOP();
-    ~RBOP() override;
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-
-    void load(std::string infile) override;
-
 };

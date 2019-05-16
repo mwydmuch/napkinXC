@@ -29,6 +29,8 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     assert(rows == labels.rows());
 
     std::vector<std::vector<double>> binLabels(lCols);
+    for(int i = 0; i < lCols; ++i)
+        binLabels[i].reserve(rows);
 
     std::cerr << "Assigning labels for base estimators ...\n";
 
@@ -81,4 +83,11 @@ void OVR::load(std::string infile){
     std::cerr << "Loading OVR model ...\n";
     bases = loadBases(joinPath(infile, "ovr_weights.bin"));
 }
+
+void OVR::printInfo(){
+    std::cerr << "OVR additional stats:"
+              << "\n  Mean # nodes per data point: " << bases.size()
+              << "\n";
+}
+
 

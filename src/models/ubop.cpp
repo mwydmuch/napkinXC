@@ -49,9 +49,3 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
         }
     }
 }
-
-void UBOP::printInfo(){
-    std::cerr << "UBOP additional stats:"
-              << "\n  Mean # nodes per data point: " << bases.size();
-              << "\n";
-}

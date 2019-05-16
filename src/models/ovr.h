@@ -19,6 +19,8 @@ public:
 
     void load(std::string infile) override;
 
+    void printInfo() override;
+
 protected:
     std::vector<Base*> bases;
 };

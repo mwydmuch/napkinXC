@@ -13,6 +13,4 @@ public:
     UBOP();
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-
-    void printInfo() override;
 };

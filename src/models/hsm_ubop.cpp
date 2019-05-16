@@ -15,7 +15,7 @@ void HSMUBOP::predict(std::vector<Prediction>& prediction, Feature* features, Ar
     double value = bases[tree->root->index]->predictProbability(features);
     assert(value == 1);
     nQueue.push({tree->root, value});
-
+    ++rCount;
 
     std::shared_ptr<SetBasedU> u = setBasedUFactory(args);
 

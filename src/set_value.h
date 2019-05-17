@@ -11,25 +11,11 @@
 
 double acc(double label, const std::vector<Prediction>& prediction);
 
-double u_P(double label, const std::vector<Prediction>& prediction);
-
-double g_P(double pSize);
-
-double u_F1(double label, const std::vector<Prediction>& prediction);
-
-double g_F1(int pSize);
-
-double u_alfa(double label, const std::vector<Prediction>& prediction, double alfa);
-
-double g_alfa(int pSize, double alfa);
+double recall(double label, const std::vector<Prediction>& prediction);
 
 double u_delta_gamma(double label, const std::vector<Prediction>& prediction, double delta, double gamma);
 
 double g_delta_gamma(int pSize, double delta, double gamma);
-
-double u_alfa_beta(double label, const std::vector<Prediction>& prediction, double alfa, double beta, int K);
-
-double g_alfa_beta(int pSize, double alfa, double beta, int K);
 
 class SetBasedU {
 public:
@@ -60,6 +46,17 @@ public:
 
     double u(double c, const std::vector<Prediction>& prediction, int k) override;
     double g(int pSize, int k) override;
+};
+
+class U_Alfa: public SetBasedU{
+public:
+    U_Alfa(Args& args);
+
+    double u(double c, const std::vector<Prediction>& prediction, int k) override;
+    double g(int pSize, int k) override;
+
+protected:
+    double alfa;
 };
 
 class U_AlfaBeta: public SetBasedU{

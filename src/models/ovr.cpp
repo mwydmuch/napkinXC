@@ -134,7 +134,7 @@ void OVR::load(std::string infile){
 
 void OVR::printInfo(){
     std::cerr << "OVR additional stats:"
-              << "\n  Mean # nodes per data point: " << bases.size()
+              << "\n  Mean # estimators per data point: " << bases.size()
               << "\n";
 }
 

@@ -30,7 +30,7 @@ if [ ! -e nxml ]; then
     make -j
 fi
 
-rm -rf $MODEL
+#rm -rf $MODEL
 if [ ! -e $MODEL ]; then
     mkdir -p $MODEL
     time ./nxml train -i $TRAIN_FILE -o $MODEL -t -1 $ARGS

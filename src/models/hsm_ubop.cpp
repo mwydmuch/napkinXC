@@ -26,8 +26,6 @@ void HSMUBOP::predict(std::vector<Prediction>& prediction, Feature* features, Ar
         P += prediction.back().value;
         double U = u->g(prediction.size(), tree->k) * P;
 
-        //std::cerr << P << " " << U << " " << prediction.size() << "\n";
-
         if(bestU < U)
             bestU = U;
         else {

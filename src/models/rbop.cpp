@@ -107,7 +107,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
         }
     }
 
-    // K part //TODO
+    // K part
     while (!kQueue.empty()) {
         TreeNodeValue nVal = kQueue.top();
         kQueue.pop();

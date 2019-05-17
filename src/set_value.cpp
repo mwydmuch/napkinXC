@@ -12,40 +12,11 @@ double acc(double label, const std::vector<Prediction>& prediction){
     return label == prediction[0].label ? 1.0 : 0.0;
 }
 
-double u_P(double label, const std::vector<Prediction>& prediction){
+double recall(double label, const std::vector<Prediction>& prediction){
     for(const auto& p : prediction)
         if(p.label == label)
-            return 1.0 / prediction.size();
+            return 1.0;
     return 0.0;
-}
-
-double g_P(double pSize){
-    return 1.0 / pSize;
-}
-
-double u_F1(double label, const std::vector<Prediction>& prediction){
-    for(const auto& p : prediction)
-        if(p.label == label)
-            return 2.0 / (1 + prediction.size());
-    return 0.0;
-}
-
-double g_F1(int pSize){
-    return 2.0 / (1.0 + pSize);
-}
-
-double u_alfa(double label, const std::vector<Prediction>& prediction, double alfa){
-    for(const auto& p : prediction)
-        if(p.label == label) {
-            if (prediction.size() == 1) return 1.0;
-            else return 1 - alfa;
-        }
-    return 0.0;
-}
-
-double g_alfa(int pSize, double alfa){
-    if(pSize == 1) return 1.0;
-    else return 1.0 - alfa;
 }
 
 double u_delta_gamma(double label, const std::vector<Prediction>& prediction, double delta, double gamma){
@@ -57,17 +28,6 @@ double u_delta_gamma(double label, const std::vector<Prediction>& prediction, do
 
 double g_delta_gamma(double pSize, double delta, double gamma) {
     return delta / pSize - gamma / (pSize * pSize);
-}
-
-double u_alfa_beta(double label, const std::vector<Prediction>& prediction, double alfa, double beta, int K){
-    for(const auto& p : prediction)
-        if(p.label == label)
-            return 1.0 - alfa * pow(static_cast<double>(prediction.size() - 1) / (K - 1), beta);
-    return 0.0;
-}
-
-double g_alfa_beta(int pSize, double alfa, double beta, int K){
-    return 1.0 - alfa * pow(static_cast<double>(pSize - 1) / (K - 1), beta);
 }
 
 SetBasedU::SetBasedU(){
@@ -83,11 +43,14 @@ U_P::U_P(Args& args){
 }
 
 double U_P::u(double c, const std::vector<Prediction>& prediction, int k){
-    return u_P(c, prediction);
+    for(const auto& p : prediction)
+        if(p.label == c)
+            return 1.0 / prediction.size();
+    return 0.0;
 }
 
 double U_P::g(int pSize, int k){
-    return g_P(pSize);
+    return 1.0 / pSize;
 }
 
 U_F1::U_F1(Args& args){
@@ -95,11 +58,33 @@ U_F1::U_F1(Args& args){
 }
 
 double U_F1::u(double c, const std::vector<Prediction>& prediction, int k){
-    return u_F1(c, prediction);
+    for(const auto& p : prediction)
+        if(p.label == c)
+            return 2.0 / (1 + prediction.size());
+    return 0.0;
 }
 
 double U_F1::g(int pSize, int k){
-    return g_F1(pSize);
+    return 2.0 / (1.0 + pSize);
+}
+
+U_Alfa::U_Alfa(Args& args){
+    alfa = args.alfa;
+    name = "uAlfa(" + std::to_string(alfa) + ")";
+}
+
+double U_Alfa::u(double c, const std::vector<Prediction>& prediction, int k) {
+    for(const auto& p : prediction)
+        if(p.label == c) {
+            if (prediction.size() == 1) return 1.0;
+            else return 1 - alfa;
+        }
+    return 0.0;
+}
+
+double U_Alfa::g(int pSize, int k){
+    if(pSize == 1) return 1.0;
+    else return 1.0 - alfa;
 }
 
 U_AlfaBeta::U_AlfaBeta(Args& args){
@@ -109,13 +94,15 @@ U_AlfaBeta::U_AlfaBeta(Args& args){
 }
 
 double U_AlfaBeta::u(double c, const std::vector<Prediction>& prediction, int k) {
-    return u_alfa_beta(c, prediction, alfa, beta, k);
+    for(const auto& p : prediction)
+        if(p.label == c)
+            return 1.0 - alfa * pow(static_cast<double>(prediction.size() - 1) / (k - 1), beta);
+    return 0.0;
 }
 
 double U_AlfaBeta::g(int pSize, int k){
-    return g_alfa_beta(pSize, alfa, beta, k);
+    return 1.0 - alfa * pow(static_cast<double>(pSize - 1) / (k - 1), beta);
 }
-
 
 std::shared_ptr<SetBasedU> setBasedUFactory(Args& args){
     std::shared_ptr<SetBasedU> u = nullptr;

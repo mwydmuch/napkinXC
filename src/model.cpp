@@ -127,7 +127,7 @@ int batchTestThread2(int threadId, Model* model, SRMatrix<Label>& labels, SRMatr
         std::vector<Prediction> prediction;
         model->predict(prediction, features.row(r), args);
 
-        lAcc += acc(labels.row(r)[0], prediction);
+        lAcc += recall(labels.row(r)[0], prediction);
         lSetValue += setValueU->u(labels.row(r)[0], prediction, labels.cols());
         lPSize += prediction.size();
 
@@ -229,7 +229,7 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
 
     std::cerr << std::setprecision(5)
               << "Results:"
-              << "\n  Acc: " << gAcc / rows
+              << "\n  Recall: " << gAcc / rows
               << "\n  " << setValueU->getName() << ": " << gSetValue / rows
               << "\n  Mean pred. size: " << gPSize / rows<< "\n";
 }

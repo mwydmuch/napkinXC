@@ -14,12 +14,12 @@ THREADS=-1
 OUTPUT=outputs/${MODEL_NAME}
 mkdir -p outputs
 
-RESULTS=results/${MODEL_NAME}
+RESULTS=results/${MODEL_NAME}_eps_0.5
 mkdir -p results
 
 
-#U=("uP" "uAlfaBeta --alfa 1.0 --beta 0.1" "uAlfaBeta --alfa 1.0 --beta 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0" "uAlfaBeta --alfa 1.0 --beta 5.0" "uP --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.1 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.5 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 5.0 --epsilon 0.5")
-U=("uP" "uAlfaBeta --alfa 1.0 --beta 0.1" "uAlfaBeta --alfa 1.0 --beta 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0" "uAlfaBeta --alfa 1.0 --beta 5.0")
+U=("uP --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.1 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.5 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 5.0 --epsilon 0.5")
+#U=("uP" "uAlfaBeta --alfa 1.0 --beta 0.1" "uAlfaBeta --alfa 1.0 --beta 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0" "uAlfaBeta --alfa 1.0 --beta 5.0")
 
 
 if [ ! -e $DATASET_DIR ]; then
@@ -52,7 +52,7 @@ if [ ! -e $MODEL ]; then
     echo "Model size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" >> ${OUTPUT}_train 2>&1
 fi
 
-echo "${MODEL_NAME}" > ${RESULTS}
+echo "${MODEL_NAME}_eps_0.5" > ${RESULTS}
 echo "Train ${u}" >> ${RESULTS}
 grep "Mean # estimators per data point" ${OUTPUT}_train >> ${RESULTS}
 grep "Model size" ${OUTPUT}_train >> ${RESULTS}

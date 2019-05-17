@@ -134,7 +134,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--beta")
                 beta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epsilon")
-                beta = std::stof(args.at(ai + 1));
+                epsilon = std::stof(args.at(ai + 1));
 
             else if (args[ai] == "--header")
                 header = std::stoi(args.at(ai + 1)) != 0;

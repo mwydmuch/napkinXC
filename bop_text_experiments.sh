@@ -2,24 +2,26 @@
 
 #bash remap_datasets.sh
 
-DATASETS=(LSHTC1)
+DATASETS=(LSHTC1 Dmoz)
+ARGS="-e 0.001 --norm 0"
 
+ARGS="-e 0.001"
 for d in "${DATASETS[@]}"; do
     echo "${d} tests..."
 
-    bash testBOP.sh $d -m rbop --treeType completeRandom
-    bash testBOP_with_eps.sh $d -m rbop --treeType completeRandom
-    bash testBOP.sh $d -m rbop --treeType hierarchicalKMeans --maxLeaves 16
-    bash testBOP_with_eps.sh $d -m rbop --treeType hierarchicalKMeans --maxLeaves 16
+    #bash testBOP.sh $d -m rbop --treeType completeRandom ${ARGS}
+    #bash testBOP_with_eps.sh $d -m rbop --treeType completeRandom ${ARGS}
+    #bash testBOP.sh $d -m rbop --treeType hierarchicalKMeans --maxLeaves 16 ${ARGS}
+    #bash testBOP_with_eps.sh $d -m rbop --treeType hierarchicalKMeans --maxLeaves 16 ${ARGS}
 
     # If hierarchy available
     if [ -e "data/${d}/${d}.hier" ]; then
-        bash testBOP.sh $d -m rbop --treeStructure "data/${d}/${d}.hier"
-        bash testBOP_with_eps.sh $d -m rbop --treeStructure "data/${d}/${d}.hier"
-        bash testBOP.sh $d -m hsmubop --treeStructure "data/${d}/${d}.hier"
+        bash testBOP.sh $d -m rbop --treeStructure "data/${d}/${d}.hier" ${ARGS}
+        #bash testBOP_with_eps.sh $d -m rbop --treeStructure "data/${d}/${d}.hier" ${ARGS}
+        bash testBOP.sh $d -m hsmubop --treeStructure "data/${d}/${d}.hier" ${ARGS}
     fi
 
-    bash testBOP.sh $d -m hsmubop --treeType completeRandom
-    bash testBOP.sh $d -m hsmubop --treeType hierarchicalKMeans --maxLeaves 16
-    bash testBOP.sh $d -m ubop
+    #bash testBOP.sh $d -m hsmubop --treeType completeRandom ${ARGS}
+    #bash testBOP.sh $d -m hsmubop --treeType hierarchicalKMeans --maxLeaves 16 ${ARGS}
+    bash testBOP.sh $d -m ubop ${ARGS}
 done

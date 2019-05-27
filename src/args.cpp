@@ -29,10 +29,12 @@ Args::Args() {
     bias = true;
     biasValue = 1.0;
     norm = true;
+    tfidf = false;
     maxFeatures = -1;
 
     // Training options
     threads = getCpuCount();
+    memLimit = 0;
     mem = 16;
     eps = 0.1;
     cost = 10.0;
@@ -142,6 +144,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 bias = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--norm")
                 norm = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--tfidf")
+                tfidf = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--hash")
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")

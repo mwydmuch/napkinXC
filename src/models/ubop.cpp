@@ -39,7 +39,7 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
 
         P += p.value;
         double U = u->g(prediction.size(), bases.size()) * P;
-        if(bestU < U)
+        if(bestU <= U)
             bestU = U;
         else {
             P -= p.value;

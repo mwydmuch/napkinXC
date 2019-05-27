@@ -87,6 +87,9 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     }
     */
 
+    if(args.tfidf)
+        computeTfIdfFeatures(features, args.bias);
+
     // Print info about loaded data
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (args.bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;
 

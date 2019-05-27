@@ -60,12 +60,13 @@ public:
     double biasValue;
     double C;
     bool norm;
+    bool tfidf;
     int hash;
     int maxFeatures;
 
     // Training options
     int threads;
-    size_t mem;
+    size_t memLimit;
     int solverType;
     OptimizerType optimizerType;
     double eps;

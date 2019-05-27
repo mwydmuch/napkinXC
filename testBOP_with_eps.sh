@@ -18,13 +18,8 @@ RESULTS=results/${MODEL_NAME}_eps_0.5
 mkdir -p results
 
 
-U=("uP --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.1 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.5 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 5.0 --epsilon 0.5")
-#U=("uP" "uAlfaBeta --alfa 1.0 --beta 0.1" "uAlfaBeta --alfa 1.0 --beta 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0" "uAlfaBeta --alfa 1.0 --beta 5.0")
+U=("uP --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.1 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.5 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0 --epsilon 0.5")
 
-
-if [ ! -e $DATASET_DIR ]; then
-    bash get_data.sh $DATASET_NAME
-fi
 
 if [ -e "${DATASET_FILE}.train.remapped" ]; then
     TRAIN_FILE="${DATASET_FILE}.train.remapped"

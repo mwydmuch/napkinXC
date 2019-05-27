@@ -20,12 +20,14 @@ typedef IntFeature Frequency;
 typedef DoubleFeature Probability;
 
 // Data utils
+void computeTfIdfFeatures(SRMatrix<Feature>& features, bool omitBias = false);
+
 void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels);
 
 void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels);
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
-                                 const SRMatrix<Feature>& features, bool weightedFeatures = false);
+                                 const SRMatrix<Feature>& features, bool norm = false, bool weightedFeatures = false);
 
 void computeLabelsExamples(std::vector<std::vector<Example>>& labelsFeatures, const SRMatrix<Label>& labels);
 
@@ -151,7 +153,38 @@ inline void addVector(Feature* vector1, std::vector<T>& vector2) {
     addVector(vector1, vector2.data(), vector2.size());
 }
 
-// Unit norm
+// Multiply vector by scalar
+template <typename T>
+inline void mulVector(T* vector, double scalar, size_t size){
+    for(int f = 0; f < size; ++f) vector[f] *= scalar;
+}
+
+template <typename T>
+inline void mulVector(Feature* vector, double scalar, size_t size){
+    for(int f = 0; f < size; ++f) vector[f].value *= scalar;
+}
+
+template <typename T>
+inline void mulVector(std::vector<T>& vector, double scalar) {
+    mulVector(vector.data(), scalar, vector.size());
+}
+
+// Divide vector by scalar
+template <typename T>
+inline void divVector(T* vector, double scalar, size_t size){
+    for(int f = 0; f < size; ++f) vector[f] /= scalar;
+}
+
+inline void divVector(Feature* vector, double scalar, size_t size){
+    for(int f = 0; f < size; ++f) vector[f].value /= scalar;
+}
+
+template <typename T>
+inline void divVector(std::vector<T>& vector, double scalar) {
+    divVector(vector.data(), scalar, vector.size());
+}
+
+// Unit norm for vector
 template <typename T>
 inline void unitNorm(T* data, size_t size){
     T norm = 0;

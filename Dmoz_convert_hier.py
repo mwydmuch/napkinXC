@@ -12,7 +12,7 @@ if __name__ == "__main__":
     with open(dir + "/Dmoz.train.labels_map") as json_file:
         labels_map = json.load(json_file)
 
-    nodes_map = {"0": 0}
+    nodes_map = {}
     child2parent_map = {}
     parents_set = set()
     parents_set.add("0")
@@ -26,9 +26,15 @@ if __name__ == "__main__":
                 if n not in nodes_map:
                     nodes_map[n] = len(nodes_map)
 
-    for p in list(child2parent_map.values()):
+    # for p in list(child2parent_map.values()):
+    #     if p not in child2parent_map and p != 0:
+    #         child2parent_map[p] = '0'
+
+    for p in list(nodes_map.keys()):
         if p not in child2parent_map and p != 0:
             child2parent_map[p] = '0'
+
+    nodes_map["0"] = 0
 
     k = 0
     for c in child2parent_map.keys():
@@ -37,6 +43,9 @@ if __name__ == "__main__":
 
     with open(dir + "/Dmoz.hier", "w") as fo:
         fo.write("{} {}\n".format(k, len(nodes_map)))
+        # for n in nodes_map.keys():
+        #     if n in child2parent_map:
+        #         fo.write("{} {}".format(nodes_map[p], nodes_map[c]))
         for c, p in sorted(child2parent_map.items(), key=lambda x: x[1]):
             if c in parents_set:
                 fo.write("{} {}\n".format(nodes_map[p], nodes_map[c]))

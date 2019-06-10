@@ -46,14 +46,15 @@ Args::Args() {
     iter = 50;
     eta = 0.5;
     threshold = 0.1;
+    ensemble = 1;
 
     // Tree options
     treeStructure = "";
     arity = 2;
-    treeType = completeInOrder;
-    treeTypeName = "completeInOrder";
-    //treeType = hierarchicalKMeans;
-    //treeTypeName = "hierarchicalKMeans";
+    //treeType = completeInOrder;
+    //treeTypeName = "completeInOrder";
+    treeType = hierarchicalKMeans;
+    treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
     // K-Means tree options
@@ -65,10 +66,16 @@ Args::Args() {
     topK = 1;
     sparseWeights = true;
 
-    setBasedUType = uAlfaBeta;
+    // Set utility options
+    setUtilityType = uAlfaBeta;
     alfa = 1.0;
     beta = 1.0;
     epsilon = 0.0;
+    delta = 0.0;
+    gamma = 0.0;
+
+    // Measures
+    measures = "p@k,r@k";
 }
 
 // Parse args
@@ -115,19 +122,19 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "plt") modelType = plt;
                 else if (args.at(ai + 1) == "ubop") modelType = ubop;
                 else if (args.at(ai + 1) == "rbop") modelType = rbop;
-                else if (args.at(ai + 1) == "hsmubop") modelType = hsmubop;
+                else if (args.at(ai + 1) == "ubopch") modelType = ubopch;
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
                     printHelp();
                 }
             }
-            else if (args[ai] == "--setBasedU") {
-                setValueUName = args.at(ai + 1);
-                if (args.at(ai + 1) == "uP") setBasedUType = uP;
-                else if (args.at(ai + 1) == "uF1") setBasedUType = uF1;
-                else if (args.at(ai + 1) == "uAlfaBeta") setBasedUType = uAlfaBeta;
+            else if (args[ai] == "--setUtility") {
+                setUtilityName = args.at(ai + 1);
+                if (args.at(ai + 1) == "uP") setUtilityType = uP;
+                else if (args.at(ai + 1) == "uF1") setUtilityType = uF1;
+                else if (args.at(ai + 1) == "uAlfaBeta") setUtilityType = uAlfaBeta;
                 else {
-                    std::cerr << "Unknown set based utiltity type: " << args.at(ai + 1) << std::endl;
+                    std::cerr << "Unknown set utility type: " << args.at(ai + 1) << std::endl;
                     printHelp();
                 }
             }
@@ -137,6 +144,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 beta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epsilon")
                 epsilon = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--delta")
+                delta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--gamma")
+                gamma = std::stof(args.at(ai + 1));
 
             else if (args[ai] == "--header")
                 header = std::stoi(args.at(ai + 1)) != 0;
@@ -276,8 +287,8 @@ void Args::printArgs(){
                 std::cerr << "\n    Tree: " << treeStructure;
             }
         }
-        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == hsmubop)) {
-            std::cerr << "\n  Set-value: " << setValueUName << ", alfa: " << alfa
+        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopch)) {
+            std::cerr << "\n  Set utility: " << setUtilityName << ", alfa: " << alfa
                       << ", beta: " << beta << ", epsilon: " << epsilon;
         }
         std::cerr << "\n  Threads: " << threads << "\n";

@@ -27,34 +27,50 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args)
     int lCols = labels.cols();
     assert(rows == labels.rows());
 
-    // Examples selected for each node
-    std::vector<std::vector<double>> binLabels(lCols);
+    std::ofstream out(joinPath(args.output, "weights.bin"));
+    int size = lCols;
+    out.write((char*) &size, sizeof(size));
 
-    std::cerr << "Assigning labels for base estimators ...\n";
+    int parts = 1;
+    int range = lCols / parts + 1;
 
-    // Gather examples for each node
+    std::vector<std::vector<double>> binLabels(range);
     for(int i = 0; i < binLabels.size(); ++i)
         binLabels[i].reserve(rows);
 
-    for(int r = 0; r < rows; ++r){
-        printProgress(r, rows);
+    for(int p = 0; p < parts; ++p){
 
-        int rSize = labels.size(r);
-        auto rLabels = labels.row(r);
+        if(parts > 1)
+            std::cerr << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
+        else
+            std::cerr << "Assigning labels for base estimators ...\n";
+
+        int rStart = p * range;
+        int rStop = (p + 1) * range;
+
+        for(int r = 0; r < rows; ++r){
+            printProgress(r, rows);
+
+            int rSize = labels.size(r);
+            auto rLabels = labels.row(r);
+
+            //checkRow(rLabels, features.row(r));
+
+            for(int i = 0; i < binLabels.size(); ++i)
+                binLabels[i].push_back(0.0);
+
+            for (int i = 0; i < rSize; ++i)
+                binLabels[rLabels[i]].back() = 1.0;
+        }
+
+        trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), args);
 
         for(int i = 0; i < binLabels.size(); ++i)
-            binLabels[i].push_back(0.0);
-
-        if (rSize > 0) {
-            for (int i = 0; i < rSize; ++i) {
-                binLabels[rLabels[i]].back() = 1.0;
-            }
-        }
+            binLabels[i].clear();
     }
 
-    trainBasesWithSameFeatures(joinPath(args.output, "br_weights.bin"), features.cols(), binLabels, features.allRows(), args);
+    out.close();
 }
-
 
 void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     for(int i = 0; i < bases.size(); ++i)
@@ -65,7 +81,8 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &a
 }
 
 void BR::load(std::string infile){
-    std::cerr << "Loading BR model ...\n";
-    bases = loadBases(joinPath(infile, "br_weights.bin"));
+    std::cerr << "Loading weights ...\n";
+    bases = loadBases(joinPath(infile, "weights.bin"));
+    m = bases.size();
 }
 

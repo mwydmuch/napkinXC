@@ -114,10 +114,10 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         ++rCount;
     }
 
-    trainBases(joinPath(args.output, "hsm_weights.bin"), features.cols(), binLabels, binFeatures, args);
+    trainBases(joinPath(args.output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
 
     // Save tree
-    tree->saveToFile(joinPath(args.output, "hsm_tree.bin"));
+    tree->saveToFile(joinPath(args.output, "tree.bin"));
 }
 
 void HSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
@@ -169,9 +169,10 @@ void HSM::load(std::string infile){
     std::cerr << "Loading HSM model ...\n";
 
     tree = new Tree();
-    tree->loadFromFile(joinPath(infile, "hsm_tree.bin"));
-    bases = loadBases(joinPath(infile, "hsm_weights.bin"));
+    tree->loadFromFile(joinPath(infile, "tree.bin"));
+    bases = loadBases(joinPath(infile, "weights.bin"));
     assert(bases.size() == tree->nodes.size());
+    m = tree->numberOfLeaves();
 }
 
 void HSM::printInfo(){

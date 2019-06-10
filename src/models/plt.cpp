@@ -98,10 +98,10 @@ void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         ++rCount;
     }
 
-    trainBases(joinPath(args.output, "plt_weights.bin"), features.cols(), binLabels, binFeatures, args);
+    trainBases(joinPath(args.output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
 
     // Save tree
-    tree->saveToFile(joinPath(args.output, "plt_tree.bin"));
+    tree->saveToFile(joinPath(args.output, "tree.bin"));
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
@@ -144,9 +144,10 @@ void PLT::load(std::string infile){
     std::cerr << "Loading PLT model ...\n";
 
     tree = new Tree();
-    tree->loadFromFile(joinPath(infile, "plt_tree.bin"));
-    bases = loadBases(joinPath(infile, "plt_weights.bin"));
+    tree->loadFromFile(joinPath(infile, "tree.bin"));
+    bases = loadBases(joinPath(infile, "weights.bin"));
     assert(bases.size() == tree->nodes.size());
+    m = tree->numberOfLeaves();
 }
 
 void PLT::printInfo(){

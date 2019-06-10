@@ -5,6 +5,7 @@
 
 
 #include <cstdio>
+#include <cstring>
 #include "utils.h"
 
 // Data utils
@@ -177,4 +178,19 @@ void checkDirName(const std::string& dirname){
     std::remove(tmpFile.c_str());
 }
 
+// Splits string
+std::vector<std::string> split(std::string text, char d){
+    std::vector<std::string> tokens;
+    const char *str = text.c_str();
 
+    do {
+        std::string str_d = std::string("") + d;
+        const char *begin = str;
+        while(*str != d && *str) ++str;
+        std::string token = std::string(begin, str);
+        if(token.length() && token != str_d)
+            tokens.push_back(std::string(begin, str));
+    } while (0 != *str++);
+
+    return tokens;
+}

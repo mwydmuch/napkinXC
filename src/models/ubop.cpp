@@ -11,7 +11,7 @@
 #include <climits>
 
 #include "ubop.h"
-#include "set_value.h"
+#include "set_utility.h"
 
 
 UBOP::UBOP(){}
@@ -31,14 +31,14 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
 
     sort(allPredictions.rbegin(), allPredictions.rend());
 
-    std::shared_ptr<SetBasedU> u = setBasedUFactory(args);
+    std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
 
     double P = 0, bestU = 0;
     for(const auto& p : allPredictions){
         prediction.push_back(p);
 
         P += p.value;
-        double U = u->g(prediction.size(), bases.size()) * P;
+        double U = u->g(prediction.size()) * P;
         if(bestU <= U)
             bestU = U;
         else {

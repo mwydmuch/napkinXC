@@ -11,13 +11,13 @@
 #include <climits>
 
 #include "rbop.h"
-#include "set_value.h"
+#include "set_utility.h"
 
 
 RBOP::RBOP(){}
 
 void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
-    std::shared_ptr<SetBasedU> u = setBasedUFactory(args);
+    std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
 
     std::priority_queue<TreeNodeValue> nQueue;
     std::priority_queue<TreeNodeValue> kQueue;
@@ -28,7 +28,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
     ++rCount;
 
     TreeNode* bestN = tree->root;
-    double bestU = u->g(tree->leaves.size(), tree->leaves.size()) * value;
+    double bestU = u->g(tree->leaves.size()) * value;
     double bestP = value;
 
     // Q part
@@ -52,7 +52,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                     nQueue.push({c, P});
                     ++childrenAdded;
 
-                    double U = u->g(tree->numberOfLeaves(c), tree->leaves.size()) * P;
+                    double U = u->g(tree->numberOfLeaves(c)) * P;
                     if(bestU < U) {
                         bestU = U;
                         bestN = c;
@@ -66,7 +66,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                     nQueue.push({c, P});
                     ++childrenAdded;
 
-                    double U = u->g(tree->numberOfLeaves(c), tree->leaves.size()) * P;
+                    double U = u->g(tree->numberOfLeaves(c)) * P;
                     if(bestU < U) {
                         bestU = U;
                         bestN = c;
@@ -90,7 +90,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                         nQueue.push({c, P});
                         ++childrenAdded;
 
-                        double U = u->g(tree->numberOfLeaves(c), tree->leaves.size()) * P;
+                        double U = u->g(tree->numberOfLeaves(c)) * P;
                         if(bestU < U) {
                             bestU = U;
                             bestN = c;
@@ -150,7 +150,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
             }
         }
 
-        double U = u->g(tree->numberOfLeaves(tmpBestN), tree->leaves.size()) * tmpBestP;
+        double U = u->g(tree->numberOfLeaves(tmpBestN)) * tmpBestP;
         if(bestU < U) {
             bestU = U;
             bestN = tmpBestN;

@@ -261,3 +261,6 @@ void checkFileName(const std::string& filename, bool read = true);
 
 // Checks dirname
 void checkDirName(const std::string& dirname);
+
+// Splits string
+std::vector<std::string> split(std::string text, char d = ',');

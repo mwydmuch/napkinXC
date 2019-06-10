@@ -18,7 +18,7 @@ enum ModelType {
     plt,
     ubop,
     rbop,
-    hsmubop
+    ubopch,
 };
 
 enum TreeType {
@@ -35,7 +35,7 @@ enum OptimizerType { libliner, sgd };
 
 enum DataFormatType { libsvm };
 
-enum SetBasedUType {
+enum SetUtilityType {
     uP,
     uF1,
     uAlfa,
@@ -75,6 +75,8 @@ public:
     bool labelsWeights;
     int iter;
     double eta;
+    double mem;
+    int ensemble;
 
     // Tree options
     int arity;
@@ -98,11 +100,16 @@ public:
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
-    // Set based
-    SetBasedUType setBasedUType;
+    // Set utility options
+    SetUtilityType setUtilityType;
     double alfa;
     double beta;
     double epsilon;
+    double delta;
+    double gamma;
+
+    // Measures
+    std::string measures;
 
 private:
     std::string solverName;
@@ -110,5 +117,5 @@ private:
     std::string optimizerName;
     std::string modelName;
     std::string dataFormatName;
-    std::string setValueUName;
+    std::string setUtilityName;
 };

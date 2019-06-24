@@ -21,13 +21,13 @@ BR::~BR() {
         delete bases[i];
 }
 
-void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
     // Check data
     int rows = features.rows();
     int lCols = labels.cols();
     assert(rows == labels.rows());
 
-    std::ofstream out(joinPath(args.output, "weights.bin"));
+    std::ofstream out(joinPath(output, "weights.bin"));
     int size = lCols;
     out.write((char*) &size, sizeof(size));
 
@@ -80,7 +80,11 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &a
     if(args.topK > 0) prediction.resize(args.topK);
 }
 
-void BR::load(std::string infile){
+double BR::predict(Label label, Feature* features, Args &args){
+    return bases[label]->predictProbability(features);
+}
+
+void BR::load(Args &args, std::string infile){
     std::cerr << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();

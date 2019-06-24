@@ -5,6 +5,7 @@
 
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include "utils.h"
 
@@ -176,6 +177,15 @@ void checkDirName(const std::string& dirname){
     std::ofstream out(tmpFile);
     if(!out.good()) throw "Invalid dirname: \"" + dirname +"\"!";
     std::remove(tmpFile.c_str());
+}
+
+// Create directory
+void makeDir(const std::string& dirname){
+    std::string mkdirCmd = "mkdir -p " + dirname;
+    const int dir_err = std::system(mkdirCmd.c_str());
+    if (-1 == dir_err){
+        exit(1);
+    }
 }
 
 // Splits string

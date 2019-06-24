@@ -114,6 +114,7 @@ void PrecisionAtK::accumulate(Label* labels, const std::vector<Prediction>& pred
 
 Coverage::Coverage(Args& args, Model* model) : Measure(args, model){
     name = "Coverage";
+    m = model->outputSize();
 }
 
 void Coverage::accumulate(Label* labels, const std::vector<Prediction>& prediction){
@@ -134,6 +135,7 @@ double Coverage::value(){
 
 CoverageAtK::CoverageAtK(Args& args, Model* model) : MeasureAtK(args, model){
     name = "C@" + std::to_string(k);
+    m = model->outputSize();
 }
 
 void CoverageAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction){

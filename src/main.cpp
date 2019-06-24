@@ -15,6 +15,7 @@ void train(Args &args) {
     SRMatrix<Feature> features;
 
     args.printArgs();
+    makeDir(args.output);
     args.saveToFile(joinPath(args.output, "args.bin"));
 
     // Create data reader and load train data
@@ -24,7 +25,7 @@ void train(Args &args) {
 
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = modelFactory(args);
-    model->train(labels, features, args);
+    model->train(labels, features, args, args.output);
     model->printInfo();
 
     std::cerr << "All done!\n";
@@ -45,7 +46,7 @@ void test(Args &args) {
 
     // Load model and test
     std::shared_ptr<Model> model = modelFactory(args);
-    model->load(args.output);
+    model->load(args, args.output);
     model->test(labels, features, args);
     model->printInfo();
 

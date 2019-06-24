@@ -29,6 +29,16 @@ void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args &
     if(args.topK > 0) prediction.resize(args.topK);
 }
 
+double OVR::predict(Label label, Feature* features, Args &args){
+    double sum = 0;
+    for(int i = 0; i < bases.size(); ++i) {
+        double value = bases[i]->predictProbability(features);
+        sum += value;
+    }
+
+    return bases[label]->predictProbability(features) / sum;
+}
+
 void OVR::printInfo(){
     std::cerr << "OVR additional stats:"
               << "\n  Mean # estimators per data point: " << bases.size()

@@ -19,6 +19,8 @@ enum ModelType {
     ubop,
     rbop,
     ubopch,
+    hsmEns,
+    pltEns,
 };
 
 enum TreeType {

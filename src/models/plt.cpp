@@ -27,7 +27,7 @@ PLT::~PLT(){
         delete bases[i];
 }
 
-void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
     std::cerr << "Building tree ...\n";
 
     tree = new Tree();
@@ -98,10 +98,10 @@ void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         ++rCount;
     }
 
-    trainBases(joinPath(args.output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
+    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
 
     // Save tree
-    tree->saveToFile(joinPath(args.output, "tree.bin"));
+    tree->saveToFile(joinPath(output, "tree.bin"));
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
@@ -140,7 +140,11 @@ void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
     }
 }
 
-void PLT::load(std::string infile){
+double PLT::predict(Label label, Feature* features, Args &args){
+    return 1.0;
+}
+
+void PLT::load(Args &args, std::string infile){
     std::cerr << "Loading PLT model ...\n";
 
     tree = new Tree();

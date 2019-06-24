@@ -16,10 +16,11 @@ public:
     PLT();
     ~PLT() override;
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
+    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    double predict(Label label, Feature* features, Args &args) override;
 
-    void load(std::string infile) override;
+    void load(Args &args, std::string infile) override;
 
     void printInfo() override;
 

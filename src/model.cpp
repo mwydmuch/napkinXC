@@ -10,6 +10,7 @@
 #include "model.h"
 #include "threads.h"
 #include "measure.h"
+#include "ensemble.h"
 
 #include "br.h"
 #include "ovr.h"
@@ -23,38 +24,41 @@
 std::shared_ptr<Model> modelFactory(Args &args){
     std::shared_ptr<Model> model = nullptr;
 
-    if(args.ensemble > 1) {
-        //model = std::static_pointer_cast<Model>(std::make_shared<Ensemble>());
-    } else {
-        switch (args.modelType) {
-            case ovr :
-                model = std::static_pointer_cast<Model>(std::make_shared<OVR>());
-                break;
-            case br :
-                model = std::static_pointer_cast<Model>(std::make_shared<BR>());
-                break;
-            case hsm :
-                model = std::static_pointer_cast<Model>(std::make_shared<HSM>());
-                break;
-            case plt :
-                model = std::static_pointer_cast<Model>(std::make_shared<PLT>());
-                break;
-            case ubop :
-                model = std::static_pointer_cast<Model>(std::make_shared<UBOP>());
-                break;
-            case rbop :
-                model = std::static_pointer_cast<Model>(std::make_shared<RBOP>());
-                break;
-            case ubopch :
-                model = std::static_pointer_cast<Model>(std::make_shared<UBOPCH>());
-                break;
-            default:
-                throw "Unknown model type!";
-        }
+    switch (args.modelType) {
+        case ovr :
+            model = std::static_pointer_cast<Model>(std::make_shared<OVR>());
+            break;
+        case br :
+            model = std::static_pointer_cast<Model>(std::make_shared<BR>());
+            break;
+        case hsm :
+            model = std::static_pointer_cast<Model>(std::make_shared<HSM>());
+            break;
+        case hsmEns :
+            model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<HSM>>());
+            break;
+        case plt :
+            model = std::static_pointer_cast<Model>(std::make_shared<PLT>());
+            break;
+        case pltEns :
+            model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<PLT>>());
+            break;
+        case ubop :
+            model = std::static_pointer_cast<Model>(std::make_shared<UBOP>());
+            break;
+        case rbop :
+            model = std::static_pointer_cast<Model>(std::make_shared<RBOP>());
+            break;
+        case ubopch :
+            model = std::static_pointer_cast<Model>(std::make_shared<UBOPCH>());
+            break;
+        default:
+            throw "Unknown model type!";
     }
 
     return model;
 }
+
 
 Model::Model() { }
 

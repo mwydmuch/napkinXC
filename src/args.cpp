@@ -51,10 +51,10 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    //treeType = completeInOrder;
-    //treeTypeName = "completeInOrder";
-    treeType = hierarchicalKMeans;
-    treeTypeName = "hierarchicalKMeans";
+    treeType = completeInOrder;
+    treeTypeName = "completeInOrder";
+    //treeType = hierarchicalKMeans;
+    //treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
     // K-Means tree options
@@ -75,7 +75,7 @@ Args::Args() {
     gamma = 0.0;
 
     // Measures
-    measures = "p@k,r@k";
+    measures = "p@k,r@k,c@k";
 }
 
 // Parse args
@@ -114,12 +114,16 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
+            else if (args[ai] == "--ensemble")
+                ensemble = std::stoi(args.at(ai + 1));
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
                 if (args.at(ai + 1) == "ovr") modelType = ovr;
                 else if (args.at(ai + 1) == "br") modelType = br;
                 else if (args.at(ai + 1) == "hsm") modelType = hsm;
+                else if (args.at(ai + 1) == "hsmEns") modelType = hsmEns;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
+                else if (args.at(ai + 1) == "pltEns") modelType = pltEns;
                 else if (args.at(ai + 1) == "ubop") modelType = ubop;
                 else if (args.at(ai + 1) == "rbop") modelType = rbop;
                 else if (args.at(ai + 1) == "ubopch") modelType = ubopch;
@@ -366,6 +370,7 @@ void Args::save(std::ostream& out){
     out.write((char*) &hash, sizeof(hash));
     out.write((char*) &modelType, sizeof(modelType));
     out.write((char*) &dataFormatType, sizeof(dataFormatType));
+    out.write((char*) &ensemble, sizeof(ensemble));
 }
 
 void Args::load(std::istream& in){
@@ -374,4 +379,5 @@ void Args::load(std::istream& in){
     in.read((char*) &hash, sizeof(hash));
     in.read((char*) &modelType, sizeof(modelType));
     in.read((char*) &dataFormatType, sizeof(dataFormatType));
+    in.read((char*) &ensemble, sizeof(ensemble));
 }

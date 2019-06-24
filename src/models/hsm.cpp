@@ -28,7 +28,7 @@ HSM::~HSM() {
         delete bases[i];
 }
 
-void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
     std::cerr << "Building tree ...\n";
 
     tree = new Tree();
@@ -114,10 +114,10 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         ++rCount;
     }
 
-    trainBases(joinPath(args.output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
+    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
 
     // Save tree
-    tree->saveToFile(joinPath(args.output, "tree.bin"));
+    tree->saveToFile(joinPath(output, "tree.bin"));
 }
 
 void HSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
@@ -165,7 +165,11 @@ void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
     }
 }
 
-void HSM::load(std::string infile){
+double HSM::predict(Label label, Feature* features, Args &args){
+    return 1.0;
+}
+
+void HSM::load(Args &args, std::string infile){
     std::cerr << "Loading HSM model ...\n";
 
     tree = new Tree();

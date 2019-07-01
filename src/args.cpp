@@ -24,7 +24,7 @@ Args::Args() {
     dataFormatType = libsvm;
     modelName = "plt";
     modelType = plt;
-    header = false;
+    header = true;
     hash = 0;
     bias = true;
     biasValue = 1.0;

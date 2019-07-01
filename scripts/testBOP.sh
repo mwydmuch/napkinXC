@@ -14,11 +14,11 @@ THREADS=-1
 OUTPUT=outputs/${MODEL_NAME}
 mkdir -p outputs
 
-RESULTS=results/${MODEL_NAME}_eps_0.5
+RESULTS=results/${MODEL_NAME}
 mkdir -p results
 
 
-U=("uP --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.1 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 0.5 --epsilon 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0 --epsilon 0.5")
+U=("uP" "uAlfaBeta --alfa 1.0 --beta 0.1" "uAlfaBeta --alfa 1.0 --beta 0.5" "uAlfaBeta --alfa 1.0 --beta 1.0")
 
 
 if [ -e "${DATASET_FILE}.train.remapped" ]; then
@@ -42,12 +42,12 @@ fi
 if [ ! -e $MODEL ]; then
     echo "Train ..."
     mkdir -p $MODEL
-    (time ./nxml train -i $TRAIN_FILE -o $MODEL -t $THREADS $ARGS --header 0) > ${OUTPUT}_train 2>&1
+    (time ../nxml train -i $TRAIN_FILE -o $MODEL -t $THREADS $ARGS --header 0) > ${OUTPUT}_train 2>&1
     echo "Model dir: ${MODEL}" >> ${OUTPUT}_train 2>&1
     echo "Model size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" >> ${OUTPUT}_train 2>&1
 fi
 
-echo "${MODEL_NAME}_eps_0.5" > ${RESULTS}
+echo "${MODEL_NAME}" > ${RESULTS}
 echo "Train ${u}" >> ${RESULTS}
 grep "Mean # estimators per data point" ${OUTPUT}_train >> ${RESULTS}
 grep "Model size" ${OUTPUT}_train >> ${RESULTS}
@@ -61,7 +61,7 @@ for u in "${U[@]}"; do
     echo "Test with utility ${u} ..."
 
     if [ ! -e ${OUTPUT}_test_${full_u} ]; then
-        (time ./nxml test -i $TEST_FILE -o $MODEL -t $THREADS --header 0 --setBasedU ${u}) > ${OUTPUT}_test_${full_u} 2>&1
+        (time ../nxml test -i $TEST_FILE -o $MODEL -t $THREADS --header 0 --setBasedU ${u}) > ${OUTPUT}_test_${full_u} 2>&1
     fi
 
     echo "Test ${u}" >> ${RESULTS}

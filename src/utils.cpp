@@ -5,9 +5,39 @@
 
 
 #include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include "utils.h"
 
 // Data utils
+void computeTfIdfFeatures(SRMatrix<Feature>& features, bool omitBias){
+    std::cerr << "Computing tf-idf features ...\n";
+
+    std::vector<double> idf(features.cols());
+    int rows = features.rows();
+
+    for(int r = 0; r < rows; ++r){
+        printProgress(r, rows * 2);
+
+        int rFeaturesSize = features.size(r) - (omitBias ? 1 : 0);
+        auto rFeatures = features.row(r);
+
+        for (int i = 0; i < rFeaturesSize; ++i) ++idf[rFeatures[i].index];
+    }
+
+    for(auto& w : idf)
+        w = std::log(rows / (1 + w));
+
+    for(int r = 0; r < rows; ++r){
+        printProgress(r + rows, rows * 2);
+
+        int rFeaturesSize = features.size(r) - (omitBias ? 1 : 0);
+        auto rFeatures = features.row(r);
+
+        for (int i = 0; i < rFeaturesSize; ++i)
+            rFeatures[i].value = rFeatures[i].value / rFeaturesSize * idf[rFeatures[i].index];
+    }
+}
 
 void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' frequencies ...\n";
@@ -44,7 +74,7 @@ void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Lab
 
 // TODO: Make it work in parallel
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
-                                 const SRMatrix<Feature>& features, bool weightedFeatures){
+                                 const SRMatrix<Feature>& features, bool norm, bool weightedFeatures){
     std::cerr << "Computing labels' features matrix ...\n";
 
     std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
@@ -69,12 +99,19 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
         }
     }
 
+    std::vector<Frequency> labelsFreq;
+    if(!norm)
+        computeLabelsFrequencies(labelsFreq, labels);
+
     for(int l = 0; l < labels.cols(); ++l){
         std::vector<Feature> labelFeatures;
         for(const auto& f : tmpLabelsFeatures[l])
             labelFeatures.push_back({f.first, f.second});
         std::sort(labelFeatures.begin(), labelFeatures.end());
-        unitNorm(labelFeatures);
+        if(norm)
+            unitNorm(labelFeatures);
+        else
+            divVector(labelFeatures, labelsFreq[l].value);
         labelsFeatures.appendRow(labelFeatures);
     }
 }
@@ -142,4 +179,28 @@ void checkDirName(const std::string& dirname){
     std::remove(tmpFile.c_str());
 }
 
+// Create directory
+void makeDir(const std::string& dirname){
+    std::string mkdirCmd = "mkdir -p " + dirname;
+    const int dir_err = std::system(mkdirCmd.c_str());
+    if (-1 == dir_err){
+        exit(1);
+    }
+}
 
+// Splits string
+std::vector<std::string> split(std::string text, char d){
+    std::vector<std::string> tokens;
+    const char *str = text.c_str();
+
+    do {
+        std::string str_d = std::string("") + d;
+        const char *begin = str;
+        while(*str != d && *str) ++str;
+        std::string token = std::string(begin, str);
+        if(token.length() && token != str_d)
+            tokens.push_back(std::string(begin, str));
+    } while (0 != *str++);
+
+    return tokens;
+}

@@ -13,7 +13,10 @@ if [ ! -e $DATASET_DIR ]; then
     bash get_data.sh $DATASET_NAME
 fi
 
-if [ -e "${DATASET_FILE}_train.txt" ]; then
+if [ -e "${DATASET_FILE}.train.remapped" ]; then
+    TRAIN_FILE="${DATASET_FILE}.train.remapped"
+    TEST_FILE="${DATASET_FILE}.test.remapped"
+elif [ -e "${DATASET_FILE}_train.txt" ]; then
     TRAIN_FILE="${DATASET_FILE}_train.txt"
     TEST_FILE="${DATASET_FILE}_test.txt"
 elif [ -e "${DATASET_FILE}.train" ]; then
@@ -27,7 +30,7 @@ if [ ! -e nxml ]; then
     make -j
 fi
 
-rm -rf $MODEL
+#rm -rf $MODEL
 if [ ! -e $MODEL ]; then
     mkdir -p $MODEL
     time ./nxml train -i $TRAIN_FILE -o $MODEL -t -1 $ARGS

@@ -31,7 +31,7 @@ struct IntFeature{
     }
 };
 
-// Elastic sparse row matrix, type T needs to contain int at offset 0!
+// Elastic low-level sparse row matrix, type T needs to contain int at offset 0!
 template <typename T>
 class SRMatrix {
 public:

@@ -5,20 +5,14 @@
 
 #pragma once
 
-#include "base.h"
-#include "models/model.h"
+#include "br.h"
 
 // One against all
-class OVR: public Model{
+class OVR: public BR{
 public:
-    OVR();
-    ~OVR() override;
-
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    void checkRow(Label* labels, Feature* feature) override;
+    double predict(Label label, Feature* features, Args &args) override;
 
-    void load(std::string infile) override;
-
-private:
-    std::vector<Base*> bases;
+    void printInfo() override;
 };

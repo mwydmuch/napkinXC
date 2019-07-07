@@ -24,12 +24,18 @@ public:
     virtual ~Model();
 
     void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
-    virtual void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) = 0;
+    virtual void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) = 0;
     virtual void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) = 0;
+    virtual double predict(Label label, Feature* features, Args &args) = 0;
+    virtual void checkRow(Label* labels, Feature* feature);
 
-    virtual void load(std::string infile) = 0;
+    virtual void load(Args &args, std::string infile) = 0;
 
     virtual void printInfo(){}
+    inline int outputSize(){ return m; };
+
+protected:
+    int m; // Output size/number of labels
 };
 
 std::shared_ptr<Model> modelFactory(Args &args);

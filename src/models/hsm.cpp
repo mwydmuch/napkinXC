@@ -17,6 +17,9 @@
 
 HSM::HSM(){
     tree = nullptr;
+    eCount = 0;
+    pLen = 0;
+    rCount = 0;
 }
 
 HSM::~HSM() {
@@ -25,16 +28,13 @@ HSM::~HSM() {
         delete bases[i];
 }
 
-void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
     std::cerr << "Building tree ...\n";
 
     tree = new Tree();
     tree->buildTreeStructure(labels, features, args);
 
     std::cerr << "Training tree ...\n";
-
-    // For stats
-    long pLen = 0, eCount = 0;
 
     // Check data
     int rows = features.rows();
@@ -68,8 +68,11 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
             }
         }
         else {
-            if (rSize > 1)
-                throw "HSM is multi-class classifier, encountered example with more then 1 label! Use PLT instead.";
+            if (rSize > 1) {
+                //std::cerr << "Encountered example with more then 1 label! HSM is multi-class classifier, use BR instead!";
+                continue;
+                //throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
+            }
             else if (rSize < 1){
                 std::cerr << "Example without label, skipping ...\n";
                 continue;
@@ -77,7 +80,7 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         }
 
         assert(path.size());
-        assert(path.back() == tree.root);
+        assert(path.back() == tree->root);
 
         for(int i = path.size() - 1; i >= 0; --i){
             TreeNode *n = path[i], *p = n->parent;
@@ -108,67 +111,38 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         }
 
         pLen += path.size();
+        ++rCount;
     }
 
-    std::cerr << "Starting training in " << args.threads << " threads ...\n";
-
-    std::ofstream weightsOut(joinPath(args.output, "hsm_weights.bin"));
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
-
-        for(const auto& n : tree->nodes)
-            results.emplace_back(tPool.enqueue(baseTrain, features.cols(), std::ref(binLabels[n->index]),
-                                               std::ref(binFeatures[n->index]), std::ref(args)));
-
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(weightsOut);
-            delete base;
-        }
-    } else {
-        for(int i = 0; i < tree->nodes.size(); ++i){
-            printProgress(i, tree->nodes.size());
-            Base base;
-            base.train(features.cols(), binLabels[tree->nodes[i]->index], binFeatures[tree->nodes[i]->index], args);
-            base.save(weightsOut);
-        }
-    }
-    weightsOut.close();
-
-    std::cerr << "  Data points count: " << rows
-              << "\n  Avg. path len: " << static_cast<double>(pLen) / rows
-              << "\n  Estimators updates per data point: " << static_cast<double>(eCount) / rows
-              << "\n";
+    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
 
     // Save tree
-    tree->saveToFile(joinPath(args.output, "hsm_tree.bin"));
+    tree->saveToFile(joinPath(output, "tree.bin"));
 }
 
 void HSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::priority_queue<TreeNodeValue> nQueue;
 
-    double val = bases[tree->root->index]->predictProbability(features);
-    assert(val == 1);
-    nQueue.push({tree->root, val});
+    double value = bases[tree->root->index]->predictProbability(features);
+    assert(value == 1);
+    nQueue.push({tree->root, value});
+    ++rCount;
+
+    while (prediction.size() < args.topK && !nQueue.empty()) predictNext(nQueue, prediction, features);
+}
+
+void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features){
 
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
-        if(nVal.node->label >= 0){
-            prediction.push_back({nVal.node->label, nVal.value});
-            if (prediction.size() >= args.topK)
-                break;
-        }
         if(nVal.node->children.size()){
             if(nVal.node->children.size() == 2) {
                 double value = bases[nVal.node->children[0]->index]->predictProbability(features);
                 nQueue.push({nVal.node->children[0], nVal.value * value});
                 nQueue.push({nVal.node->children[1], nVal.value * (1.0 - value)});
+                ++eCount;
             }
             else {
                 double sum = 0;
@@ -180,24 +154,35 @@ void HSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &
 
                 for(int i = 0; i < nVal.node->children.size(); ++i)
                     nQueue.push({nVal.node->children[i], nVal.value * values[i] / sum});
+
+                eCount += nVal.node->children.size();
             }
+        }
+        if(nVal.node->label >= 0){
+            prediction.push_back({nVal.node->label, nVal.value});
+            break;
         }
     }
 }
 
-void HSM::load(std::string infile){
+double HSM::predict(Label label, Feature* features, Args &args){
+    return 1.0;
+}
+
+void HSM::load(Args &args, std::string infile){
     std::cerr << "Loading HSM model ...\n";
 
     tree = new Tree();
-    tree->loadFromFile(joinPath(infile, "hsm_tree.bin"));
+    tree->loadFromFile(joinPath(infile, "tree.bin"));
+    bases = loadBases(joinPath(infile, "weights.bin"));
+    assert(bases.size() == tree->nodes.size());
+    m = tree->numberOfLeaves();
+}
 
-    std::cerr << "Loading base classifiers ...\n";
-    std::ifstream weightsIn(joinPath(infile, "hsm_weights.bin"));
-    for(int i = 0; i < tree->t; ++i) {
-        printProgress(i, tree->t);
-        bases.emplace_back(new Base());
-        bases.back()->load(weightsIn);
-    }
-    weightsIn.close();
+void HSM::printInfo(){
+    std::cerr << "HSM additional stats:"
+              << "\n  Mean path len: " << static_cast<double>(pLen) / rCount
+              << "\n  Mean # estimators per data point: " << static_cast<double>(eCount) / rCount
+              << "\n";
 }
 

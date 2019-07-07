@@ -69,10 +69,10 @@ if [ ! -e $DATASET_PATH ]; then
     fi
 
     echo "Extracting ${DATASET_PATH} ..."
-    if [[ $DATASET_LINK == *.zip ]]; then
+    if [[ -e ${DATASET_PATH}.zip ]]; then
         unzip -j -d $DATASET_PATH ${DATASET_PATH}.zip
         rm ${DATASET_PATH}.zip
-    elif [[ $DATASET_LINK == *.tar.bz2 ]]; then
+    elif [[ -e ${DATASET_PATH}.tar.bz2 ]]; then
         mkdir -p $DATA_DIR
         tar xjC $DATA_DIR -f ${DATASET_PATH}.tar.bz2
         rm ${DATASET_PATH}.tar.bz2

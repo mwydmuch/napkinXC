@@ -15,9 +15,13 @@ enum ModelType {
     ovr,
     br,
     hsm,
-    plt
+    plt,
+    ubop,
+    rbop,
+    ubopch,
+    hsmEns,
+    pltEns,
 };
-
 
 enum TreeType {
     hierarchicalKMeans,
@@ -32,6 +36,14 @@ enum TreeType {
 enum OptimizerType { libliner, sgd };
 
 enum DataFormatType { libsvm };
+
+enum SetUtilityType {
+    uP,
+    uF1,
+    uAlfa,
+    uAlfaBeta,
+    uDeltaGamma
+};
 
 class Args: public FileHelper{
 public:
@@ -50,11 +62,13 @@ public:
     double biasValue;
     double C;
     bool norm;
+    bool tfidf;
     int hash;
     int maxFeatures;
 
     // Training options
     int threads;
+    size_t memLimit;
     int solverType;
     OptimizerType optimizerType;
     double eps;
@@ -63,6 +77,8 @@ public:
     bool labelsWeights;
     int iter;
     double eta;
+    double mem;
+    int ensemble;
 
     // Tree options
     int arity;
@@ -86,10 +102,22 @@ public:
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
+    // Set utility options
+    SetUtilityType setUtilityType;
+    double alfa;
+    double beta;
+    double epsilon;
+    double delta;
+    double gamma;
+
+    // Measures
+    std::string measures;
+
 private:
     std::string solverName;
     std::string treeTypeName;
     std::string optimizerName;
     std::string modelName;
     std::string dataFormatName;
+    std::string setUtilityName;
 };

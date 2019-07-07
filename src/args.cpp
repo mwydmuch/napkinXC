@@ -29,10 +29,13 @@ Args::Args() {
     bias = true;
     biasValue = 1.0;
     norm = true;
+    tfidf = false;
     maxFeatures = -1;
 
     // Training options
     threads = getCpuCount();
+    memLimit = 0;
+    mem = 16;
     eps = 0.1;
     cost = 10.0;
     solverType = L2R_LR_DUAL;
@@ -43,14 +46,15 @@ Args::Args() {
     iter = 50;
     eta = 0.5;
     threshold = 0.1;
+    ensemble = 1;
 
     // Tree options
     treeStructure = "";
     arity = 2;
-    //treeType = completeInOrder;
-    //treeTypeName = "completeInOrder";
-    treeType = hierarchicalKMeans;
-    treeTypeName = "hierarchicalKMeans";
+    treeType = completeInOrder;
+    treeTypeName = "completeInOrder";
+    //treeType = hierarchicalKMeans;
+    //treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
     // K-Means tree options
@@ -61,6 +65,17 @@ Args::Args() {
     // Prediction options
     topK = 1;
     sparseWeights = true;
+
+    // Set utility options
+    setUtilityType = uAlfaBeta;
+    alfa = 1.0;
+    beta = 1.0;
+    epsilon = 0.0;
+    delta = 0.0;
+    gamma = 0.0;
+
+    // Measures
+    measures = "p@k,r@k,c@k";
 }
 
 // Parse args
@@ -99,23 +114,53 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
+            else if (args[ai] == "--ensemble")
+                ensemble = std::stoi(args.at(ai + 1));
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
                 if (args.at(ai + 1) == "ovr") modelType = ovr;
                 else if (args.at(ai + 1) == "br") modelType = br;
                 else if (args.at(ai + 1) == "hsm") modelType = hsm;
+                else if (args.at(ai + 1) == "hsmEns") modelType = hsmEns;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
+                else if (args.at(ai + 1) == "pltEns") modelType = pltEns;
+                else if (args.at(ai + 1) == "ubop") modelType = ubop;
+                else if (args.at(ai + 1) == "rbop") modelType = rbop;
+                else if (args.at(ai + 1) == "ubopch") modelType = ubopch;
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
                     printHelp();
                 }
             }
+            else if (args[ai] == "--setUtility") {
+                setUtilityName = args.at(ai + 1);
+                if (args.at(ai + 1) == "uP") setUtilityType = uP;
+                else if (args.at(ai + 1) == "uF1") setUtilityType = uF1;
+                else if (args.at(ai + 1) == "uAlfaBeta") setUtilityType = uAlfaBeta;
+                else {
+                    std::cerr << "Unknown set utility type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
+            else if (args[ai] == "--alfa")
+                alfa = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--beta")
+                beta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--epsilon")
+                epsilon = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--delta")
+                delta = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--gamma")
+                gamma = std::stof(args.at(ai + 1));
+
             else if (args[ai] == "--header")
                 header = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--bias")
                 bias = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--norm")
                 norm = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--tfidf")
+                tfidf = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--hash")
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
@@ -224,12 +269,15 @@ void Args::printArgs(){
             << "\n    Data format: " << dataFormatType
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
             << "\n  Model: " << output
-            << "\n    Type: " << modelName
-            << "\n    Optimizer: " << optimizerName;
-        if(optimizerType == libliner)
-            std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", threshold: " << threshold;
-        else if(optimizerType == sgd)
-            std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
+            << "\n    Type: " << modelName;
+        if(command == "train") {
+            std::cerr << "\n    Optimizer: " << optimizerName;
+            if (optimizerType == libliner)
+                std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost
+                          << ", threshold: " << threshold;
+            else if (optimizerType == sgd)
+                std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
+        }
         if(modelType == plt){
             if(treeStructure.empty()) {
                 std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
@@ -242,6 +290,10 @@ void Args::printArgs(){
             else {
                 std::cerr << "\n    Tree: " << treeStructure;
             }
+        }
+        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopch)) {
+            std::cerr << "\n  Set utility: " << setUtilityName << ", alfa: " << alfa
+                      << ", beta: " << beta << ", epsilon: " << epsilon;
         }
         std::cerr << "\n  Threads: " << threads << "\n";
     }
@@ -318,6 +370,7 @@ void Args::save(std::ostream& out){
     out.write((char*) &hash, sizeof(hash));
     out.write((char*) &modelType, sizeof(modelType));
     out.write((char*) &dataFormatType, sizeof(dataFormatType));
+    out.write((char*) &ensemble, sizeof(ensemble));
 }
 
 void Args::load(std::istream& in){
@@ -326,4 +379,5 @@ void Args::load(std::istream& in){
     in.read((char*) &hash, sizeof(hash));
     in.read((char*) &modelType, sizeof(modelType));
     in.read((char*) &dataFormatType, sizeof(dataFormatType));
+    in.read((char*) &ensemble, sizeof(ensemble));
 }

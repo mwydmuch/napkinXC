@@ -7,7 +7,7 @@
 #pragma once
 
 #include "base.h"
-#include "models/model.h"
+#include "model.h"
 #include "tree.h"
 
 
@@ -16,12 +16,20 @@ public:
     PLT();
     ~PLT() override;
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
+    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    double predict(Label label, Feature* features, Args &args) override;
 
-    void load(std::string infile) override;
+    void load(Args &args, std::string infile) override;
 
-private:
+    void printInfo() override;
+
+protected:
     Tree* tree;
     std::vector<Base*> bases;
+
+    void predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features);
+
+    int nCount; // Number of visited nodes (updated/evaluated classifiers) during training or prediction
+    int rCount; // Data points count
 };

@@ -75,4 +75,18 @@ double Base::predictProbability(T* features){
     return val;
 }
 
-Base* baseTrain(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args);
+
+// Base utils
+
+Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args);
+
+void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                std::vector<std::vector<Feature*>>& baseFeatures, Args& args);
+
+void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                                std::vector<Feature*>& baseFeatures, Args& args);
+
+void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
+                                std::vector<Feature*>& baseFeatures, Args& args);
+
+std::vector<Base*> loadBases(std::string infile);

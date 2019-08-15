@@ -5,7 +5,18 @@
 
 #pragma once
 
+#include <unordered_map>
+
 #include "model.h"
+
+struct EnsemblePrediction{
+    int label;
+    double value;
+    std::vector<size_t> members;
+
+    bool operator<(const EnsemblePrediction &r) const { return value < r.value; }
+};
+
 
 template <typename T>
 class Ensemble: public Model{
@@ -50,14 +61,41 @@ void Ensemble<T>::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
 
 template <typename T>
 void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
-    for(auto &m : members){
-        m->predict(prediction, features, args);
+
+    std::unordered_map<int, EnsemblePrediction> ensemblePredictions;
+    for(size_t i = 0; i < members.size(); ++i){
+        members[i]->predict(prediction, features, args);
+
+        for(auto &mP : prediction) {
+            auto ensP = ensemblePredictions.find(mP.label);
+            if (ensP != ensemblePredictions.end()) {
+                ensP->second.value += mP.value;
+                ensP->second.members.push_back(i);
+            } else
+                ensemblePredictions.insert({mP.label, {mP.label, mP.value, {i}}});
+        }
     }
+
+    prediction.clear();
+    for(auto &p : ensemblePredictions){
+        double value = p.second.value;
+        for(size_t i = 0; i < members.size(); ++i){
+            if(!std::count(p.second.members.begin(), p.second.members.end(), i))
+                value += members[i]->predict(p.second.label, features, args);
+        }
+        prediction.push_back({p.second.label, value / members.size()});
+    }
+
+    sort(prediction.rbegin(), prediction.rend());
+    if(args.topK > 0) prediction.resize(args.topK);
 }
 
 template <typename T>
 double Ensemble<T>::predict(Label label, Feature* features, Args &args){
-    return 1.0;
+    double value = 0;
+    for(auto &m : members)
+        value += m->predict(label, features, args);
+    return value / members.size();
 }
 
 template <typename T>

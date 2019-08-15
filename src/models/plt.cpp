@@ -141,7 +141,14 @@ void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
 }
 
 double PLT::predict(Label label, Feature* features, Args &args){
-    return 1.0;
+    double value = 0;
+    TreeNode *n = tree->leaves[label];
+    value *= bases[n->index]->predictProbability(features);
+    while (n->parent){
+        n = n->parent;
+        value *= bases[n->index]->predictProbability(features);
+    }
+    return value;
 }
 
 void PLT::load(Args &args, std::string infile){

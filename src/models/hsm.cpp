@@ -166,7 +166,31 @@ void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
 }
 
 double HSM::predict(Label label, Feature* features, Args &args){
-    return 1.0;
+    double value = 0;
+    TreeNode *n = tree->leaves[label];
+    while (n->parent){
+        if(n->parent->children.size() == 2) {
+            if(n == n->parent->children[0])
+                value *= bases[n->children[0]->index]->predictProbability(features);
+            else
+                value *= 1.0 - bases[n->children[0]->index]->predictProbability(features);
+        }
+        else {
+            double sum = 0;
+            double tmpValue = 0;
+            for (const auto &child : n->parent->children) {
+                if(child == n) {
+                    tmpValue = bases[child->index]->predictProbability(features);
+                    sum += tmpValue;
+                } else
+                    sum += bases[child->index]->predictProbability(features);
+            }
+            value *= tmpValue / sum;
+        }
+        n = n->parent;
+    }
+
+    return value;
 }
 
 void HSM::load(Args &args, std::string infile){

@@ -22,8 +22,8 @@ double Measure::value() {
     return sum / count;
 }
 
-MeasureAtK::MeasureAtK(Args& args, Model* model) : Measure(args, model){
-    k = args.topK;
+MeasureAtK::MeasureAtK(Args& args, Model* model, int k) : Measure(args, model){
+    this->k = k;
 }
 
 Recall::Recall(Args& args, Model* model) : Measure(args, model){
@@ -49,7 +49,7 @@ void Recall::accumulate(Label* labels, const std::vector<Prediction>& prediction
     }
 }
 
-RecallAtK::RecallAtK(Args& args, Model* model) : MeasureAtK(args, model){
+RecallAtK::RecallAtK(Args& args, Model* model, int k) : MeasureAtK(args, model, k){
     name = "R@" + std::to_string(k);
 }
 
@@ -91,7 +91,7 @@ void Precision::accumulate(Label* labels, const std::vector<Prediction>& predict
     ++count;
 }
 
-PrecisionAtK::PrecisionAtK(Args& args, Model* model) : MeasureAtK(args, model){
+PrecisionAtK::PrecisionAtK(Args& args, Model* model, int k) : MeasureAtK(args, model, k){
     name = "P@" + std::to_string(k);
 }
 
@@ -133,7 +133,7 @@ double Coverage::value(){
     return static_cast<double>(seen.size()) / m;
 }
 
-CoverageAtK::CoverageAtK(Args& args, Model* model) : MeasureAtK(args, model){
+CoverageAtK::CoverageAtK(Args& args, Model* model, int k) : MeasureAtK(args, model, k){
     name = "C@" + std::to_string(k);
     m = model->outputSize();
 }
@@ -170,30 +170,36 @@ std::vector<std::shared_ptr<Measure>> measuresFactory(Args& args, Model* model){
 
     std::vector<std::string> measuresNames = split(args.measures, ',');
     for(const auto& m : measuresNames){
-        if(m == "p")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Precision>(args, model)));
-        else if(m == "p@k")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionAtK>(args, model)));
-        else if(m == "r")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Recall>(args, model)));
-        else if(m == "r@k")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<RecallAtK>(args, model)));
-        else if(m == "c")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Coverage>(args, model)));
-        else if(m == "c@k")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<CoverageAtK>(args, model)));
-        else if(m == "acc")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Accuracy>(args, model)));
-        else if(m == "uP")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionUtility>(args, model)));
-        else if(m == "uF1")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1Utility>(args, model)));
-        else if(m == "uAlfa")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfa>(args, model)));
-        else if(m == "uAlfaBeta")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfaBeta>(args, model)));
-        else if(m == "uDeltaGamma")
-            measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args, model)));
+        // TODO: Add wrong values handling
+        std::vector<std::string> mAt = split(m, '@');
+        if(mAt.size() > 1){
+            int k = std::stoi(mAt[1]);
+            if(mAt[0] == "p")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionAtK>(args, model, k)));
+            else if(mAt[0] == "r")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<RecallAtK>(args, model, k)));
+            else if(mAt[0] == "c")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<CoverageAtK>(args, model, k)));
+        } else {
+            if (m == "p")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Precision>(args, model)));
+            else if (m == "r")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Recall>(args, model)));
+            else if (m == "c")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Coverage>(args, model)));
+            else if (m == "acc")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Accuracy>(args, model)));
+            else if (m == "uP")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionUtility>(args, model)));
+            else if (m == "uF1")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1Utility>(args, model)));
+            else if (m == "uAlfa")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfa>(args, model)));
+            else if (m == "uAlfaBeta")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfaBeta>(args, model)));
+            else if (m == "uDeltaGamma")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args, model)));
+        }
     }
 
     return measures;

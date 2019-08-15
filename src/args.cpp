@@ -40,7 +40,7 @@ Args::Args() {
     cost = 10.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
-    labelsWeights = true;
+    labelsWeights = false;
     optimizerName = "libliner";
     optimizerType = libliner;
     iter = 50;
@@ -51,10 +51,10 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    treeType = completeInOrder;
-    treeTypeName = "completeInOrder";
-    //treeType = hierarchicalKMeans;
-    //treeTypeName = "hierarchicalKMeans";
+    //treeType = completeInOrder;
+    //treeTypeName = "completeInOrder";
+    treeType = hierarchicalKMeans;
+    treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
     // K-Means tree options
@@ -75,7 +75,7 @@ Args::Args() {
     gamma = 0.0;
 
     // Measures
-    measures = "p@k,r@k,c@k";
+    measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
 }
 
 // Parse args

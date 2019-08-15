@@ -28,7 +28,7 @@ protected:
 
 class MeasureAtK: public Measure {
 public:
-    MeasureAtK(Args& args, Model* model);
+    MeasureAtK(Args& args, Model* model, int k);
 
 protected:
     int k;
@@ -43,7 +43,7 @@ public:
 
 class RecallAtK: public MeasureAtK {
 public:
-    RecallAtK(Args& args, Model* model);
+    RecallAtK(Args& args, Model* model, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
@@ -57,7 +57,7 @@ public:
 
 class PrecisionAtK: public MeasureAtK {
 public:
-    PrecisionAtK(Args& args, Model* model);
+    PrecisionAtK(Args& args, Model* model, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
@@ -76,7 +76,7 @@ protected:
 
 class CoverageAtK: public MeasureAtK {
 public:
-    CoverageAtK(Args& args, Model* model);
+    CoverageAtK(Args& args, Model* model, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;

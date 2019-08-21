@@ -7,7 +7,11 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <array>
+#include <mutex>
+
 #include "utils.h"
+#include "threads.h"
 
 // Data utils
 void computeTfIdfFeatures(SRMatrix<Feature>& features, bool omitBias){
@@ -72,43 +76,88 @@ void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Lab
     }
 }
 
-// TODO: Make it work in parallel
-void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
-                                 const SRMatrix<Feature>& features, bool norm, bool weightedFeatures){
-    std::cerr << "Computing labels' features matrix ...\n";
-
-    std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
+void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
+                                       const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
+                                       bool weightedFeatures,
+                                       int threadId, int threads, std::array<std::mutex, MUTEXES>& mutexes) {
 
     int rows = features.rows();
-    assert(rows == labels.rows());
+    int part = (rows / threads) + 1;
+    int partStart = threadId * part;
+    int partEnd = std::min((threadId + 1) * part, rows);
 
-    for(int r = 0; r < rows; ++r){
-        printProgress(r, rows);
+    for (int r = partStart; r < partEnd; ++r) {
+        if(threadId == 0) printProgress(r, partEnd);
         int rFeaturesSize = features.size(r);
         int rLabelsSize = labels.size(r);
         auto rFeatures = features.row(r);
         auto rLabels = labels.row(r);
-        for (int i = 0; i < rFeaturesSize; ++i){
-            for (int j = 0; j < rLabelsSize; ++j){
+        for (int i = 0; i < rFeaturesSize; ++i) {
+            for (int j = 0; j < rLabelsSize; ++j) {
+                std::mutex &m = mutexes[rLabels[j] % mutexes.size()];
+                m.lock();
+
                 auto f = tmpLabelsFeatures[rLabels[j]].find(rFeatures[i].index);
                 auto v = rFeatures[i].value;
-                if(weightedFeatures) v /= rLabelsSize;
-                if(f == tmpLabelsFeatures[rLabels[j]].end()) tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = v;
-                else (*f).second += v;
+                if (weightedFeatures) v /= rLabelsSize;
+                if (f == tmpLabelsFeatures[rLabels[j]].end()) tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = v;
+                else f->second += v;
+
+                m.unlock();
+            }
+        }
+    }
+}
+
+void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
+                                 const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures){
+    std::cerr << "Computing labels' features matrix ...\n";
+
+    std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
+
+    assert(features.rows() == labels.rows());
+
+    if(threads > 1) {
+        std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
+
+        std::array<std::mutex, MUTEXES> mutexes;
+        ThreadSet tSet;
+        for (int t = 0; t < threads; ++t)
+            tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels), std::ref(features), weightedFeatures,
+                     t, threads, std::ref(mutexes));
+        tSet.joinAll();
+    } else {
+        std::cerr << "Computing labels' features matrix ...\n";
+
+        int rows = features.rows();
+        for (int r = 0; r < rows; ++r) {
+            printProgress(r, rows);
+            int rFeaturesSize = features.size(r);
+            int rLabelsSize = labels.size(r);
+            auto rFeatures = features.row(r);
+            auto rLabels = labels.row(r);
+            for (int i = 0; i < rFeaturesSize; ++i) {
+                for (int j = 0; j < rLabelsSize; ++j) {
+                    auto f = tmpLabelsFeatures[rLabels[j]].find(rFeatures[i].index);
+                    auto v = rFeatures[i].value;
+                    if (weightedFeatures) v /= rLabelsSize;
+                    if (f == tmpLabelsFeatures[rLabels[j]].end()) tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = v;
+                    else f->second += v;
+                }
             }
         }
     }
 
     std::vector<Frequency> labelsFreq;
-    if(!norm)
+    if (!norm)
         computeLabelsFrequencies(labelsFreq, labels);
 
-    for(int l = 0; l < labels.cols(); ++l){
+    for (int l = 0; l < labels.cols(); ++l) {
         std::vector<Feature> labelFeatures;
-        for(const auto& f : tmpLabelsFeatures[l])
+        for (const auto &f : tmpLabelsFeatures[l])
             labelFeatures.push_back({f.first, f.second});
         std::sort(labelFeatures.begin(), labelFeatures.end());
-        if(norm)
+        if (norm)
             unitNorm(labelFeatures);
         else
             divVector(labelFeatures, labelsFreq[l].value);

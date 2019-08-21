@@ -30,13 +30,13 @@ Args::Args() {
     biasValue = 1.0;
     norm = true;
     tfidf = false;
-    maxFeatures = -1;
+    pruneThreshold = 0.0;
 
     // Training options
     threads = getCpuCount();
     memLimit = 0;
     mem = 16;
-    eps = 0.1;
+    eps = 0.01;
     cost = 10.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
@@ -45,7 +45,7 @@ Args::Args() {
     optimizerType = libliner;
     iter = 50;
     eta = 0.5;
-    threshold = 0.1;
+    weightsThreshold = 0.1;
     ensemble = 1;
 
     // Tree options
@@ -163,14 +163,14 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 tfidf = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--hash")
                 hash = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--threshold")
-                threshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--pruneThreshold")
+                pruneThreshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--weightsThreshold")
+                weightsThreshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--eta")
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--iter")
                 iter = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--maxFeatures")
-                maxFeatures = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -267,16 +267,16 @@ void Args::printArgs(){
         std::cerr << "napkinXML - " << command
             << "\n  Input: " << input
             << "\n    Data format: " << dataFormatType
-            << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash: " << hash
+            << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", prune threshold: " << pruneThreshold
             << "\n  Model: " << output
             << "\n    Type: " << modelName;
         if(command == "train") {
             std::cerr << "\n    Optimizer: " << optimizerName;
             if (optimizerType == libliner)
                 std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost
-                          << ", threshold: " << threshold;
+                          << ", weights threshold: " << weightsThreshold;
             else if (optimizerType == sgd)
-                std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << threshold;
+                std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << weightsThreshold;
         }
         if(modelType == plt){
             if(treeStructure.empty()) {
@@ -301,7 +301,7 @@ void Args::printArgs(){
         std::cerr << "napkinXML - " << command
             << "\n  Input model: " << input
             << "\n  Output model: " << output
-            << "\n  Threshold: " << threshold << "\n";
+            << "\n  Threshold: " << weightsThreshold << "\n";
 }
 
 void Args::printHelp(){

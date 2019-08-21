@@ -46,7 +46,7 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
         buildHuffmanTree(labels, args);
     else if (args.treeType == hierarchicalKMeans) {
         SRMatrix<Feature> labelsFeatures;
-        computeLabelsFeaturesMatrix(labelsFeatures, labels, features, args.norm, args.kMeansWeightedFeatures);
+        computeLabelsFeaturesMatrix(labelsFeatures, labels, features, args.threads, args.norm, args.kMeansWeightedFeatures);
         //labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
         buildKMeansTree(labelsFeatures, args);
     }

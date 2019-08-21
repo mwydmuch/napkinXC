@@ -26,6 +26,7 @@ public:
 protected:
     int hLabels;
     int hFeatures;
+    int hRows;
 };
 
 std::shared_ptr<DataReader> dataReaderFactory(Args &args);

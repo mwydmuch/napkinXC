@@ -20,6 +20,7 @@ std::shared_ptr<DataReader> dataReaderFactory(Args &args){
 DataReader::DataReader(){
     hLabels = 0;
     hFeatures = 0;
+    hRows = 0;
 }
 
 DataReader::~DataReader(){}
@@ -42,8 +43,10 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     std::vector<Feature> lFeatures;
 
     // Read examples
+    if(!hRows) std::cerr << "  ?%\r";
     int i = 0;
     while (getline(in, line)){
+        if(hRows) printProgress(i, hRows); // If the number of rows is know, print progress
 
         lLabels.clear();
         lFeatures.clear();
@@ -52,8 +55,9 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
         // Norm row
         if(args.norm) unitNorm(lFeatures);
+        if(args.pruneThreshold > 0) threshold(lFeatures, args.pruneThreshold);
 
-        // Add bias feature
+        // Add bias feature after applying norm
         if(args.bias && !hFeatures) lFeatures.push_back({lFeatures.back().index + 1, args.biasValue});
         else if(args.bias) lFeatures.push_back({hFeatures + 1, args.biasValue});
 

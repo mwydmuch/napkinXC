@@ -64,7 +64,7 @@ public:
     bool norm;
     bool tfidf;
     int hash;
-    int maxFeatures;
+    double pruneThreshold;
 
     // Training options
     int threads;
@@ -73,7 +73,7 @@ public:
     OptimizerType optimizerType;
     double eps;
     double cost;
-    double threshold;
+    double weightsThreshold;
     bool labelsWeights;
     int iter;
     double eta;

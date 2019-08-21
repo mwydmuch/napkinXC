@@ -26,8 +26,15 @@ void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix
 
 void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels);
 
+#define MUTEXES 1024
+void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
+                                       const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
+                                       bool weightedFeatures,
+                                       int threadId, int threads, std::array<std::mutex, MUTEXES>& mutexes);
+
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
-                                 const SRMatrix<Feature>& features, bool norm = false, bool weightedFeatures = false);
+                                 const SRMatrix<Feature>& features,
+                                 int threads = 1, bool norm = false, bool weightedFeatures = false);
 
 void computeLabelsExamples(std::vector<std::vector<Example>>& labelsFeatures, const SRMatrix<Label>& labels);
 
@@ -205,6 +212,19 @@ inline void unitNorm(Feature* data, size_t size){
 template <typename T>
 inline void unitNorm(std::vector<T>& vector){
     unitNorm(vector.data(), vector.size());
+}
+
+inline void threshold(std::vector<Feature>& vector, double threshold){
+    int c = 0;
+    for(int i = 0; i < vector.size(); ++i)
+        if(vector[i].value > threshold){
+            if(c != i) {
+                vector[c].index = vector[i].index;
+                vector[c].value = vector[i].value;
+            }
+            ++c;
+        }
+    vector.resize(c);
 }
 
 

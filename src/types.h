@@ -39,8 +39,11 @@ public:
     SRMatrix(int rows, int cols);
     ~SRMatrix();
 
-    void appendRow(const std::vector<T>& row);
+    inline void appendRow(const std::vector<T>& row);
     void appendRow(const T* row, const int size);
+
+    inline void replaceRow(const int index, const std::vector<T>& row);
+    void replaceRow(const int index, const T* row, const int size);
 
     // Inefficient operation
     void appendToRow(const int index, const std::vector<T>& row);
@@ -95,6 +98,9 @@ private:
     int c; // Non zero cells count
     std::vector<int> s; // Rows' sizes
     std::vector<T*> r; // Rows
+
+    inline T* createNewRow(const T* row, const int size);
+    inline void updateN(const T* row, const int size);
 };
 
 template <typename T>
@@ -124,6 +130,22 @@ SRMatrix<T>::~SRMatrix(){
     clear();
 }
 
+template <typename T>
+inline T* SRMatrix<T>::createNewRow(const T* row, const int size){
+    T* newRow = new T[size + 1];
+    std::memcpy(newRow, row, size * sizeof(T));
+    std::memset(&newRow[size], -1, sizeof(int)); // Add termination feature (-1)
+    return newRow;
+}
+
+template <typename T>
+inline void SRMatrix<T>::updateN(const T* row, const int size){
+    if(size > 0){
+        int rown = *(int *)&row[size - 1] + 1;
+        if(n < rown) n = rown;
+    }
+}
+
 // Data should be sorted
 template <typename T>
 inline void SRMatrix<T>::appendRow(const std::vector<T>& row){
@@ -133,19 +155,25 @@ inline void SRMatrix<T>::appendRow(const std::vector<T>& row){
 template <typename T>
 void SRMatrix<T>::appendRow(const T* row, const int size){
     s.push_back(size);
-
-    T* newRow = new T[size + 1];
-    std::memcpy(newRow, row, size * sizeof(T));
-    std::memset(&newRow[size], -1, sizeof(int)); // Add termination feature (-1)
-    r.push_back(newRow);
-
-    if(size > 0){
-        int rown = *(int *)&row[size - 1] + 1;
-        if(n < rown) n = rown;
-    }
-
+    r.push_back(createNewRow(row, size));
+    updateN(row, size);
     m = r.size();
     c += size;
+}
+
+// Data should be sorted
+template <typename T>
+inline void SRMatrix<T>::replaceRow(const int index, const std::vector<T>& row){
+    replaceRow(index, row.data(), row.size());
+}
+
+template <typename T>
+void SRMatrix<T>::replaceRow(const int index, const T* row, const int size){
+    c += size - s[index];
+    s[index] = size;
+    delete[] r[index];
+    r[index] = createNewRow(row, size);
+    updateN(row, size);
 }
 
 template <typename T>
@@ -184,6 +212,7 @@ inline U SRMatrix<T>::dotRow(const int index, const U* vector){ // Version witho
     return dotVectors(r[index], vector);
 }
 
+// TODO
 template <typename T>
 inline SRMatrix<T> SRMatrix<T>::transopose() {
     SRMatrix<T> tMatrix;

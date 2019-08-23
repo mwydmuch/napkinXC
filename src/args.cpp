@@ -57,6 +57,9 @@ Args::Args() {
     treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
+    // Tree sampling
+    sampleK = 50;
+
     // K-Means tree options
     kMeansEps = 0.0001;
     kMeansBalanced = true;
@@ -124,6 +127,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "hsmEns") modelType = hsmEns;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
                 else if (args.at(ai + 1) == "pltEns") modelType = pltEns;
+                else if (args.at(ai + 1) == "pltNeg") modelType = pltNeg;
+                else if (args.at(ai + 1) == "brpltNeg") modelType = brpltNeg;
                 else if (args.at(ai + 1) == "ubop") modelType = ubop;
                 else if (args.at(ai + 1) == "rbop") modelType = rbop;
                 else if (args.at(ai + 1) == "ubopch") modelType = ubopch;
@@ -239,6 +244,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
+            else if (args[ai] == "--sampleK")
+                sampleK = std::stoi(args.at(ai + 1));
 
             // Prediction options
             else if (args[ai] == "--topK")

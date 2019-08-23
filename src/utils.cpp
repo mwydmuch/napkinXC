@@ -180,6 +180,23 @@ void computeLabelsExamples(std::vector<std::vector<Example>>& labelsExamples, co
     }
 }
 
+// Splits string
+std::vector<std::string> split(std::string text, char d){
+    std::vector<std::string> tokens;
+    const char *str = text.c_str();
+
+    do {
+        std::string str_d = std::string("") + d;
+        const char *begin = str;
+        while(*str != d && *str) ++str;
+        std::string token = std::string(begin, str);
+        if(token.length() && token != str_d)
+            tokens.push_back(std::string(begin, str));
+    } while (0 != *str++);
+
+    return tokens;
+}
+
 // Files utils
 
 void FileHelper::saveToFile(std::string outfile){
@@ -228,28 +245,23 @@ void checkDirName(const std::string& dirname){
     std::remove(tmpFile.c_str());
 }
 
-// Create directory
-void makeDir(const std::string& dirname){
-    std::string mkdirCmd = "mkdir -p " + dirname;
-    const int dir_err = std::system(mkdirCmd.c_str());
-    if (-1 == dir_err){
+// TODO improve this
+// Run shell CMD
+void shellCmd(const std::string& cmd){
+    const int cmdErr = std::system(cmd.c_str());
+    if (-1 == cmdErr){
         exit(1);
     }
 }
 
-// Splits string
-std::vector<std::string> split(std::string text, char d){
-    std::vector<std::string> tokens;
-    const char *str = text.c_str();
+// Create directory
+void makeDir(const std::string& dirname){
+    std::string mkdirCmd = "mkdir -p " + dirname;
+    shellCmd(mkdirCmd);
+}
 
-    do {
-        std::string str_d = std::string("") + d;
-        const char *begin = str;
-        while(*str != d && *str) ++str;
-        std::string token = std::string(begin, str);
-        if(token.length() && token != str_d)
-            tokens.push_back(std::string(begin, str));
-    } while (0 != *str++);
-
-    return tokens;
+// Remove directory of file
+void remove(const std::string& path){
+    std::string rmCmd = "rm -rf " + path;
+    shellCmd(rmCmd);
 }

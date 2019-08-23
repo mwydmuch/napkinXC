@@ -263,6 +263,9 @@ void printVector(std::vector<T> vec){
     }
 }
 
+// Splits string
+std::vector<std::string> split(std::string text, char d = ',');
+
 // Files utils
 
 class FileHelper{
@@ -282,8 +285,11 @@ void checkFileName(const std::string& filename, bool read = true);
 // Checks dirname
 void checkDirName(const std::string& dirname);
 
+// Run shell CMD
+void shellCmd(const std::string& cmd);
+
 // Create directory
 void makeDir(const std::string& dirname);
 
-// Splits string
-std::vector<std::string> split(std::string text, char d = ',');
+// Remove file or directory
+void remove(const std::string& path);

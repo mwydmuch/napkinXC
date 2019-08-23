@@ -15,42 +15,23 @@
 #include "threads.h"
 
 
-HSM::HSM(){
+HSM::HSM() {
     tree = nullptr;
     eCount = 0;
     pLen = 0;
-    rCount = 0;
+    name = "HSM";
 }
 
-HSM::~HSM() {
-    delete tree;
-    for(size_t i = 0; i < bases.size(); ++i)
-        delete bases[i];
-}
+void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
 
-void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
-    std::cerr << "Building tree ...\n";
-
-    tree = new Tree();
-    tree->buildTreeStructure(labels, features, args);
-
-    std::cerr << "Training tree ...\n";
-
-    // Check data
-    int rows = features.rows();
-    assert(rows == labels.rows());
-    assert(tree->k >= labels.cols());
-
-    // Examples selected for each node
-    std::vector<std::vector<double>> binLabels(tree->t);
-    std::vector<std::vector<Feature*>> binFeatures(tree->t);
+    std::cerr << "Assigning data points to nodes ...\n";
 
     // Nodes on path
     std::vector<TreeNode*> path;
 
-    std::cerr << "Assigning data points to nodes ...\n";
-
     // Gather examples for each node
+    int rows = features.rows();
     for(int r = 0; r < rows; ++r){
         printProgress(r, rows);
 
@@ -113,22 +94,6 @@ void HSM::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         pLen += path.size();
         ++rCount;
     }
-
-    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
-
-    // Save tree
-    tree->saveToFile(joinPath(output, "tree.bin"));
-}
-
-void HSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
-    std::priority_queue<TreeNodeValue> nQueue;
-
-    double value = bases[tree->root->index]->predictProbability(features);
-    assert(value == 1);
-    nQueue.push({tree->root, value});
-    ++rCount;
-
-    while (prediction.size() < args.topK && !nQueue.empty()) predictNext(nQueue, prediction, features);
 }
 
 void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features){
@@ -165,7 +130,7 @@ void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
     }
 }
 
-double HSM::predict(Label label, Feature* features, Args &args){
+double HSM::predictForLabel(Label label, Feature* features, Args &args){
     double value = 0;
     TreeNode *n = tree->leaves[label];
     while (n->parent){
@@ -191,16 +156,6 @@ double HSM::predict(Label label, Feature* features, Args &args){
     }
 
     return value;
-}
-
-void HSM::load(Args &args, std::string infile){
-    std::cerr << "Loading HSM model ...\n";
-
-    tree = new Tree();
-    tree->loadFromFile(joinPath(infile, "tree.bin"));
-    bases = loadBases(joinPath(infile, "weights.bin"));
-    assert(bases.size() == tree->nodes.size());
-    m = tree->numberOfLeaves();
 }
 
 void HSM::printInfo(){

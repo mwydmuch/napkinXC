@@ -5,14 +5,13 @@
 
 #pragma once
 
-#include "base.h"
-#include "model.h"
+#include "plt.h"
 
 
-class BR: public Model{
+class BRPLTNeg: public Model{
 public:
-    BR();
-    ~BR() override;
+    BRPLTNeg();
+    ~BRPLTNeg() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
@@ -22,4 +21,5 @@ public:
 
 protected:
     std::vector<Base*> bases;
+    PLT* plt;
 };

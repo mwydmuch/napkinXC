@@ -21,6 +21,8 @@ enum ModelType {
     ubopch,
     hsmEns,
     pltEns,
+    pltNeg,
+    brpltNeg
 };
 
 enum TreeType {
@@ -85,6 +87,9 @@ public:
     TreeType treeType;
     std::string treeStructure;
     int maxLeaves;
+
+    // Tree sampling
+    int sampleK;
 
     // K-Means tree options
     double kMeansEps;

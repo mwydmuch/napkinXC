@@ -16,6 +16,8 @@
 #include "ovr.h"
 #include "hsm.h"
 #include "plt.h"
+#include "plt_neg.h"
+#include "br_plt_neg.h"
 #include "ubop.h"
 #include "rbop.h"
 #include "ubop_ch.h"
@@ -42,6 +44,12 @@ std::shared_ptr<Model> modelFactory(Args &args){
             break;
         case pltEns :
             model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<PLT>>());
+            break;
+        case pltNeg :
+            model = std::static_pointer_cast<Model>(std::make_shared<PLTNeg>());
+            break;
+        case brpltNeg :
+            model = std::static_pointer_cast<Model>(std::make_shared<BRPLTNeg>());
             break;
         case ubop :
             model = std::static_pointer_cast<Model>(std::make_shared<UBOP>());

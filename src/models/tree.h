@@ -60,6 +60,10 @@ public:
     // Build tree structure of given type
     void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 
+    // Custom tree structure
+    void loadTreeStructure(std::string file);
+    void saveTreeStructure(std::string file);
+
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
@@ -90,8 +94,4 @@ private:
     // Tree building utils
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
     void printTree(TreeNode *rootNode = nullptr);
-
-    // Custom tree structure
-    void loadTreeStructure(std::string file);
-    void saveTreeStructure(std::string file);
 };

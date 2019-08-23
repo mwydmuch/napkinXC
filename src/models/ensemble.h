@@ -26,7 +26,7 @@ public:
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-    double predict(Label label, Feature* features, Args &args) override;
+    double predictForLabel(Label label, Feature* features, Args &args) override;
 
     void load(Args &args, std::string infile) override;
 
@@ -81,7 +81,7 @@ void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features
         double value = p.second.value;
         for(size_t i = 0; i < members.size(); ++i){
             if(!std::count(p.second.members.begin(), p.second.members.end(), i))
-                value += members[i]->predict(p.second.label, features, args);
+                value += members[i]->predictForLabel(p.second.label, features, args);
         }
         prediction.push_back({p.second.label, value / members.size()});
     }
@@ -91,10 +91,10 @@ void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features
 }
 
 template <typename T>
-double Ensemble<T>::predict(Label label, Feature* features, Args &args){
+double Ensemble<T>::predictForLabel(Label label, Feature* features, Args &args){
     double value = 0;
     for(auto &m : members)
-        value += m->predict(label, features, args);
+        value += m->predictForLabel(label, features, args);
     return value / members.size();
 }
 

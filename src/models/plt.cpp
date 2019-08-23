@@ -13,12 +13,13 @@
 #include <climits>
 
 #include "plt.h"
-#include "threads.h"
+
 
 PLT::PLT(){
     tree = nullptr;
     nCount = 0;
     rCount = 0;
+    name = "PLT";
 }
 
 PLT::~PLT(){
@@ -28,83 +29,104 @@ PLT::~PLT(){
 }
 
 void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
-    std::cerr << "Building tree ...\n";
 
-    tree = new Tree();
-    tree->buildTreeStructure(labels, features, args);
+    // Create tree
+    if(!tree) {
+        tree = new Tree();
+        tree->buildTreeStructure(labels, features, args);
+    }
 
     std::cerr << "Training tree ...\n";
 
     // Check data
-    int rows = features.rows();
-    assert(rows == labels.rows());
+    assert(features.rows() == labels.rows());
     assert(tree->k >= labels.cols());
 
     // Examples selected for each node
     std::vector<std::vector<double>> binLabels(tree->t);
     std::vector<std::vector<Feature*>> binFeatures(tree->t);
 
+    assignDataPoints(binLabels, binFeatures, labels, features, args);
+    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
+
+    // Save tree
+    tree->saveToFile(joinPath(output, "tree.bin"));
+
+    // Save tree structure
+    tree->saveTreeStructure(joinPath(output, "tree.txt"));
+}
+
+void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
+
+    std::cerr << "Assigning data points to nodes ...\n";
+
     // Positive and negative nodes
     std::unordered_set<TreeNode*> nPositive;
     std::unordered_set<TreeNode*> nNegative;
 
-    std::cerr << "Assigning data points to nodes ...\n";
-
     // Gather examples for each node
+    int rows = features.rows();
     for(int r = 0; r < rows; ++r){
         printProgress(r, rows);
 
         nPositive.clear();
         nNegative.clear();
 
-        int rSize = labels.size(r);
-        auto rLabels = labels.row(r);
-
-        if (rSize > 0){
-            for (int i = 0; i < rSize; ++i) {
-                TreeNode *n = tree->leaves[rLabels[i]];
-                nPositive.insert(n);
-                while (n->parent) {
-                    n = n->parent;
-                    nPositive.insert(n);
-                }
-            }
-
-            std::queue<TreeNode*> nQueue; // Nodes queue
-            nQueue.push(tree->root); // Push root
-
-            while(!nQueue.empty()) {
-                TreeNode* n = nQueue.front(); // Current node
-                nQueue.pop();
-
-                for(const auto& child : n->children) {
-                    if (nPositive.count(child)) nQueue.push(child);
-                    else nNegative.insert(child);
-                }
-            }
-        } else nNegative.insert(tree->root);
-
-        for (const auto& n : nPositive){
-            binLabels[n->index].push_back(1.0);
-            binFeatures[n->index].push_back(features.row(r));
-        }
-
-        for (const auto& n : nNegative){
-            binLabels[n->index].push_back(0.0);
-            binFeatures[n->index].push_back(features.row(r));
-        }
+        getNodesToUpdate(nPositive, nNegative, labels.row(r), labels.size(r));
+        addFeatures(binLabels, binFeatures, nPositive, nNegative, features.row(r));
 
         nCount += nPositive.size() + nNegative.size();
         ++rCount;
     }
+}
 
-    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
+void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                           int* rLabels, int rSize){
+    if (rSize > 0){
+        for (int i = 0; i < rSize; ++i) {
+            TreeNode *n = tree->leaves[rLabels[i]];
+            nPositive.insert(n);
+            while (n->parent) {
+                n = n->parent;
+                nPositive.insert(n);
+            }
+        }
 
-    // Save tree
-    tree->saveToFile(joinPath(output, "tree.bin"));
+        std::queue<TreeNode*> nQueue; // Nodes queue
+        nQueue.push(tree->root); // Push root
+
+        while(!nQueue.empty()) {
+            TreeNode* n = nQueue.front(); // Current node
+            nQueue.pop();
+
+            for(const auto& child : n->children) {
+                if (nPositive.count(child)) nQueue.push(child);
+                else nNegative.insert(child);
+            }
+        }
+    } else nNegative.insert(tree->root);
+}
+
+void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                      std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                      Feature* features){
+    for (const auto& n : nPositive){
+        binLabels[n->index].push_back(1.0);
+        binFeatures[n->index].push_back(features);
+    }
+
+    for (const auto& n : nNegative){
+        binLabels[n->index].push_back(0.0);
+        binFeatures[n->index].push_back(features);
+    }
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+    predictTopK(prediction, features, args.topK);
+}
+
+void PLT::predictTopK(std::vector<Prediction>& prediction, Feature* features, int k){
     std::priority_queue<TreeNodeValue> nQueue;
 
     // Note: loss prediction gets worse results for tree with higher arity then 2
@@ -114,7 +136,7 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &
     ++nCount;
     ++rCount;
 
-    while (prediction.size() < args.topK && !nQueue.empty()) predictNext(nQueue, prediction, features);
+    while (prediction.size() < k && !nQueue.empty()) predictNext(nQueue, prediction, features);
 }
 
 void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features) {
@@ -140,7 +162,7 @@ void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
     }
 }
 
-double PLT::predict(Label label, Feature* features, Args &args){
+double PLT::predictForLabel(Label label, Feature* features, Args &args){
     double value = 0;
     TreeNode *n = tree->leaves[label];
     value *= bases[n->index]->predictProbability(features);
@@ -152,7 +174,7 @@ double PLT::predict(Label label, Feature* features, Args &args){
 }
 
 void PLT::load(Args &args, std::string infile){
-    std::cerr << "Loading PLT model ...\n";
+    std::cerr << "Loading " << name << " model ...\n";
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));

@@ -29,12 +29,14 @@ Tree::~Tree() {
 void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
     rng.seed(args.seed);
 
-
     // Load tree structure from file
     if (!args.treeStructure.empty())
         loadTreeStructure(args.treeStructure);
+
     // Create a tree structure
-    else if (args.treeType == completeInOrder)
+    std::cerr << "Building tree ...\n";
+
+    if (args.treeType == completeInOrder)
         buildCompleteTree(labels.cols(), false, args);
     else if (args.treeType == completeRandom)
         buildCompleteTree(labels.cols(), true, args);
@@ -54,9 +56,6 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
         std::cerr << "Unknown tree type\n";
         exit(0);
     }
-
-    // Save structure
-    saveTreeStructure(joinPath(args.output, "tree.txt"));
 
     // Check tree
     assert(k == leaves.size());

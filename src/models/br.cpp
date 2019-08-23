@@ -80,7 +80,7 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &a
     if(args.topK > 0) prediction.resize(args.topK);
 }
 
-double BR::predict(Label label, Feature* features, Args &args){
+double BR::predictForLabel(Label label, Feature* features, Args &args){
     return bases[label]->predictProbability(features);
 }
 

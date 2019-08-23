@@ -15,7 +15,7 @@
 
 #include "types.h"
 
-
+#define LABELS_MUTEXES 1024
 typedef IntFeature Frequency;
 typedef DoubleFeature Probability;
 
@@ -26,11 +26,10 @@ void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix
 
 void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels);
 
-#define MUTEXES 1024
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures,
-                                       int threadId, int threads, std::array<std::mutex, MUTEXES>& mutexes);
+                                       int threadId, int threads, std::array<std::mutex, LABELS_MUTEXES>& mutexes);
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features,

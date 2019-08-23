@@ -79,7 +79,7 @@ void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Lab
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures,
-                                       int threadId, int threads, std::array<std::mutex, MUTEXES>& mutexes) {
+                                       int threadId, int threads, std::array<std::mutex, LABELS_MUTEXES>& mutexes) {
 
     int rows = features.rows();
     int part = (rows / threads) + 1;
@@ -111,16 +111,14 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, doubl
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures){
-    std::cerr << "Computing labels' features matrix ...\n";
 
     std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
-
     assert(features.rows() == labels.rows());
 
     if(threads > 1) {
         std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
 
-        std::array<std::mutex, MUTEXES> mutexes;
+        std::array<std::mutex, LABELS_MUTEXES> mutexes;
         ThreadSet tSet;
         for (int t = 0; t < threads; ++t)
             tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels), std::ref(features), weightedFeatures,

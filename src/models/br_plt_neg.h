@@ -23,3 +23,7 @@ protected:
     std::vector<Base*> bases;
     PLT* plt;
 };
+
+void assignDataPointsThread(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                            const SRMatrix<Label>& labels, const SRMatrix<Feature>& features, Args &args, PLT* plt,
+                            int threadId, int threads, std::array<std::mutex, LABELS_MUTEXES>& mutexes);

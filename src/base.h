@@ -32,6 +32,8 @@ public:
     inline size_t mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(double)); }
     inline size_t sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
     size_t size();
+    inline size_t featureSpaceSize() { return wSize; }
+    float* toDenseFloat();
 
     void toMap(); // From dense weights (W) to sparse weights in hashmap (mapW)
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)

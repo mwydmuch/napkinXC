@@ -101,13 +101,13 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         auto output = check_parameter(&P, &C);
         assert(output == NULL);
 
-        if(args.cost < 0 && binLabels.size() > 100){
+        if(args.cost < 0 && binLabels.size() > 100 && binLabels.size() < 1000){
             double bestC = -1;
             double bestP = -1;
             double bestScore = -1;
-            find_parameters(&P, &C, 1, -1, -1, &bestC, &bestP, &bestScore);
+            find_parameters(&P, &C, 1, 4.0, -1, &bestC, &bestP, &bestScore);
             C.C = bestC;
-        } else if(args.cost < 0) C.C = 8;
+        } else if(args.cost < 0) C.C = 8.0;
 
         M = train_linear(&P, &C);
 
@@ -342,6 +342,26 @@ void Base::printWeights(){
         }
     } else std::cerr << "No weights";
     std::cerr << "\n";
+}
+
+float* Base::toDenseFloat(){
+    auto* fW = new float[wSize];
+    std::memset(fW, 0, wSize * sizeof(float));
+    if(W != nullptr) {
+        for(int i = 0; i < wSize; ++i) fW[i] = W[i];
+    } else if(mapW != nullptr){
+        for(const auto& w : *mapW) fW[w.first] = w.second;
+    } else if(sparseW != nullptr){
+        Feature* f = sparseW;
+        while(f->index != -1){
+            fW[f->index] = f->value;
+            ++f;
+        }
+        delete[] sparseW;
+        sparseW = nullptr;
+    }
+    unitNorm(fW, wSize);
+    return fW;
 }
 
 

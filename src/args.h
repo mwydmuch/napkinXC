@@ -19,6 +19,7 @@ enum ModelType {
     ubop,
     rbop,
     ubopch,
+    ubopmips,
     hsmEns,
     pltEns,
     pltNeg,

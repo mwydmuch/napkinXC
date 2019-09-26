@@ -21,6 +21,7 @@
 #include "ubop.h"
 #include "rbop.h"
 #include "ubop_ch.h"
+#include "ubop_mips.h"
 
 
 std::shared_ptr<Model> modelFactory(Args &args){
@@ -60,6 +61,9 @@ std::shared_ptr<Model> modelFactory(Args &args){
         case ubopch :
             model = std::static_pointer_cast<Model>(std::make_shared<UBOPCH>());
             break;
+        case ubopmips :
+            model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>());
+            break;
         default:
             throw "Unknown model type!";
     }
@@ -76,14 +80,14 @@ std::mutex testMutex;
 int pointTestThread(Model* model, Label* labels, Feature* features, Args& args,
         std::vector<std::shared_ptr<Measure>>& measures){
 
+    // Predict
     std::vector<Prediction> prediction;
     model->predict(prediction, features, args);
 
+    // Calculate measures
     testMutex.lock();
-
     for(auto& m : measures)
         m->accumulate(labels, prediction);
-
     testMutex.unlock();
 
     return 0;

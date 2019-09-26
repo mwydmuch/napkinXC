@@ -36,8 +36,8 @@ Args::Args() {
     threads = getCpuCount();
     memLimit = 0;
     mem = 16;
-    eps = 0.01;
-    cost = 10.0;
+    eps = 0.001;
+    cost = 8.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     labelsWeights = false;
@@ -58,7 +58,7 @@ Args::Args() {
     maxLeaves = 100;
 
     // Tree sampling
-    sampleK = 50;
+    sampleK = 100;
 
     // K-Means tree options
     kMeansEps = 0.0001;
@@ -132,6 +132,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "ubop") modelType = ubop;
                 else if (args.at(ai + 1) == "rbop") modelType = rbop;
                 else if (args.at(ai + 1) == "ubopch") modelType = ubopch;
+                else if (args.at(ai + 1) == "ubopmips") modelType = ubopmips;
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -252,10 +253,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--sparseWeights")
                 sparseWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--measures")
+                measures = std::string(args.at(ai + 1));
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();
             }
+
         }
         catch (std::out_of_range) {
             std::cerr << args[ai] << " is missing an argument" << std::endl;

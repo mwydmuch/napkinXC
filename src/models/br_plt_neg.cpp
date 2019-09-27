@@ -26,7 +26,7 @@ BRPLTNeg::~BRPLTNeg() {
 }
 
 void BRPLTNeg::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
-    std::cerr << "Training PLT Slice model ...\n";
+    std::cerr << "Training BR PLT model ...\n";
 
     // Check data
     int rows = features.rows();
@@ -73,7 +73,7 @@ void BRPLTNeg::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
                 }
             }
 
-            // Predict additional labels
+            // Sample labels using PLT
             std::vector<Prediction> pltPrediction;
             plt->predictTopK(pltPrediction, features.row(r), args.sampleK);
             for (const auto& p : pltPrediction){
@@ -120,9 +120,10 @@ void assignDataPointsThread(std::vector<std::vector<double>>& binLabels, std::ve
             }
         }
 
-        // Predict additional labels
+        // Sample labels using PLT
         std::vector<Prediction> pltPrediction;
-        plt->predictTopK(pltPrediction, features.row(r), args.sampleK);
+        //plt->predictTopK(pltPrediction, features.row(r), args.sampleK);
+        plt->predictTopKBeam(pltPrediction, features.row(r), args.sampleK);
         for (const auto& p : pltPrediction){
             if(!lPositive.count(p.label)) {
                 std::mutex &m = mutexes[p.label % mutexes.size()];
@@ -134,16 +135,29 @@ void assignDataPointsThread(std::vector<std::vector<double>>& binLabels, std::ve
                 m.unlock();
             }
         }
+
+        /*
+        std::default_random_engine rng(args.seed);
+        std::uniform_int_distribution<int> labelsRandomizer(0, plt->outputSize());
+        // Sample randomly additional labels
+        for(int i = 0; i < args.sampleK; ++i){
+            int rl = labelsRandomizer(rng);
+            std::mutex &m = mutexes[rl % mutexes.size()];
+            m.lock();
+
+            binLabels[rl].push_back(0.0);
+            binFeatures[rl].push_back(features.row(r));
+
+            m.unlock();
+        }
+         */
     }
 }
 
 void BRPLTNeg::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
-    auto saveTopK = args.topK;
     plt->predictTopK(prediction, features, args.sampleK);
-    for (auto& p : prediction){
+    for (auto& p : prediction)
         p.value = bases[p.label]->predictProbability(features);
-    }
-    args.topK = saveTopK;
 
     sort(prediction.rbegin(), prediction.rend());
     if(args.topK > 0) prediction.resize(args.topK);

@@ -21,6 +21,7 @@ public:
     double predictForLabel(Label label, Feature* features, Args &args) override;
 
     void predictTopK(std::vector<Prediction>& prediction, Feature* features, int k);
+    void predictTopKBeam(std::vector<Prediction>& prediction, Feature* features, int k);
 
     void load(Args &args, std::string infile) override;
 

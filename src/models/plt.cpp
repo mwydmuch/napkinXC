@@ -162,6 +162,53 @@ void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
     }
 }
 
+void PLT::predictTopKBeam(std::vector<Prediction>& prediction, Feature* features, int k){
+    std::priority_queue<TreeNodeValue> nQueue;
+    double val = bases[tree->root->index]->predictProbability(features);
+    nQueue.push({tree->root, val});
+
+    ++rCount;
+
+    /*
+    while (prediction.size() < k && !nQueue.empty()) {
+        TreeNodeValue nVal = nQueue.top();
+        nQueue.pop();
+
+        if(nVal.node->children.size()){
+            for(const auto& child : nVal.node->children){
+                if(child->label >= 0) prediction.push_back({child->label, nVal.value}); // When using probability
+                else {
+                    double value = nVal.value * bases[child->index]->predictProbability(features); // When using probability
+                    //double value = nVal.value - bases[child->index]->predictLoss(features); // When using loss
+                    nQueue.push({child, value});
+                    ++nCount;
+                }
+            }
+        }
+    }
+     */
+
+    while (prediction.size() < k && !nQueue.empty()) {
+        TreeNodeValue nVal = nQueue.top();
+        nQueue.pop();
+
+        if(nVal.node->children.size()){
+            for(const auto& child : nVal.node->children){
+                if(child->label >= 0) prediction.push_back({child->label, nVal.value}); // When using probability
+                else {
+                    double value = nVal.value * bases[child->index]->predictProbability(features); // When using probability
+                    //double value = nVal.value - bases[child->index]->predictLoss(features); // When using loss
+                    nQueue.push({child, value});
+                    ++nCount;
+                }
+            }
+        }
+    }
+
+    sort(prediction.rbegin(), prediction.rend());
+    prediction.resize(k);
+}
+
 double PLT::predictForLabel(Label label, Feature* features, Args &args){
     double value = 0;
     TreeNode *n = tree->leaves[label];

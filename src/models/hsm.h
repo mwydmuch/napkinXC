@@ -27,8 +27,10 @@ public:
     void printInfo() override;
 
 protected:
-    void assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                                  SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
+    //void assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+    //                              SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
+    void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                          int* rLabels, int rSize) override;
     void predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features) override;
 
     int eCount; // Number of updated/evaluated classifiers during training or prediction

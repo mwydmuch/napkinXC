@@ -16,12 +16,13 @@
 
 
 HSM::HSM() {
-    tree = nullptr;
     eCount = 0;
     pLen = 0;
     name = "HSM";
 }
 
+// Old assign data points code
+/*
 void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                            SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
 
@@ -94,6 +95,63 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         pLen += path.size();
         ++rCount;
     }
+}
+*/
+
+void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                           int* rLabels, int rSize){
+    
+    std::vector<TreeNode*> path;
+    if (rSize == 1){
+        TreeNode *n = tree->leaves[rLabels[0]];
+        path.push_back(n);
+        while (n->parent){
+            n = n->parent;
+            path.push_back(n);
+        }
+    }
+    else {
+        if (rSize > 1) {
+            //std::cerr << "Encountered example with more then 1 label! HSM is multi-class classifier, use BR instead!";
+            return;
+            //throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
+        }
+        else if (rSize < 1){
+            std::cerr << "Example without label, skipping ...\n";
+            return;
+        }
+    }
+
+    assert(path.size());
+    assert(path.back() == tree->root);
+
+    for(int i = path.size() - 1; i >= 0; --i){
+        TreeNode *n = path[i], *p = n->parent;
+        if(p == nullptr || p->children.size() == 1){
+            nPositive.insert(n);
+            eCount += 1;
+        }
+        else if(p->children.size() == 2){ // Binary node requires just 1 probability estimator
+            TreeNode *c0 = n->parent->children[0], *c1 = n->parent->children[1];
+            if(c0 == n)
+                nPositive.insert(c0);
+            else
+                nNegative.insert(c0);
+            nNegative.insert(c1);
+            eCount += 1;
+        }
+        else if(p->children.size() > 2){ // Node with arity > 2 requires OVR estimator
+            for(const auto& c : p->children){
+                if(c == n)
+                    nPositive.insert(c);
+                else
+                    nNegative.insert(c);
+            }
+            eCount += p->children.size();
+        }
+    }
+
+    pLen += path.size();
 }
 
 void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features){

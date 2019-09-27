@@ -52,7 +52,7 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
         //labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
         buildKMeansTree(labelsFeatures, args);
     }
-    else {
+    else if (args.treeType != custom) {
         std::cerr << "Unknown tree type\n";
         exit(0);
     }

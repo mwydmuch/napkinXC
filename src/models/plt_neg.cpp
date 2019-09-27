@@ -15,7 +15,7 @@
 void PLTNeg::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                            SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
 
-    std::cerr << "Assigning data points to nodes ...\n";
+
 
     std::string tmpPltDir = joinPath(args.output, "tmpPlt");
     makeDir(tmpPltDir);
@@ -29,6 +29,7 @@ void PLTNeg::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::
     std::unordered_set<TreeNode*> nNegative;
 
     // Gather examples for each node
+    std::cerr << "Assigning data points to nodes ...\n";
     int rows = features.rows();
     for(int r = 0; r < rows; ++r){
         printProgress(r, rows);

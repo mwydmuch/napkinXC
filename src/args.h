@@ -23,7 +23,8 @@ enum ModelType {
     hsmEns,
     pltEns,
     pltNeg,
-    brpltNeg
+    brpltNeg,
+    oplt
 };
 
 enum TreeType {
@@ -33,6 +34,7 @@ enum TreeType {
     completeRandom,
     balancedInOrder,
     balancedRandom,
+    online,
     custom
 };
 
@@ -63,7 +65,6 @@ public:
     bool header;
     bool bias;
     double biasValue;
-    double C;
     bool norm;
     bool tfidf;
     int hash;
@@ -71,7 +72,7 @@ public:
 
     // Training options
     int threads;
-    size_t memLimit;
+    size_t memLimit; // TODO: Implement this for OVA models
     int solverType;
     OptimizerType optimizerType;
     double eps;
@@ -82,6 +83,11 @@ public:
     double eta;
     double mem;
     int ensemble;
+
+    // For online training
+    int epochs;
+
+    // Tree models
 
     // Tree options
     int arity;

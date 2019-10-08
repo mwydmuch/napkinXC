@@ -48,6 +48,9 @@ Args::Args() {
     weightsThreshold = 0.1;
     ensemble = 1;
 
+    // For online training
+    epochs = 1;
+
     // Tree options
     treeStructure = "";
     arity = 2;
@@ -133,6 +136,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "rbop") modelType = rbop;
                 else if (args.at(ai + 1) == "ubopch") modelType = ubopch;
                 else if (args.at(ai + 1) == "ubopmips") modelType = ubopmips;
+                else if (args.at(ai + 1) == "oplt") modelType = oplt;
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -214,8 +218,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
             else if (args[ai] == "-e" || args[ai] == "--eta")
                 eta = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--iter")
-                iter = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--epochs")
+                epochs = std::stoi(args.at(ai + 1));
 
             // Tree options
             else if (args[ai] == "-a" || args[ai] == "--arity")
@@ -278,7 +282,8 @@ void Args::printArgs(){
         std::cerr << "napkinXML - " << command
             << "\n  Input: " << input
             << "\n    Data format: " << dataFormatType
-            << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", prune threshold: " << pruneThreshold
+            << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm
+            << ", hash size: " << hash << ", prune threshold: " << pruneThreshold
             << "\n  Model: " << output
             << "\n    Type: " << modelName;
         if(command == "train") {

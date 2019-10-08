@@ -3,8 +3,13 @@
  * All rights reserved.
  */
 
+#include <algorithm>
+#include <unordered_map>
+
 #include "data_reader.h"
+#include "utils.h"
 #include "libsvm_reader.h"
+
 
 std::shared_ptr<DataReader> dataReaderFactory(Args &args){
     std::shared_ptr<DataReader> dataReader = nullptr;
@@ -52,6 +57,20 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
         lFeatures.clear();
 
         readLine(line, lLabels, lFeatures);
+
+        if(args.hash) {
+            std::unordered_map<int, double> lHashed;
+            for(auto &f : lFeatures)
+                lHashed[hash(f.index) % args.hash] += f.value;
+
+            lFeatures.clear();
+            for(const auto &f : lHashed)
+                lFeatures.push_back({f.first + 1, f.second});
+        }
+
+        // Check if it requires sorting
+        if(!std::is_sorted(lFeatures.begin(), lFeatures.end()))
+            sort(lFeatures.begin(), lFeatures.end());
 
         // Norm row
         if(args.norm) unitNorm(lFeatures);

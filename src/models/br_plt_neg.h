@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "plt.h"
+#include "batch_plt.h"
 
 
 class BRPLTNeg: public Model{
@@ -21,7 +21,7 @@ public:
 
 protected:
     std::vector<Base*> bases;
-    PLT* plt;
+    BatchPLT* plt;
 };
 
 void assignDataPointsThread(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,

@@ -31,6 +31,14 @@ struct IntFeature{
     }
 };
 
+// Dense matrix
+template <typename T>
+class DMatrix {
+    DMatrix();
+    DMatrix(int rows, int cols);
+    ~DMatrix();
+};
+
 // Elastic low-level sparse row matrix, type T needs to contain int at offset 0!
 template <typename T>
 class SRMatrix {
@@ -61,8 +69,10 @@ public:
 
     // Returns data as T**
     inline T** data(){ return r.data(); }
+    //inline const T** data() const { return r.data(); }
 
     // Returns row as T*
+    //inline T* row(const int index) { return r[index]; }
     inline T* row(const int index) const { return r[index]; }
 
     // Returns std::vector<T*>&
@@ -70,6 +80,7 @@ public:
 
     // Access row also by [] operator
     inline T& operator[](const int index) { return r[index]; }
+    inline const T& operator[] (const int index) const { return r[index]; }
 
     // Returns rows' sizes
     inline std::vector<int>& sizes(){ return s; }

@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "plt.h"
+#include "batch_plt.h"
 
 
-class PLTNeg: public PLT{
+class PLTNeg: public BatchPLT{
 public:
     void assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;

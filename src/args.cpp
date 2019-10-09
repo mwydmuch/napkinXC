@@ -54,10 +54,10 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    //treeType = completeInOrder;
-    //treeTypeName = "completeInOrder";
-    treeType = hierarchicalKMeans;
-    treeTypeName = "hierarchicalKMeans";
+    treeType = completeInOrder;
+    treeTypeName = "completeInOrder";
+    //treeType = hierarchicalKMeans;
+    //treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
     // Tree sampling

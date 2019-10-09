@@ -19,6 +19,7 @@ public:
     Base();
     ~Base();
 
+    void update(double label, Feature* features, Args &args);
     void train(int n, std::vector<double>& labels, std::vector<Feature*>& features, Args &args);
     double predictValue(Feature* features);
     double predictValue(double* features);
@@ -52,11 +53,11 @@ private:
     int nonZeroW;
     int classCount;
     int firstClass;
+    int t;
 
     double* W;
     std::unordered_map<int, double>* mapW;
     Feature* sparseW;
-
 };
 
 template<typename T>

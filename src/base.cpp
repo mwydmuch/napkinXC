@@ -21,6 +21,7 @@ Base::Base(){
     nonZeroW = 0;
     classCount = 0;
     firstClass = 0;
+    t = 0;
 
     W = nullptr;
     mapW = nullptr;
@@ -31,6 +32,21 @@ Base::~Base(){
     delete[] W;
     delete mapW;
     delete[] sparseW;
+}
+
+void Base::update(double label, Feature* features, Args &args){
+    if(mapW == nullptr)
+        mapW = new std::unordered_map<int, double>();
+
+    double pred = predictValue(features);
+    double a = args.eta * sqrt(1.0 / (double)(++t));
+    double grad = a * label / (1.0 + exp(label * pred));
+
+    Feature* f = features;
+    while(f->index != -1) {
+        (*mapW)[f->index - 1] += grad * f->value;
+        ++f;
+    }
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -120,7 +136,6 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
                 .weight = labelsWeights,
                 .p = 0,
                 .init_sol = NULL
-
         };
 
         M = train_online(&P, &OC);
@@ -261,12 +276,17 @@ void Base::save(std::ostream& out){
         out.write((char*) &saveSparse, sizeof(saveSparse));
 
         if(saveSparse){
-            if(sparseW){
-                Feature* f = sparseW;
-                while(f->index != -1) {
-                    out.write((char*) &f->index, sizeof(f->index));
-                    out.write((char*) &f->value, sizeof(f->value));
+            if(sparseW) {
+                Feature *f = sparseW;
+                while (f->index != -1) {
+                    out.write((char *) &f->index, sizeof(f->index));
+                    out.write((char *) &f->value, sizeof(f->value));
                     ++f;
+                }
+            } else if(mapW) {
+                for(const auto &f : *mapW){
+                    out.write((char *) &f.first, sizeof(f.first));
+                    out.write((char *) &f.second, sizeof(f.second));
                 }
             } else {
                 for(int i = 0; i < wSize; ++i){

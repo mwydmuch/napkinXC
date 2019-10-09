@@ -11,12 +11,13 @@
 #include "tree.h"
 
 
-class PLT: public Model{
+// This is virutal class for all PLT based models: HSM, Batch PLT, Online PLT
+class PLT: virtual public Model{
 public:
     PLT();
     ~PLT() override;
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
+    //void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
     double predictForLabel(Label label, Feature* features, Args &args) override;
 

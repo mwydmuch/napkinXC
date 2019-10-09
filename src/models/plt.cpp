@@ -28,34 +28,6 @@ PLT::~PLT(){
         delete bases[i];
 }
 
-void PLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
-
-    // Create tree
-    if(!tree) {
-        tree = new Tree();
-        tree->buildTreeStructure(labels, features, args);
-    }
-
-    std::cerr << "Training tree ...\n";
-
-    // Check data
-    assert(features.rows() == labels.rows());
-    assert(tree->k >= labels.cols());
-
-    // Examples selected for each node
-    std::vector<std::vector<double>> binLabels(tree->t);
-    std::vector<std::vector<Feature*>> binFeatures(tree->t);
-
-    assignDataPoints(binLabels, binFeatures, labels, features, args);
-    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
-
-    // Save tree
-    tree->saveToFile(joinPath(output, "tree.bin"));
-
-    // Save tree structure
-    tree->saveTreeStructure(joinPath(output, "tree.txt"));
-}
-
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                            SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
 

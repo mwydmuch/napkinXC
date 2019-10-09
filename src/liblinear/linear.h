@@ -17,6 +17,44 @@ struct feature_node
     }
 };
 
+#define INF HUGE_VAL
+#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
+
+class sparse_operator
+{
+public:
+    static double nrm2_sq(const feature_node *x)
+    {
+        double ret = 0;
+        while(x->index != -1)
+        {
+            ret += x->value*x->value;
+            x++;
+        }
+        return (ret);
+    }
+
+    static double dot(const double *s, const feature_node *x)
+    {
+        double ret = 0;
+        while(x->index != -1)
+        {
+            ret += s[x->index-1]*x->value;
+            x++;
+        }
+        return (ret);
+    }
+
+    static void axpy(const double a, const feature_node *x, double *y)
+    {
+        while(x->index != -1)
+        {
+            y[x->index-1] += a*x->value;
+            x++;
+        }
+    }
+};
+
 #ifdef __cplusplus
 extern "C" {
 #endif

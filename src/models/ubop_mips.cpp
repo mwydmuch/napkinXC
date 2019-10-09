@@ -25,7 +25,7 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
         denseFeatures[f->index] = -f->value;
         ++f;
     }
-    unitNorm(denseFeatures, dim);
+    //unitNorm(denseFeatures, dim);
 
     double sum = 0;
     std::unordered_set<int> seenLabels;
@@ -46,7 +46,7 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
     }
     sum *= static_cast<double>(bases.size()) / sample;
 
-    std::priority_queue<std::pair<float, hnswlib::labeltype>> topPrediction = hnswIndex->mips(denseFeatures, 16);
+    std::priority_queue<std::pair<float, hnswlib::labeltype>> topPrediction = mipsIndex->mips(denseFeatures, 16);
     while(!topPrediction.empty()) {
         auto p = topPrediction.top();
         topPrediction.pop();

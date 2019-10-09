@@ -19,7 +19,7 @@ void PLTNeg::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::
 
     std::string tmpPltDir = joinPath(args.output, "tmpPlt");
     makeDir(tmpPltDir);
-    PLT plt;
+    BatchPLT plt;
     plt.tree = tree;
     plt.train(labels, features, args, tmpPltDir);
     plt.load(args, tmpPltDir);

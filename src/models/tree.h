@@ -58,6 +58,7 @@ public:
     ~Tree();
 
     // Build tree structure of given type
+    void buildTreeStructure(int labelCount, Args &args);
     void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
 
     // Custom tree structure

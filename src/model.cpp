@@ -15,13 +15,14 @@
 #include "br.h"
 #include "ovr.h"
 #include "hsm.h"
-#include "plt.h"
 #include "plt_neg.h"
 #include "br_plt_neg.h"
 #include "ubop.h"
 #include "rbop.h"
 #include "ubop_ch.h"
 #include "ubop_mips.h"
+#include "online_plt.h"
+#include "batch_plt.h"
 
 
 std::shared_ptr<Model> modelFactory(Args &args){
@@ -41,10 +42,10 @@ std::shared_ptr<Model> modelFactory(Args &args){
             model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<HSM>>());
             break;
         case plt :
-            model = std::static_pointer_cast<Model>(std::make_shared<PLT>());
+            model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>());
             break;
         case pltEns :
-            model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<PLT>>());
+            model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<BatchPLT>>());
             break;
         case pltNeg :
             model = std::static_pointer_cast<Model>(std::make_shared<PLTNeg>());
@@ -63,6 +64,9 @@ std::shared_ptr<Model> modelFactory(Args &args){
             break;
         case ubopmips :
             model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>());
+            break;
+        case oplt :
+            model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>());
             break;
         default:
             throw "Unknown model type!";

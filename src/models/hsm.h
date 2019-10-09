@@ -14,11 +14,11 @@
 #include <algorithm>
 #include <random>
 
-#include "plt.h"
+#include "batch_plt.h"
 #include "tree.h"
 
 
-class HSM: public PLT{  // HSM is multi-class version of PLT
+class HSM: public BatchPLT{  // HSM is multi-class version of PLT
 public:
     HSM();
 

@@ -35,7 +35,7 @@ void BRPLTNeg::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
 
     std::string pltDir = joinPath(output, "plt");
     makeDir(pltDir);
-    plt = new PLT();
+    plt = new BatchPLT();
     plt->train(labels, features, args, pltDir);
     plt->load(args, pltDir);
 
@@ -168,9 +168,9 @@ double BRPLTNeg::predictForLabel(Label label, Feature* features, Args &args){
 }
 
 void BRPLTNeg::load(Args &args, std::string infile){
-    std::cerr << "Loading PLT Slice model ...\n";
+    std::cerr << "Loading PLT BR model ...\n";
 
-    plt = new PLT();
+    plt = new BatchPLT();
     plt->load(args, joinPath(infile, "plt"));
 
     bases = loadBases(joinPath(infile, "weights.bin"));

@@ -26,6 +26,26 @@ Tree::~Tree() {
         delete nodes[i];
 }
 
+void Tree::buildTreeStructure(int labelCount, Args &args){
+    // Create a tree structure
+    std::cerr << "Building tree ...\n";
+
+    if (args.treeType == completeInOrder)
+        buildCompleteTree(labelCount, false, args);
+    else if (args.treeType == completeRandom)
+        buildCompleteTree(labelCount, true, args);
+    else if (args.treeType == balancedInOrder)
+        buildBalancedTree(labelCount, false, args);
+    else if (args.treeType == balancedRandom)
+        buildBalancedTree(labelCount, true, args);
+    else if (args.treeType == huffman || args.treeType == hierarchicalKMeans)
+        std::cerr << "This tree type is not supported for this model type\n";
+    else if (args.treeType != custom) {
+        std::cerr << "Unknown tree type\n";
+        exit(1);
+    }
+}
+
 void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
     rng.seed(args.seed);
 
@@ -52,9 +72,13 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
         //labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
         buildKMeansTree(labelsFeatures, args);
     }
+    else if (args.treeType == online) {
+        std::cerr << "Online tree is not supported for this model type\n";
+        exit(1);
+    }
     else if (args.treeType != custom) {
         std::cerr << "Unknown tree type\n";
-        exit(0);
+        exit(1);
     }
 
     // Check tree

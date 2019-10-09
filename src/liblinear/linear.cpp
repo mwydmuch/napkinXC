@@ -6,6 +6,7 @@
 #include <locale.h>
 #include "linear.h"
 #include "tron.h"
+
 int liblinear_version = LIBLINEAR_VERSION;
 typedef signed char schar;
 template <class T> static inline void swap(T& x, T& y) { T t=x; x=y; y=t; }
@@ -17,68 +18,32 @@ template <class T> static inline T max(T x,T y) { return (x>y)?x:y; }
 #endif
 template <class S, class T> static inline void clone(T*& dst, S* src, int n)
 {
-	dst = new T[n];
-	memcpy((void *)dst,(void *)src,sizeof(T)*n);
+    dst = new T[n];
+    memcpy((void *)dst,(void *)src,sizeof(T)*n);
 }
-#define INF HUGE_VAL
-#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
 
 static void print_string_stdout(const char *s)
 {
-	fputs(s,stdout);
-	fflush(stdout);
+    fputs(s,stdout);
+    fflush(stdout);
 }
 static void print_null(const char *s) {}
 
 static void (*liblinear_print_string) (const char *) = &print_string_stdout;
 
-#if 1
+#if 0
 static void info(const char *fmt,...)
 {
-	char buf[BUFSIZ];
-	va_list ap;
-	va_start(ap,fmt);
-	vsprintf(buf,fmt,ap);
-	va_end(ap);
-	(*liblinear_print_string)(buf);
+    char buf[BUFSIZ];
+    va_list ap;
+    va_start(ap,fmt);
+    vsprintf(buf,fmt,ap);
+    va_end(ap);
+    (*liblinear_print_string)(buf);
 }
 #else
 static void info(const char *fmt,...) {}
 #endif
-class sparse_operator
-{
-public:
-	static double nrm2_sq(const feature_node *x)
-	{
-		double ret = 0;
-		while(x->index != -1)
-		{
-			ret += x->value*x->value;
-			x++;
-		}
-		return (ret);
-	}
-
-	static double dot(const double *s, const feature_node *x)
-	{
-		double ret = 0;
-		while(x->index != -1)
-		{
-			ret += s[x->index-1]*x->value;
-			x++;
-		}
-		return (ret);
-	}
-
-	static void axpy(const double a, const feature_node *x, double *y)
-	{
-		while(x->index != -1)
-		{
-			y[x->index-1] += a*x->value;
-			x++;
-		}
-	}
-};
 
 class l2r_lr_fun: public function
 {
@@ -939,8 +904,8 @@ static void solve_l2r_l1l2_svc(
 		}
 
 		iter++;
-		//if(iter % 10 == 0)
-		//	info(".");
+		if(iter % 10 == 0)
+			info(".");
 
 		if(PGmax_new - PGmin_new <= eps)
 		{
@@ -949,7 +914,7 @@ static void solve_l2r_l1l2_svc(
 			else
 			{
 				active_size = l;
-				//info("*");
+				info("*");
 				PGmax_old = INF;
 				PGmin_old = -INF;
 				continue;
@@ -963,14 +928,12 @@ static void solve_l2r_l1l2_svc(
 			PGmin_old = -INF;
 	}
 
-	/*
 	info("\noptimization finished, #iter = %d\n",iter);
 	if (iter >= max_iter)
 		info("\nWARNING: reaching max number of iterations\nUsing -s 2 may be faster (also see FAQ)\n\n");
-	*/
 
 	// calculate objective value
-	/*
+
 	double v = 0;
 	int nSV = 0;
 	for(i=0; i<w_size; i++)
@@ -983,7 +946,6 @@ static void solve_l2r_l1l2_svc(
 	}
 	info("Objective value = %lf\n",v/2);
 	info("nSV = %d\n",nSV);
-	*/
 
 	delete [] QD;
 	delete [] alpha;
@@ -1161,8 +1123,8 @@ static void solve_l2r_l1l2_svr(
 		if(iter == 0)
 			Gnorm1_init = Gnorm1_new;
 		iter++;
-		//if(iter % 10 == 0)
-		//	info(".");
+		if(iter % 10 == 0)
+			info(".");
 
 		if(Gnorm1_new <= eps*Gnorm1_init)
 		{
@@ -1171,7 +1133,7 @@ static void solve_l2r_l1l2_svr(
 			else
 			{
 				active_size = l;
-				//info("*");
+				info("*");
 				Gmax_old = INF;
 				continue;
 			}
@@ -1180,7 +1142,6 @@ static void solve_l2r_l1l2_svr(
 		Gmax_old = Gmax_new;
 	}
 
-	/*
 	info("\noptimization finished, #iter = %d\n", iter);
 	if(iter >= max_iter)
 		info("\nWARNING: reaching max number of iterations\nUsing -s 11 may be faster\n\n");
@@ -1200,7 +1161,6 @@ static void solve_l2r_l1l2_svr(
 
 	info("Objective value = %lf\n", v);
 	info("nSV = %d\n",nSV);
-	*/
 
 	delete [] beta;
 	delete [] QD;
@@ -1339,8 +1299,8 @@ void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, do
 		}
 
 		iter++;
-		//if(iter % 10 == 0)
-		//	info(".");
+		if(iter % 10 == 0)
+			info(".");
 
 		if(Gmax < eps)
 			break;
@@ -1350,12 +1310,11 @@ void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, do
 
 	}
 
-	/*
 	info("\noptimization finished, #iter = %d\n",iter);
 	if (iter >= max_iter)
 		info("\nWARNING: reaching max number of iterations\nUsing -s 0 may be faster (also see FAQ)\n\n");
 
-	 calculate objective value
+	// calculate objective value
 
 	double v = 0;
 	for(i=0; i<w_size; i++)
@@ -1365,7 +1324,6 @@ void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, do
 		v += alpha[2*i] * log(alpha[2*i]) + alpha[2*i+1] * log(alpha[2*i+1])
 			- upper_bound[GETI(i)] * log(upper_bound[GETI(i)]);
 	info("Objective value = %lf\n", v);
-	*/
 
 	delete [] xTx;
 	delete [] alpha;
@@ -1598,8 +1556,8 @@ static void solve_l1r_l2_svc(
 		if(iter == 0)
 			Gnorm1_init = Gnorm1_new;
 		iter++;
-		//if(iter % 10 == 0)
-		//	info(".");
+		if(iter % 10 == 0)
+			info(".");
 
 		if(Gnorm1_new <= eps*Gnorm1_init)
 		{
@@ -1608,7 +1566,7 @@ static void solve_l1r_l2_svc(
 			else
 			{
 				active_size = w_size;
-				//info("*");
+				info("*");
 				Gmax_old = INF;
 				continue;
 			}
@@ -1617,7 +1575,6 @@ static void solve_l1r_l2_svc(
 		Gmax_old = Gmax_new;
 	}
 
-	/*
 	info("\noptimization finished, #iter = %d\n", iter);
 	if(iter >= max_iter)
 		info("\nWARNING: reaching max number of iterations\n");
@@ -1646,7 +1603,6 @@ static void solve_l1r_l2_svc(
 
 	info("Objective value = %lf\n", v);
 	info("#nonzeros/#features = %d/%d\n", nnz, w_size);
-	*/
 
 	delete [] index;
 	delete [] y;
@@ -1903,8 +1859,8 @@ static void solve_l1r_lr(
 			QP_Gmax_old = QP_Gmax_new;
 		}
 
-		//if(iter >= max_iter)
-		//	info("WARNING: reaching max number of inner iterations\n");
+		if(iter >= max_iter)
+			info("WARNING: reaching max number of inner iterations\n");
 
 		delta = 0;
 		w_norm_new = 0;
@@ -1986,15 +1942,13 @@ static void solve_l1r_lr(
 		newton_iter++;
 		Gmax_old = Gmax_new;
 
-		//info("iter %3d  #CD cycles %d\n", newton_iter, iter);
+		info("iter %3d  #CD cycles %d\n", newton_iter, iter);
 	}
 
-	/*
 	info("=========================\n");
 	info("optimization finished, #iter = %d\n", newton_iter);
 	if(newton_iter >= max_newton_iter)
 		info("WARNING: reaching max number of iterations\n");
-	 */
 
 	// calculate objective value
 
@@ -2012,8 +1966,8 @@ static void solve_l1r_lr(
 		else
 			v += C[GETI(j)]*log(1+exp_wTx[j]);
 
-	//info("Objective value = %lf\n", v);
-	//info("#nonzeros/#features = %d/%d\n", nnz, w_size);
+	info("Objective value = %lf\n", v);
+	info("#nonzeros/#features = %d/%d\n", nnz, w_size);
 
 	delete [] index;
 	delete [] y;
@@ -2727,11 +2681,11 @@ void find_parameters(const problem *prob, const parameter *param, int nr_fold, d
 		if(start_C <= 0)
 			start_C = calc_start_C(prob, &param_tmp);
 		double max_C = 1024;
-		start_C = min(start_C, max_C);
+		start_C = min(start_C, max_C);		
 		double best_C_tmp, best_score_tmp;
-
+		
 		find_parameter_C(prob, &param_tmp, start_C, max_C, &best_C_tmp, &best_score_tmp, fold_start, perm, subprob, nr_fold);
-
+		
 		*best_C = best_C_tmp;
 		*best_score = best_score_tmp;
 	}
@@ -2755,9 +2709,9 @@ void find_parameters(const problem *prob, const parameter *param, int nr_fold, d
 				start_C_tmp = start_C;
 			start_C_tmp = min(start_C_tmp, max_C);
 			double best_C_tmp, best_score_tmp;
-
+			
 			find_parameter_C(prob, &param_tmp, start_C_tmp, max_C, &best_C_tmp, &best_score_tmp, fold_start, perm, subprob, nr_fold);
-
+			
 			if(best_score_tmp < *best_score)
 			{
 				*best_p = param_tmp.p;
@@ -2972,7 +2926,7 @@ struct model *load_model(const char *model_file_name)
 	// parameters for training only won't be assigned, but arrays are assigned as NULL for safety
 	param.nr_weight = 0;
 	param.weight_label = NULL;
-	param.weight = NULL;
+	param.weight = NULL;	
 	param.init_sol = NULL;
 
 	model_->label = NULL;
@@ -3211,3 +3165,4 @@ void set_print_string_function(void (*print_func)(const char*))
 	else
 		liblinear_print_string = print_func;
 }
+

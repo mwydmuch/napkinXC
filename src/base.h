@@ -19,6 +19,7 @@ public:
     Base();
     ~Base();
 
+    void initSpares();
     void update(double label, Feature* features, Args &args);
     void train(int n, std::vector<double>& labels, std::vector<Feature*>& features, Args &args);
     double predictValue(Feature* features);

@@ -34,17 +34,20 @@ Base::~Base(){
     delete[] sparseW;
 }
 
-void Base::update(double label, Feature* features, Args &args){
-    if(mapW == nullptr)
-        mapW = new std::unordered_map<int, double>();
+void Base::initSpares(){
+    mapW = new std::unordered_map<int, double>();
+    classCount = 2;
+    firstClass = 1;
+}
 
+void Base::update(double label, Feature* features, Args &args){
     double pred = predictValue(features);
-    double a = args.eta * sqrt(1.0 / (double)(++t));
-    double grad = a * label / (1.0 + exp(label * pred));
+    double lr = args.eta * sqrt(1.0 / ++t);
+    double theta = lr * ((1.0 / (1.0 + std::exp(-pred))) - label);
 
     Feature* f = features;
     while(f->index != -1) {
-        (*mapW)[f->index - 1] += grad * f->value;
+        (*mapW)[f->index - 1] -= theta * f->value;
         ++f;
     }
 }
@@ -253,11 +256,25 @@ void Base::toSparse(){
 }
 
 void Base::threshold(double threshold){
-    assert(W != nullptr);
     nonZeroW = 0;
-    for (int i = 0; i < wSize; ++i){
-        if(W[i] != 0 && fabs(W[i]) >= threshold) ++nonZeroW;
-        else W[i] = 0;
+
+    if(W) {
+        for (int i = 0; i < wSize; ++i) {
+            if (W[i] != 0 && fabs(W[i]) >= threshold) ++nonZeroW;
+            else W[i] = 0;
+        }
+    } else if(mapW){
+        for (auto &w : *mapW) {
+            if (w.second != 0 && fabs(w.second) >= threshold) ++nonZeroW;
+            else w.second = 0;
+        }
+    } else if(sparseW) {
+        Feature *f = sparseW;
+        while (f->index != -1) {
+            if (f->value != 0 && fabs(f->value) >= threshold) ++nonZeroW;
+            else f->value = 0;
+            ++f;
+        }
     }
 }
 

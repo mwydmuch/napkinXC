@@ -21,6 +21,7 @@ protected:
 
     void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
                           int* rLabels, int rSize) override;
+    void checkTree(int* rLabels, int rSize);
 
 };
 

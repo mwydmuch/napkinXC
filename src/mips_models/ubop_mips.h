@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "models/ovr.h"
-#include "models/mips_index.h"
+#include "ovr.h"
+#include "mips_index.h"
 
 
 class UBOPMIPS: public OVR{
@@ -18,5 +18,4 @@ public:
 
 protected:
     MIPSIndex *mipsIndex;
-    size_t dim;
 };

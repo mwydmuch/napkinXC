@@ -45,7 +45,7 @@ void OnlinePLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::
 
 void OnlinePLT::checkTree(int* rLabels, int rSize){
     for (int i = 0; i < rSize; ++i) {
-        if(!tree->count(rLabels[i]rLabels[i])){
+        if(!tree->leaves.count(rLabels[i])){
             // TODO: Add new label to the tree
         }
     }

@@ -381,26 +381,6 @@ void Base::printWeights(){
     std::cerr << "\n";
 }
 
-float* Base::toDenseFloat(){
-    auto* fW = new float[wSize];
-    std::memset(fW, 0, wSize * sizeof(float));
-    if(W != nullptr) {
-        for(int i = 0; i < wSize; ++i) fW[i] = W[i];
-    } else if(mapW != nullptr){
-        for(const auto& w : *mapW) fW[w.first] = w.second;
-    } else if(sparseW != nullptr){
-        Feature* f = sparseW;
-        while(f->index != -1){
-            fW[f->index] = f->value;
-            ++f;
-        }
-        delete[] sparseW;
-        sparseW = nullptr;
-    }
-    unitNorm(fW, wSize);
-    return fW;
-}
-
 
 // Base utils
 

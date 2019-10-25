@@ -216,7 +216,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
-            else if (args[ai] == "-e" || args[ai] == "--eta")
+            else if (args[ai] == "--eta")
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epochs")
                 epochs = std::stoi(args.at(ai + 1));

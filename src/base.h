@@ -35,7 +35,12 @@ public:
     inline size_t sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
     size_t size();
     inline size_t featureSpaceSize() { return wSize; }
-    float* toDenseFloat();
+
+    inline double* getW(){ return W; }
+    inline std::unordered_map<int, double>* getMapW(){ return mapW; }
+    inline Feature* getSparseW(){ return sparseW; }
+
+    inline int getFirstClass() { return firstClass; }
 
     void toMap(); // From dense weights (W) to sparse weights in hashmap (mapW)
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)

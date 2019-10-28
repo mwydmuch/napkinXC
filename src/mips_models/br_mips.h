@@ -5,12 +5,17 @@
 
 #pragma once
 
-#include "br_mips.h"
+#include "br.h"
+#include "mips_index.h"
 
 
-class UBOPMIPS: public BRMIPS{
+class BRMIPS: public BR{
 public:
-    UBOPMIPS();
+    BRMIPS();
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    void load(Args &args, std::string infile) override;
+
+protected:
+    MIPSIndex *mipsIndex;
 };

@@ -79,22 +79,3 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
     //std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum << "\n";
     //exit(0);
 }
-
-void UBOPMIPS::load(Args &args, std::string infile){
-    std::cerr << "Loading weights ...\n";
-    bases = loadBases(joinPath(infile, "weights.bin"));
-    m = bases.size();
-
-    std::cerr << "Adding points to MIPSIndex ...\n";
-    size_t dim = bases[0]->size();
-    mipsIndex = new MIPSIndex(dim, args);
-    for(int i = 0; i < m; ++i){
-        printProgress(i, m);
-        bases[i]->toMap();
-        mipsIndex->addPoint(bases[i]->getMapW(), i, bases[i]->getFirstClass() ? 1 : -1);
-        //bases[i]->toDense();
-        //mipsIndex->addPoint(bases[i]->getW(), bases[i]->size(), i);
-    }
-
-    mipsIndex->createIndex(args);
-}

@@ -275,6 +275,16 @@ public:
     virtual void load(std::istream& in) = 0;
 };
 
+template<typename T>
+inline void saveVar(std::ostream& out, T& var){
+    out.write((char*) &var, sizeof(var));
+}
+
+template<typename T>
+inline void loadVar(std::istream& in, T& var){
+    in.read((char*) &var, sizeof(var));
+}
+
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2);
 

@@ -3,13 +3,13 @@
  * All rights reserved.
  */
 
-#include "ubop_ch.h"
+#include "ubop_hsm.h"
 #include "set_utility.h"
 
 
-UBOPCH::UBOPCH(){}
+UBOPHSM::UBOPHSM(){}
 
-void UBOPCH::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::priority_queue<TreeNodeValue> nQueue;
 
     double value = bases[tree->root->index]->predictProbability(features);

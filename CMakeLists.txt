@@ -1,17 +1,22 @@
 # napkinXML
 # Authors: Marek Wydmuch
 
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.1.0)
 project(napkinXML)
 
 # Project version
 set(napkinXML_VERSION_MAJOR 0)
-set(napkinXML_VERSION_MINOR 1)
+set(napkinXML_VERSION_MINOR 3)
 set(napkinXML_PATCH_VERSION 0)
-set(napkinXML_VERSION ${napkinXML_VERSION_MAJOR}.${napkinXML_VERSION_MINOR}.${napkinXML_PATCH_VERSION})
 
 # Building options
-option(BUILD_MIPS_EXT "Build with maximum inner product search based models" OFF)
+option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
+
+# Configure file
+configure_file(
+    ${CMAKE_SOURCE_DIR}/src/version.in
+    ${CMAKE_SOURCE_DIR}/src/version.h
+)
 
 set(CMAKE_CXX_STANDARD 11)
 
@@ -30,17 +35,12 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
 endif(CMAKE_BUILD_TYPE MATCHES Release)
 
-#include_directories(${CMAKE_SOURCE_DIR}/nmslib/similarity_search/include)
-link_directories(${CMAKE_SOURCE_DIR}/nmslib/similarity_search/release)
-
-file(GLOB_RECURSE SOURCES
+file(GLOB SOURCES
     src/*.cpp
     src/blas/*.c
     src/data_readers/*.cpp
     src/liblinear/*.cpp
-    src/mips_models/*.cpp
-    src/models/*.cpp
-    )
+    src/models/*.cpp)
 
 add_executable(nxml ${SOURCES})
 
@@ -50,16 +50,15 @@ target_include_directories(nxml PUBLIC
     src/data_readers
     src/liblinear
     src/mips_models
-    src/models
-    nmslib/similarity_search/include
-    )
+    src/models)
 
-target_link_libraries(nxml PUBLIC
-        NonMetricSpaceLib
-        #gsl
-        #gslcblas
-        #lshkit
-    )
+if (WITH_MIPS_EXT)
+    file(GLOB MIPS_EXT_SOURCES src/mips_models/*.cpp)
+    target_sources(nxml PUBLIC ${MIPS_EXT_SOURCES})
+    link_directories(${CMAKE_SOURCE_DIR}/nmslib/similarity_search/release)
+    target_include_directories(nxml PUBLIC nmslib/similarity_search/include)
+    target_link_libraries(nxml PUBLIC NonMetricSpaceLib)
+endif ()
 
 set_target_properties(nxml
     PROPERTIES

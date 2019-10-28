@@ -18,13 +18,15 @@ enum ModelType {
     plt,
     ubop,
     rbop,
-    ubopch,
-    ubopmips,
+    ubopHsm,
     hsmEns,
     pltEns,
     pltNeg,
     brpltNeg,
-    oplt
+    oplt,
+    // Mips extension models
+    brMips,
+    ubopMips,
 };
 
 enum TreeType {

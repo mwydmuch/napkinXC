@@ -12,6 +12,7 @@
 #include "measure.h"
 #include "ensemble.h"
 
+#include "version.h"
 #include "br.h"
 #include "ovr.h"
 #include "hsm.h"
@@ -19,11 +20,15 @@
 #include "br_plt_neg.h"
 #include "ubop.h"
 #include "rbop.h"
-#include "ubop_ch.h"
-#include "ubop_mips.h"
+#include "ubop_hsm.h"
 #include "online_plt.h"
 #include "batch_plt.h"
 
+// Mips extension models
+#ifdef MIPS_EXT
+#include "br_mips.h"
+#include "ubop_mips.h"
+#endif
 
 std::shared_ptr<Model> modelFactory(Args &args){
     std::shared_ptr<Model> model = nullptr;
@@ -59,17 +64,23 @@ std::shared_ptr<Model> modelFactory(Args &args){
         case rbop :
             model = std::static_pointer_cast<Model>(std::make_shared<RBOP>());
             break;
-        case ubopch :
-            model = std::static_pointer_cast<Model>(std::make_shared<UBOPCH>());
-            break;
-        case ubopmips :
-            model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>());
+        case ubopHsm :
+            model = std::static_pointer_cast<Model>(std::make_shared<UBOPHSM>());
             break;
         case oplt :
             model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>());
             break;
+        // Mips extension models
+        #ifdef MIPS_EXT
+        case brMips :
+            model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>());
+            break;
+        case ubopMips :
+            model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>());
+            break;
+        #endif
         default:
-            throw "Unknown model type!";
+            throw std::invalid_argument("modelFactory: Unknown model type!");
     }
 
     return model;
@@ -80,7 +91,8 @@ Model::Model() { }
 
 Model::~Model() { }
 
-std::mutex testMutex;
+std::mutex modelTestMutex;
+/*
 int pointTestThread(Model* model, Label* labels, Feature* features, Args& args,
         std::vector<std::shared_ptr<Measure>>& measures){
 
@@ -89,13 +101,14 @@ int pointTestThread(Model* model, Label* labels, Feature* features, Args& args,
     model->predict(prediction, features, args);
 
     // Calculate measures
-    testMutex.lock();
+    modelTestMutex.lock();
     for(auto& m : measures)
         m->accumulate(labels, prediction);
-    testMutex.unlock();
+    modelTestMutex.unlock();
 
     return 0;
 }
+*/
 
 int batchTestThread(int threadId, Model* model, SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
                     const int startRow, const int stopRow, std::vector<std::shared_ptr<Measure>>& measures){
@@ -112,13 +125,13 @@ int batchTestThread(int threadId, Model* model, SRMatrix<Label>& labels, SRMatri
     }
 
     // Calculate measures
-    testMutex.lock();
+    modelTestMutex.lock();
     for(auto& m : measures)
         for(int r = startRow; r < stopRow; ++r) {
             int i = r - startRow;
             m->accumulate(labels.row(r), predictions[i]);
         }
-    testMutex.unlock();
+    modelTestMutex.unlock();
 
     return 0;
 }
@@ -153,6 +166,7 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
          */
 
         // Thread sets
+        // This one is more efficient
         ThreadSet tSet;
         int tRows = ceil(static_cast<double>(rows)/args.threads);
         for(int t = 0; t < args.threads; ++t)

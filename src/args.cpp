@@ -9,6 +9,7 @@
 #include <cmath>
 #include <iomanip>
 
+#include "version.h"
 #include "args.h"
 #include "linear.h"
 #include "utils.h"
@@ -124,8 +125,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 ensemble = std::stoi(args.at(ai + 1));
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
-                if (args.at(ai + 1) == "ovr") modelType = ovr;
-                else if (args.at(ai + 1) == "br") modelType = br;
+                if (args.at(ai + 1) == "br") modelType = br;
+                else if (args.at(ai + 1) == "ovr") modelType = ovr;
                 else if (args.at(ai + 1) == "hsm") modelType = hsm;
                 else if (args.at(ai + 1) == "hsmEns") modelType = hsmEns;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
@@ -134,9 +135,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "brpltNeg") modelType = brpltNeg;
                 else if (args.at(ai + 1) == "ubop") modelType = ubop;
                 else if (args.at(ai + 1) == "rbop") modelType = rbop;
-                else if (args.at(ai + 1) == "ubopch") modelType = ubopch;
-                else if (args.at(ai + 1) == "ubopmips") modelType = ubopmips;
+                else if (args.at(ai + 1) == "ubopHsm") modelType = ubopHsm;
                 else if (args.at(ai + 1) == "oplt") modelType = oplt;
+                // Mips extension models
+                else if (args.at(ai + 1) == "brMips") modelType = brMips;
+                else if (args.at(ai + 1) == "ubopMips") modelType = ubopMips;
+
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
                     printHelp();
@@ -279,7 +283,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
 void Args::printArgs(){
     if (command == "train" || command == "test"){
-        std::cerr << "napkinXML - " << command
+        std::cerr << "napkinXML " << VERSION << " - " << command
             << "\n  Input: " << input
             << "\n    Data format: " << dataFormatType
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm
@@ -307,7 +311,7 @@ void Args::printArgs(){
                 std::cerr << "\n    Tree: " << treeStructure;
             }
         }
-        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopch)) {
+        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopHsm)) {
             std::cerr << "\n  Set utility: " << setUtilityName << ", alfa: " << alfa
                       << ", beta: " << beta << ", epsilon: " << epsilon;
         }

@@ -26,11 +26,13 @@ Base::Base(){
     W = nullptr;
     mapW = nullptr;
     sparseW = nullptr;
+    mapG = nullptr;
 }
 
 Base::~Base(){
     delete[] W;
     delete mapW;
+    delete mapG;
     delete[] sparseW;
 }
 
@@ -40,16 +42,43 @@ void Base::initSpares(){
     firstClass = 1;
 }
 
-void Base::update(double label, Feature* features, Args &args){
-    double pred = predictValue(features);
-    double lr = args.eta * sqrt(1.0 / ++t);
-    double theta = lr * ((1.0 / (1.0 + std::exp(-pred))) - label);
+void Base::initAccGradients(){
+    mapG = new std::unordered_map<int, double>();
+}
 
-    Feature* f = features;
-    while(f->index != -1) {
-        (*mapW)[f->index - 1] -= theta * f->value;
-        ++f;
+void Base::update(double label, Feature* features, Args &args){
+
+    if(args.tmax != -1 && args.tmax < t)
+        return;
+
+    t++;
+    double pred = predictValue(features);
+    double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
+
+    if(args.gradientOptimizerType == gradient_sgd) {
+        double lr = args.eta * sqrt(1.0 /t);
+        double reg;
+        Feature *f = features;
+        while (f->index != -1) {
+            // regularization is probably incorrect due to sparse features.
+            reg = args.penalty * (*mapW)[f->index - 1];
+            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            ++f;
+        }
+    } else if(args.gradientOptimizerType == gradient_adagrad) {
+        double lr;
+        double reg;
+        Feature *f = features;
+        while (f->index != -1) {
+            (*mapG)[f->index - 1] += grad*grad;
+            lr = args.eta * sqrt(1.0 /(args.adagrad_eps + (*mapG)[f->index - 1]));
+            // regularization is probably incorrect due to sparse features.
+            reg = args.penalty * (*mapW)[f->index - 1];
+            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            ++f;
+        }
     }
+
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){

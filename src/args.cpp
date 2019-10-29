@@ -51,6 +51,11 @@ Args::Args() {
 
     // For online training
     epochs = 1;
+    penalty = 1;
+    tmax = -1;
+    gradientOptimizerName = "gradient_sgd";
+    gradientOptimizerType = gradient_sgd;
+    adagrad_eps = 0.00000001;
 
     // Tree options
     treeStructure = "";
@@ -224,8 +229,24 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epochs")
                 epochs = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--penalty")
+                penalty = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--tmax")
+                tmax = std::stoi(args.at(ai + 1));
 
-            // Tree options
+            else if (args[ai] == "--gradient_optimizer") {
+                gradientOptimizerName = args.at(ai + 1);
+                if (args.at(ai + 1) == "sgd") gradientOptimizerType = gradient_sgd;
+                else if (args.at(ai + 1) == "adagrad") gradientOptimizerType = gradient_adagrad;
+                else{
+                    std::cerr << "Unknown gradient optimizer type: " << args.at(ai + 1) << std::endl;
+                    printHelp();
+                }
+            }
+            else if (args[ai] == "--adagrad_eps")
+                adagrad_eps = std::stof(args.at(ai + 1));
+
+                // Tree options
             else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--maxLeaves")

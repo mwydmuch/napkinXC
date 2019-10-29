@@ -12,6 +12,9 @@ void OnlinePLT::init(int labelCount, Args &args){
     for(auto &b : bases){
         b = new Base();
         b->initSpares();
+        if(args.gradientOptimizerType == gradient_adagrad){
+            b->initAccGradients();
+        }
     }
     onlineTree = false;
 

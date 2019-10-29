@@ -20,6 +20,7 @@ public:
     ~Base();
 
     void initSpares();
+    void initAccGradients();
     void update(double label, Feature* features, Args &args);
     void train(int n, std::vector<double>& labels, std::vector<Feature*>& features, Args &args);
     double predictValue(Feature* features);
@@ -63,6 +64,7 @@ private:
 
     double* W;
     std::unordered_map<int, double>* mapW;
+    std::unordered_map<int, double>* mapG;
     Feature* sparseW;
 };
 

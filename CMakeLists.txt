@@ -31,11 +31,11 @@ endif(CMAKE_BUILD_TYPE MATCHES Release)
 
 # Configure file
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+
 configure_file(
     ${SRC_DIR}/version.in
     ${SRC_DIR}/version.h
 )
-
 # Gather napkinXML source files
 file(GLOB SOURCES
     ${SRC_DIR}/*.cpp
@@ -44,28 +44,32 @@ file(GLOB SOURCES
     ${SRC_DIR}/liblinear/*.cpp
     ${SRC_DIR}/models/*.cpp)
 
-add_executable(nxml ${SOURCES})
-
-target_include_directories(nxml PUBLIC
+set(INCLUDES
     ${SRC_DIR}
     ${SRC_DIR}/blas
     ${SRC_DIR}/data_readers
     ${SRC_DIR}/liblinear
     ${SRC_DIR}/models)
 
+set(LIBRARIES)
+
 # MIPS extension files
 if (WITH_MIPS_EXT)
-    file(GLOB MIPS_EXT_SOURCES ${SRC_DIR}/src/mips_models/*.cpp)
-    target_sources(nxml PUBLIC ${MIPS_EXT_SOURCES})
+    link_directories(${CMAKE_SOURCE_DIR}/nmslib/similarity_search/release)
 
-    target_include_directories(nxml PUBLIC
-            ${SRC_DIR}/mips_models
-            ${SRC_DIR}/nmslib/similarity_search/include)
+    file(GLOB MIPS_EXT_SOURCES ${SRC_DIR}/mips_models/*.cpp)
+    set(MIPS_EXT_INCLUDES
+        ${SRC_DIR}/mips_models
+        ${CMAKE_SOURCE_DIR}/nmslib/similarity_search/include)
 
-    link_directories(${SRC_DIR}/nmslib/similarity_search/release)
-
-    target_link_libraries(nxml PUBLIC NonMetricSpaceLib)
+    list(APPEND SOURCES ${MIPS_EXT_SOURCES})
+    list(APPEND INCLUDES ${MIPS_EXT_INCLUDES})
+    list(APPEND LIBRARIES NonMetricSpaceLib)
 endif ()
+
+add_executable(nxml ${SOURCES})
+target_include_directories(nxml PUBLIC ${INCLUDES})
+target_link_libraries(nxml PUBLIC ${LIBRARIES})
 
 set_target_properties(nxml
     PROPERTIES

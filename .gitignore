@@ -10,6 +10,7 @@
 /models
 /outputs
 /results
+/nmslib
 
 .idea
 .DS_Store

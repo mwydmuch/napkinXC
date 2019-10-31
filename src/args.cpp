@@ -17,6 +17,7 @@
 Args::Args() {
     command = "";
     seed = time(0);
+    rngSeeder.seed(seed);
 
     // Input/output options
     input = "";
@@ -45,7 +46,7 @@ Args::Args() {
     optimizerName = "libliner";
     optimizerType = libliner;
     iter = 50;
-    eta = 0.5;
+    eta = 10;
     weightsThreshold = 0.1;
     ensemble = 1;
 
@@ -90,23 +91,25 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
 
     if(command != "train" && command != "test"){
-        std::cerr << "Unknown command type: " << command << std::endl;
+        std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
 
     for (int ai = 2; ai < args.size(); ai += 2) {
         if (args[ai][0] != '-') {
-            std::cerr << "Provided argument without a dash! Usage:" << std::endl;
+            std::cerr << "Provided argument without a dash!\n";
             printHelp();
         }
 
         try {
             if (args[ai] == "-h" || args[ai] == "--help") {
-                std::cerr << "Here is the help! Usage:" << std::endl;
+                std::cerr << "Here is the help!\n";
                 printHelp();
             }
-            else if (args[ai] == "--seed")
+            else if (args[ai] == "--seed") {
                 seed = std::stoi(args.at(ai + 1));
+                rngSeeder.seed(seed);
+            }
 
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
@@ -117,7 +120,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 treeTypeName = args.at(ai + 1);
                 if (args.at(ai + 1) == "libsvm") dataFormatType = libsvm;
                 else {
-                    std::cerr << "Unknown date format type: " << args.at(ai + 1) << std::endl;
+                    std::cerr << "Unknown date format type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
             }
@@ -128,9 +131,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 if (args.at(ai + 1) == "br") modelType = br;
                 else if (args.at(ai + 1) == "ovr") modelType = ovr;
                 else if (args.at(ai + 1) == "hsm") modelType = hsm;
-                else if (args.at(ai + 1) == "hsmEns") modelType = hsmEns;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
-                else if (args.at(ai + 1) == "pltEns") modelType = pltEns;
                 else if (args.at(ai + 1) == "pltNeg") modelType = pltNeg;
                 else if (args.at(ai + 1) == "brpltNeg") modelType = brpltNeg;
                 else if (args.at(ai + 1) == "ubop") modelType = ubop;
@@ -138,11 +139,17 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "ubopHsm") modelType = ubopHsm;
                 else if (args.at(ai + 1) == "oplt") modelType = oplt;
                 // Mips extension models
+                #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips") modelType = brMips;
                 else if (args.at(ai + 1) == "ubopMips") modelType = ubopMips;
-
+                #else
+                else if (args.at(ai + 1) == "brMips" || args.at(ai + 1) == "ubopMips") {
+                    std::cerr << args.at(ai + 1) << " model requires MIPS extension";
+                    exit(EXIT_FAILURE);
+                }
+                #endif
                 else {
-                    std::cerr << "Unknown model type: " << args.at(ai + 1) << std::endl;
+                    std::cerr << "Unknown model type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
             }
@@ -152,7 +159,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "uF1") setUtilityType = uF1;
                 else if (args.at(ai + 1) == "uAlfaBeta") setUtilityType = uAlfaBeta;
                 else {
-                    std::cerr << "Unknown set utility type: " << args.at(ai + 1) << std::endl;
+                    std::cerr << "Unknown set utility type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
             }
@@ -207,7 +214,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "L2R_L1LOSS_SVC_DUAL") solverType = L2R_L1LOSS_SVC_DUAL;
                 else if (args.at(ai + 1) == "L1R_L2LOSS_SVC") solverType = L1R_L2LOSS_SVC;
                 else {
-                    std::cerr << "Unknown solver type: " << args.at(ai + 1) << std::endl;
+                    std::cerr << "Unknown solver type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
             }
@@ -216,7 +223,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
                 else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
                 else{
-                    std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << std::endl;
+                    std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
             }
@@ -248,8 +255,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "hierarchicalKMeans") treeType = hierarchicalKMeans;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
+
+                else if (args.at(ai + 1) == "onlineBalanced") treeType = onlineBalanced;
+                else if (args.at(ai + 1) == "onlineComplete") treeType = onlineComplete;
+                else if (args.at(ai + 1) == "onlineRandom") treeType = onlineRandom;
+
                 else {
-                    std::cerr << "Unknown tree type: " << args.at(ai + 1) << std::endl;
+                    std::cerr << "Unknown tree type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
             }
@@ -270,13 +282,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
         }
         catch (std::out_of_range) {
-            std::cerr << args[ai] << " is missing an argument" << std::endl;
+            std::cerr << args[ai] << " is missing an argument!\n";
             printHelp();
         }
     }
 
     if (input.empty() || output.empty()) {
-        std::cerr << "Empty input or model path." << std::endl;
+        std::cerr << "Empty input or model path!\n";
         printHelp();
     }
 }
@@ -290,6 +302,7 @@ void Args::printArgs(){
             << ", hash size: " << hash << ", prune threshold: " << pruneThreshold
             << "\n  Model: " << output
             << "\n    Type: " << modelName;
+        if(ensemble > 1) std::cerr << ", ensemble: " << ensemble;
         if(command == "train") {
             std::cerr << "\n    Optimizer: " << optimizerName;
             if (optimizerType == libliner)
@@ -298,7 +311,7 @@ void Args::printArgs(){
             else if (optimizerType == sgd)
                 std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << weightsThreshold;
         }
-        if(modelType == plt){
+        if(modelType == plt || modelType == hsm || modelType == oplt){
             if(treeStructure.empty()) {
                 std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
                 if (treeType == hierarchicalKMeans)
@@ -390,7 +403,7 @@ void Args::save(std::ostream& out){
     out.write((char*) &hash, sizeof(hash));
     out.write((char*) &modelType, sizeof(modelType));
     out.write((char*) &dataFormatType, sizeof(dataFormatType));
-    out.write((char*) &ensemble, sizeof(ensemble));
+    //out.write((char*) &ensemble, sizeof(ensemble));
 }
 
 void Args::load(std::istream& in){
@@ -399,5 +412,5 @@ void Args::load(std::istream& in){
     in.read((char*) &hash, sizeof(hash));
     in.read((char*) &modelType, sizeof(modelType));
     in.read((char*) &dataFormatType, sizeof(dataFormatType));
-    in.read((char*) &ensemble, sizeof(ensemble));
+    //in.read((char*) &ensemble, sizeof(ensemble));
 }

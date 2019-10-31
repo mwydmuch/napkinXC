@@ -33,54 +33,62 @@
 std::shared_ptr<Model> modelFactory(Args &args){
     std::shared_ptr<Model> model = nullptr;
 
-    switch (args.modelType) {
-        case ovr :
-            model = std::static_pointer_cast<Model>(std::make_shared<OVR>());
-            break;
-        case br :
-            model = std::static_pointer_cast<Model>(std::make_shared<BR>());
-            break;
-        case hsm :
-            model = std::static_pointer_cast<Model>(std::make_shared<HSM>());
-            break;
-        case hsmEns :
-            model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<HSM>>());
-            break;
-        case plt :
-            model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>());
-            break;
-        case pltEns :
-            model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<BatchPLT>>());
-            break;
-        case pltNeg :
-            model = std::static_pointer_cast<Model>(std::make_shared<PLTNeg>());
-            break;
-        case brpltNeg :
-            model = std::static_pointer_cast<Model>(std::make_shared<BRPLTNeg>());
-            break;
-        case ubop :
-            model = std::static_pointer_cast<Model>(std::make_shared<UBOP>());
-            break;
-        case rbop :
-            model = std::static_pointer_cast<Model>(std::make_shared<RBOP>());
-            break;
-        case ubopHsm :
-            model = std::static_pointer_cast<Model>(std::make_shared<UBOPHSM>());
-            break;
-        case oplt :
-            model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>());
-            break;
-        // Mips extension models
-        #ifdef MIPS_EXT
-        case brMips :
-            model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>());
-            break;
-        case ubopMips :
-            model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>());
-            break;
-        #endif
-        default:
-            throw std::invalid_argument("modelFactory: Unknown model type!");
+    if(args.ensemble > 1){
+        switch (args.modelType) {
+            case hsm :
+                model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<HSM>>());
+                break;
+            case plt :
+                model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<BatchPLT>>());
+                break;
+            default:
+                std::cerr << "Ensemble is not supported for this model type!\n";
+                exit(EXIT_FAILURE);
+        }
+    } else {
+        switch (args.modelType) {
+            case ovr :
+                model = std::static_pointer_cast<Model>(std::make_shared<OVR>());
+                break;
+            case br :
+                model = std::static_pointer_cast<Model>(std::make_shared<BR>());
+                break;
+            case hsm :
+                model = std::static_pointer_cast<Model>(std::make_shared<HSM>());
+                break;
+            case plt :
+                model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>());
+                break;
+            case pltNeg :
+                model = std::static_pointer_cast<Model>(std::make_shared<PLTNeg>());
+                break;
+            case brpltNeg :
+                model = std::static_pointer_cast<Model>(std::make_shared<BRPLTNeg>());
+                break;
+            case ubop :
+                model = std::static_pointer_cast<Model>(std::make_shared<UBOP>());
+                break;
+            case rbop :
+                model = std::static_pointer_cast<Model>(std::make_shared<RBOP>());
+                break;
+            case ubopHsm :
+                model = std::static_pointer_cast<Model>(std::make_shared<UBOPHSM>());
+                break;
+            case oplt :
+                model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>());
+                break;
+                // Mips extension models
+            #ifdef MIPS_EXT
+            case brMips :
+                model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>());
+                break;
+            case ubopMips :
+                model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>());
+                break;
+            #endif
+            default:
+                throw std::invalid_argument("modelFactory: Unknown model type!");
+        }
     }
 
     return model;

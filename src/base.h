@@ -16,10 +16,9 @@
 
 class Base {
 public:
-    Base();
+    Base(bool onlineTraning = false);
     ~Base();
 
-    void initSpares();
     void update(double label, Feature* features, Args &args);
     void train(int n, std::vector<double>& labels, std::vector<Feature*>& features, Args &args);
     double predictValue(Feature* features);
@@ -49,6 +48,9 @@ public:
 
     void save(std::ostream& out);
     void load(std::istream& in);
+
+    Base* copy(bool invert = false);
+    Base* copyInverted();
 
     void printWeights();
 

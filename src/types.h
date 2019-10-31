@@ -31,14 +31,6 @@ struct IntFeature{
     }
 };
 
-// Dense matrix
-template <typename T>
-class DMatrix {
-    DMatrix();
-    DMatrix(int rows, int cols);
-    ~DMatrix();
-};
-
 // Elastic low-level sparse row matrix, type T needs to contain int at offset 0!
 template <typename T>
 class SRMatrix {

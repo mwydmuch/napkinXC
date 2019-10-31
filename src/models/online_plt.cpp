@@ -8,21 +8,24 @@
 void OnlinePLT::init(int labelCount, Args &args){
     tree = new Tree();
     tree->buildTreeStructure(labelCount, args);
-    bases.resize(tree->t);
-    for(auto &b : bases){
-        b = new Base();
-        b->initSpares();
-    }
-    onlineTree = false;
 
-    // TODO: add online tree building
+    if (!tree->isOnline()) {
+        bases.resize(tree->t);
+        for (auto &b : bases)
+            b = new Base(true);
+    }
 }
 
 void OnlinePLT::update(Label* labels, size_t labelsSize, Feature* features, size_t featuresSize, Args &args){
     std::unordered_set<TreeNode*> nPositive;
     std::unordered_set<TreeNode*> nNegative;
 
-    if(onlineTree) checkTree(labels, labelsSize);
+    if(tree->isOnline()) { // Check if example contains a new label
+        for (int i = 0; i < labelsSize; ++i) {
+            if(!tree->leaves.count(labels[i]))
+                tree->expandTree(labels[i], bases, tmpBases, args); // Expand tree in case of the new label
+        }
+    }
 
     getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
 
@@ -33,21 +36,10 @@ void OnlinePLT::update(Label* labels, size_t labelsSize, Feature* features, size
     // Update negative
     for (const auto& n : nNegative)
         bases[n->index]->update(0.0, features, args);
-}
 
-void OnlinePLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
-                                 int* rLabels, int rSize){
-    if(onlineTree){
-        // TODO: add online tree building here
-    } else
-        PLT::getNodesToUpdate(nPositive, nNegative, rLabels, rSize);
-}
-
-void OnlinePLT::checkTree(int* rLabels, int rSize){
-    for (int i = 0; i < rSize; ++i) {
-        if(!tree->leaves.count(rLabels[i])){
-            // TODO: Add new label to the tree
-        }
+    if(tree->isOnline()){ // Update temporary nodes
+        for (const auto& n : nPositive)
+            tmpBases[n->index]->update(0.0, features, args);
     }
 }
 

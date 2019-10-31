@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <random>
 
 #include "types.h"
 #include "utils.h"
@@ -19,8 +20,6 @@ enum ModelType {
     ubop,
     rbop,
     ubopHsm,
-    hsmEns,
-    pltEns,
     pltNeg,
     brpltNeg,
     oplt,
@@ -36,7 +35,9 @@ enum TreeType {
     completeRandom,
     balancedInOrder,
     balancedRandom,
-    online,
+    onlineBalanced,
+    onlineComplete,
+    onlineRandom,
     custom
 };
 
@@ -109,6 +110,7 @@ public:
     int topK;
     bool sparseWeights;
 
+    inline int getSeed(){ return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);
     void printArgs();
     void printHelp();
@@ -128,6 +130,8 @@ public:
     std::string measures;
 
 private:
+    std::default_random_engine rngSeeder;
+
     std::string solverName;
     std::string treeTypeName;
     std::string optimizerName;

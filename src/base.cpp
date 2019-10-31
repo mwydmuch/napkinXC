@@ -14,7 +14,7 @@
 #include "utils.h"
 
 
-Base::Base(){
+Base::Base(bool onlineTraning){
     hingeLoss = false;
 
     wSize = 0;
@@ -26,18 +26,18 @@ Base::Base(){
     W = nullptr;
     mapW = nullptr;
     sparseW = nullptr;
+    
+    if(onlineTraning){
+        mapW = new std::unordered_map<int, double>();
+        classCount = 2;
+        firstClass = 1;
+    }
 }
 
 Base::~Base(){
     delete[] W;
     delete mapW;
     delete[] sparseW;
-}
-
-void Base::initSpares(){
-    mapW = new std::unordered_map<int, double>();
-    classCount = 2;
-    firstClass = 1;
 }
 
 void Base::update(double label, Feature* features, Args &args){
@@ -170,7 +170,7 @@ double Base::predictValue(double* features){
     double val = 0;
 
     if(sparseW) val = dotVectors(sparseW, features); // Dense features dot sparse weights
-    else throw "Prediction using dense features require sparse weights!\n";
+    else throw std::runtime_error("Prediction using dense features and dense weights is not supported!");
 
     if(firstClass == 0) val *= -1;
     return val;
@@ -187,7 +187,7 @@ double Base::predictValue(Feature* features){
             ++f;
         }
     } else if (W) val = dotVectors(features, W); // Sparse features dot dense weights
-    else throw "Prediction using sparse features and sparse weights is not supported!\n";
+    else throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
 
     if(firstClass == 0) val *= -1;
     return val;
@@ -381,13 +381,39 @@ void Base::printWeights(){
     std::cerr << "\n";
 }
 
+Base* Base::copy(bool invert){
+    Base* copy = new Base();
+    if(W){
+        copy->W = new double[wSize];
+        std::memcmp(copy->W, W, wSize * sizeof(double));
+    }
+    if(mapW) copy->mapW = new std::unordered_map<int, double>(mapW->begin(), mapW->end());
+    if(sparseW) {
+        copy->sparseW = new Feature[nonZeroW + 1];
+        std::memcmp(copy->sparseW , sparseW, (nonZeroW + 1) * sizeof(Feature));
+    }
+
+    copy->firstClass = firstClass;
+    copy->classCount = classCount;
+    copy->wSize = wSize;
+    copy->nonZeroW = nonZeroW;
+
+    if(invert && firstClass)
+        copy->firstClass = 0;
+    else
+        copy->firstClass = 1;
+
+    return copy;
+}
+
+Base* Base::copyInverted(){
+    return copy(true);
+}
+
 
 // Base utils
-
 Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
     Base* base = new Base();
-    //printVector(baseLabels);
-    //printVector(baseFeatures);
     base->train(n, baseLabels, baseFeatures, args);
     return base;
 }

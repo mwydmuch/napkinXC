@@ -232,14 +232,14 @@ void checkFileName(const std::string& filename, bool read){
         std::ofstream out(filename);
         valid = out.good();
     }
-    if (!valid) throw "Invalid filename: \"" + filename +"\"!";
+    if (!valid) throw std::invalid_argument("Invalid filename: \"" + filename +"\"!");
 }
 
 // Checks dirname
 void checkDirName(const std::string& dirname){
     std::string tmpFile = joinPath(dirname, ".checkTmp");
     std::ofstream out(tmpFile);
-    if(!out.good()) throw "Invalid dirname: \"" + dirname +"\"!";
+    if(!out.good()) throw std::invalid_argument("Invalid dirname: \"" + dirname +"\"!");
     std::remove(tmpFile.c_str());
 }
 

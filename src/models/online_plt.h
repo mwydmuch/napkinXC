@@ -16,12 +16,6 @@ public:
     void save(Args &args, std::string output) override;
 
 protected:
-    bool onlineTree;
     std::vector<Base*> tmpBases;
-
-    void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
-                          int* rLabels, int rSize) override;
-    void checkTree(int* rLabels, int rSize);
-
 };
 

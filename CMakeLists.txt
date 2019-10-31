@@ -12,12 +12,6 @@ set(napkinXML_PATCH_VERSION 0)
 # Building options
 option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
-# Configure file
-configure_file(
-    ${CMAKE_SOURCE_DIR}/src/version.in
-    ${CMAKE_SOURCE_DIR}/src/version.h
-)
-
 set(CMAKE_CXX_STANDARD 11)
 
 # Set the release mode if not specified
@@ -35,28 +29,41 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
 endif(CMAKE_BUILD_TYPE MATCHES Release)
 
+# Configure file
+set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+configure_file(
+    ${SRC_DIR}/version.in
+    ${SRC_DIR}/version.h
+)
+
+# Gather napkinXML source files
 file(GLOB SOURCES
-    src/*.cpp
-    src/blas/*.c
-    src/data_readers/*.cpp
-    src/liblinear/*.cpp
-    src/models/*.cpp)
+    ${SRC_DIR}/*.cpp
+    ${SRC_DIR}/blas/*.c
+    ${SRC_DIR}/data_readers/*.cpp
+    ${SRC_DIR}/liblinear/*.cpp
+    ${SRC_DIR}/models/*.cpp)
 
 add_executable(nxml ${SOURCES})
 
 target_include_directories(nxml PUBLIC
-    src
-    src/blas
-    src/data_readers
-    src/liblinear
-    src/mips_models
-    src/models)
+    ${SRC_DIR}
+    ${SRC_DIR}/blas
+    ${SRC_DIR}/data_readers
+    ${SRC_DIR}/liblinear
+    ${SRC_DIR}/models)
 
+# MIPS extension files
 if (WITH_MIPS_EXT)
-    file(GLOB MIPS_EXT_SOURCES src/mips_models/*.cpp)
+    file(GLOB MIPS_EXT_SOURCES ${SRC_DIR}/src/mips_models/*.cpp)
     target_sources(nxml PUBLIC ${MIPS_EXT_SOURCES})
-    link_directories(${CMAKE_SOURCE_DIR}/nmslib/similarity_search/release)
-    target_include_directories(nxml PUBLIC nmslib/similarity_search/include)
+
+    target_include_directories(nxml PUBLIC
+            ${SRC_DIR}/src/mips_models
+            ${SRC_DIR}/nmslib/similarity_search/include)
+
+    link_directories(${SRC_DIR}/nmslib/similarity_search/release)
+
     target_link_libraries(nxml PUBLIC NonMetricSpaceLib)
 endif ()
 

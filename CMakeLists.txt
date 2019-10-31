@@ -59,7 +59,7 @@ if (WITH_MIPS_EXT)
     target_sources(nxml PUBLIC ${MIPS_EXT_SOURCES})
 
     target_include_directories(nxml PUBLIC
-            ${SRC_DIR}/src/mips_models
+            ${SRC_DIR}/mips_models
             ${SRC_DIR}/nmslib/similarity_search/include)
 
     link_directories(${SRC_DIR}/nmslib/similarity_search/release)

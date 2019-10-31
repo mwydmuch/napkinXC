@@ -6,6 +6,7 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
+#include <mutex>
 
 #include "model.h"
 #include "threads.h"

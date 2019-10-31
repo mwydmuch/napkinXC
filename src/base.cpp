@@ -26,9 +26,11 @@ Base::Base(bool onlineTraning){
     W = nullptr;
     mapW = nullptr;
     sparseW = nullptr;
-    
+    mapG = nullptr;
+
     if(onlineTraning){
         mapW = new std::unordered_map<int, double>();
+        mapG = new std::unordered_map<int, double>();
         classCount = 2;
         firstClass = 1;
     }
@@ -37,18 +39,41 @@ Base::Base(bool onlineTraning){
 Base::~Base(){
     delete[] W;
     delete mapW;
+    delete mapG;
     delete[] sparseW;
 }
 
-void Base::update(double label, Feature* features, Args &args){
-    double pred = predictValue(features);
-    double lr = args.eta * sqrt(1.0 / ++t);
-    double theta = lr * ((1.0 / (1.0 + std::exp(-pred))) - label);
+void Base::update(double label, Feature* features, Args &args) {
 
-    Feature* f = features;
-    while(f->index != -1) {
-        (*mapW)[f->index - 1] -= theta * f->value;
-        ++f;
+    if (args.tmax != -1 && args.tmax < t)
+        return;
+
+    t++;
+    double pred = predictValue(features);
+    double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
+
+    if (args.gradientOptimizerType == gradient_sgd) {
+        double lr = args.eta * sqrt(1.0 / t);
+        double reg;
+        Feature *f = features;
+        while (f->index != -1) {
+            // regularization is probably incorrect due to sparse features.
+            reg = args.penalty * (*mapW)[f->index - 1];
+            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            ++f;
+        }
+    } else if (args.gradientOptimizerType == gradient_adagrad) {
+        double lr;
+        double reg;
+        Feature *f = features;
+        while (f->index != -1) {
+            (*mapG)[f->index - 1] += grad * grad;
+            lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
+            // regularization is probably incorrect due to sparse features.
+            reg = args.penalty * (*mapW)[f->index - 1];
+            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            ++f;
+        }
     }
 }
 
@@ -412,8 +437,11 @@ Base* Base::copyInverted(){
 
 
 // Base utils
+
 Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
     Base* base = new Base();
+    //printVector(baseLabels);
+    //printVector(baseFeatures);
     base->train(n, baseLabels, baseFeatures, args);
     return base;
 }

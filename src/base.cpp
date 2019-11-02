@@ -75,6 +75,7 @@ void Base::update(double label, Feature* features, Args &args) {
             ++f;
         }
     }
+
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -452,11 +453,8 @@ Base* Base::copyInverted(){
 
 
 // Base utils
-
 Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
     Base* base = new Base();
-    //printVector(baseLabels);
-    //printVector(baseFeatures);
     base->train(n, baseLabels, baseFeatures, args);
     return base;
 }

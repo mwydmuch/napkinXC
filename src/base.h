@@ -45,11 +45,13 @@ public:
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)
     void threshold(double threshold);
+    void multiplyWeights(double a);
+    void invertWeights();
 
     void save(std::ostream& out);
     void load(std::istream& in);
 
-    Base* copy(bool invert = false);
+    Base* copy();
     Base* copyInverted();
 
     void printWeights();

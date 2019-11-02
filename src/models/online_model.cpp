@@ -7,7 +7,7 @@
 #include "threads.h"
 
 
-int onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
+void onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
                     const int startRow, const int stopRow){
 
     //std::cerr << "  Thread " << threadId << " predicting rows from " << startRow << " to " << stopRow << "\n";

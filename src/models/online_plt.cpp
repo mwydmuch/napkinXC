@@ -5,7 +5,7 @@
 
 #include "online_plt.h"
 
-void OnlinePLT::init(int labelCount, Args &args){
+void OnlinePLT::init(int labelCount, Args &args) {
     tree = new Tree();
     tree->buildTreeStructure(labelCount, args);
 
@@ -14,6 +14,8 @@ void OnlinePLT::init(int labelCount, Args &args){
         for (auto &b : bases)
             b = new Base(true);
     }
+
+    args.threads = 1; // Force 1 thread
 }
 
 void OnlinePLT::update(Label* labels, size_t labelsSize, Feature* features, size_t featuresSize, Args &args){

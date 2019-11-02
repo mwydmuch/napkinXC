@@ -52,7 +52,7 @@ void Base::update(double label, Feature* features, Args &args) {
     double pred = predictValue(features);
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
-    if (args.gradientOptimizerType == gradient_sgd) {
+    if (args.optimizerType == sgd) {
         double lr = args.eta * sqrt(1.0 / t);
         double reg;
         Feature *f = features;
@@ -62,7 +62,7 @@ void Base::update(double label, Feature* features, Args &args) {
             (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
             ++f;
         }
-    } else if (args.gradientOptimizerType == gradient_adagrad) {
+    } else if (args.optimizerType == adagrad) {
         double lr;
         double reg;
         Feature *f = features;
@@ -406,7 +406,25 @@ void Base::printWeights(){
     std::cerr << "\n";
 }
 
-Base* Base::copy(bool invert){
+void Base::multiplyWeights(double a){
+    if (W != nullptr)
+        for(int i = 0; i < wSize; ++i) W[i] *= a;
+    else if (mapW != nullptr)
+        for (auto& f : *mapW) f.second *= a;
+    else if (sparseW != nullptr) {
+        Feature* f = sparseW;
+        while(f->index != -1 && f->index < wSize) {
+            f->value *= a;
+            ++f;
+        }
+    }
+}
+
+void Base::invertWeights(){
+    multiplyWeights(-1);
+}
+
+Base* Base::copy(){
     Base* copy = new Base();
     if(W){
         copy->W = new double[wSize];
@@ -423,16 +441,13 @@ Base* Base::copy(bool invert){
     copy->wSize = wSize;
     copy->nonZeroW = nonZeroW;
 
-    if(invert && firstClass)
-        copy->firstClass = 0;
-    else
-        copy->firstClass = 1;
-
     return copy;
 }
 
 Base* Base::copyInverted(){
-    return copy(true);
+    Base* c = copy();
+    c->invertWeights();
+    return c;
 }
 
 

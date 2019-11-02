@@ -52,10 +52,8 @@ Args::Args() {
 
     // For online training
     epochs = 1;
-    penalty = 1;
+    penalty = 0;
     tmax = -1;
-    gradientOptimizerName = "gradient_sgd";
-    gradientOptimizerType = gradient_sgd;
     adagrad_eps = 0.00000001;
 
     // Tree options
@@ -122,7 +120,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "-o" || args[ai] == "--output")
                 output = std::string(args.at(ai + 1));
             else if (args[ai] == "-d" || args[ai] == "--dataFormat") {
-                treeTypeName = args.at(ai + 1);
+                dataFormatName = args.at(ai + 1);
                 if (args.at(ai + 1) == "libsvm") dataFormatType = libsvm;
                 else {
                     std::cerr << "Unknown date format type: " << args.at(ai + 1) << "!\n";
@@ -227,6 +225,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 optimizerName = args.at(ai + 1);
                 if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
                 else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
+                else if (args.at(ai + 1) == "adagrad") optimizerType = adagrad;
                 else{
                     std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << "!\n";
                     printHelp();
@@ -240,16 +239,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 penalty = std::stof(args.at(ai + 1));
             else if (args[ai] == "--tmax")
                 tmax = std::stoi(args.at(ai + 1));
-
-            else if (args[ai] == "--gradient_optimizer") {
-                gradientOptimizerName = args.at(ai + 1);
-                if (args.at(ai + 1) == "sgd") gradientOptimizerType = gradient_sgd;
-                else if (args.at(ai + 1) == "adagrad") gradientOptimizerType = gradient_adagrad;
-                else{
-                    std::cerr << "Unknown gradient optimizer type: " << args.at(ai + 1) << std::endl;
-                    printHelp();
-                }
-            }
             else if (args[ai] == "--adagrad_eps")
                 adagrad_eps = std::stof(args.at(ai + 1));
 
@@ -311,6 +300,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     if (input.empty() || output.empty()) {
         std::cerr << "Empty input or model path!\n";
         printHelp();
+    }
+
+    // Change default values for specific cases:
+    if (modelType == oplt && optimizerType == libliner){
+        optimizerType = sgd;
+        optimizerName = "sgd";
     }
 }
 

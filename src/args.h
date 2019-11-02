@@ -41,9 +41,7 @@ enum TreeType {
     custom
 };
 
-enum OptimizerType { libliner, sgd };
-
-enum GradientOptimizerType { gradient_sgd, gradient_adagrad };
+enum OptimizerType { libliner, sgd, adagrad };
 
 enum DataFormatType { libsvm };
 
@@ -93,7 +91,6 @@ public:
     int epochs;
     double penalty;
     int tmax;
-    GradientOptimizerType gradientOptimizerType;
     double adagrad_eps;
 
     // Tree models
@@ -141,7 +138,6 @@ private:
     std::string solverName;
     std::string treeTypeName;
     std::string optimizerName;
-    std::string gradientOptimizerName;
     std::string modelName;
     std::string dataFormatName;
     std::string setUtilityName;

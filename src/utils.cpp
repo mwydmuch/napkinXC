@@ -14,35 +14,6 @@
 #include "threads.h"
 
 // Data utils
-void computeTfIdfFeatures(SRMatrix<Feature>& features, bool omitBias){
-    std::cerr << "Computing tf-idf features ...\n";
-
-    std::vector<double> idf(features.cols());
-    int rows = features.rows();
-
-    for(int r = 0; r < rows; ++r){
-        printProgress(r, rows * 2);
-
-        int rFeaturesSize = features.size(r) - (omitBias ? 1 : 0);
-        auto rFeatures = features.row(r);
-
-        for (int i = 0; i < rFeaturesSize; ++i) ++idf[rFeatures[i].index];
-    }
-
-    for(auto& w : idf)
-        w = std::log(rows / (1 + w));
-
-    for(int r = 0; r < rows; ++r){
-        printProgress(r + rows, rows * 2);
-
-        int rFeaturesSize = features.size(r) - (omitBias ? 1 : 0);
-        auto rFeatures = features.row(r);
-
-        for (int i = 0; i < rFeaturesSize; ++i)
-            rFeatures[i].value = rFeatures[i].value / rFeaturesSize * idf[rFeatures[i].index];
-    }
-}
-
 void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' frequencies ...\n";
 

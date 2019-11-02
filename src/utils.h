@@ -13,6 +13,10 @@
 #include <iostream>
 #include <cmath>
 #include <mutex>
+
+#include <unistd.h>
+#include <sys/times.h>
+
 #include "types.h"
 
 #define LABELS_MUTEXES 1024
@@ -302,3 +306,32 @@ void makeDir(const std::string& dirname);
 
 // Remove file or directory
 void remove(const std::string& path);
+
+// Time utils
+class TimeHelper {
+public:
+    void start(){
+        checkpoints.clear();
+        tms st;
+        times(&st);
+        checkpoints.push_back(st);
+    }
+
+    void checkpoint(){
+        tms ct;
+        times(&ct);
+        checkpoints.push_back(ct);
+    }
+
+    void printTime(){
+        const long ticks = sysconf( _SC_CLK_TCK );
+        size_t cpSize = checkpoints.size();
+        if(cpSize > 1){
+            std::cerr << "Resources:\n"
+                << "  CPU time: " << static_cast<double>(checkpoints[cpSize - 1].tms_utime - checkpoints[cpSize - 2].tms_utime) / ticks << "\n"
+                << "  Total CPU time: "<< static_cast<double>(checkpoints[cpSize - 1].tms_utime - checkpoints[0].tms_utime) / ticks << "\n";
+        }
+    }
+private:
+    std::vector<tms> checkpoints;
+};

@@ -65,9 +65,8 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
     std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
     double P = 0, bestU = 0;
     for(const auto& p : allPredictions){
-
         P += p.value;
-        double U = u->g(prediction.size()) * P;
+        double U = u->g(prediction.size() + 1) * P;
         if(bestU <= U) {
             prediction.push_back(p);
             bestU = U;

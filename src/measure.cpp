@@ -41,7 +41,6 @@ void Recall::accumulate(Label* labels, const std::vector<Prediction>& prediction
                 break;
             }
     }
-    l = -1;
     while(labels[++l] > -1);
     if(l > 0) {
         sum += tp / l;

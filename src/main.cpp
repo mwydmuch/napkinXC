@@ -32,6 +32,9 @@ void train(Args &args) {
 }
 
 void test(Args &args) {
+    TimeHelper timer;
+    timer.start();
+
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
 
@@ -44,11 +47,21 @@ void test(Args &args) {
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
 
+    timer.checkpoint();
+    timer.printTime();
+
     // Load model and test
     std::shared_ptr<Model> model = modelFactory(args);
     model->load(args, args.output);
+
+    timer.checkpoint();
+    timer.printTime();
+
     model->test(labels, features, args);
     model->printInfo();
+
+    timer.checkpoint();
+    timer.printTime();
 
     std::cerr << "All done!\n";
 }

@@ -55,7 +55,7 @@ void MIPSIndex::addPoint(std::unordered_map<int, double>* pointData, int label, 
 }
 
 void MIPSIndex::createIndex(Args& args){
-    std::cerr << "Creating MIPS index in " << args.threads << " ...\n";
+    std::cerr << "Creating MIPS index in " << args.threads << " threads ...\n";
 
     AnyParams indexParams(
         {

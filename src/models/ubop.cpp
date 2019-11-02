@@ -31,26 +31,16 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
 
     sort(allPredictions.rbegin(), allPredictions.rend());
 
-//    for(auto& p : allPredictions)
-//        std::cerr << p.label << " " << p.value << "\n";
-
     std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
 
     double P = 0, bestU = 0;
     for(const auto& p : allPredictions){
-        prediction.push_back(p);
-
-        //std::cerr << p.label << " " << p.value << "\n";
-
         P += p.value;
-        double U = u->g(prediction.size()) * P;
-        if(bestU <= U)
+        double U = u->g(prediction.size() + 1) * P;
+        if(bestU <= U) {
+            prediction.push_back(p);
             bestU = U;
-        else {
-            P -= p.value;
-            prediction.pop_back();
-            break;
-        }
+        } else break;
     }
 
     //std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum << "\n";

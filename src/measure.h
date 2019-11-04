@@ -93,4 +93,11 @@ public:
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
+class PredictionSize: public Measure{
+public:
+    PredictionSize(Args& args, Model* model);
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
+
 std::vector<std::shared_ptr<Measure>> measuresFactory(Args& args, Model* model);

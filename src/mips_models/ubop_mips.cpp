@@ -18,9 +18,9 @@ UBOPMIPS::UBOPMIPS(){}
 
 void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
 
-    bool sampling = false;
+    bool sampling = true;
 
-    int k = 5;
+    int k = 100;
     std::vector<Prediction> allPredictions;
     std::unordered_set<int> seenLabels;
     double sum = 0;
@@ -28,6 +28,7 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
     std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, k);
     while(!mipsPrediction.empty()) {
         auto p = mipsPrediction.top();
+        p.value = exp(p.value);
         mipsPrediction.pop();
         allPredictions.push_back(p);
         sum += p.value;
@@ -42,16 +43,16 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
         std::uniform_int_distribution<int> labelsRandomizer(0, bases.size());
         for(int i = 0; i < sample; ++i) {
             int r = labelsRandomizer(rng);
-            double prob = bases[r]->predictProbability(features);
-            tmpSum += prob;
+            double value = exp(bases[r]->predictValue(features));
+            tmpSum += value;
 
             if(!seenLabels.count(r)){
-                allPredictions.push_back({r, prob});
+                allPredictions.push_back({r, value});
                 seenLabels.insert(r);
             }
         }
 
-        sum += tmpSum * static_cast<double>(bases.size() - k) / sample;
+        //sum += tmpSum * static_cast<double>(bases.size() - k) / sample;
 
         // Sort
         sort(allPredictions.rbegin(), allPredictions.rend());

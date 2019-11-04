@@ -82,8 +82,8 @@ Args::Args() {
     alfa = 1.0;
     beta = 1.0;
     epsilon = 0.0;
-    delta = 0.0;
-    gamma = 0.0;
+    delta = 1.6;
+    gamma = 0.6;
 
     // Measures
     measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
@@ -93,7 +93,10 @@ Args::Args() {
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
 
-    if(command != "train" && command != "test"){
+    if (command == "-h" || command == "--help" || command == "help")
+        printHelp();
+
+    if(command != "train" && command != "test" && command != "predict"){
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
@@ -105,11 +108,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         }
 
         try {
-            if (args[ai] == "-h" || args[ai] == "--help") {
-                std::cerr << "Here is the help!\n";
-                printHelp();
-            }
-            else if (args[ai] == "--seed") {
+            if (args[ai] == "--seed") {
                 seed = std::stoi(args.at(ai + 1));
                 rngSeeder.seed(seed);
             }
@@ -161,6 +160,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 if (args.at(ai + 1) == "uP") setUtilityType = uP;
                 else if (args.at(ai + 1) == "uF1") setUtilityType = uF1;
                 else if (args.at(ai + 1) == "uAlfaBeta") setUtilityType = uAlfaBeta;
+                else if (args.at(ai + 1) == "uDeltaGamma") setUtilityType = uDeltaGamma;
                 else {
                     std::cerr << "Unknown set utility type: " << args.at(ai + 1) << "!\n";
                     printHelp();

@@ -3,6 +3,9 @@
  * All rights reserved.
  */
 
+#include <iostream>
+#include <iomanip>
+
 #include "args.h"
 #include "data_reader.h"
 #include "model.h"
@@ -66,29 +69,50 @@ void test(Args &args) {
     std::cerr << "All done!\n";
 }
 
-/*
+
 void predict(Args &args) {
-    // Load args
-    args.load(joinPath(args.output, "args.bin"));
+    // Load model args
+    args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
 
-    PLTree tree;
-    tree.load(joinPath(args.output, "tree.bin"));
+    // Create data reader
+    std::shared_ptr<DataReader> reader = dataReaderFactory(args);
+    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
+
+    // Load model
+    std::shared_ptr<Model> model = modelFactory(args);
+    model->load(args, args.output);
+
+    std::cout << std::setprecision(5);
 
     // Predict data from cin and output to cout
     if(args.input == "-"){
         //TODO
     }
 
-    // Read data from file and output prediction to output
+    // Read data from file and output prediction to cout
     else {
         SRMatrix<Label> labels;
         SRMatrix<Feature> features;
-        args.readData(labels, features);
-        //TODO
+        reader->readData(labels, features, args);
+
+        std::vector<Prediction> prediction;
+        prediction.reserve(model->outputSize());
+        //for(int r = 0; r < features.rows(); ++r){
+        for(int r = 0; r < 5000; ++r){
+            model->predict(prediction, features.row(r), args);
+
+            // Print prediction
+            std::cout << labels.row(r)[0];
+            for(const auto& p : prediction)
+                std::cout << " " << p.label << ":" << p.value;
+            std::cout << std::endl;
+            prediction.clear();
+        }
     }
 }
 
+/*
 void buildTree(Args &args) {
     args.printArgs();
 
@@ -130,8 +154,8 @@ int main(int argc, char** argv) {
         train(args);
     else if(args.command == "test")
         test(args);
-    else
-        args.printHelp();
+    else if(args.command == "predict")
+        predict(args);
 
     return 0;
 }

@@ -19,17 +19,8 @@ UBOP::UBOP(){}
 void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::vector<Prediction> allPredictions;
 
-    double sum = 0;
-    for(int i = 0; i < bases.size(); ++i) {
-        double value = bases[i]->predictProbability(features);
-        sum += value;
-        allPredictions.push_back({i, value});
-    }
-
-    for(auto& p : allPredictions)
-        p.value /= sum;
-
-    sort(allPredictions.rbegin(), allPredictions.rend());
+    args.topK = -1;
+    OVR::predict(allPredictions, features, args);
 
     std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
 

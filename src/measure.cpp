@@ -41,6 +41,7 @@ void Recall::accumulate(Label* labels, const std::vector<Prediction>& prediction
                 break;
             }
     }
+    l = -1;
     while(labels[++l] > -1);
     if(l > 0) {
         sum += tp / l;
@@ -163,6 +164,15 @@ void Accuracy::accumulate(Label* labels, const std::vector<Prediction>& predicti
     ++count;
 }
 
+PredictionSize::PredictionSize(Args& args, Model* model) : Measure(args, model){
+    name = "Mean prediction size";
+}
+
+void PredictionSize::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+    sum += prediction.size();
+    ++count;
+}
+
 
 std::vector<std::shared_ptr<Measure>> measuresFactory(Args& args, Model* model){
     std::vector<std::shared_ptr<Measure>> measures;
@@ -198,6 +208,8 @@ std::vector<std::shared_ptr<Measure>> measuresFactory(Args& args, Model* model){
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfaBeta>(args, model)));
             else if (m == "uDeltaGamma")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args, model)));
+            else if (m == "s")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PredictionSize>(args, model)));
         }
     }
 

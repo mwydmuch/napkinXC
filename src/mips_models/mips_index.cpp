@@ -117,8 +117,8 @@ std::priority_queue<Prediction> MIPSIndex::predict(Feature* data, size_t k) {
     index->Search(&knn, -1);
     auto knnResult = knn.Result()->Clone();
     while(!knnResult->Empty()){
-        //result.push({knnResult->TopObject()->id(), -knnResult->TopDistance()});
-        result.push({knnResult->TopObject()->id(), 1.0 / (1.0 + std::exp(knnResult->TopDistance()))});
+        result.push({knnResult->TopObject()->id(), -knnResult->TopDistance()});
+        //result.push({knnResult->TopObject()->id(), 1.0 / (1.0 + std::exp(knnResult->TopDistance()))});
         knnResult->Pop();
     }
 

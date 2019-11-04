@@ -64,6 +64,7 @@ void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features
 
     std::unordered_map<int, EnsemblePrediction> ensemblePredictions;
     for(size_t i = 0; i < members.size(); ++i){
+        prediction.clear();
         members[i]->predict(prediction, features, args);
 
         for(auto &mP : prediction) {

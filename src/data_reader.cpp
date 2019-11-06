@@ -98,8 +98,8 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
     // Checks
     assert(labels.rows() == features.rows());
-    assert(hLabels >= labels.cols());
-    assert(hFeatures + 1 + (args.bias ? 1 : 0) >= features.cols() );
+    //assert(hLabels >= labels.cols());
+    //assert(hFeatures + 1 + (args.bias ? 1 : 0) >= features.cols());
 
     // Print data
     /*

@@ -70,6 +70,8 @@ UtilityAlfaBeta::UtilityAlfaBeta(Args& args, Model* model) : SetUtility(args, mo
     alfa = args.alfa;
     beta = args.beta;
     m = model->outputSize();
+    if(alfa <= 0) alfa = static_cast<double>(m - 1) / m;
+    if(beta <= 0) beta = std::log2(static_cast<double>(m) / (2 * (m - 1))) / std::log2(1.0 / (m - 1));
     name = "U_alfa_beta(" + std::to_string(alfa) + ", " + std::to_string(beta) + ")";
 }
 

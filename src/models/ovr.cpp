@@ -28,20 +28,19 @@ void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args &
         p.value /= sum;
 
     sort(prediction.rbegin(), prediction.rend());
-    if(args.topK > 0){
+    if(args.topK > 0)
         prediction.resize(args.topK);
-
-    }
 }
 
 double OVR::predictForLabel(Label label, Feature* features, Args &args){
     double sum = 0;
     for(int i = 0; i < bases.size(); ++i) {
-        double value = bases[i]->predictProbability(features);
+        //double value = bases[i]->predictProbability(features); // Standard normalization
+        double value = exp(bases[i]->predictValue(features)); // Softmax normalization
         sum += value;
     }
 
-    return bases[label]->predictProbability(features) / sum;
+    return exp(bases[label]->predictValue(features)) / sum;
 }
 
 void OVR::printInfo(){

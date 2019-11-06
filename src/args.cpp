@@ -79,8 +79,8 @@ Args::Args() {
 
     // Set utility options
     setUtilityType = uAlfaBeta;
-    alfa = 1.0;
-    beta = 1.0;
+    alfa = 0.0;
+    beta = 0.0;
     epsilon = 0.0;
     delta = 1.6;
     gamma = 0.6;

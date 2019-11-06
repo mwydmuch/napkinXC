@@ -59,9 +59,8 @@ void MIPSIndex::createIndex(Args& args){
 
     AnyParams indexParams(
         {
-            //"NN=17",
-            //"efConstruction=50",
-            "indexThreadQty=" + std::to_string(args.threads), /* 4 indexing threads */
+            "post=2",
+            "indexThreadQty=" + std::to_string(args.threads),
         }
     );
 

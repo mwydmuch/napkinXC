@@ -18,14 +18,7 @@ BRMIPS::BRMIPS(){}
 
 void BRMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
 
-    bool sampling = false;
-
-    int k = 5;
-    std::vector<Prediction> allPredictions;
-    std::unordered_set<int> seenLabels;
-    double sum = 0;
-
-    std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, k);
+    std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, args.topK);
     while(!mipsPrediction.empty()) {
         auto p = mipsPrediction.top();
         mipsPrediction.pop();

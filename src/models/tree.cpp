@@ -105,7 +105,9 @@ void Tree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args){
     root = createTreeNode();
     k = labelsFeatures.rows();
 
-    std::default_random_engine rng(args.getSeed());
+    long seed = args.getSeed();
+    std::cerr << "  Seed: " << seed << std::endl;
+    std::default_random_engine rng(seed);
     std::uniform_int_distribution<int> kMeansSeeder(0, INT_MAX);
 
     auto partition = new std::vector<Assignation>(k);
@@ -190,6 +192,8 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args &args){
     std::vector<Frequency> labelsFreq;
     computeLabelsFrequencies(labelsFreq, labels);
 
+    std::cout << "Building Huffman Tree 2 ...\n";
+
     std::priority_queue<TreeNodeFrequency> freqQueue;
     for(int i = 0; i < k; i++) {
         TreeNode* n = createTreeNode(nullptr, i);
@@ -215,7 +219,7 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args &args){
         nodes.push_back(parent);
 
         if (freqQueue.empty()) root = parent;
-        freqQueue.push({parent, aggregatedFreq});
+        else freqQueue.push({parent, aggregatedFreq});
     }
 
     t = nodes.size();  // size of the tree

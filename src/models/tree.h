@@ -41,7 +41,7 @@ struct TreeNodeFrequency{
     TreeNode* node;
     int frequency;
 
-    // Sorted from the least
+    // Sorted from the lowest to the highest frequency
     bool operator<(const TreeNodeFrequency &r) const { return frequency > r.frequency; }
 };
 

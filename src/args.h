@@ -73,9 +73,11 @@ public:
     int hash;
     double pruneThreshold;
 
-    // Training options
+    // Threading and memory options
     int threads;
-    size_t memLimit; // TODO: Implement this for OVA models
+    size_t memLimit; // TODO: Implement this for some models
+
+    // Training options
     int solverType;
     OptimizerType optimizerType;
     double eps;
@@ -84,8 +86,9 @@ public:
     bool labelsWeights;
     int iter;
     double eta;
-    double mem;
+
     int ensemble;
+    bool onTheTrotPrediction;
 
     // For online training
     int epochs;

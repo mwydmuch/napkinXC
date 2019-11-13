@@ -37,7 +37,6 @@ Args::Args() {
     // Training options
     threads = getCpuCount();
     memLimit = 0;
-    mem = 16;
     eps = 0.001;
     cost = 8.0;
     solverType = L2R_LR_DUAL;
@@ -48,7 +47,10 @@ Args::Args() {
     iter = 50;
     eta = 10;
     weightsThreshold = 0.1;
-    ensemble = 1;
+
+    // Ensemble options
+    ensemble = 0;
+    onTheTrotPrediction = true;
 
     // For online training
     epochs = 1;
@@ -128,6 +130,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
             else if (args[ai] == "--ensemble")
                 ensemble = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--onTheTrotPrediction")
+                onTheTrotPrediction = std::stoi(args.at(ai + 1));
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
                 if (args.at(ai + 1) == "br") modelType = br;

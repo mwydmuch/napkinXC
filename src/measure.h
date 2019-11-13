@@ -16,7 +16,9 @@ public:
     Measure(Args& args, Model* model);
 
     virtual void accumulate(Label* labels, const std::vector<Prediction>& prediction) = 0;
+    void accumulate(std::vector<std::vector<Prediction>>& predictions, SRMatrix<Label>& labels);
     virtual double value();
+
 
     inline std::string getName(){ return name; }
 

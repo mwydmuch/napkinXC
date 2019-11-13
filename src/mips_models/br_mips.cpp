@@ -22,9 +22,7 @@ void BRMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Arg
     while(!mipsPrediction.empty()) {
         auto p = mipsPrediction.top();
         mipsPrediction.pop();
-        allPredictions.push_back(p);
-        sum += p.value;
-        seenLabels.insert(p.label);
+        prediction.push_back(p);
     }
 }
 

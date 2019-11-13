@@ -34,7 +34,7 @@
 std::shared_ptr<Model> modelFactory(Args &args){
     std::shared_ptr<Model> model = nullptr;
 
-    if(args.ensemble > 1){
+    if(args.ensemble > 0){
         switch (args.modelType) {
             case hsm :
                 model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<HSM>>());
@@ -100,96 +100,49 @@ Model::Model() { }
 
 Model::~Model() { }
 
-std::mutex modelTestMutex;
-/*
-int pointTestThread(Model* model, Label* labels, Feature* features, Args& args,
-        std::vector<std::shared_ptr<Measure>>& measures){
-
-    // Predict
-    std::vector<Prediction> prediction;
-    model->predict(prediction, features, args);
-
-    // Calculate measures
-    modelTestMutex.lock();
-    for(auto& m : measures)
-        m->accumulate(labels, prediction);
-    modelTestMutex.unlock();
-
-    return 0;
-}
-*/
-
-int batchTestThread(int threadId, Model* model, SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
-                    const int startRow, const int stopRow, std::vector<std::shared_ptr<Measure>>& measures){
-
-    //std::cerr << "  Thread " << threadId << " predicting rows from " << startRow << " to " << stopRow << "\n";
-
-    // Predict
+void batchTestThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+        SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow){
     const int batchSize = stopRow - startRow;
-    std::vector<std::vector<Prediction>> predictions(batchSize);
     for(int r = startRow; r < stopRow; ++r){
         int i = r - startRow;
-        model->predict(predictions[i], features.row(r), args);
+        model->predict(predictions[r], features[r], args);
         if(!threadId) printProgress(i, batchSize);
     }
-
-    // Calculate measures
-    modelTestMutex.lock();
-    for(auto& m : measures)
-        for(int r = startRow; r < stopRow; ++r) {
-            int i = r - startRow;
-            m->accumulate(labels.row(r), predictions[i]);
-        }
-    modelTestMutex.unlock();
-
-    return 0;
 }
 
 void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
-    SRMatrix<Label> trainLabels;
-    SRMatrix<Feature> trainFeatures;
-
     std::cerr << "Starting testing in " << args.threads << " threads ...\n";
 
-    auto measures = measuresFactory(args, this);
+    // Predict for test set
+    std::vector<std::vector<Prediction>> predictions = predictBatch(features, args);
 
+    // Create measures and calculate scores
+    auto measures = measuresFactory(args, this);
+    for (auto& m : measures) m->accumulate(predictions, labels);
+
+    // Print results
+    std::cerr << std::setprecision(5) << "Results:\n";
+    for (auto& m : measures)
+        std::cerr << "  " << m->getName() << ": " << m->value() << std::endl;
+}
+
+std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& features, Args& args){
     int rows = features.rows();
-    assert(rows == labels.rows());
+    std::vector<std::vector<Prediction>> predictions(rows);
 
     if(args.threads > 1){
-        // Run prediction in parallel
-
-        // Thread pool
-        /*
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<int>> results;
-
-        for(int r = 0; r < rows; ++r)
-            results.emplace_back(tPool.enqueue(pointTestThread, this, labels.row(r), features.row(r),
-                                               std::ref(args), std::ref(measures)));
-
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            results[i].get();
-        }
-         */
-
-        // Thread sets
-        // This one is more efficient
+        // Run prediction in parallel using thread set
         ThreadSet tSet;
         int tRows = ceil(static_cast<double>(rows)/args.threads);
         for(int t = 0; t < args.threads; ++t)
-            tSet.add(batchTestThread, t, this, std::ref(labels), std::ref(features), std::ref(args),
-                     t * tRows, std::min((t + 1) * tRows, labels.rows()), std::ref(measures));
+            tSet.add(batchTestThread, t, this, std::ref(predictions), std::ref(features), std::ref(args),
+                     t * tRows, std::min((t + 1) * tRows, rows));
         tSet.joinAll();
 
     } else
-        batchTestThread(0, this, labels, features, args, 0, labels.rows(), measures);
+        batchTestThread(0, this, predictions, features, args, 0, rows);
 
-
-    std::cerr << std::setprecision(5) << "Results:\n";
-    for(auto& m : measures)
-        std::cerr << "  " << m->getName() << ": " << m->value() << std::endl;
+    return predictions;
 }
 
 void Model::checkRow(Label* labels, Feature* feature){ }

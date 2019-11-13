@@ -71,8 +71,8 @@ public:
     inline std::vector<T*>& allRows() { return r; }
 
     // Access row also by [] operator
-    inline T& operator[](const int index) { return r[index]; }
-    inline const T& operator[] (const int index) const { return r[index]; }
+    inline T* operator[](const int index) { return r[index]; }
+    inline const T* operator[] (const int index) const { return r[index]; }
 
     // Returns rows' sizes
     inline std::vector<int>& sizes(){ return s; }

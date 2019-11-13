@@ -18,6 +18,11 @@ Measure::Measure(Args& args, Model* model) {
     count = 0;
 }
 
+void Measure::accumulate(std::vector<std::vector<Prediction>>& predictions, SRMatrix<Label>& labels){
+    assert(predictions.size() == labels.rows());
+    for(int i = 0; i < labels.rows(); ++i) accumulate(labels[i], predictions[i]);
+}
+
 double Measure::value() {
     return sum / count;
 }

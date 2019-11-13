@@ -13,7 +13,7 @@
 struct EnsemblePrediction{
     int label;
     double value;
-    std::unordered_set<int> members;
+    std::vector<int> members;
 
     bool operator<(const EnsemblePrediction &r) const { return value < r.value; }
 };
@@ -73,7 +73,7 @@ void Ensemble<T>::accumulatePrediction(
         auto ensP = ensemblePredictions.find(mP.label);
         if (ensP != ensemblePredictions.end()) {
             ensP->second.value += mP.value;
-            ensP->second.members.insert(memberNo);
+            ensP->second.members.push_back(memberNo);
         } else
             ensemblePredictions.insert({mP.label, {mP.label, mP.value, {memberNo}}});
     }
@@ -91,12 +91,11 @@ void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features
 
     prediction.clear();
     for(auto &p : ensemblePredictions){
-        double value = p.second.value;
         for(size_t i = 0; i < members.size(); ++i){
             if(!std::count(p.second.members.begin(), p.second.members.end(), i))
-                value += members[i]->predictForLabel(p.second.label, features, args);
+                p.second.value += members[i]->predictForLabel(p.second.label, features, args);
         }
-        prediction.push_back({p.second.label, value / members.size()});
+        prediction.push_back({p.second.label, p.second.value / members.size()});
     }
 
     sort(prediction.rbegin(), prediction.rend());
@@ -172,6 +171,11 @@ void Ensemble<T>::load(Args &args, std::string infile){
         std::cerr << "Loading ensemble of " << args.ensemble << " models ...\n";
         for (int i = 0; i < args.ensemble; ++i)
             members.push_back(loadMember(args, infile, i));
+        m = members[0]->outputSize();
+    } else {
+        T* member = loadMember(args, infile, 0);
+        m = member->outputSize();
+        delete member;
     }
 }
 

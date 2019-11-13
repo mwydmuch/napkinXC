@@ -50,7 +50,7 @@ Args::Args() {
 
     // Ensemble options
     ensemble = 0;
-    onTheTrotPrediction = true;
+    onTheTrotPrediction = false;
 
     // For online training
     epochs = 1;
@@ -76,7 +76,7 @@ Args::Args() {
     kMeansWeightedFeatures = false;
 
     // Prediction options
-    topK = 1;
+    topK = 5;
     sparseWeights = true;
 
     // Set utility options

@@ -22,7 +22,6 @@ public:
     double predictForLabel(Label label, Feature* features, Args &args) override;
 
     void predictTopK(std::vector<Prediction>& prediction, Feature* features, int k);
-    void predictTopKBeam(std::vector<Prediction>& prediction, Feature* features, int k);
 
     void load(Args &args, std::string infile) override;
 
@@ -41,7 +40,7 @@ protected:
     void addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                      std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
                      Feature* features);
-    virtual void predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features);
+    virtual Prediction predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features);
 
     int nCount; // Number of visited nodes (updated/evaluated classifiers) during training or prediction
     int rCount; // Data points count

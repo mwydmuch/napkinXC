@@ -110,22 +110,6 @@ void batchTestThread(int threadId, Model* model, std::vector<std::vector<Predict
     }
 }
 
-void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
-    std::cerr << "Starting testing in " << args.threads << " threads ...\n";
-
-    // Predict for test set
-    std::vector<std::vector<Prediction>> predictions = predictBatch(features, args);
-
-    // Create measures and calculate scores
-    auto measures = measuresFactory(args, this);
-    for (auto& m : measures) m->accumulate(predictions, labels);
-
-    // Print results
-    std::cerr << std::setprecision(5) << "Results:\n";
-    for (auto& m : measures)
-        std::cerr << "  " << m->getName() << ": " << m->value() << std::endl;
-}
-
 std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& features, Args& args){
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
@@ -143,6 +127,22 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
         batchTestThread(0, this, predictions, features, args, 0, rows);
 
     return predictions;
+}
+
+void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+    std::cerr << "Starting testing in " << args.threads << " threads ...\n";
+
+    // Predict for test set
+    std::vector<std::vector<Prediction>> predictions = predictBatch(features, args);
+
+    // Create measures and calculate scores
+    auto measures = measuresFactory(args, this);
+    for (auto& m : measures) m->accumulate(predictions, labels);
+
+    // Print results
+    std::cerr << std::setprecision(5) << "Results:\n";
+    for (auto& m : measures)
+        std::cerr << "  " << m->getName() << ": " << m->value() << std::endl;
 }
 
 void Model::checkRow(Label* labels, Feature* feature){ }

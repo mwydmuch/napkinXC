@@ -31,7 +31,7 @@ protected:
     //                              SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
     void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
                           int* rLabels, int rSize) override;
-    void predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features) override;
+    Prediction predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features) override;
 
     int eCount; // Number of updated/evaluated classifiers during training or prediction
     int pLen; // Len of the path

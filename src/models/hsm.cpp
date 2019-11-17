@@ -154,7 +154,7 @@ void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
     pLen += path.size();
 }
 
-void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features){
+Prediction HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features){
 
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
@@ -170,8 +170,10 @@ void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
             else {
                 double sum = 0;
                 std::vector<double> values;
+                values.reserve(nVal.node->children.size());
                 for (const auto &child : nVal.node->children) {
-                    values.emplace_back(bases[child->index]->predictProbability(features));
+                    //values.emplace_back(bases[child->index]->predictProbability(features)); // Normalization
+                    values.emplace_back(std::exp(bases[child->index]->predictValue(features))); // Softmax normalization
                     sum += values.back();
                 }
 
@@ -181,10 +183,8 @@ void HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
                 eCount += nVal.node->children.size();
             }
         }
-        if(nVal.node->label >= 0){
-            prediction.push_back({nVal.node->label, nVal.value});
-            break;
-        }
+        if(nVal.node->label >= 0)
+            return {nVal.node->label, nVal.value};
     }
 }
 

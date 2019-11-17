@@ -21,17 +21,12 @@ void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Ar
 
     double P = 0, bestU = 0;
     while (!nQueue.empty()){
-        predictNext(nQueue, prediction, features);
-
-        P += prediction.back().value;
-        double U = u->g(prediction.size()) * P;
-
-        if(bestU < U)
+        auto p = predictNext(nQueue, features);
+        P += p.value;
+        double U = u->g(prediction.size() + 1) * P;
+        if(bestU < U) {
+            prediction.push_back(p);
             bestU = U;
-        else {
-            P -= prediction.back().value;
-            prediction.pop_back();
-            break;
-        }
+        } else break;
     }
 }

@@ -122,8 +122,7 @@ void assignDataPointsThread(std::vector<std::vector<double>>& binLabels, std::ve
 
         // Sample labels using PLT
         std::vector<Prediction> pltPrediction;
-        //plt->predictTopK(pltPrediction, features.row(r), args.sampleK);
-        plt->predictTopKBeam(pltPrediction, features.row(r), args.sampleK);
+        plt->predictTopK(pltPrediction, features.row(r), args.sampleK);
         for (const auto& p : pltPrediction){
             if(!lPositive.count(p.label)) {
                 std::mutex &m = mutexes[p.label % mutexes.size()];

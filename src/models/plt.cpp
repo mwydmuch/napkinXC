@@ -108,16 +108,14 @@ void PLT::predictTopK(std::vector<Prediction>& prediction, Feature* features, in
     ++nCount;
     ++rCount;
 
-    while (prediction.size() < k && !nQueue.empty()) predictNext(nQueue, prediction, features);
+    while (prediction.size() < k && !nQueue.empty()) prediction.push_back(predictNext(nQueue, features));
 }
 
-void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features) {
+Prediction PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features) {
 
     while (!nQueue.empty()) {
-        TreeNodeValue nVal = nQueue.top(); // Current node
+        TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
-
-        //std::cerr << "HEAP -> " << nVal.node->index << " " << nVal.value << "\n";
 
         if(nVal.node->children.size()){
             for(const auto& child : nVal.node->children){
@@ -127,58 +125,9 @@ void PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Pr
             }
             nCount += nVal.node->children.size();
         }
-        if(nVal.node->label >= 0){
-            prediction.push_back({nVal.node->label, nVal.value}); // When using probability
-            break;
-        }
+        if(nVal.node->label >= 0)
+            return {nVal.node->label, nVal.value};
     }
-}
-
-void PLT::predictTopKBeam(std::vector<Prediction>& prediction, Feature* features, int k){
-    std::priority_queue<TreeNodeValue> nQueue;
-    double val = bases[tree->root->index]->predictProbability(features);
-    nQueue.push({tree->root, val});
-
-    ++rCount;
-
-    /*
-    while (prediction.size() < k && !nQueue.empty()) {
-        TreeNodeValue nVal = nQueue.top();
-        nQueue.pop();
-
-        if(nVal.node->children.size()){
-            for(const auto& child : nVal.node->children){
-                if(child->label >= 0) prediction.push_back({child->label, nVal.value}); // When using probability
-                else {
-                    double value = nVal.value * bases[child->index]->predictProbability(features); // When using probability
-                    //double value = nVal.value - bases[child->index]->predictLoss(features); // When using loss
-                    nQueue.push({child, value});
-                    ++nCount;
-                }
-            }
-        }
-    }
-     */
-
-    while (prediction.size() < k && !nQueue.empty()) {
-        TreeNodeValue nVal = nQueue.top();
-        nQueue.pop();
-
-        if(nVal.node->children.size()){
-            for(const auto& child : nVal.node->children){
-                if(child->label >= 0) prediction.push_back({child->label, nVal.value}); // When using probability
-                else {
-                    double value = nVal.value * bases[child->index]->predictProbability(features); // When using probability
-                    //double value = nVal.value - bases[child->index]->predictLoss(features); // When using loss
-                    nQueue.push({child, value});
-                    ++nCount;
-                }
-            }
-        }
-    }
-
-    sort(prediction.rbegin(), prediction.rend());
-    prediction.resize(k);
 }
 
 double PLT::predictForLabel(Label label, Feature* features, Args &args){

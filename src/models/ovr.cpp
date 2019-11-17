@@ -18,7 +18,7 @@ void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args &
     double sum = 0;
 
     for(int i = 0; i < bases.size(); ++i) {
-        //double value = bases[i]->predictProbability(features); // Standard normalization
+        //double value = bases[i]->predictProbability(features); // Normalization
         double value = exp(bases[i]->predictValue(features)); // Softmax normalization
         sum += value;
         prediction.push_back({i, value});

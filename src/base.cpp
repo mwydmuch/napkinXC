@@ -322,14 +322,18 @@ void Base::save(std::ostream& out){
             if(sparseW) {
                 Feature *f = sparseW;
                 while (f->index != -1) {
-                    out.write((char *) &f->index, sizeof(f->index));
-                    out.write((char *) &f->value, sizeof(f->value));
+                    if(f->value != 0) {
+                        out.write((char *) &f->index, sizeof(f->index));
+                        out.write((char *) &f->value, sizeof(f->value));
+                    }
                     ++f;
                 }
             } else if(mapW) {
                 for(const auto &f : *mapW){
-                    out.write((char *) &f.first, sizeof(f.first));
-                    out.write((char *) &f.second, sizeof(f.second));
+                    if(f.second != 0) {
+                        out.write((char *) &f.first, sizeof(f.first));
+                        out.write((char *) &f.second, sizeof(f.second));
+                    }
                 }
             } else {
                 for(int i = 0; i < wSize; ++i){
@@ -477,29 +481,20 @@ void trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& bas
 
     assert(baseLabels.size() == baseFeatures.size());
     int size = baseLabels.size(); // This "batch" size
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
 
-        for(int i = 0; i < size; ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i], args));
+    // Run learning in parallel
+    ThreadPool tPool(args.threads);
+    std::vector<std::future<Base*>> results;
 
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(out);
-            delete base;
-        }
-    } else {
-        // Run training in the main thread
-        for(int i = 0; i < size; ++i){
-            printProgress(i, size);
-            Base base;
-            base.train(n, baseLabels[i], baseFeatures[i], args);
-            base.save(out);
-        }
+    for(int i = 0; i < size; ++i)
+        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i], args));
+
+    // Saving in the main thread
+    for(int i = 0; i < results.size(); ++i) {
+        printProgress(i, results.size());
+        Base* base = results[i].get();
+        base->save(out);
+        delete base;
     }
 }
 
@@ -517,29 +512,20 @@ void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vect
 
     std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
     int size = baseLabels.size(); // This "batch" size
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
 
-        for(int i = 0; i < size; ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, args));
+    // Run learning in parallel
+    ThreadPool tPool(args.threads);
+    std::vector<std::future<Base *>> results;
 
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(out);
-            delete base;
-        }
-    } else {
-        // Run training in the main thread
-        for(int i = 0; i < size; ++i){
-            printProgress(i, size);
-            Base base;
-            base.train(n, baseLabels[i], baseFeatures, args);
-            base.save(out);
-        }
+    for (int i = 0; i < size; ++i)
+        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, args));
+
+    // Saving in the main thread
+    for (int i = 0; i < results.size(); ++i) {
+        printProgress(i, results.size());
+        Base *base = results[i].get();
+        base->save(out);
+        delete base;
     }
 }
 

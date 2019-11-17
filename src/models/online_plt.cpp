@@ -5,6 +5,14 @@
 
 #include "online_plt.h"
 
+OnlinePLT::OnlinePLT(){
+    name = "OnlinePLT";
+}
+
+OnlinePLT::~OnlinePLT(){
+    for(auto b: tmpBases) delete b;
+}
+
 void OnlinePLT::init(int labelCount, Args &args) {
     tree = new Tree();
     tree->buildTreeStructure(labelCount, args);
@@ -51,7 +59,7 @@ void OnlinePLT::save(Args &args, std::string output){
     int size = bases.size();
     out.write((char*) &size, sizeof(size));
     for(int i = 0; i < bases.size(); ++i) {
-        bases[i]->pruneWeights(0.0);
+        bases[i]->pruneWeights(args.weightsThreshold);
         bases[i]->save(out);
     }
     out.close();

@@ -24,8 +24,7 @@ PLT::PLT(){
 
 PLT::~PLT(){
     delete tree;
-    for(size_t i = 0; i < bases.size(); ++i)
-        delete bases[i];
+    for(auto b : bases) delete b;
 }
 
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
@@ -112,7 +111,6 @@ void PLT::predictTopK(std::vector<Prediction>& prediction, Feature* features, in
 }
 
 Prediction PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features) {
-
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
@@ -128,6 +126,8 @@ Prediction PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature*
         if(nVal.node->label >= 0)
             return {nVal.node->label, nVal.value};
     }
+
+    return {-1, 0};
 }
 
 double PLT::predictForLabel(Label label, Feature* features, Args &args){

@@ -114,17 +114,13 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
 
-    if(args.threads > 1){
-        // Run prediction in parallel using thread set
-        ThreadSet tSet;
-        int tRows = ceil(static_cast<double>(rows)/args.threads);
-        for(int t = 0; t < args.threads; ++t)
-            tSet.add(batchTestThread, t, this, std::ref(predictions), std::ref(features), std::ref(args),
-                     t * tRows, std::min((t + 1) * tRows, rows));
-        tSet.joinAll();
-
-    } else
-        batchTestThread(0, this, predictions, features, args, 0, rows);
+    // Run prediction in parallel using thread set
+    ThreadSet tSet;
+    int tRows = ceil(static_cast<double>(rows)/args.threads);
+    for(int t = 0; t < args.threads; ++t)
+        tSet.add(batchTestThread, t, this, std::ref(predictions), std::ref(features), std::ref(args),
+                 t * tRows, std::min((t + 1) * tRows, rows));
+    tSet.joinAll();
 
     return predictions;
 }

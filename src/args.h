@@ -38,6 +38,7 @@ enum TreeType {
     onlineBalanced,
     onlineComplete,
     onlineRandom,
+    onlineBottomUp,
     custom
 };
 
@@ -71,7 +72,7 @@ public:
     bool norm;
     bool tfidf;
     int hash;
-    double pruneThreshold;
+    double featuresThreshold;
 
     // Threading and memory options
     int threads;

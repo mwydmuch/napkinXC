@@ -27,7 +27,10 @@ struct TreeNode{
 
     TreeNode* parent; // Pointer to the parent node
     std::vector<TreeNode*> children; // Pointers to the children nodes
+
     int nextToExpand;
+    int depth;
+    int subtreeDepth;
 };
 
 // For K-Means based trees
@@ -85,6 +88,7 @@ public:
 private:
     bool online;
     int nextToExpand;
+    TreeNode* nextSubtree;
 
     // Hierarchical K-Means
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
@@ -105,6 +109,7 @@ private:
     void setLabel(TreeNode *n, int label);
     int getDepth(TreeNode *n);
     void moveSubtree(TreeNode* n, TreeNode* m);
-    TreeNode* getNextNodeToExpand(Args &args);
+    void expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
+    void expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
     void printTree(TreeNode *rootNode = nullptr);
 };

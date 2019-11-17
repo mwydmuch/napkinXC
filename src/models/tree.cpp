@@ -26,8 +26,7 @@ Tree::Tree(){
 }
 
 Tree::~Tree() {
-    for(size_t i = 0; i < nodes.size(); ++i)
-        delete nodes[i];
+    for(auto n : nodes) delete n;
 }
 
 void Tree::buildTreeStructure(int labelCount, Args &args){
@@ -46,7 +45,8 @@ void Tree::buildTreeStructure(int labelCount, Args &args){
         std::cerr << "This tree type is not supported for this model type\n";
     else if (args.treeType == onlineBalanced
              || args.treeType == onlineComplete
-             || args.treeType == onlineRandom) {
+             || args.treeType == onlineRandom
+             || args.treeType == onlineBottomUp) {
         online = true;
     }
     else if (args.treeType != custom) {
@@ -401,6 +401,7 @@ TreeNode* Tree::createTreeNode(TreeNode* parent, int label){
     setLabel(n, label);
     setParent(n, parent);
     n->nextToExpand = 0;
+    n->subtreeDepth = 1;
     return n;
 }
 
@@ -543,11 +544,11 @@ void Tree::moveSubtree(TreeNode* n, TreeNode* m){
     setParent(m, n);
 }
 
-TreeNode* Tree::getNextNodeToExpand(Args &args){
+void Tree::expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args){
 
     TreeNode* toExpand = root;
     
-    // Policies
+    // Select node based on policy
     if(args.treeType == onlineBalanced) { // Balanced policy
         while (toExpand->children.size() >= args.arity) {
             toExpand = toExpand->children[toExpand->nextToExpand++ % toExpand->children.size()];
@@ -565,7 +566,64 @@ TreeNode* Tree::getNextNodeToExpand(Args &args){
             toExpand = toExpand->children[dist(rng)];
     }
 
-    return toExpand;
+    // Expand selected node
+    if(toExpand->children.size() == 0){
+        TreeNode* parentLabelNode = createTreeNode(toExpand, toExpand->label);
+        bases.push_back(bases[toExpand->index]->copyInverted());
+        tmpBases.push_back(tmpBases[toExpand->index]->copy());
+    }
+
+    TreeNode* newLabelNode = createTreeNode(toExpand, newLabel);
+    bases.push_back(tmpBases[toExpand->index]->copyInverted());
+    tmpBases.push_back(new Base(true));
+
+    // Remove temporary classifier
+    if(toExpand->children.size() == args.arity - 1) {
+        delete tmpBases[toExpand->index];
+        tmpBases[toExpand->index] = nullptr;
+    }
+}
+
+void Tree::expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args){
+    if(nextSubtree->children.size() < args.arity){
+        // Adding new child
+
+        if(nextSubtree->label != -1){
+            TreeNode* labelChild = createTreeNode(nextSubtree, nextSubtree->label);
+            bases.push_back(tmpBases[nextSubtree->index]->copyInverted());
+            tmpBases.push_back(new Base(true));
+            ++nextSubtree->subtreeDepth;
+        }
+
+        TreeNode* newChild = createTreeNode(nextSubtree, newLabel);
+        bases.push_back(tmpBases[nextSubtree->index]->copy());
+        tmpBases.push_back(new Base(true));
+
+        if(nextSubtree->parent && nextSubtree->children.size() == args.arity - 1 && nextSubtree->parent->subtreeDepth == nextSubtree->subtreeDepth + 1){
+            delete tmpBases[nextSubtree->index];
+            tmpBases[nextSubtree->index] = nullptr;
+        }
+
+        if(nextSubtree->subtreeDepth > 2)
+            nextSubtree = newChild;
+    }
+    else if(nextSubtree->parent && nextSubtree->parent->subtreeDepth == nextSubtree->subtreeDepth + 1){
+        // Moving up
+        nextSubtree = nextSubtree->parent;
+        expandBottomUp(newLabel, bases, tmpBases, args);
+    }
+    else {
+        // Expanding subtree
+        TreeNode* parentOfOldTree = createTreeNode();
+        bases.push_back(tmpBases[nextSubtree->index]->copy());
+        tmpBases.push_back(new Base(true));
+
+        parentOfOldTree->subtreeDepth = nextSubtree->subtreeDepth;
+        moveSubtree(nextSubtree, parentOfOldTree);
+        ++nextSubtree->subtreeDepth;
+
+        expandBottomUp(newLabel, bases, tmpBases, args);
+    }
 }
 
 void Tree::expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args) {
@@ -573,25 +631,8 @@ void Tree::expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Bas
         root = createTreeNode(nullptr, newLabel);
         bases.emplace_back(new Base(true));
         tmpBases.emplace_back(new Base(true));
-    } else {
-        TreeNode *toExpand = getNextNodeToExpand(args); // Select node to expand
-
-        if(toExpand->children.size() == 0){
-            TreeNode* parentLabelNode = createTreeNode(toExpand, toExpand->label);
-            bases.push_back(bases[toExpand->index]->copyInverted());
-            tmpBases.push_back(tmpBases[toExpand->index]->copy());
-        }
-
-        TreeNode* newLabelNode = createTreeNode(toExpand, newLabel);
-        bases.push_back(tmpBases[toExpand->index]->copyInverted());
-        tmpBases.push_back(new Base(true));
-
-        // Remove temporary classifier
-        if(toExpand->children.size() == args.arity - 1) {
-            delete tmpBases[toExpand->index];
-            tmpBases[toExpand->index] = nullptr;
-        }
-
-        //printTree(root);
-    }
+        nextSubtree = root;
+    } else if (args.treeType == onlineBottomUp)
+        expandBottomUp(newLabel, bases, tmpBases, args);
+    else expandTopDown(newLabel, bases, tmpBases, args);
 }

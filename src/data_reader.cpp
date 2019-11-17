@@ -74,7 +74,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
         // Norm row
         if(args.norm) unitNorm(lFeatures);
-        if(args.pruneThreshold > 0) threshold(lFeatures, args.pruneThreshold);
+        if(args.featuresThreshold > 0) threshold(lFeatures, args.featuresThreshold);
 
         // Add bias feature after applying norm
         if(args.bias && !hFeatures) lFeatures.push_back({lFeatures.back().index + 1, args.biasValue});

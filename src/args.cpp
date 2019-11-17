@@ -32,7 +32,7 @@ Args::Args() {
     biasValue = 1.0;
     norm = true;
     tfidf = false;
-    pruneThreshold = 0.0;
+    featuresThreshold = 0.04;
 
     // Training options
     threads = getCpuCount();
@@ -191,8 +191,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 tfidf = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--hash")
                 hash = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--pruneThreshold")
-                pruneThreshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--featuresThreshold")
+                featuresThreshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--weightsThreshold")
                 weightsThreshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--eta")
@@ -273,6 +273,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "onlineBalanced") treeType = onlineBalanced;
                 else if (args.at(ai + 1) == "onlineComplete") treeType = onlineComplete;
                 else if (args.at(ai + 1) == "onlineRandom") treeType = onlineRandom;
+                else if (args.at(ai + 1) == "onlineBottomUp") treeType = onlineBottomUp;
 
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << "!\n";
@@ -319,7 +320,7 @@ void Args::printArgs(){
             << "\n  Input: " << input
             << "\n    Data format: " << dataFormatType
             << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm
-            << ", hash size: " << hash << ", prune threshold: " << pruneThreshold
+            << ", hash size: " << hash << ", features threshold: " << featuresThreshold
             << "\n  Model: " << output
             << "\n    Type: " << modelName;
         if(ensemble > 1) std::cerr << ", ensemble: " << ensemble;

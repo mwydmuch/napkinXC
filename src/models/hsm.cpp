@@ -186,6 +186,8 @@ Prediction HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature*
         if(nVal.node->label >= 0)
             return {nVal.node->label, nVal.value};
     }
+
+    return {-1, 0};
 }
 
 double HSM::predictForLabel(Label label, Feature* features, Args &args){

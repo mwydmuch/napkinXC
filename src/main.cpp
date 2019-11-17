@@ -69,7 +69,6 @@ void test(Args &args) {
     std::cerr << "All done!\n";
 }
 
-
 void predict(Args &args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
@@ -98,8 +97,7 @@ void predict(Args &args) {
 
         std::vector<Prediction> prediction;
         prediction.reserve(model->outputSize());
-        //for(int r = 0; r < features.rows(); ++r){
-        for(int r = 0; r < 5000; ++r){
+        for(int r = 0; r < features.rows(); ++r){
             model->predict(prediction, features.row(r), args);
 
             // Print prediction
@@ -111,37 +109,6 @@ void predict(Args &args) {
         }
     }
 }
-
-/*
-void buildTree(Args &args) {
-    args.printArgs();
-
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
-    args.readData(labels, features);
-
-    PLTree tree;
-    tree.buildTreeStructure(labels, features, args);
-}
-
-void shrink(Args &args) {
-    args.printArgs();
-
-    PLTree tree;
-    tree.load(args.input + "/tree.bin");
-
-    std::ifstream in(args.input + "/weights.bin");
-    std::ofstream out(args.output + "/weights.bin");
-    for (int i = 0; i < tree.nodes(); ++i){
-        Base base;
-        base.load(in, args);
-        base.threshold(args.threshold);
-        base.save(out, args);
-    }
-    in.close();
-    out.close();
-}
- */
 
 int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);

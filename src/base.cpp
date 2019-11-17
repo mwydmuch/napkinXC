@@ -44,6 +44,7 @@ Base::~Base(){
 }
 
 void Base::update(double label, Feature* features, Args &args) {
+    std::lock_guard<std::mutex> lock(updateMtx);
 
     if (args.tmax != -1 && args.tmax < t)
         return;
@@ -75,7 +76,6 @@ void Base::update(double label, Feature* features, Args &args) {
             ++f;
         }
     }
-
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -188,7 +188,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     delete M;
 
     // Apply threshold and calculate number of non-zero weights
-    threshold(args.weightsThreshold);
+    pruneWeights(args.weightsThreshold);
     if(sparseSize() < denseSize()) toSparse();
 }
 
@@ -281,7 +281,7 @@ void Base::toSparse(){
     }
 }
 
-void Base::threshold(double threshold){
+void Base::pruneWeights(double threshold){
     nonZeroW = 0;
 
     if(W) {
@@ -451,13 +451,14 @@ Base* Base::copyInverted(){
     return c;
 }
 
-
 // Base utils
 Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
     Base* base = new Base();
     base->train(n, baseLabels, baseFeatures, args);
     return base;
 }
+
+// TODO: Move this to model.cpp
 
 void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                 std::vector<std::vector<Feature*>>& baseFeatures, Args& args){

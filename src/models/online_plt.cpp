@@ -14,8 +14,6 @@ void OnlinePLT::init(int labelCount, Args &args) {
         for (auto &b : bases)
             b = new Base(true);
     }
-
-    args.threads = 1; // Force 1 thread
 }
 
 void OnlinePLT::update(Label* labels, size_t labelsSize, Feature* features, size_t featuresSize, Args &args){
@@ -23,6 +21,7 @@ void OnlinePLT::update(Label* labels, size_t labelsSize, Feature* features, size
     std::unordered_set<TreeNode*> nNegative;
 
     if(tree->isOnline()) { // Check if example contains a new label
+        std::lock_guard<std::mutex> lock(treeMtx);
         for (int i = 0; i < labelsSize; ++i) {
             if(!tree->leaves.count(labels[i]))
                 tree->expandTree(labels[i], bases, tmpBases, args); // Expand tree in case of the new label
@@ -52,7 +51,7 @@ void OnlinePLT::save(Args &args, std::string output){
     int size = bases.size();
     out.write((char*) &size, sizeof(size));
     for(int i = 0; i < bases.size(); ++i) {
-        bases[i]->threshold(0.0);
+        bases[i]->pruneWeights(0.0);
         bases[i]->save(out);
     }
     out.close();

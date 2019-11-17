@@ -28,7 +28,7 @@ void OnlineModel::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     init(labels.cols(), args);
 
     // Iterate over rows
-    args.threads = 1; // Force one thread
+    //args.threads = 1; // Force one thread
     std::cerr << "Training online for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
 
     if(args.threads > 1){

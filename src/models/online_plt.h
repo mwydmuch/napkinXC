@@ -17,5 +17,6 @@ public:
 
 protected:
     std::vector<Base*> tmpBases;
+    std::mutex treeMtx;
 };
 

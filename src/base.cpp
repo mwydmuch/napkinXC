@@ -31,8 +31,8 @@ Base::Base(bool onlineTraning){
     sparseG = nullptr;
 
     if(onlineTraning){
-        mapW = new std::unordered_map<int, double>();
-        mapG = new std::unordered_map<int, double>();
+        mapW = new UnorderedMap<int, Weight>();
+        mapG = new UnorderedMap<int, Weight>();
         classCount = 2;
         firstClass = 1;
     }
@@ -57,12 +57,13 @@ void Base::update(double label, Feature* features, Args &args) {
     double pred = predictValue(features);
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
+    // Regularization is probably incorrect due to sparse features.
     if (args.optimizerType == sgd) {
         double lr = args.eta * sqrt(1.0 / t);
         double reg;
         Feature *f = features;
+
         while (f->index != -1) {
-            // regularization is probably incorrect due to sparse features.
             if(mapW != nullptr) {
                 reg = args.penalty * (*mapW)[f->index - 1];
                 (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
@@ -76,17 +77,17 @@ void Base::update(double label, Feature* features, Args &args) {
         double lr;
         double reg;
         Feature *f = features;
+
         while (f->index != -1) {
             if(mapW != nullptr && mapG != nullptr) {
                 (*mapG)[f->index - 1] += grad * grad;
                 lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
-                // regularization is probably incorrect due to sparse features.
                 reg = args.penalty * (*mapW)[f->index - 1];
                 (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+
             } else if(W != nullptr && G != nullptr) {
                 G[f->index - 1] += grad * grad;
                 lr = args.eta * sqrt(1.0 / (args.adagrad_eps + G[f->index - 1]));
-                // regularization is probably incorrect due to sparse features.
                 reg = args.penalty * W[f->index - 1];
                 W[f->index - 1] -= lr * (grad * f->value + reg);
             }
@@ -94,7 +95,7 @@ void Base::update(double label, Feature* features, Args &args) {
         }
     }
 
-    mapOrDense(args);
+    //mapOrDense(args);
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -196,7 +197,13 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     wSize = n;
     firstClass = M->label[0];
     classCount = M->nr_class;
-    W = M->w;
+
+    // Copy wieghts
+    W = new Weight[n];
+    for(int i = 0; i < n; ++i)
+        W[i] = M->w[i];
+    delete[] M->w;
+
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC
                 || args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
 
@@ -241,21 +248,20 @@ double Base::predictValue(Feature* features){
 
 void Base::mapOrDense(Args &args){
     if(mapW != nullptr){
-
-        int denseWsize = sizeof(double)*args.hash;
-        int mapWsize = mapW->size()* (sizeof(void *) + sizeof(int) + sizeof(double)) + mapW->bucket_count()*sizeof(void*);
+        int denseWsize = sizeof(Weight)*args.hash;
+        int mapWsize = mapW->size() * (sizeof(void *) + sizeof(int) + sizeof(double));
         if(mapWsize > denseWsize){
-            wSize = args.hash;
+            for(const auto &w : *mapW)
+                if(w.first + 2 > wSize) wSize = w.first + 2;
             toDense();
         }
     }
-
 }
 
 
 void Base::toMap(){
     if(mapW == nullptr){
-        mapW = new std::unordered_map<int, double>();
+        mapW = new UnorderedMap<int, Weight>();
 
         if(W != nullptr){
             for(int i = 0; i < wSize; ++i)
@@ -274,7 +280,7 @@ void Base::toMap(){
     }
 
     if(mapG == nullptr){
-        mapG = new std::unordered_map<int, double>();
+        mapG = new UnorderedMap<int, Weight>();
 
         if(G != nullptr){
             for(int i = 0; i < wSize; ++i)
@@ -295,8 +301,8 @@ void Base::toMap(){
 
 void Base::toDense(){
     if(W == nullptr){
-        W = new double[wSize];
-        std::memset(W, 0, wSize * sizeof(double));
+        W = new Weight[wSize];
+        std::memset(W, 0, wSize * sizeof(Weight));
 
         if(mapW != nullptr){
             for(const auto& w : *mapW) W[w.first] = w.second;
@@ -314,8 +320,8 @@ void Base::toDense(){
     }
 
     if(G == nullptr){
-        G = new double[wSize];
-        std::memset(G, 0, wSize * sizeof(double));
+        G = new Weight[wSize];
+        std::memset(G, 0, wSize * sizeof(Weight));
 
         if(mapG != nullptr){
             for(const auto& w : *mapG) G[w.first] = w.second;
@@ -352,7 +358,7 @@ void Base::toSparse(){
         W = nullptr;
     }
 
-    if(sparseG == nullptr){
+    if(sparseG == nullptr && G != nullptr){
         assert(G != nullptr);
 
         sparseG = new Feature[nonZeroW + 1];
@@ -429,12 +435,13 @@ void Base::save(std::ostream& out){
                 for(int i = 0; i < wSize; ++i){
                     if(W[i] != 0){
                         out.write((char*) &i, sizeof(i));
-                        out.write((char*) &W[i], sizeof(double));
+                        out.write((char*) &W[i], sizeof(Weight));
                     }
                 }
             }
-        } else out.write((char*) W, wSize * sizeof(double));
+        } else out.write((char*) W, wSize * sizeof(Weight));
     }
+
     //std::cerr << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
     //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << size()/1024 << "/" << denseSize()/1024 << "K\n";
 }
@@ -452,7 +459,7 @@ void Base::load(std::istream& in) {
         in.read((char*) &loadSparse, sizeof(loadSparse));
 
         if(loadSparse){
-            mapW = new std::unordered_map<int, double>();
+            mapW = new UnorderedMap<int, Weight>();
             //sparseW = new Feature[nonZeroW + 1];
             //sparseW[nonZeroW].index = -1;
             int index;
@@ -468,9 +475,9 @@ void Base::load(std::istream& in) {
                 if (mapW != nullptr) mapW->insert({index, w});
             }
         } else {
-            W = new double[wSize];
-            std::memset(W, 0, wSize * sizeof(double));
-            in.read((char*) W, wSize * sizeof(double));
+            W = new Weight[wSize];
+            std::memset(W, 0, wSize * sizeof(Weight));
+            in.read((char*) W, wSize * sizeof(Weight));
         }
     }
 
@@ -522,16 +529,16 @@ void Base::invertWeights(){
 Base* Base::copy(){
     Base* copy = new Base();
     if(W){
-        copy->W = new double[wSize];
-        std::memcmp(copy->W, W, wSize * sizeof(double));
+        copy->W = new Weight[wSize];
+        std::memcmp(copy->W, W, wSize * sizeof(Weight));
     }
     if(G){
-        copy->G = new double[wSize];
-        std::memcmp(copy->G, G, wSize * sizeof(double));
+        copy->G = new Weight[wSize];
+        std::memcmp(copy->G, G, wSize * sizeof(Weight));
     }
 
-    if(mapW) copy->mapW = new std::unordered_map<int, double>(mapW->begin(), mapW->end());
-    if(mapG) copy->mapG = new std::unordered_map<int, double>(mapG->begin(), mapG->end());
+    if(mapW) copy->mapW = new UnorderedMap<int, Weight>(mapW->begin(), mapW->end());
+    if(mapG) copy->mapG = new UnorderedMap<int, Weight>(mapG->begin(), mapG->end());
 
     if(sparseW) {
         copy->sparseW = new Feature[nonZeroW + 1];

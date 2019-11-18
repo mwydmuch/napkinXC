@@ -58,6 +58,22 @@ inline T argMin(const std::unordered_map<T, U>& map){
     return pMin.first;
 }
 
+template <typename T, typename U>
+inline T max(const std::unordered_map<T, U>& map){
+    auto pMax = std::max_element(map.begin(), map.end(),
+                                 [](const std::pair<T, U>& p1, const std::pair<T, U>& p2)
+                                 { return p1.first < p2.first; });
+    return pMax.first;
+}
+
+template <typename T, typename U>
+inline T min(const std::unordered_map<T, U>& map){
+    auto pMin = std::min_element(map.begin(), map.end(),
+                                 [](const std::pair<T, U>& p1, const std::pair<T, U>& p2)
+                                 { return p1.first < p2.first; });
+    return pMin.first;
+}
+
 
 template <typename T>
 inline size_t argMax(const std::vector<T>& vector){

@@ -13,6 +13,11 @@
 
 #include "args.h"
 #include "types.h"
+#include "robin_hood.h"
+
+typedef float Weight;
+#define UnorderedMap robin_hood::unordered_map
+//#define UnorderedMap std::unordered_map
 
 class Base {
 public:
@@ -29,14 +34,14 @@ public:
     template<typename T>
     double predictProbability(T* features);
 
-    inline size_t denseSize(){ return wSize * sizeof(double); }
-    inline size_t mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(double)); }
+    inline size_t denseSize(){ return wSize * sizeof(Weight); }
+    inline size_t mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(Weight)); }
     inline size_t sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
     size_t size();
     inline size_t featureSpaceSize() { return wSize; }
 
-    inline double* getW(){ return W; }
-    inline std::unordered_map<int, double>* getMapW(){ return mapW; }
+    inline Weight* getW(){ return W; }
+    inline UnorderedMap<int, Weight>* getMapW(){ return mapW; }
     inline Feature* getSparseW(){ return sparseW; }
 
     inline int getFirstClass() { return firstClass; }
@@ -66,10 +71,10 @@ private:
     int firstClass;
     int t;
 
-    double* W;
-    double* G;
-    std::unordered_map<int, double>* mapW;
-    std::unordered_map<int, double>* mapG;
+    Weight* W;
+    Weight* G;
+    UnorderedMap<int, Weight>* mapW;
+    UnorderedMap<int, Weight>* mapG;
     Feature* sparseW;
     Feature* sparseG;
 

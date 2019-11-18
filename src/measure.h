@@ -16,7 +16,9 @@ public:
     Measure(Args& args, Model* model);
 
     virtual void accumulate(Label* labels, const std::vector<Prediction>& prediction) = 0;
+    void accumulate(std::vector<std::vector<Prediction>>& predictions, SRMatrix<Label>& labels);
     virtual double value();
+
 
     inline std::string getName(){ return name; }
 
@@ -89,6 +91,13 @@ protected:
 class Accuracy: public Measure {
 public:
     Accuracy(Args& args, Model* model);
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
+
+class PredictionSize: public Measure{
+public:
+    PredictionSize(Args& args, Model* model);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };

@@ -6,6 +6,7 @@ DATASET_NAME=$1
 shift
 ARGS="$@"
 MODEL=models/${DATASET_NAME}_$(echo "${ARGS}" | tr " " "_")
+TRAIN_LOCK_FILE=$MODEL/.train_lock
 DATASET_DIR=data/${DATASET_NAME}
 DATASET_FILE=${DATASET_DIR}/${DATASET_NAME}
 
@@ -24,20 +25,26 @@ elif [ -e "${DATASET_FILE}.train" ]; then
     TEST_FILE="${DATASET_FILE}.test"
 fi
 
-if [ ! -e nxml ]; then
+if [ ! -e nxc ]; then
     rm -f CMakeCache.txt
     cmake -DCMAKE_BUILD_TYPE=Release
     make -j
 fi
 
-#rm -rf $MODEL
+if [ -e $TRAIN_LOCK_FILE ]; then
+    rm -rf $MODEL
+    rm -rf $TRAIN_LOCK_FILE
+fi
+
 if [ ! -e $MODEL ]; then
     mkdir -p $MODEL
-    time ./nxml train -i $TRAIN_FILE -o $MODEL -t -1 $ARGS
+    touch $TRAIN_LOCK_FILE
+    time ./nxc train -i $TRAIN_FILE -o $MODEL -t -1 $ARGS
     echo
 fi
 
-time ./nxml test -i $TEST_FILE -o $MODEL --topK 5 -t -1
+rm -rf $TRAIN_LOCK_FILE
+time ./nxc test -i $TEST_FILE -o $MODEL --topK 5 -t -1
 echo
 
 echo "Model dir: ${MODEL}"

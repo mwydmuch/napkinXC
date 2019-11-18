@@ -1,6 +1,9 @@
 /**
  * Copyright (c) 2018 by Robert Istvan Busa-Fekete
+ * Copyright (c) 2019 by Marek Wydmuch
  * All rights reserved.
+ *
+ * Based on liblinear API.
  */
 
 #include <liblinear/linear.h>
@@ -8,43 +11,6 @@
 #include <math.h>
 #include <iostream>
 #include "online_training.h"
-
-#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
-
-class sparse_operator
-{
-public:
-    static double nrm2_sq(const feature_node *x)
-    {
-        double ret = 0;
-        while(x->index != -1)
-        {
-            ret += x->value*x->value;
-            x++;
-        }
-        return (ret);
-    }
-
-    static double dot(const double *s, const feature_node *x)
-    {
-        double ret = 0;
-        while(x->index != -1)
-        {
-            ret += s[x->index-1]*x->value;
-            x++;
-        }
-        return (ret);
-    }
-
-    static void axpy(const double a, const feature_node *x, double *y)
-    {
-        while(x->index != -1)
-        {
-            y[x->index-1] += a*x->value;
-            x++;
-        }
-    }
-};
 
 
 model* train_online(const problem *prob, const online_parameter *param)
@@ -73,7 +39,6 @@ model* train_online(const problem *prob, const online_parameter *param)
     else
         for(i=0;i<w_size;i++)
             model_->w[i] = 0;
-
 
     model_->label = Malloc(int,nr_class);
     for(i=0;i<nr_class;i++)

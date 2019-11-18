@@ -5,14 +5,13 @@
 
 #pragma once
 
-#include "base.h"
-#include "model.h"
+#include "batch_plt.h"
 
 
-class BR: public Model{
+class BRPLTNeg: public Model{
 public:
-    BR();
-    ~BR() override;
+    BRPLTNeg();
+    ~BRPLTNeg() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
@@ -22,4 +21,9 @@ public:
 
 protected:
     std::vector<Base*> bases;
+    BatchPLT* plt;
 };
+
+void assignDataPointsThread(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                            const SRMatrix<Label>& labels, const SRMatrix<Feature>& features, Args &args, PLT* plt,
+                            int threadId, int threads, std::array<std::mutex, LABELS_MUTEXES>& mutexes);

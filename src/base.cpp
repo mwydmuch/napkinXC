@@ -14,23 +14,68 @@
 #include "utils.h"
 
 
-Base::Base(){
+Base::Base(bool onlineTraning){
     hingeLoss = false;
 
     wSize = 0;
     nonZeroW = 0;
     classCount = 0;
     firstClass = 0;
+    t = 0;
 
     W = nullptr;
     mapW = nullptr;
     sparseW = nullptr;
+    mapG = nullptr;
+
+    if(onlineTraning){
+        mapW = new std::unordered_map<int, double>();
+        mapG = new std::unordered_map<int, double>();
+        classCount = 2;
+        firstClass = 1;
+    }
 }
 
 Base::~Base(){
     delete[] W;
     delete mapW;
+    delete mapG;
     delete[] sparseW;
+}
+
+void Base::update(double label, Feature* features, Args &args) {
+    std::lock_guard<std::mutex> lock(updateMtx);
+
+    if (args.tmax != -1 && args.tmax < t)
+        return;
+
+    t++;
+    double pred = predictValue(features);
+    double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
+
+    if (args.optimizerType == sgd) {
+        double lr = args.eta * sqrt(1.0 / t);
+        double reg;
+        Feature *f = features;
+        while (f->index != -1) {
+            // regularization is probably incorrect due to sparse features.
+            reg = args.penalty * (*mapW)[f->index - 1];
+            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            ++f;
+        }
+    } else if (args.optimizerType == adagrad) {
+        double lr;
+        double reg;
+        Feature *f = features;
+        while (f->index != -1) {
+            (*mapG)[f->index - 1] += grad * grad;
+            lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
+            // regularization is probably incorrect due to sparse features.
+            reg = args.penalty * (*mapW)[f->index - 1];
+            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            ++f;
+        }
+    }
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -101,13 +146,13 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         auto output = check_parameter(&P, &C);
         assert(output == NULL);
 
-        if(args.cost < 0 && binLabels.size() > 100){
+        if(args.cost < 0 && binLabels.size() > 100 && binLabels.size() < 1000){
             double bestC = -1;
             double bestP = -1;
             double bestScore = -1;
-            find_parameters(&P, &C, 1, -1, -1, &bestC, &bestP, &bestScore);
+            find_parameters(&P, &C, 1, 4.0, -1, &bestC, &bestP, &bestScore);
             C.C = bestC;
-        } else if(args.cost < 0) C.C = 8;
+        } else if(args.cost < 0) C.C = 8.0;
 
         M = train_linear(&P, &C);
 
@@ -120,7 +165,6 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
                 .weight = labelsWeights,
                 .p = 0,
                 .init_sol = NULL
-
         };
 
         M = train_online(&P, &OC);
@@ -144,7 +188,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     delete M;
 
     // Apply threshold and calculate number of non-zero weights
-    threshold(args.weightsThreshold);
+    pruneWeights(args.weightsThreshold);
     if(sparseSize() < denseSize()) toSparse();
 }
 
@@ -152,7 +196,7 @@ double Base::predictValue(double* features){
     double val = 0;
 
     if(sparseW) val = dotVectors(sparseW, features); // Dense features dot sparse weights
-    else throw "Prediction using dense features require sparse weights!\n";
+    else throw std::runtime_error("Prediction using dense features and dense weights is not supported!");
 
     if(firstClass == 0) val *= -1;
     return val;
@@ -169,7 +213,7 @@ double Base::predictValue(Feature* features){
             ++f;
         }
     } else if (W) val = dotVectors(features, W); // Sparse features dot dense weights
-    else throw "Prediction using sparse features and sparse weights is not supported!\n";
+    else throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
 
     if(firstClass == 0) val *= -1;
     return val;
@@ -237,12 +281,26 @@ void Base::toSparse(){
     }
 }
 
-void Base::threshold(double threshold){
-    assert(W != nullptr);
+void Base::pruneWeights(double threshold){
     nonZeroW = 0;
-    for (int i = 0; i < wSize; ++i){
-        if(W[i] != 0 && fabs(W[i]) >= threshold) ++nonZeroW;
-        else W[i] = 0;
+
+    if(W) {
+        for (int i = 0; i < wSize; ++i) {
+            if (W[i] != 0 && fabs(W[i]) >= threshold) ++nonZeroW;
+            else W[i] = 0;
+        }
+    } else if(mapW){
+        for (auto &w : *mapW) {
+            if (w.second != 0 && fabs(w.second) >= threshold) ++nonZeroW;
+            else w.second = 0;
+        }
+    } else if(sparseW) {
+        Feature *f = sparseW;
+        while (f->index != -1) {
+            if (f->value != 0 && fabs(f->value) >= threshold) ++nonZeroW;
+            else f->value = 0;
+            ++f;
+        }
     }
 }
 
@@ -261,12 +319,21 @@ void Base::save(std::ostream& out){
         out.write((char*) &saveSparse, sizeof(saveSparse));
 
         if(saveSparse){
-            if(sparseW){
-                Feature* f = sparseW;
-                while(f->index != -1) {
-                    out.write((char*) &f->index, sizeof(f->index));
-                    out.write((char*) &f->value, sizeof(f->value));
+            if(sparseW) {
+                Feature *f = sparseW;
+                while (f->index != -1) {
+                    if(f->value != 0) {
+                        out.write((char *) &f->index, sizeof(f->index));
+                        out.write((char *) &f->value, sizeof(f->value));
+                    }
                     ++f;
+                }
+            } else if(mapW) {
+                for(const auto &f : *mapW){
+                    if(f.second != 0) {
+                        out.write((char *) &f.first, sizeof(f.first));
+                        out.write((char *) &f.second, sizeof(f.second));
+                    }
                 }
             } else {
                 for(int i = 0; i < wSize; ++i){
@@ -344,16 +411,58 @@ void Base::printWeights(){
     std::cerr << "\n";
 }
 
+void Base::multiplyWeights(double a){
+    if (W != nullptr)
+        for(int i = 0; i < wSize; ++i) W[i] *= a;
+    else if (mapW != nullptr)
+        for (auto& f : *mapW) f.second *= a;
+    else if (sparseW != nullptr) {
+        Feature* f = sparseW;
+        while(f->index != -1 && f->index < wSize) {
+            f->value *= a;
+            ++f;
+        }
+    }
+}
+
+void Base::invertWeights(){
+    multiplyWeights(-1);
+}
+
+Base* Base::copy(){
+    Base* copy = new Base();
+    if(W){
+        copy->W = new double[wSize];
+        std::memcmp(copy->W, W, wSize * sizeof(double));
+    }
+    if(mapW) copy->mapW = new std::unordered_map<int, double>(mapW->begin(), mapW->end());
+    if(sparseW) {
+        copy->sparseW = new Feature[nonZeroW + 1];
+        std::memcmp(copy->sparseW , sparseW, (nonZeroW + 1) * sizeof(Feature));
+    }
+
+    copy->firstClass = firstClass;
+    copy->classCount = classCount;
+    copy->wSize = wSize;
+    copy->nonZeroW = nonZeroW;
+
+    return copy;
+}
+
+Base* Base::copyInverted(){
+    Base* c = copy();
+    c->invertWeights();
+    return c;
+}
 
 // Base utils
-
 Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
     Base* base = new Base();
-    //printVector(baseLabels);
-    //printVector(baseFeatures);
     base->train(n, baseLabels, baseFeatures, args);
     return base;
 }
+
+// TODO: Move this to model.cpp
 
 void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                 std::vector<std::vector<Feature*>>& baseFeatures, Args& args){
@@ -372,29 +481,20 @@ void trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& bas
 
     assert(baseLabels.size() == baseFeatures.size());
     int size = baseLabels.size(); // This "batch" size
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
 
-        for(int i = 0; i < size; ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i], args));
+    // Run learning in parallel
+    ThreadPool tPool(args.threads);
+    std::vector<std::future<Base*>> results;
 
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(out);
-            delete base;
-        }
-    } else {
-        // Run training in the main thread
-        for(int i = 0; i < size; ++i){
-            printProgress(i, size);
-            Base base;
-            base.train(n, baseLabels[i], baseFeatures[i], args);
-            base.save(out);
-        }
+    for(int i = 0; i < size; ++i)
+        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i], args));
+
+    // Saving in the main thread
+    for(int i = 0; i < results.size(); ++i) {
+        printProgress(i, results.size());
+        Base* base = results[i].get();
+        base->save(out);
+        delete base;
     }
 }
 
@@ -412,29 +512,20 @@ void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vect
 
     std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
     int size = baseLabels.size(); // This "batch" size
-    if(args.threads > 1){
-        // Run learning in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base*>> results;
 
-        for(int i = 0; i < size; ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, args));
+    // Run learning in parallel
+    ThreadPool tPool(args.threads);
+    std::vector<std::future<Base *>> results;
 
-        // Saving in the main thread
-        for(int i = 0; i < results.size(); ++i) {
-            printProgress(i, results.size());
-            Base* base = results[i].get();
-            base->save(out);
-            delete base;
-        }
-    } else {
-        // Run training in the main thread
-        for(int i = 0; i < size; ++i){
-            printProgress(i, size);
-            Base base;
-            base.train(n, baseLabels[i], baseFeatures, args);
-            base.save(out);
-        }
+    for (int i = 0; i < size; ++i)
+        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, args));
+
+    // Saving in the main thread
+    for (int i = 0; i < results.size(); ++i) {
+        printProgress(i, results.size());
+        Base *base = results[i].get();
+        base->save(out);
+        delete base;
     }
 }
 

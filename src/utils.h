@@ -12,10 +12,14 @@
 #include <thread>
 #include <iostream>
 #include <cmath>
+#include <mutex>
+
+#include <unistd.h>
+#include <sys/times.h>
 
 #include "types.h"
 
-
+#define LABELS_MUTEXES 1024
 typedef IntFeature Frequency;
 typedef DoubleFeature Probability;
 
@@ -26,11 +30,10 @@ void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix
 
 void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels);
 
-#define MUTEXES 1024
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures,
-                                       int threadId, int threads, std::array<std::mutex, MUTEXES>& mutexes);
+                                       int threadId, int threads, std::array<std::mutex, LABELS_MUTEXES>& mutexes);
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features,
@@ -263,6 +266,9 @@ void printVector(std::vector<T> vec){
     }
 }
 
+// Splits string
+std::vector<std::string> split(std::string text, char d = ',');
+
 // Files utils
 
 class FileHelper{
@@ -273,6 +279,16 @@ public:
     virtual void load(std::istream& in) = 0;
 };
 
+template<typename T>
+inline void saveVar(std::ostream& out, T& var){
+    out.write((char*) &var, sizeof(var));
+}
+
+template<typename T>
+inline void loadVar(std::istream& in, T& var){
+    in.read((char*) &var, sizeof(var));
+}
+
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2);
 
@@ -282,8 +298,40 @@ void checkFileName(const std::string& filename, bool read = true);
 // Checks dirname
 void checkDirName(const std::string& dirname);
 
+// Run shell CMD
+void shellCmd(const std::string& cmd);
+
 // Create directory
 void makeDir(const std::string& dirname);
 
-// Splits string
-std::vector<std::string> split(std::string text, char d = ',');
+// Remove file or directory
+void remove(const std::string& path);
+
+// Time utils
+class TimeHelper {
+public:
+    void start(){
+        checkpoints.clear();
+        tms st;
+        times(&st);
+        checkpoints.push_back(st);
+    }
+
+    void checkpoint(){
+        tms ct;
+        times(&ct);
+        checkpoints.push_back(ct);
+    }
+
+    void printTime(){
+        const long ticks = sysconf( _SC_CLK_TCK );
+        size_t cpSize = checkpoints.size();
+        if(cpSize > 1){
+            std::cerr << "Resources:\n"
+                << "  CPU time: " << static_cast<double>(checkpoints[cpSize - 1].tms_utime - checkpoints[cpSize - 2].tms_utime) / ticks << "\n"
+                << "  Total CPU time: "<< static_cast<double>(checkpoints[cpSize - 1].tms_utime - checkpoints[0].tms_utime) / ticks << "\n";
+        }
+    }
+private:
+    std::vector<tms> checkpoints;
+};

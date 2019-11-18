@@ -1,6 +1,8 @@
 /**
  * Copyright (c) 2018 by Robert Istvan Busa-Fekete
  * All rights reserved.
+ *
+ * Based on liblinear API.
  */
 
 #pragma once

@@ -3,8 +3,13 @@
  * All rights reserved.
  */
 
+#include <algorithm>
+#include <unordered_map>
+
 #include "data_reader.h"
+#include "utils.h"
 #include "libsvm_reader.h"
+
 
 std::shared_ptr<DataReader> dataReaderFactory(Args &args){
     std::shared_ptr<DataReader> dataReader = nullptr;
@@ -53,9 +58,23 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
         readLine(line, lLabels, lFeatures);
 
+        if(args.hash) {
+            std::unordered_map<int, double> lHashed;
+            for(auto &f : lFeatures)
+                lHashed[hash(f.index) % args.hash] += f.value;
+
+            lFeatures.clear();
+            for(const auto &f : lHashed)
+                lFeatures.push_back({f.first + 1, f.second});
+        }
+
+        // Check if it requires sorting
+        if(!std::is_sorted(lFeatures.begin(), lFeatures.end()))
+            sort(lFeatures.begin(), lFeatures.end());
+
         // Norm row
         if(args.norm) unitNorm(lFeatures);
-        if(args.pruneThreshold > 0) threshold(lFeatures, args.pruneThreshold);
+        if(args.featuresThreshold > 0) threshold(lFeatures, args.featuresThreshold);
 
         // Add bias feature after applying norm
         if(args.bias && !hFeatures) lFeatures.push_back({lFeatures.back().index + 1, args.biasValue});
@@ -79,8 +98,8 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
     // Checks
     assert(labels.rows() == features.rows());
-    assert(hLabels >= labels.cols());
-    assert(hFeatures + 1 + (args.bias ? 1 : 0) >= features.cols() );
+    //assert(hLabels >= labels.cols());
+    //assert(hFeatures + 1 + (args.bias ? 1 : 0) >= features.cols());
 
     // Print data
     /*
@@ -90,9 +109,6 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
        std::cerr << "\n";
     }
     */
-
-    if(args.tfidf)
-        computeTfIdfFeatures(features, args.bias);
 
     // Print info about loaded data
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (args.bias ? 1 : 0) << ", labels: " << labels.cols() << std::endl;

@@ -14,35 +14,6 @@
 #include "threads.h"
 
 // Data utils
-void computeTfIdfFeatures(SRMatrix<Feature>& features, bool omitBias){
-    std::cerr << "Computing tf-idf features ...\n";
-
-    std::vector<double> idf(features.cols());
-    int rows = features.rows();
-
-    for(int r = 0; r < rows; ++r){
-        printProgress(r, rows * 2);
-
-        int rFeaturesSize = features.size(r) - (omitBias ? 1 : 0);
-        auto rFeatures = features.row(r);
-
-        for (int i = 0; i < rFeaturesSize; ++i) ++idf[rFeatures[i].index];
-    }
-
-    for(auto& w : idf)
-        w = std::log(rows / (1 + w));
-
-    for(int r = 0; r < rows; ++r){
-        printProgress(r + rows, rows * 2);
-
-        int rFeaturesSize = features.size(r) - (omitBias ? 1 : 0);
-        auto rFeatures = features.row(r);
-
-        for (int i = 0; i < rFeaturesSize; ++i)
-            rFeatures[i].value = rFeatures[i].value / rFeaturesSize * idf[rFeatures[i].index];
-    }
-}
-
 void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels){
     std::cerr << "Computing labels' frequencies ...\n";
 
@@ -79,7 +50,7 @@ void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Lab
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures,
-                                       int threadId, int threads, std::array<std::mutex, MUTEXES>& mutexes) {
+                                       int threadId, int threads, std::array<std::mutex, LABELS_MUTEXES>& mutexes) {
 
     int rows = features.rows();
     int part = (rows / threads) + 1;
@@ -111,16 +82,14 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, doubl
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures){
-    std::cerr << "Computing labels' features matrix ...\n";
 
     std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
-
     assert(features.rows() == labels.rows());
 
     if(threads > 1) {
         std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
 
-        std::array<std::mutex, MUTEXES> mutexes;
+        std::array<std::mutex, LABELS_MUTEXES> mutexes;
         ThreadSet tSet;
         for (int t = 0; t < threads; ++t)
             tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels), std::ref(features), weightedFeatures,
@@ -180,6 +149,23 @@ void computeLabelsExamples(std::vector<std::vector<Example>>& labelsExamples, co
     }
 }
 
+// Splits string
+std::vector<std::string> split(std::string text, char d){
+    std::vector<std::string> tokens;
+    const char *str = text.c_str();
+
+    do {
+        std::string str_d = std::string("") + d;
+        const char *begin = str;
+        while(*str != d && *str) ++str;
+        std::string token = std::string(begin, str);
+        if(token.length() && token != str_d)
+            tokens.push_back(std::string(begin, str));
+    } while (0 != *str++);
+
+    return tokens;
+}
+
 // Files utils
 
 void FileHelper::saveToFile(std::string outfile){
@@ -217,39 +203,34 @@ void checkFileName(const std::string& filename, bool read){
         std::ofstream out(filename);
         valid = out.good();
     }
-    if (!valid) throw "Invalid filename: \"" + filename +"\"!";
+    if (!valid) throw std::invalid_argument("Invalid filename: \"" + filename +"\"!");
 }
 
 // Checks dirname
 void checkDirName(const std::string& dirname){
     std::string tmpFile = joinPath(dirname, ".checkTmp");
     std::ofstream out(tmpFile);
-    if(!out.good()) throw "Invalid dirname: \"" + dirname +"\"!";
+    if(!out.good()) throw std::invalid_argument("Invalid dirname: \"" + dirname +"\"!");
     std::remove(tmpFile.c_str());
+}
+
+// TODO improve this
+// Run shell CMD
+void shellCmd(const std::string& cmd){
+    const int cmdErr = std::system(cmd.c_str());
+    if (-1 == cmdErr){
+        exit(1);
+    }
 }
 
 // Create directory
 void makeDir(const std::string& dirname){
     std::string mkdirCmd = "mkdir -p " + dirname;
-    const int dir_err = std::system(mkdirCmd.c_str());
-    if (-1 == dir_err){
-        exit(1);
-    }
+    shellCmd(mkdirCmd);
 }
 
-// Splits string
-std::vector<std::string> split(std::string text, char d){
-    std::vector<std::string> tokens;
-    const char *str = text.c_str();
-
-    do {
-        std::string str_d = std::string("") + d;
-        const char *begin = str;
-        while(*str != d && *str) ++str;
-        std::string token = std::string(begin, str);
-        if(token.length() && token != str_d)
-            tokens.push_back(std::string(begin, str));
-    } while (0 != *str++);
-
-    return tokens;
+// Remove directory of file
+void remove(const std::string& path){
+    std::string rmCmd = "rm -rf " + path;
+    shellCmd(rmCmd);
 }

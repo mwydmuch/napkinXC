@@ -6,7 +6,7 @@
 #include <string>
 #include <fstream>
 #include <iomanip>
-
+#include <mutex>
 #include "model.h"
 #include "threads.h"
 
@@ -16,6 +16,11 @@
 Measure::Measure(Args& args, Model* model) {
     sum = 0;
     count = 0;
+}
+
+void Measure::accumulate(std::vector<std::vector<Prediction>>& predictions, SRMatrix<Label>& labels){
+    assert(predictions.size() == labels.rows());
+    for(int i = 0; i < labels.rows(); ++i) accumulate(labels[i], predictions[i]);
 }
 
 double Measure::value() {
@@ -164,6 +169,15 @@ void Accuracy::accumulate(Label* labels, const std::vector<Prediction>& predicti
     ++count;
 }
 
+PredictionSize::PredictionSize(Args& args, Model* model) : Measure(args, model){
+    name = "Mean prediction size";
+}
+
+void PredictionSize::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+    sum += prediction.size();
+    ++count;
+}
+
 
 std::vector<std::shared_ptr<Measure>> measuresFactory(Args& args, Model* model){
     std::vector<std::shared_ptr<Measure>> measures;
@@ -199,6 +213,8 @@ std::vector<std::shared_ptr<Measure>> measuresFactory(Args& args, Model* model){
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfaBeta>(args, model)));
             else if (m == "uDeltaGamma")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args, model)));
+            else if (m == "s")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PredictionSize>(args, model)));
         }
     }
 

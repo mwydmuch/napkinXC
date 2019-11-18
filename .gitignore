@@ -4,11 +4,13 @@
 **/cmake_install.cmake
 **/Makefile
 
+/src/version.h
 /nxml
 /data
 /models
 /outputs
 /results
+/nmslib
 
 .idea
 .DS_Store

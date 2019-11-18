@@ -13,7 +13,6 @@
 #include <queue>
 #include <tuple>
 #include <algorithm>
-#include <random>
 
 #include "args.h"
 #include "types.h"
@@ -28,6 +27,9 @@ struct TreeNode{
 
     TreeNode* parent; // Pointer to the parent node
     std::vector<TreeNode*> children; // Pointers to the children nodes
+
+    int nextToExpand;
+    int subtreeDepth;
 };
 
 // For K-Means based trees
@@ -41,7 +43,8 @@ struct TreeNodeFrequency{
     TreeNode* node;
     int frequency;
 
-    bool operator<(const TreeNodeFrequency &r) const { return frequency < r.frequency; }
+    // Sorted from the lowest to the highest frequency
+    bool operator<(const TreeNodeFrequency &r) const { return frequency > r.frequency; }
 };
 
 // For prediction in tree based models
@@ -58,24 +61,33 @@ public:
     ~Tree();
 
     // Build tree structure of given type
+    void buildTreeStructure(int labelCount, Args &args);
     void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+
+    // Custom tree structure
+    void loadTreeStructure(std::string file);
+    void saveTreeStructure(std::string file);
 
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
-    int k; // Number of labels, should be equal to treeLeaves.size()
-    int t; // Number of tree nodes, should be equal to tree.size()
+    int k; // Number of labels, should be equal to leaves.size()
+    int t; // Number of tree nodes, should be equal to nodes.size()
 
     TreeNode *root; // Pointer to root node
     std::vector<TreeNode*> nodes; // Pointers to tree nodes
     std::unordered_map<int, TreeNode*> leaves; // Leaves map;
 
-    // Helper methods
+    // Online tree
+    inline bool isOnline(){ return online; }
+    void expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
+
     int numberOfLeaves(TreeNode *rootNode = nullptr);
 
 private:
-    // TODO: make global rng
-    std::default_random_engine rng;
+    bool online;
+    int nextToExpand;
+    TreeNode* nextSubtree;
 
     // Hierarchical K-Means
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args &args);
@@ -87,11 +99,16 @@ private:
     void buildCompleteTree(int labelCount, bool randomizeOrder, Args &args);
     void buildBalancedTree(int labelCount, bool randomizeOrder, Args &args);
 
-    // Tree building utils
+    // Tree utils
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
+    inline void setParent(TreeNode *n, TreeNode *parent){
+        n->parent = parent;
+        if(parent != nullptr) parent->children.push_back(n);
+    }
+    void setLabel(TreeNode *n, int label);
+    int getDepth(TreeNode *n);
+    void moveSubtree(TreeNode* n, TreeNode* m);
+    void expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
+    void expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
     void printTree(TreeNode *rootNode = nullptr);
-
-    // Custom tree structure
-    void loadTreeStructure(std::string file);
-    void saveTreeStructure(std::string file);
 };

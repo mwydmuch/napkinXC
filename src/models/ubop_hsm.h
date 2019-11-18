@@ -8,9 +8,9 @@
 #include "hsm.h"
 
 
-class UBOPCH: public HSM{
+class UBOPHSM: public HSM{
 public:
-    UBOPCH();
+    UBOPHSM();
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
 };

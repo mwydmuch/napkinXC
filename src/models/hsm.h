@@ -14,31 +14,25 @@
 #include <algorithm>
 #include <random>
 
-#include "base.h"
-#include "model.h"
+#include "batch_plt.h"
 #include "tree.h"
 
 
-class HSM: public Model{
+class HSM: public BatchPLT{  // HSM is multi-class version of PLT
 public:
     HSM();
-    ~HSM() override;
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-    double predict(Label label, Feature* features, Args &args) override;
-
-    void load(Args &args, std::string infile) override;
+    double predictForLabel(Label label, Feature* features, Args &args) override;
 
     void printInfo() override;
 
 protected:
-    Tree* tree;
-    std::vector<Base*> bases;
-
-    void predictNext(std::priority_queue<TreeNodeValue>& nQueue, std::vector<Prediction>& prediction, Feature* features);
+    //void assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+    //                              SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args) override;
+    void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                          int* rLabels, int rSize) override;
+    Prediction predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features) override;
 
     int eCount; // Number of updated/evaluated classifiers during training or prediction
     int pLen; // Len of the path
-    int rCount;
 };

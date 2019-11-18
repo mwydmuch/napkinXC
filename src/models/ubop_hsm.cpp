@@ -3,13 +3,13 @@
  * All rights reserved.
  */
 
-#include "ubop_ch.h"
+#include "ubop_hsm.h"
 #include "set_utility.h"
 
 
-UBOPCH::UBOPCH(){}
+UBOPHSM::UBOPHSM(){}
 
-void UBOPCH::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::priority_queue<TreeNodeValue> nQueue;
 
     double value = bases[tree->root->index]->predictProbability(features);
@@ -21,17 +21,12 @@ void UBOPCH::predict(std::vector<Prediction>& prediction, Feature* features, Arg
 
     double P = 0, bestU = 0;
     while (!nQueue.empty()){
-        predictNext(nQueue, prediction, features);
-
-        P += prediction.back().value;
-        double U = u->g(prediction.size()) * P;
-
-        if(bestU < U)
+        auto p = predictNext(nQueue, features);
+        P += p.value;
+        double U = u->g(prediction.size() + 1) * P;
+        if(bestU < U) {
+            prediction.push_back(p);
             bestU = U;
-        else {
-            P -= prediction.back().value;
-            prediction.pop_back();
-            break;
-        }
+        } else break;
     }
 }

@@ -16,9 +16,10 @@
 
 class Base {
 public:
-    Base();
+    Base(bool onlineTraning = false);
     ~Base();
 
+    void update(double label, Feature* features, Args &args);
     void train(int n, std::vector<double>& labels, std::vector<Feature*>& features, Args &args);
     double predictValue(Feature* features);
     double predictValue(double* features);
@@ -32,14 +33,26 @@ public:
     inline size_t mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(double)); }
     inline size_t sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
     size_t size();
+    inline size_t featureSpaceSize() { return wSize; }
+
+    inline double* getW(){ return W; }
+    inline std::unordered_map<int, double>* getMapW(){ return mapW; }
+    inline Feature* getSparseW(){ return sparseW; }
+
+    inline int getFirstClass() { return firstClass; }
 
     void toMap(); // From dense weights (W) to sparse weights in hashmap (mapW)
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)
-    void threshold(double threshold);
+    void pruneWeights(double threshold);
+    void multiplyWeights(double a);
+    void invertWeights();
 
     void save(std::ostream& out);
     void load(std::istream& in);
+
+    Base* copy();
+    Base* copyInverted();
 
     void printWeights();
 
@@ -50,11 +63,14 @@ private:
     int nonZeroW;
     int classCount;
     int firstClass;
+    int t;
 
     double* W;
     std::unordered_map<int, double>* mapW;
+    std::unordered_map<int, double>* mapG;
     Feature* sparseW;
 
+    std::mutex updateMtx;
 };
 
 template<typename T>

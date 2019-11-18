@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <random>
 
 #include "types.h"
 #include "utils.h"
@@ -18,9 +19,13 @@ enum ModelType {
     plt,
     ubop,
     rbop,
-    ubopch,
-    hsmEns,
-    pltEns,
+    ubopHsm,
+    pltNeg,
+    brpltNeg,
+    oplt,
+    // Mips extension models
+    brMips,
+    ubopMips,
 };
 
 enum TreeType {
@@ -30,10 +35,14 @@ enum TreeType {
     completeRandom,
     balancedInOrder,
     balancedRandom,
+    onlineBalanced,
+    onlineComplete,
+    onlineRandom,
+    onlineBottomUp,
     custom
 };
 
-enum OptimizerType { libliner, sgd };
+enum OptimizerType { libliner, sgd, adagrad };
 
 enum DataFormatType { libsvm };
 
@@ -60,15 +69,16 @@ public:
     bool header;
     bool bias;
     double biasValue;
-    double C;
     bool norm;
     bool tfidf;
     int hash;
-    double pruneThreshold;
+    double featuresThreshold;
+
+    // Threading and memory options
+    int threads;
+    size_t memLimit; // TODO: Implement this for some models
 
     // Training options
-    int threads;
-    size_t memLimit;
     int solverType;
     OptimizerType optimizerType;
     double eps;
@@ -77,14 +87,26 @@ public:
     bool labelsWeights;
     int iter;
     double eta;
-    double mem;
+
     int ensemble;
+    bool onTheTrotPrediction;
+
+    // For online training
+    int epochs;
+    double penalty;
+    int tmax;
+    double adagrad_eps;
+
+    // Tree models
 
     // Tree options
     int arity;
     TreeType treeType;
     std::string treeStructure;
     int maxLeaves;
+
+    // Tree sampling
+    int sampleK;
 
     // K-Means tree options
     double kMeansEps;
@@ -95,6 +117,7 @@ public:
     int topK;
     bool sparseWeights;
 
+    inline int getSeed(){ return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);
     void printArgs();
     void printHelp();
@@ -114,6 +137,8 @@ public:
     std::string measures;
 
 private:
+    std::default_random_engine rngSeeder;
+
     std::string solverName;
     std::string treeTypeName;
     std::string optimizerName;

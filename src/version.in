@@ -1,0 +1,13 @@
+/**
+ * Copyright (c) 2018 by Marek Wydmuch
+ * All rights reserved.
+ */
+
+#pragma once
+
+#define VERSION "@napkinXML_VERSION_MAJOR@.@napkinXML_VERSION_MINOR@.@napkinXML_PATCH_VERSION@"
+#define MIPS_EXT @WITH_MIPS_EXT@
+
+#if MIPS_EXT == OFF
+    #undef MIPS_EXT
+#endif

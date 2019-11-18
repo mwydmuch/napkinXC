@@ -1,13 +1,13 @@
-# napkinXML
+# napkinXC
 # Authors: Marek Wydmuch
 
 cmake_minimum_required(VERSION 3.1.0)
-project(napkinXML)
+project(napkinXC)
 
 # Project version
-set(napkinXML_VERSION_MAJOR 0)
-set(napkinXML_VERSION_MINOR 3)
-set(napkinXML_PATCH_VERSION 0)
+set(napkinXC_VERSION_MAJOR 0)
+set(napkinXC_VERSION_MINOR 3)
+set(napkinXC_PATCH_VERSION 0)
 
 # Building options
 option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
@@ -36,7 +36,7 @@ configure_file(
     ${SRC_DIR}/version.in
     ${SRC_DIR}/version.h
 )
-# Gather napkinXML source files
+# Gather napkinXC source files
 file(GLOB SOURCES
     ${SRC_DIR}/*.cpp
     ${SRC_DIR}/blas/*.c
@@ -67,11 +67,11 @@ if (WITH_MIPS_EXT)
     list(APPEND LIBRARIES NonMetricSpaceLib)
 endif ()
 
-add_executable(nxml ${SOURCES})
-target_include_directories(nxml PUBLIC ${INCLUDES})
-target_link_libraries(nxml PUBLIC ${LIBRARIES})
+add_executable(nxc ${SOURCES})
+target_include_directories(nxc PUBLIC ${INCLUDES})
+target_link_libraries(nxc PUBLIC ${LIBRARIES})
 
-set_target_properties(nxml
+set_target_properties(nxc
     PROPERTIES
-    OUTPUT_NAME nxml
-    PROJECT_LABEL "napkinXML")
+    OUTPUT_NAME nxc
+    PROJECT_LABEL "napkinXC")

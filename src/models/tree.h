@@ -29,7 +29,6 @@ struct TreeNode{
     std::vector<TreeNode*> children; // Pointers to the children nodes
 
     int nextToExpand;
-    int depth;
     int subtreeDepth;
 };
 

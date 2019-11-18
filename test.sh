@@ -25,7 +25,7 @@ elif [ -e "${DATASET_FILE}.train" ]; then
     TEST_FILE="${DATASET_FILE}.test"
 fi
 
-if [ ! -e nxml ]; then
+if [ ! -e nxc ]; then
     rm -f CMakeCache.txt
     cmake -DCMAKE_BUILD_TYPE=Release
     make -j
@@ -39,12 +39,12 @@ fi
 if [ ! -e $MODEL ]; then
     mkdir -p $MODEL
     touch $TRAIN_LOCK_FILE
-    time ./nxml train -i $TRAIN_FILE -o $MODEL -t -1 $ARGS
+    time ./nxc train -i $TRAIN_FILE -o $MODEL -t -1 $ARGS
     echo
 fi
 
 rm -rf $TRAIN_LOCK_FILE
-time ./nxml test -i $TEST_FILE -o $MODEL --topK 5 -t -1
+time ./nxc test -i $TEST_FILE -o $MODEL --topK 5 -t -1
 echo
 
 echo "Model dir: ${MODEL}"

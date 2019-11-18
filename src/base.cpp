@@ -64,13 +64,16 @@ void Base::update(double label, Feature* features, Args &args) {
         Feature *f = features;
 
         while (f->index != -1) {
-            if(mapW != nullptr) {
+            if (mapW != nullptr) {
                 reg = args.penalty * (*mapW)[f->index - 1];
                 (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+                if (f->index > wSize) wSize = f->index;
+
             } else if (W != nullptr) {
                 reg = args.penalty * W[f->index - 1];
                 W[f->index - 1] -= lr * (grad * f->value + reg);
             }
+
             ++f;
         }
     } else if (args.optimizerType == adagrad) {
@@ -79,23 +82,27 @@ void Base::update(double label, Feature* features, Args &args) {
         Feature *f = features;
 
         while (f->index != -1) {
-            if(mapW != nullptr && mapG != nullptr) {
+            if (mapW != nullptr && mapG != nullptr) {
                 (*mapG)[f->index - 1] += grad * grad;
                 lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
                 reg = args.penalty * (*mapW)[f->index - 1];
                 (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
-
-            } else if(W != nullptr && G != nullptr) {
+                if (f->index > wSize) wSize = f->index;
+            } else if (W != nullptr && G != nullptr) {
                 G[f->index - 1] += grad * grad;
                 lr = args.eta * sqrt(1.0 / (args.adagrad_eps + G[f->index - 1]));
                 reg = args.penalty * W[f->index - 1];
                 W[f->index - 1] -= lr * (grad * f->value + reg);
             }
+
             ++f;
         }
     }
 
-    //mapOrDense(args);
+    if (mapW != nullptr) {
+        nonZeroW = mapW->size();
+        if (mapSize() > denseSize()) toDense();
+    }
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -176,18 +183,6 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
 
         M = train_linear(&P, &C);
 
-    } else if (args.optimizerType == sgd) {
-        online_parameter OC = {
-                .iter = args.iter,
-                .eta = args.eta,
-                .nr_weight = labelsCount,
-                .weight_label = labels,
-                .weight = labelsWeights,
-                .p = 0,
-                .init_sol = NULL
-        };
-
-        M = train_online(&P, &OC);
     }
 
     assert(M->nr_class <= 2);
@@ -198,7 +193,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     firstClass = M->label[0];
     classCount = M->nr_class;
 
-    // Copy wieghts
+    // Copy weights
     W = new Weight[n];
     for(int i = 0; i < n; ++i)
         W[i] = M->w[i];
@@ -215,7 +210,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
-    if(sparseSize() < denseSize()) toSparse();
+    if(sparseSize() < denseSize())  toSparse();
 }
 
 double Base::predictValue(double* features){
@@ -244,20 +239,6 @@ double Base::predictValue(Feature* features){
     if(firstClass == 0) val *= -1;
     return val;
 }
-
-
-void Base::mapOrDense(Args &args){
-    if(mapW != nullptr){
-        int denseWsize = sizeof(Weight)*args.hash;
-        int mapWsize = mapW->size() * (sizeof(void *) + sizeof(int) + sizeof(double));
-        if(mapWsize > denseWsize){
-            for(const auto &w : *mapW)
-                if(w.first + 2 > wSize) wSize = w.first + 2;
-            toDense();
-        }
-    }
-}
-
 
 void Base::toMap(){
     if(mapW == nullptr){
@@ -460,14 +441,13 @@ void Base::load(std::istream& in) {
 
         if(loadSparse){
             mapW = new UnorderedMap<int, Weight>();
-            //sparseW = new Feature[nonZeroW + 1];
-            //sparseW[nonZeroW].index = -1;
+
             int index;
-            double w;
+            Weight w;
 
             for (int i = 0; i < nonZeroW; ++i) {
                 in.read((char*) &index, sizeof(index));
-                in.read((char*) &w, sizeof(w));
+                in.read((char*) &w, sizeof(Weight));
                 if (sparseW != nullptr){
                     sparseW[i].index = index;
                     sparseW[i].value = w;

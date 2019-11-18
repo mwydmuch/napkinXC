@@ -102,7 +102,7 @@ inline T dotVectors(Feature* vector1, const T* vector2){ // Version without size
     T val = 0;
     Feature* f = vector1;
     while(f->index != -1) {
-        val += f->value * vector2[f->index];
+        val += f->value * vector2[f->index - 1];
         ++f;
     }
     return val;

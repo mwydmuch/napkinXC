@@ -309,8 +309,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
     // Change default values for specific cases:
     if (modelType == oplt && optimizerType == libliner){
-        optimizerType = sgd;
-        optimizerName = "sgd";
+        optimizerType = adagrad;
+        optimizerName = "adagrad";
+    }
+
+    if (modelType == oplt && (treeType == hierarchicalKMeans || treeType == huffman)){
+        treeType = completeInOrder;
+        treeTypeName = "completeInOrder";
     }
 }
 

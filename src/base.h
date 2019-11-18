@@ -15,7 +15,7 @@
 #include "types.h"
 #include "robin_hood.h"
 
-typedef float Weight;
+typedef double Weight;
 #define UnorderedMap robin_hood::unordered_map
 //#define UnorderedMap std::unordered_map
 
@@ -49,7 +49,6 @@ public:
     void toMap(); // From dense weights (W) to sparse weights in hashmap (mapW)
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)
-    void mapOrDense(Args &args);
     void pruneWeights(double threshold);
     void multiplyWeights(double a);
     void invertWeights();

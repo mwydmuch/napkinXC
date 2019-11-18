@@ -1,13 +1,13 @@
 # napkinXC
 # Authors: Marek Wydmuch
 
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 2.8.9)
 project(napkinXC)
 
 # Project version
 set(napkinXC_VERSION_MAJOR 0)
 set(napkinXC_VERSION_MINOR 3)
-set(napkinXC_PATCH_VERSION 0)
+set(napkinXC_PATCH_VERSION 1)
 
 # Building options
 option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)

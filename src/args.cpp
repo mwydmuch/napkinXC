@@ -61,10 +61,10 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    treeType = completeInOrder;
-    treeTypeName = "completeInOrder";
-    //treeType = hierarchicalKMeans;
-    //treeTypeName = "hierarchicalKMeans";
+    //treeType = completeInOrder;
+    //treeTypeName = "completeInOrder";
+    treeType = hierarchicalKMeans;
+    treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
     // Tree sampling
@@ -345,17 +345,14 @@ void Args::printArgs(){
                 std::cerr << "\n    Tree: " << treeStructure;
             }
         }
-        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopHsm)) {
-            std::cerr << "\n  Set utility: " << setUtilityName << ", alfa: " << alfa
-                      << ", beta: " << beta << ", epsilon: " << epsilon;
+        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips)) {
+            std::cerr << "\n  Set utility: " << setUtilityName;
+            if(setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
+            if(setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
+            if(setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
         }
         std::cerr << "\n  Threads: " << threads << "\n";
     }
-    else if (command == "shrink")
-        std::cerr << "napkinXC - " << command
-            << "\n  Input model: " << input
-            << "\n  Output model: " << output
-            << "\n  Threshold: " << weightsThreshold << "\n";
 }
 
 void Args::printHelp(){

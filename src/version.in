@@ -5,7 +5,7 @@
 
 #pragma once
 
-#define VERSION "@napkinXML_VERSION_MAJOR@.@napkinXML_VERSION_MINOR@.@napkinXML_PATCH_VERSION@"
+#define VERSION "@napkinXC_VERSION_MAJOR@.@napkinXC_VERSION_MINOR@.@napkinXC_PATCH_VERSION@"
 #define MIPS_EXT @WITH_MIPS_EXT@
 
 #if MIPS_EXT == OFF

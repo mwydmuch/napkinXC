@@ -3,16 +3,16 @@
 Extremely simple and fast library for extreme multi-class and multi-label classification.
 
 Right now it implements:
-- One Versus All (OVA),
 - Binary Relevance (BR),
+- One Versus Rest (OVR),
 - OVA and BR with inference using Maximum Inner Product Search (MIPS),
 - Hierarchical Softmax (HSM),
 - Probabilistic Label Tree (PLT),
-- Ensembles,
+- Ensembles of tree based models,
 - Top-k and set-valued prediction,
 - LibLinear and SGD solvers for base classifiers,
 - Online prediction,
-- Simple complete, Huffman and balanced tree structures,
+- Huffman, complete and balanced tree structures,
 - Hierarchical balanced k-means clustering for tree building,
 - Loading custom tree structures.
 
@@ -143,3 +143,7 @@ Datasets:
         wikiLSHTC
         WikipediaLarge-500K
 ```
+
+## TODO
+- Proper logging with verbose options
+- Python bindings with support for SciPy types

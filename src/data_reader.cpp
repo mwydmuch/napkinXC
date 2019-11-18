@@ -46,6 +46,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
     std::vector<Label> lLabels;
     std::vector<Feature> lFeatures;
+    if(args.hash) hFeatures = args.hash;
 
     // Read examples
     if(!hRows) std::cerr << "  ?%\r";

@@ -24,9 +24,11 @@ Base::Base(bool onlineTraning){
     t = 0;
 
     W = nullptr;
+    G = nullptr;
     mapW = nullptr;
-    sparseW = nullptr;
     mapG = nullptr;
+    sparseW = nullptr;
+    sparseG = nullptr;
 
     if(onlineTraning){
         mapW = new std::unordered_map<int, double>();
@@ -38,9 +40,11 @@ Base::Base(bool onlineTraning){
 
 Base::~Base(){
     delete[] W;
+    delete[] G;
     delete mapW;
     delete mapG;
     delete[] sparseW;
+    delete[] sparseG;
 }
 
 void Base::update(double label, Feature* features, Args &args) {
@@ -59,8 +63,13 @@ void Base::update(double label, Feature* features, Args &args) {
         Feature *f = features;
         while (f->index != -1) {
             // regularization is probably incorrect due to sparse features.
-            reg = args.penalty * (*mapW)[f->index - 1];
-            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            if(mapW != nullptr) {
+                reg = args.penalty * (*mapW)[f->index - 1];
+                (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            } else if (W != nullptr) {
+                reg = args.penalty * W[f->index - 1];
+                W[f->index - 1] -= lr * (grad * f->value + reg);
+            }
             ++f;
         }
     } else if (args.optimizerType == adagrad) {
@@ -68,14 +77,24 @@ void Base::update(double label, Feature* features, Args &args) {
         double reg;
         Feature *f = features;
         while (f->index != -1) {
-            (*mapG)[f->index - 1] += grad * grad;
-            lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
-            // regularization is probably incorrect due to sparse features.
-            reg = args.penalty * (*mapW)[f->index - 1];
-            (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            if(mapW != nullptr && mapG != nullptr) {
+                (*mapG)[f->index - 1] += grad * grad;
+                lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
+                // regularization is probably incorrect due to sparse features.
+                reg = args.penalty * (*mapW)[f->index - 1];
+                (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+            } else if(W != nullptr && G != nullptr) {
+                G[f->index - 1] += grad * grad;
+                lr = args.eta * sqrt(1.0 / (args.adagrad_eps + G[f->index - 1]));
+                // regularization is probably incorrect due to sparse features.
+                reg = args.penalty * W[f->index - 1];
+                W[f->index - 1] -= lr * (grad * f->value + reg);
+            }
             ++f;
         }
     }
+
+    mapOrDense(args);
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -219,6 +238,21 @@ double Base::predictValue(Feature* features){
     return val;
 }
 
+
+void Base::mapOrDense(Args &args){
+    if(mapW != nullptr){
+
+        int denseWsize = sizeof(double)*args.hash;
+        int mapWsize = mapW->size()* (sizeof(void *) + sizeof(int) + sizeof(double)) + mapW->bucket_count()*sizeof(void*);
+        if(mapWsize > denseWsize){
+            wSize = args.hash;
+            toDense();
+        }
+    }
+
+}
+
+
 void Base::toMap(){
     if(mapW == nullptr){
         mapW = new std::unordered_map<int, double>();
@@ -236,6 +270,25 @@ void Base::toMap(){
             }
             delete[] sparseW;
             sparseW = nullptr;
+        }
+    }
+
+    if(mapG == nullptr){
+        mapG = new std::unordered_map<int, double>();
+
+        if(G != nullptr){
+            for(int i = 0; i < wSize; ++i)
+                if(G[i] != 0) mapG->insert({i, W[i]});
+            delete[] G;
+            G = nullptr;
+        } else if(sparseG != nullptr){
+            Feature* f = sparseG;
+            while(f->index != -1){
+                mapG->insert({f->index, f->value});
+                ++f;
+            }
+            delete[] sparseG;
+            sparseG = nullptr;
         }
     }
 }
@@ -259,6 +312,25 @@ void Base::toDense(){
             sparseW = nullptr;
         }
     }
+
+    if(G == nullptr){
+        G = new double[wSize];
+        std::memset(G, 0, wSize * sizeof(double));
+
+        if(mapG != nullptr){
+            for(const auto& w : *mapG) G[w.first] = w.second;
+            delete mapG;
+            mapG = nullptr;
+        } else if(sparseG != nullptr){
+            Feature* f = sparseG;
+            while(f->index != -1){
+                G[f->index] = f->value;
+                ++f;
+            }
+            delete[] sparseG;
+            sparseG = nullptr;
+        }
+    }
 }
 
 void Base::toSparse(){
@@ -278,6 +350,24 @@ void Base::toSparse(){
 
         delete[] W;
         W = nullptr;
+    }
+
+    if(sparseG == nullptr){
+        assert(G != nullptr);
+
+        sparseG = new Feature[nonZeroW + 1];
+        sparseG[nonZeroW].index = -1;
+        Feature* f = sparseW;
+        for(int i = 0; i < wSize; ++i){
+            if(G[i] != 0){
+                f->index = i;
+                f->value = G[i];
+                ++f;
+            }
+        }
+
+        delete[] G;
+        G = nullptr;
     }
 }
 
@@ -435,10 +525,21 @@ Base* Base::copy(){
         copy->W = new double[wSize];
         std::memcmp(copy->W, W, wSize * sizeof(double));
     }
+    if(G){
+        copy->G = new double[wSize];
+        std::memcmp(copy->G, G, wSize * sizeof(double));
+    }
+
     if(mapW) copy->mapW = new std::unordered_map<int, double>(mapW->begin(), mapW->end());
+    if(mapG) copy->mapG = new std::unordered_map<int, double>(mapG->begin(), mapG->end());
+
     if(sparseW) {
         copy->sparseW = new Feature[nonZeroW + 1];
         std::memcmp(copy->sparseW , sparseW, (nonZeroW + 1) * sizeof(Feature));
+    }
+    if(sparseG) {
+        copy->sparseG = new Feature[nonZeroW + 1];
+        std::memcmp(copy->sparseG , sparseG, (nonZeroW + 1) * sizeof(Feature));
     }
 
     copy->firstClass = firstClass;

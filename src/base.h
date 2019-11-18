@@ -44,6 +44,7 @@ public:
     void toMap(); // From dense weights (W) to sparse weights in hashmap (mapW)
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)
+    void mapOrDense(Args &args);
     void pruneWeights(double threshold);
     void multiplyWeights(double a);
     void invertWeights();
@@ -66,9 +67,11 @@ private:
     int t;
 
     double* W;
+    double* G;
     std::unordered_map<int, double>* mapW;
     std::unordered_map<int, double>* mapG;
     Feature* sparseW;
+    Feature* sparseG;
 
     std::mutex updateMtx;
 };

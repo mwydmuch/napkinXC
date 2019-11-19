@@ -42,7 +42,7 @@ enum TreeType {
     custom
 };
 
-enum OptimizerType { libliner, sgd, adagrad };
+enum OptimizerType { libliner, sgd, adagrad, fobos };
 
 enum DataFormatType { libsvm };
 

@@ -29,6 +29,7 @@ Base::Base(bool onlineTraning){
     mapG = nullptr;
     sparseW = nullptr;
     sparseG = nullptr;
+    pi = 1.0;
 
     if(onlineTraning){
         mapW = new UnorderedMap<int, Weight>();
@@ -57,9 +58,9 @@ void Base::update(double label, Feature* features, Args &args) {
     double pred = predictValue(features);
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
-    // Regularization is probably incorrect due to sparse features.
     if (args.optimizerType == sgd) {
         double lr = args.eta * sqrt(1.0 / t);
+        // Regularization is probably incorrect due to sparse features.
         double reg;
         Feature *f = features;
 
@@ -67,29 +68,47 @@ void Base::update(double label, Feature* features, Args &args) {
             if (mapW != nullptr) {
                 reg = args.penalty * (*mapW)[f->index - 1];
                 (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
+//                (*mapW)[f->index - 1] -= lr * grad * f->value;
                 if (f->index > wSize) wSize = f->index;
 
             } else if (W != nullptr) {
                 reg = args.penalty * W[f->index - 1];
                 W[f->index - 1] -= lr * (grad * f->value + reg);
+//                W[f->index - 1] -= lr * grad * f->value;
             }
 
+            ++f;
+        }
+    } else if (args.optimizerType == fobos) {
+        // Implementation based on http://proceedings.mlr.press/v48/jasinska16-supp.pdf
+        double lr = args.eta/(1 + args.eta*t*args.penalty);
+        Feature *f = features;
+        pi *= (1 + args.penalty*lr);
+
+        while (f->index != -1) {
+            if (mapW != nullptr) {
+                (*mapW)[f->index - 1] -= pi * lr * grad * f->value;
+                if (f->index > wSize) wSize = f->index;
+
+            } else if (W != nullptr) {
+                W[f->index - 1] -= pi* lr * grad * f->value;
+            }
             ++f;
         }
     } else if (args.optimizerType == adagrad) {
         double lr;
         double reg;
         Feature *f = features;
-
+        // Adagrad with sgd dropout like regularization
         while (f->index != -1) {
             if (mapW != nullptr && mapG != nullptr) {
-                (*mapG)[f->index - 1] += grad * grad;
+                (*mapG)[f->index - 1] += f->value * f->value *  grad * grad;
                 lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
                 reg = args.penalty * (*mapW)[f->index - 1];
                 (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
                 if (f->index > wSize) wSize = f->index;
             } else if (W != nullptr && G != nullptr) {
-                G[f->index - 1] += grad * grad;
+                G[f->index - 1] += f->value * f->value *  grad * grad;
                 lr = args.eta * sqrt(1.0 / (args.adagrad_eps + G[f->index - 1]));
                 reg = args.penalty * W[f->index - 1];
                 W[f->index - 1] -= lr * (grad * f->value + reg);
@@ -237,6 +256,9 @@ double Base::predictValue(Feature* features){
     else throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
 
     if(firstClass == 0) val *= -1;
+
+    val /= pi; // FOBOS
+
     return val;
 }
 
@@ -355,6 +377,24 @@ void Base::toSparse(){
 
         delete[] G;
         G = nullptr;
+    }
+}
+
+void Base::finalizeOnlineTraining(){
+    if(W) {
+        for (int i = 0; i < wSize; ++i) {
+            W[i] /= pi;
+        }
+    } else if(mapW){
+        for (auto &w : *mapW) {
+            w.second /= pi;
+        }
+    } else if(sparseW) {
+        Feature *f = sparseW;
+        while (f->index != -1) {
+            f->value /= pi;
+            ++f;
+        }
     }
 }
 

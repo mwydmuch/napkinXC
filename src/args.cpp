@@ -230,6 +230,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
                 else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
                 else if (args.at(ai + 1) == "adagrad") optimizerType = adagrad;
+                else if (args.at(ai + 1) == "fobos") optimizerType = fobos;
                 else{
                     std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << "!\n";
                     printHelp();
@@ -243,7 +244,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 penalty = std::stof(args.at(ai + 1));
             else if (args[ai] == "--tmax")
                 tmax = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--adagrad_eps")
+            else if (args[ai] == "--adagradEps")
                 adagrad_eps = std::stof(args.at(ai + 1));
 
                 // Tree options

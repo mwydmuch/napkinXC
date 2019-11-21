@@ -1,4 +1,4 @@
-# napkinXC
+# napkinXC [![Build Status](https://travis-ci.org/mwydmuch/napkiXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkiXC)
 
 Extremely simple and fast library for extreme multi-class and multi-label classification.
 
@@ -147,3 +147,12 @@ Datasets:
 ## TODO
 - Proper logging with verbose options
 - Python bindings with support for SciPy types
+
+## Acknowledgments
+napkinXC uses the following libraries:
+
+- LIBLINEAR: https://github.com/cjlin1/liblinear
+- ThreadPool: https://github.com/progschj/ThreadPool
+- Robin Hood Hashmap: https://github.com/martinus/robin-hood-hashing
+- Non-Metric Space Library: https://github.com/nmslib/nmslib.git
+

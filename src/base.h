@@ -50,6 +50,7 @@ public:
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)
     void pruneWeights(double threshold);
+    void finalizeOnlineTraining();
     void multiplyWeights(double a);
     void invertWeights();
 
@@ -76,6 +77,7 @@ private:
     UnorderedMap<int, Weight>* mapG;
     Feature* sparseW;
     Feature* sparseG;
+    float pi;
 
     std::mutex updateMtx;
 };

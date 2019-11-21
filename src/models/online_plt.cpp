@@ -59,6 +59,7 @@ void OnlinePLT::save(Args &args, std::string output){
     int size = bases.size();
     out.write((char*) &size, sizeof(size));
     for(int i = 0; i < bases.size(); ++i) {
+        bases[i]->finalizeOnlineTraining();
         bases[i]->pruneWeights(args.weightsThreshold);
         bases[i]->save(out);
     }

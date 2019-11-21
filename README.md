@@ -1,4 +1,4 @@
-# napkinXC [![Build Status](https://travis-ci.org/mwydmuch/napkiXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkiXC)
+# napkinXC [![Build Status](https://travis-ci.org/mwydmuch/napkinXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkinXC)
 
 Extremely simple and fast library for extreme multi-class and multi-label classification.
 

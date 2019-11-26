@@ -25,7 +25,11 @@ public:
     ~Base();
 
     void update(double label, Feature* features, Args &args);
-    void train(int n, std::vector<double>& labels, std::vector<Feature*>& features, Args &args);
+    void unsafeUpdate(double label, Feature* features, Args &args);
+    void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
+    void trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, int positiveLabel, Args &args);
+    void trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
+
     double predictValue(Feature* features);
     double predictValue(double* features);
 
@@ -50,6 +54,7 @@ public:
     void toDense(); // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)
     void pruneWeights(double threshold);
+    void setupOnlineTraining(Args &args);
     void finalizeOnlineTraining();
     void multiplyWeights(double a);
     void invertWeights();
@@ -63,6 +68,7 @@ public:
     void printWeights();
 
 private:
+    std::mutex updateMtx;
     bool hingeLoss;
 
     int wSize;
@@ -70,16 +76,14 @@ private:
     int classCount;
     int firstClass;
     int t;
+    float pi;
 
+    // Weights
     Weight* W;
     Weight* G;
     UnorderedMap<int, Weight>* mapW;
     UnorderedMap<int, Weight>* mapG;
     Feature* sparseW;
-    Feature* sparseG;
-    float pi;
-
-    std::mutex updateMtx;
 };
 
 template<typename T>

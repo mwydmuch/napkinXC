@@ -47,7 +47,7 @@ make -j
 ## Options
 
 ```
-Usage: nxml <command> <args>
+Usage: nxc <command> <args>
 
 Commands:
     train

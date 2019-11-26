@@ -28,15 +28,7 @@ Base::Base(bool onlineTraning){
     mapW = nullptr;
     mapG = nullptr;
     sparseW = nullptr;
-    sparseG = nullptr;
     pi = 1.0;
-
-    if(onlineTraning){
-        mapW = new UnorderedMap<int, Weight>();
-        mapG = new UnorderedMap<int, Weight>();
-        classCount = 2;
-        firstClass = 1;
-    }
 }
 
 Base::~Base(){
@@ -45,12 +37,15 @@ Base::~Base(){
     delete mapW;
     delete mapG;
     delete[] sparseW;
-    delete[] sparseG;
 }
 
 void Base::update(double label, Feature* features, Args &args) {
     std::lock_guard<std::mutex> lock(updateMtx);
 
+    unsafeUpdate(label, features, args);
+}
+
+void Base::unsafeUpdate(double label, Feature* features, Args &args) {
     if (args.tmax != -1 && args.tmax < t)
         return;
 
@@ -124,29 +119,15 @@ void Base::update(double label, Feature* features, Args &args) {
     }
 }
 
-void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
+void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, int positiveLabels, Args &args){
 
-    if(binLabels.empty()){
-        firstClass = 0;
-        classCount = 0;
-        return;
-    }
-
-    int positiveLabel = 0;
-    for(auto l : binLabels)
-        if(l == 1.0) ++positiveLabel;
-
-    if(positiveLabel == 0 || positiveLabel == binLabels.size()){
-        firstClass = static_cast<int>(binLabels[0]);
-        classCount = 1;
-        return;
-    }
-
+    model *M = nullptr;
     int labelsCount = 0;
     int* labels = NULL;
     double* labelsWeights = NULL;
-    int negativeLabel = static_cast<int>(binLabels.size()) - positiveLabel;
+    int negativeLabels = static_cast<int>(binLabels.size()) - positiveLabels;
 
+    // Apply some weighting for very unbalanced data
     if(args.labelsWeights){
         labelsCount = 2;
         labels = new int[2];
@@ -154,11 +135,11 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         labels[1] = 1;
 
         labelsWeights = new double[2];
-        if(negativeLabel > positiveLabel){
+        if(negativeLabels > positiveLabels){
             labelsWeights[0] = 1.0;
-            labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabel) / positiveLabel);
+            labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabels) / positiveLabels);
         } else{
-            labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabel) / negativeLabel);
+            labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabels) / negativeLabels);
             labelsWeights[1] = 1.0;
         }
     }
@@ -167,42 +148,38 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     auto x = binFeatures.data();
     int l = static_cast<int>(binLabels.size());
 
-    assert(binLabels.size() == binFeatures.size());
     problem P = {
-        .l = l,
-        .n = n,
-        .y = y,
-        .x = x,
-        .bias = (args.bias > 0 ? 1.0 : -1.0)
+            .l = l,
+            .n = n,
+            .y = y,
+            .x = x,
+            .bias = (args.bias > 0 ? 1.0 : -1.0)
     };
 
-    model *M = nullptr;
-    if (args.optimizerType == libliner) {
-        parameter C = {
-                .solver_type = args.solverType,
-                .eps = args.eps,
-                .C = args.cost,
-                .nr_weight = labelsCount,
-                .weight_label = labels,
-                .weight = labelsWeights,
-                .p = 0,
-                .init_sol = NULL
-        };
+    parameter C = {
+            .solver_type = args.solverType,
+            .eps = args.eps,
+            .C = args.cost,
+            .nr_weight = labelsCount,
+            .weight_label = labels,
+            .weight = labelsWeights,
+            .p = 0,
+            .init_sol = NULL
+    };
 
-        auto output = check_parameter(&P, &C);
-        assert(output == NULL);
+    auto output = check_parameter(&P, &C);
+    assert(output == NULL);
 
-        if(args.cost < 0 && binLabels.size() > 100 && binLabels.size() < 1000){
-            double bestC = -1;
-            double bestP = -1;
-            double bestScore = -1;
-            find_parameters(&P, &C, 1, 4.0, -1, &bestC, &bestP, &bestScore);
-            C.C = bestC;
-        } else if(args.cost < 0) C.C = 8.0;
+    // Optimize C for small datasets
+    if(args.cost < 0 && binLabels.size() > 100 && binLabels.size() < 1000){
+        double bestC = -1;
+        double bestP = -1;
+        double bestScore = -1;
+        find_parameters(&P, &C, 1, 4.0, -1, &bestC, &bestP, &bestScore);
+        C.C = bestC;
+    } else if(args.cost < 0) C.C = 8.0;
 
-        M = train_linear(&P, &C);
-
-    }
+    M = train_linear(&P, &C);
 
     assert(M->nr_class <= 2);
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
@@ -226,10 +203,43 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     delete[] labels;
     delete[] labelsWeights;
     delete M;
+}
+
+void Base::trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
+    setupOnlineTraining(args);
+
+    const int examples = binFeatures.size() * args.epochs;
+    for(int i = 0; i < examples; ++i){
+        int r = i % binFeatures.size();
+        unsafeUpdate(binLabels[r], binFeatures[r], args);
+    }
+
+    finalizeOnlineTraining();
+}
+
+void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
+
+    if(binLabels.empty()){
+        firstClass = 0;
+        classCount = 0;
+        return;
+    }
+
+    int positiveLabels = std::count(binLabels.begin(), binLabels.end(), 1.0);
+    if(positiveLabels == 0 || positiveLabels == binLabels.size()){
+        firstClass = static_cast<int>(binLabels[0]);
+        classCount = 1;
+        return;
+    }
+
+    assert(binLabels.size() == binFeatures.size());
+
+    if (args.optimizerType == libliner) trainLiblinear(n, binLabels, binFeatures, positiveLabels, args);
+    else trainOnline(binLabels, binFeatures, args);
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
-    if(sparseSize() < denseSize())  toSparse();
+    if(sparseSize() < denseSize()) toSparse();
 }
 
 double Base::predictValue(double* features){
@@ -266,39 +276,20 @@ void Base::toMap(){
     if(mapW == nullptr){
         mapW = new UnorderedMap<int, Weight>();
 
-        if(W != nullptr){
-            for(int i = 0; i < wSize; ++i)
-                if(W[i] != 0) mapW->insert({i, W[i]});
-            delete[] W;
-            W = nullptr;
-        } else if(sparseW != nullptr){
-            Feature* f = sparseW;
-            while(f->index != -1){
-                mapW->insert({f->index, f->value});
-                ++f;
-            }
-            delete[] sparseW;
-            sparseW = nullptr;
-        }
+        assert(W != nullptr);
+        for (int i = 0; i < wSize; ++i)
+            if (W[i] != 0) mapW->insert({i, W[i]});
+        delete[] W;
+        W = nullptr;
     }
 
-    if(mapG == nullptr){
+    if(mapG == nullptr && G != nullptr){
         mapG = new UnorderedMap<int, Weight>();
 
-        if(G != nullptr){
-            for(int i = 0; i < wSize; ++i)
-                if(G[i] != 0) mapG->insert({i, W[i]});
-            delete[] G;
-            G = nullptr;
-        } else if(sparseG != nullptr){
-            Feature* f = sparseG;
-            while(f->index != -1){
-                mapG->insert({f->index, f->value});
-                ++f;
-            }
-            delete[] sparseG;
-            sparseG = nullptr;
-        }
+        for(int i = 0; i < wSize; ++i)
+            if(G[i] != 0) mapG->insert({i, W[i]});
+        delete[] G;
+        G = nullptr;
     }
 }
 
@@ -307,77 +298,65 @@ void Base::toDense(){
         W = new Weight[wSize];
         std::memset(W, 0, wSize * sizeof(Weight));
 
-        if(mapW != nullptr){
-            for(const auto& w : *mapW) W[w.first] = w.second;
-            delete mapW;
-            mapW = nullptr;
-        } else if(sparseW != nullptr){
-            Feature* f = sparseW;
-            while(f->index != -1){
-                W[f->index] = f->value;
-                ++f;
-            }
-            delete[] sparseW;
-            sparseW = nullptr;
-        }
+        assert(mapW != nullptr);
+        for(const auto& w : *mapW) W[w.first] = w.second;
+        delete mapW;
+        mapW = nullptr;
     }
 
-    if(G == nullptr){
+    if(G == nullptr && mapG != nullptr){
         G = new Weight[wSize];
         std::memset(G, 0, wSize * sizeof(Weight));
 
-        if(mapG != nullptr){
-            for(const auto& w : *mapG) G[w.first] = w.second;
-            delete mapG;
-            mapG = nullptr;
-        } else if(sparseG != nullptr){
-            Feature* f = sparseG;
-            while(f->index != -1){
-                G[f->index] = f->value;
-                ++f;
-            }
-            delete[] sparseG;
-            sparseG = nullptr;
-        }
+        for(const auto& w : *mapG) G[w.first] = w.second;
+        delete mapG;
+        mapG = nullptr;
     }
 }
 
 void Base::toSparse(){
     if(sparseW == nullptr){
-        assert(W != nullptr);
-
         sparseW = new Feature[nonZeroW + 1];
         sparseW[nonZeroW].index = -1;
-        Feature* f = sparseW;
-        for(int i = 0; i < wSize; ++i){
-            if(W[i] != 0){
-                f->index = i;
-                f->value = W[i];
-                ++f;
+
+        if(W != nullptr) {
+            Feature *f = sparseW;
+            for (int i = 0; i < wSize; ++i) {
+                if (W[i] != 0) {
+                    f->index = i;
+                    f->value = W[i];
+                    ++f;
+                }
             }
-        }
 
-        delete[] W;
-        W = nullptr;
-    }
-
-    if(sparseG == nullptr && G != nullptr){
-        assert(G != nullptr);
-
-        sparseG = new Feature[nonZeroW + 1];
-        sparseG[nonZeroW].index = -1;
-        Feature* f = sparseW;
-        for(int i = 0; i < wSize; ++i){
-            if(G[i] != 0){
-                f->index = i;
-                f->value = G[i];
-                ++f;
+            delete[] W;
+            W = nullptr;
+            delete[] G;
+            G = nullptr;
+        } else if(mapW != nullptr) {
+            Feature *f = sparseW;
+            for(const auto& w : *mapW){
+                if (w.second != 0) {
+                    f->index = w.first;
+                    f->value = w.second;
+                    ++f;
+                }
             }
-        }
 
-        delete[] G;
-        G = nullptr;
+            delete mapW;
+            mapW = nullptr;
+            delete mapG;
+            mapG = nullptr;
+        }
     }
+}
+
+void Base::setupOnlineTraining(Args &args){
+    mapW = new UnorderedMap<int, Weight>();
+    if(args.optimizerType == adagrad)
+        mapG = new UnorderedMap<int, Weight>();
+    classCount = 2;
+    firstClass = 1;
 }
 
 void Base::finalizeOnlineTraining(){
@@ -563,10 +542,6 @@ Base* Base::copy(){
     if(sparseW) {
         copy->sparseW = new Feature[nonZeroW + 1];
         std::memcmp(copy->sparseW , sparseW, (nonZeroW + 1) * sizeof(Feature));
-    }
-    if(sparseG) {
-        copy->sparseG = new Feature[nonZeroW + 1];
-        std::memcmp(copy->sparseG , sparseG, (nonZeroW + 1) * sizeof(Feature));
     }
 
     copy->firstClass = firstClass;

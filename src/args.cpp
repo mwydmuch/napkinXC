@@ -362,7 +362,7 @@ void Args::printArgs(){
 }
 
 void Args::printHelp(){
-    std::cerr << R"HELP(Usage: nxml <command> <args>
+    std::cerr << R"HELP(Usage: nxc <command> <args>
 
 Commands:
     train

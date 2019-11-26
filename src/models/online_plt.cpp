@@ -19,8 +19,10 @@ void OnlinePLT::init(int labelCount, Args &args) {
 
     if (!tree->isOnline()) {
         bases.resize(tree->t);
-        for (auto &b : bases)
-            b = new Base(true);
+        for (auto &b : bases) {
+            b = new Base();
+            b->setupOnlineTraining(args);
+        }
     }
 }
 

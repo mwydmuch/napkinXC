@@ -44,7 +44,7 @@ if [ ! -e $MODEL ]; then
 fi
 
 rm -rf $TRAIN_LOCK_FILE
-time ./nxc test -i $TEST_FILE -o $MODEL --topK 5 -t -1 --ensemble 3
+time ./nxc test -i $TEST_FILE -o $MODEL --topK 5 -t -1
 echo
 
 echo "Model dir: ${MODEL}"

@@ -10,6 +10,7 @@
 
 #include "args.h"
 #include "types.h"
+#include "base.h"
 
 struct Prediction{
     int label;
@@ -38,6 +39,23 @@ public:
 protected:
     std::string name;
     int m; // Output size/number of labels
+
+    // Base utils
+    static Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args);
+
+    static void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                    std::vector<std::vector<Feature*>>& baseFeatures, Args& args);
+
+    static void trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
+                    std::vector<std::vector<Feature*>>& baseFeatures, Args& args);
+
+    static void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                                    std::vector<Feature*>& baseFeatures, Args& args);
+
+    static void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
+                                    std::vector<Feature*>& baseFeatures, Args& args);
+
+    static std::vector<Base*> loadBases(std::string infile);
 };
 
 std::shared_ptr<Model> modelFactory(Args &args);

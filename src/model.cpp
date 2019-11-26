@@ -142,3 +142,93 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
 }
 
 void Model::checkRow(Label* labels, Feature* feature){ }
+
+Base* Model::trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
+    Base* base = new Base();
+    base->train(n, baseLabels, baseFeatures, args);
+    return base;
+}
+
+void Model::trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                       std::vector<std::vector<Feature*>>& baseFeatures, Args& args){
+
+    std::ofstream out(outfile);
+    int size = baseLabels.size();
+    out.write((char*) &size, sizeof(size));
+    trainBases(out, n, baseLabels, baseFeatures, args);
+    out.close();
+}
+
+void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
+                       std::vector<std::vector<Feature*>>& baseFeatures, Args& args){
+
+    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
+
+    assert(baseLabels.size() == baseFeatures.size());
+    int size = baseLabels.size(); // This "batch" size
+
+    // Run learning in parallel
+    ThreadPool tPool(args.threads);
+    std::vector<std::future<Base*>> results;
+
+    for(int i = 0; i < size; ++i)
+        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i], args));
+
+    // Saving in the main thread
+    for(int i = 0; i < results.size(); ++i) {
+        printProgress(i, results.size());
+        Base* base = results[i].get();
+        base->save(out);
+        delete base;
+    }
+}
+
+void Model::trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
+                                       std::vector<Feature*>& baseFeatures, Args& args){
+    std::ofstream out(outfile);
+    int size = baseLabels.size();
+    out.write((char*) &size, sizeof(size));
+    trainBasesWithSameFeatures(out, n, baseLabels, baseFeatures, args);
+    out.close();
+}
+
+void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
+                                       std::vector<Feature*>& baseFeatures, Args& args){
+
+    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
+    int size = baseLabels.size(); // This "batch" size
+
+    // Run learning in parallel
+    ThreadPool tPool(args.threads);
+    std::vector<std::future<Base *>> results;
+
+    for (int i = 0; i < size; ++i)
+        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, args));
+
+    // Saving in the main thread
+    for (int i = 0; i < results.size(); ++i) {
+        printProgress(i, results.size());
+        Base *base = results[i].get();
+        base->save(out);
+        delete base;
+    }
+}
+
+std::vector<Base*> Model::loadBases(std::string infile){
+    std::cerr << "Loading base estimators ...\n";
+
+    std::vector<Base*> bases;
+
+    std::ifstream in(infile);
+    int size;
+    in.read((char*) &size, sizeof(size));
+    bases.reserve(size);
+    for(int i = 0; i < size; ++i) {
+        printProgress(i, size);
+        bases.emplace_back(new Base());
+        bases.back()->load(in);
+    }
+    in.close();
+
+    return bases;
+}

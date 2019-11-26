@@ -7,7 +7,7 @@
 #include "threads.h"
 
 
-void onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<Label>& labels, SRMatrix<Feature>& features,
+void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<Label>& labels, SRMatrix<Feature>& features,
                        Args& args, const int startRow, const int stopRow){
     const int rowsRange = stopRow - startRow;
     const int examples = rowsRange * args.epochs;

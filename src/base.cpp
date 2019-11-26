@@ -32,11 +32,7 @@ Base::Base(){
 }
 
 Base::~Base(){
-    delete[] W;
-    delete[] G;
-    delete mapW;
-    delete mapG;
-    delete[] sparseW;
+    clear();
 }
 
 void Base::update(double label, Feature* features, Args &args) {
@@ -49,7 +45,7 @@ void Base::unsafeUpdate(double label, Feature* features, Args &args) {
     if (args.tmax != -1 && args.tmax < t)
         return;
 
-    t++;
+    ++t;
     double pred = predictValue(features);
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
@@ -193,14 +189,16 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     if(sparseSize() < denseSize()) toSparse();
 }
 
-double Base::predictValue(double* features){
-    double val = 0;
+void Base::setupOnlineTraining(Args &args){
+    mapW = new UnorderedMap<int, Weight>();
+    if(args.optimizerType == adagrad)
+        mapG = new UnorderedMap<int, Weight>();
+    classCount = 2;
+    firstClass = 1;
+}
 
-    if(sparseW) val = dotVectors(sparseW, features); // Dense features dot sparse weights
-    else throw std::runtime_error("Prediction using dense features and dense weights is not supported!");
-
-    if(firstClass == 0) val *= -1;
-    return val;
+void Base::finalizeOnlineTraining(){
+    forEachW([&](Weight& w){ w /= pi; });
 }
 
 double Base::predictValue(Feature* features){
@@ -221,6 +219,54 @@ double Base::predictValue(Feature* features){
     val /= pi; // FOBOS
 
     return val;
+}
+
+double Base::predictLoss(Feature* features){
+    if(classCount < 2) return -static_cast<double>(firstClass);
+    double val = predictValue(features);
+    if(hingeLoss) val = std::pow(std::fmax(0, 1 - val), 2); // Hinge squared loss
+    else val = log(1 + std::exp(-val)); // Log loss
+    return val;
+}
+
+double Base::predictProbability(Feature* features){
+    if(classCount < 2) return static_cast<double>(firstClass);
+    double val = predictValue(features);
+    if(hingeLoss) val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
+    else val = 1.0 / (1.0 + std::exp(-val)); // Probability
+    return val;
+}
+
+void Base::forEachW(const std::function <void (Weight&)>& func){
+    if (W != nullptr)
+        for(int i = 0; i < wSize; ++i) func(W[i]);
+    else if (mapW != nullptr)
+        for (auto& w : *mapW) func(w.second);
+    else if (sparseW != nullptr)
+        for(int i = 0; i < nonZeroW; ++i) func(sparseW[i].second);
+}
+
+void Base::forEachIW(const std::function <void (const int&, Weight&)>& func){
+    if (W != nullptr)
+        for(int i = 0; i < wSize; ++i) func(i, W[i]);
+    else if (mapW != nullptr)
+        for (auto& w : *mapW) func(w.first, w.second);
+    else if (sparseW != nullptr)
+        for(int i = 0; i < nonZeroW; ++i) func(sparseW[i].first, sparseW[i].second);
+}
+
+void Base::clear(){
+    delete[] W;
+    W = nullptr;
+    delete[] G;
+    G = nullptr;
+
+    delete mapW;
+    mapW = nullptr;
+    delete mapG;
+    mapG = nullptr;
+
+    delete sparseW;
 }
 
 void Base::toMap(){
@@ -248,7 +294,6 @@ void Base::toDense(){
     if(W == nullptr){
         W = new Weight[wSize];
         std::memset(W, 0, wSize * sizeof(Weight));
-
         assert(mapW != nullptr);
         for(const auto& w : *mapW) W[w.first] = w.second;
         delete mapW;
@@ -267,88 +312,29 @@ void Base::toDense(){
 
 void Base::toSparse(){
     if(sparseW == nullptr){
-        sparseW = new Feature[nonZeroW + 1];
-        sparseW[nonZeroW].index = -1;
+        auto tmpSparseW = new SparseWeight[nonZeroW];
+        auto sW = tmpSparseW;
 
-        if(W != nullptr) {
-            Feature *f = sparseW;
-            for (int i = 0; i < wSize; ++i) {
-                if (W[i] != 0) {
-                    f->index = i;
-                    f->value = W[i];
-                    ++f;
-                }
+        forEachIW([&](const int& i, Weight& w){
+            if(w != 0){
+                sW->first = i;
+                sW->second = w;
+                ++sW;
             }
+        });
 
-            delete[] W;
-            W = nullptr;
-            delete[] G;
-            G = nullptr;
-        } else if(mapW != nullptr) {
-            Feature *f = sparseW;
-            for(const auto& w : *mapW){
-                if (w.second != 0) {
-                    f->index = w.first;
-                    f->value = w.second;
-                    ++f;
-                }
-            }
-
-            delete mapW;
-            mapW = nullptr;
-            delete mapG;
-            mapG = nullptr;
-        }
-    }
-}
-
-void Base::setupOnlineTraining(Args &args){
-    mapW = new UnorderedMap<int, Weight>();
-    if(args.optimizerType == adagrad)
-        mapG = new UnorderedMap<int, Weight>();
-    classCount = 2;
-    firstClass = 1;
-}
-
-void Base::finalizeOnlineTraining(){
-    if(W) {
-        for (int i = 0; i < wSize; ++i) {
-            W[i] /= pi;
-        }
-    } else if(mapW){
-        for (auto &w : *mapW) {
-            w.second /= pi;
-        }
-    } else if(sparseW) {
-        Feature *f = sparseW;
-        while (f->index != -1) {
-            f->value /= pi;
-            ++f;
-        }
+        clear();
+        sparseW = tmpSparseW;
     }
 }
 
 void Base::pruneWeights(double threshold){
     nonZeroW = 0;
 
-    if(W) {
-        for (int i = 0; i < wSize; ++i) {
-            if (W[i] != 0 && fabs(W[i]) >= threshold) ++nonZeroW;
-            else W[i] = 0;
-        }
-    } else if(mapW){
-        for (auto &w : *mapW) {
-            if (w.second != 0 && fabs(w.second) >= threshold) ++nonZeroW;
-            else w.second = 0;
-        }
-    } else if(sparseW) {
-        Feature *f = sparseW;
-        while (f->index != -1) {
-            if (f->value != 0 && fabs(f->value) >= threshold) ++nonZeroW;
-            else f->value = 0;
-            ++f;
-        }
-    }
+    forEachW([&](Weight& w){
+        if (w != 0 && fabs(w) >= threshold) ++nonZeroW;
+        else w = 0;
+    });
 }
 
 void Base::save(std::ostream& out){
@@ -366,30 +352,12 @@ void Base::save(std::ostream& out){
         out.write((char*) &saveSparse, sizeof(saveSparse));
 
         if(saveSparse){
-            if(sparseW) {
-                Feature *f = sparseW;
-                while (f->index != -1) {
-                    if(f->value != 0) {
-                        out.write((char *) &f->index, sizeof(f->index));
-                        out.write((char *) &f->value, sizeof(f->value));
-                    }
-                    ++f;
+            forEachIW([&](const int& i, Weight& w){
+                if(w != 0){
+                    out.write((char*) &i, sizeof(i));
+                    out.write((char*) &w, sizeof(w));
                 }
-            } else if(mapW) {
-                for(const auto &f : *mapW){
-                    if(f.second != 0) {
-                        out.write((char *) &f.first, sizeof(f.first));
-                        out.write((char *) &f.second, sizeof(f.second));
-                    }
-                }
-            } else {
-                for(int i = 0; i < wSize; ++i){
-                    if(W[i] != 0){
-                        out.write((char*) &i, sizeof(i));
-                        out.write((char*) &W[i], sizeof(Weight));
-                    }
-                }
-            }
+            });
         } else out.write((char*) W, wSize * sizeof(Weight));
     }
 
@@ -418,10 +386,7 @@ void Base::load(std::istream& in) {
             for (int i = 0; i < nonZeroW; ++i) {
                 in.read((char*) &index, sizeof(index));
                 in.read((char*) &w, sizeof(Weight));
-                if (sparseW != nullptr){
-                    sparseW[i].index = index;
-                    sparseW[i].value = w;
-                }
+                if (sparseW != nullptr) sparseW[i] = {index, w};
                 if (mapW != nullptr) mapW->insert({index, w});
             }
         } else {
@@ -443,37 +408,12 @@ size_t Base::size(){
 }
 
 void Base::printWeights(){
-    if (W != nullptr)
-        for(int i = 0; i < wSize; ++i) std::cerr << W[i] <<" ";
-    else if (mapW != nullptr)
-        for (const auto& f : *mapW)
-            std::cerr << f.first << ":" << f.second << " ";
-    else if (sparseW != nullptr) {
-        Feature* f = sparseW;
-        while(f->index != -1 && f->index < wSize) {
-            std::cerr << f->index << ":" << f->value << " ";
-            ++f;
-        }
-    } else std::cerr << "No weights";
-    std::cerr << "\n";
-}
-
-void Base::multiplyWeights(double a){
-    if (W != nullptr)
-        for(int i = 0; i < wSize; ++i) W[i] *= a;
-    else if (mapW != nullptr)
-        for (auto& f : *mapW) f.second *= a;
-    else if (sparseW != nullptr) {
-        Feature* f = sparseW;
-        while(f->index != -1 && f->index < wSize) {
-            f->value *= a;
-            ++f;
-        }
-    }
+    forEachIW([&](const int& i, Weight& w){ std::cerr << i << ":" << w << " "; });
+    std::cerr << std::endl;
 }
 
 void Base::invertWeights(){
-    multiplyWeights(-1);
+    forEachW([&](Weight& w){ w *= -1; });
 }
 
 Base* Base::copy(){
@@ -491,8 +431,8 @@ Base* Base::copy(){
     if(mapG) copy->mapG = new UnorderedMap<int, Weight>(mapG->begin(), mapG->end());
 
     if(sparseW) {
-        copy->sparseW = new Feature[nonZeroW + 1];
-        std::memcmp(copy->sparseW , sparseW, (nonZeroW + 1) * sizeof(Feature));
+        copy->sparseW = new SparseWeight[nonZeroW];
+        std::memcmp(copy->sparseW , sparseW, (nonZeroW) * sizeof(SparseWeight));
     }
 
     copy->firstClass = firstClass;
@@ -507,97 +447,4 @@ Base* Base::copyInverted(){
     Base* c = copy();
     c->invertWeights();
     return c;
-}
-
-// Base utils
-Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
-    Base* base = new Base();
-    base->train(n, baseLabels, baseFeatures, args);
-    return base;
-}
-
-// TODO: Move this to model.cpp
-
-void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                std::vector<std::vector<Feature*>>& baseFeatures, Args& args){
-
-    std::ofstream out(outfile);
-    int size = baseLabels.size();
-    out.write((char*) &size, sizeof(size));
-    trainBases(out, n, baseLabels, baseFeatures, args);
-    out.close();
-}
-
-void trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                std::vector<std::vector<Feature*>>& baseFeatures, Args& args){
-
-    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
-
-    assert(baseLabels.size() == baseFeatures.size());
-    int size = baseLabels.size(); // This "batch" size
-
-    // Run learning in parallel
-    ThreadPool tPool(args.threads);
-    std::vector<std::future<Base*>> results;
-
-    for(int i = 0; i < size; ++i)
-        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i], args));
-
-    // Saving in the main thread
-    for(int i = 0; i < results.size(); ++i) {
-        printProgress(i, results.size());
-        Base* base = results[i].get();
-        base->save(out);
-        delete base;
-    }
-}
-
-void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                                std::vector<Feature*>& baseFeatures, Args& args){
-    std::ofstream out(outfile);
-    int size = baseLabels.size();
-    out.write((char*) &size, sizeof(size));
-    trainBasesWithSameFeatures(out, n, baseLabels, baseFeatures, args);
-    out.close();
-}
-
-void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                                std::vector<Feature*>& baseFeatures, Args& args){
-
-    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
-    int size = baseLabels.size(); // This "batch" size
-
-    // Run learning in parallel
-    ThreadPool tPool(args.threads);
-    std::vector<std::future<Base *>> results;
-
-    for (int i = 0; i < size; ++i)
-        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, args));
-
-    // Saving in the main thread
-    for (int i = 0; i < results.size(); ++i) {
-        printProgress(i, results.size());
-        Base *base = results[i].get();
-        base->save(out);
-        delete base;
-    }
-}
-
-std::vector<Base*> loadBases(std::string infile){
-    std::cerr << "Loading base estimators ...\n";
-    
-    std::vector<Base*> bases;
-
-    std::ifstream in(infile);
-    int size;
-    in.read((char*) &size, sizeof(size));
-    bases.reserve(size);
-    for(int i = 0; i < size; ++i) {
-        printProgress(i, size);
-        bases.emplace_back(new Base());
-        bases.back()->load(in);
-    }
-    in.close();
-    
-    return bases;
 }

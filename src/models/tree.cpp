@@ -575,7 +575,7 @@ void Tree::expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<
 
     TreeNode* newLabelNode = createTreeNode(toExpand, newLabel);
     bases.push_back(tmpBases[toExpand->index]->copyInverted());
-    tmpBases.push_back(new Base(true));
+    tmpBases.push_back(new Base());
 
     // Remove temporary classifier
     if(toExpand->children.size() == args.arity - 1) {
@@ -591,13 +591,13 @@ void Tree::expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector
         if(nextSubtree->label != -1){
             TreeNode* labelChild = createTreeNode(nextSubtree, nextSubtree->label);
             bases.push_back(tmpBases[nextSubtree->index]->copyInverted());
-            tmpBases.push_back(new Base(true));
+            tmpBases.push_back(new Base());
             ++nextSubtree->subtreeDepth;
         }
 
         TreeNode* newChild = createTreeNode(nextSubtree, newLabel);
         bases.push_back(tmpBases[nextSubtree->index]->copy());
-        tmpBases.push_back(new Base(true));
+        tmpBases.push_back(new Base());
 
         if(nextSubtree->parent && nextSubtree->children.size() == args.arity - 1 && nextSubtree->parent->subtreeDepth == nextSubtree->subtreeDepth + 1){
             delete tmpBases[nextSubtree->index];
@@ -616,7 +616,7 @@ void Tree::expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector
         // Expanding subtree
         TreeNode* parentOfOldTree = createTreeNode();
         bases.push_back(tmpBases[nextSubtree->index]->copy());
-        tmpBases.push_back(new Base(true));
+        tmpBases.push_back(new Base());
 
         parentOfOldTree->subtreeDepth = nextSubtree->subtreeDepth;
         moveSubtree(nextSubtree, parentOfOldTree);
@@ -629,8 +629,8 @@ void Tree::expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector
 void Tree::expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args) {
     if (nodes.size() == 0) { // Empty tree
         root = createTreeNode(nullptr, newLabel);
-        bases.emplace_back(new Base(true));
-        tmpBases.emplace_back(new Base(true));
+        bases.emplace_back(new Base());
+        tmpBases.emplace_back(new Base());
         nextSubtree = root;
     } else if (args.treeType == onlineBottomUp)
         expandBottomUp(newLabel, bases, tmpBases, args);

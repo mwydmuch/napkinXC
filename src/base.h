@@ -16,12 +16,13 @@
 #include "robin_hood.h"
 
 typedef double Weight;
+typedef std::pair<int, Weight> SparseW;
 #define UnorderedMap robin_hood::unordered_map
 //#define UnorderedMap std::unordered_map
 
 class Base {
 public:
-    Base(bool onlineTraning = false);
+    Base();
     ~Base();
 
     void update(double label, Feature* features, Args &args);
@@ -84,7 +85,55 @@ private:
     UnorderedMap<int, Weight>* mapW;
     UnorderedMap<int, Weight>* mapG;
     Feature* sparseW;
+
+    template<typename T>
+    void updateSGD(T& W, Feature* features, double grad, double eta);
+
+    template<typename T>
+    void updateAdaGrad(T& W, T& G, Feature* features, double grad, double eta, double eps);
+
+    template<typename T>
+    void updateFobos(T& W, Feature* features, double grad, double eta, double penalty);
+
+    //void forEachW(const std::function <void (Weight&)>& f);
+    //void forEachIW(const std::function <void (const int&, Weight&)>& f);
 };
+
+template<typename T>
+void Base::updateSGD(T& W, Feature* features, double grad, double eta){
+    double lr = eta * sqrt(1.0 / t);
+    Feature *f = features;
+    while (f->index != -1) {
+        W[f->index - 1] -= lr * grad * f->value;
+        ++f;
+    }
+    if (f != features && (f - 1)->index > wSize) wSize = (f - 1)->index;
+}
+
+template<typename T>
+void Base::updateAdaGrad(T& W, T& G, Feature* features, double grad, double eta, double eps){
+    Feature *f = features;
+    while (f->index != -1) {
+        G[f->index - 1] += f->value * f->value * grad * grad;
+        double lr = eta * std::sqrt(1.0 / (eps + G[f->index - 1]));
+        W[f->index - 1] -= lr * (grad * f->value);
+        ++f;
+    }
+    if (f != features && (f - 1)->index > wSize) wSize = (f - 1)->index;
+}
+
+template<typename T>
+void Base::updateFobos(T& W, Feature* features, double grad, double eta, double penalty){
+    double lr = eta / (1 + eta * t * penalty);
+    pi *= (1 + penalty * lr);
+
+    Feature *f = features;
+    while (f->index != -1) {
+        W[f->index - 1] -= pi * lr * grad * f->value;
+        ++f;
+    }
+    if (f != features && (f - 1)->index > wSize) wSize = (f - 1)->index;
+}
 
 template<typename T>
 double Base::predictLoss(T* features){

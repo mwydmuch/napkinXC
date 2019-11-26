@@ -14,7 +14,7 @@
 #include "utils.h"
 
 
-Base::Base(bool onlineTraning){
+Base::Base(){
     hingeLoss = false;
 
     wSize = 0;
@@ -54,63 +54,14 @@ void Base::unsafeUpdate(double label, Feature* features, Args &args) {
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
     if (args.optimizerType == sgd) {
-        double lr = args.eta * sqrt(1.0 / t);
-        // Regularization is probably incorrect due to sparse features.
-        double reg;
-        Feature *f = features;
-
-        while (f->index != -1) {
-            if (mapW != nullptr) {
-                reg = args.penalty * (*mapW)[f->index - 1];
-                (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
-//                (*mapW)[f->index - 1] -= lr * grad * f->value;
-                if (f->index > wSize) wSize = f->index;
-
-            } else if (W != nullptr) {
-                reg = args.penalty * W[f->index - 1];
-                W[f->index - 1] -= lr * (grad * f->value + reg);
-//                W[f->index - 1] -= lr * grad * f->value;
-            }
-
-            ++f;
-        }
-    } else if (args.optimizerType == fobos) {
-        // Implementation based on http://proceedings.mlr.press/v48/jasinska16-supp.pdf
-        double lr = args.eta/(1 + args.eta*t*args.penalty);
-        Feature *f = features;
-        pi *= (1 + args.penalty*lr);
-
-        while (f->index != -1) {
-            if (mapW != nullptr) {
-                (*mapW)[f->index - 1] -= pi * lr * grad * f->value;
-                if (f->index > wSize) wSize = f->index;
-
-            } else if (W != nullptr) {
-                W[f->index - 1] -= pi* lr * grad * f->value;
-            }
-            ++f;
-        }
+        if (mapW != nullptr) updateSGD((*mapW), features, grad, args.eta);
+        else if (W != nullptr) updateSGD(W, features, grad, args.eta);
     } else if (args.optimizerType == adagrad) {
-        double lr;
-        double reg;
-        Feature *f = features;
-        // Adagrad with sgd dropout like regularization
-        while (f->index != -1) {
-            if (mapW != nullptr && mapG != nullptr) {
-                (*mapG)[f->index - 1] += f->value * f->value *  grad * grad;
-                lr = args.eta * sqrt(1.0 / (args.adagrad_eps + (*mapG)[f->index - 1]));
-                reg = args.penalty * (*mapW)[f->index - 1];
-                (*mapW)[f->index - 1] -= lr * (grad * f->value + reg);
-                if (f->index > wSize) wSize = f->index;
-            } else if (W != nullptr && G != nullptr) {
-                G[f->index - 1] += f->value * f->value *  grad * grad;
-                lr = args.eta * sqrt(1.0 / (args.adagrad_eps + G[f->index - 1]));
-                reg = args.penalty * W[f->index - 1];
-                W[f->index - 1] -= lr * (grad * f->value + reg);
-            }
-
-            ++f;
-        }
+        if (mapW != nullptr) updateAdaGrad((*mapW), (*mapG), features, grad, args.eta, args.eps);
+        else if (W != nullptr) updateAdaGrad(W, G, features, grad, args.eta, args.eps);
+    } else if (args.optimizerType == fobos) {
+        if (mapW != nullptr) updateFobos((*mapW), features, grad, args.eta, args.penalty);
+        else if (W != nullptr) updateFobos(W, features, grad, args.eta, args.penalty);
     }
 
     if (mapW != nullptr) {

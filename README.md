@@ -17,9 +17,11 @@ Right now it implements:
 - Loading custom tree structures.
 
 Please note that this library is still under development and serves as a base for experiments.
-Some of the features may not be listed in options below.
+Features may change or break and some of the options may not be listed below.
 
-This repository contains code for [arXiv paper](https://arxiv.org/abs/1906.08129) about set-valued prediction in multi-class classifcation.
+This repository contains code for this [arXiv paper](https://arxiv.org/abs/1906.08129) about set-valued prediction in multi-class classification.
+
+Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, that implements approach described in this [NeurIPS paper](http://papers.nips.cc/paper/7872-a-no-regret-generalization-of-hierarchical-softmax-to-extreme-multi-label-classification).
 
 ## Build
 ```
@@ -59,7 +61,7 @@ Args:
     -i, --input         Input dataset
     -o, --output        Output (model) dir
     -m, --model         Model type (default = plt):
-                        Models: ovr, br, hsm, plt, oplt, ubop, rbop, 
+                        Models: ovr, br, hsm, plt, oplt, ubop, rbop,
                                 ubopHsm, brMips, ubopMips
     --ensemble          Ensemble of models (default = 0)
     -d, --dataFormat    Type of data format (default = libsvm):
@@ -70,15 +72,15 @@ Args:
                         Header format for libsvm: #lines #features #labels
     --hash              Size of features space (default = 0)
                         Note: 0 to disable hashing
-    --featuresThreshold Prune features below given threshold (default = 0.04)             
+    --featuresThreshold Prune features belowe given threshold (default = 0.0)
     --seed              Seed
 
     Base classifiers:
     --optimizer         Use LibLiner or online optimizers (default = libliner)
-                        Optimizers: liblinear, sgd, adagrad
+                        Optimizers: liblinear, sgd, adagrad, fobos
     --bias              Add bias term (default = 1)
     --labelsWeights     Increase the weight of minority labels in base classifiers (default = 1)
-    --weightsThreshold  Prune weights below given threshold (default = 0.1)
+    --weightsThreshold  Prune weights belowe given threshold (default = 0.1)
 
     LibLinear:
     -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
@@ -92,9 +94,11 @@ Args:
     -e, --eps           Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
 
-    SGD/AdaGrad:
-    -e, --eta           Step size of SGD
-    --epochs            Number of epochs of SGD
+    SGD/AdaGrad/Fobos:
+    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad/Fobos (default = 1.0)
+    --epochs            Number of epochs of SGD/AdaGrad/Fobos (default = 10)
+    --adagradEps        AdaGrad epsilon (default = 0.00001)
+    --fobosPenalty      Regularization strength of Fobos algorithm (default = 0.00001)
 
     Tree:
     -a, --arity         Arity of a tree (default = 2)
@@ -104,27 +108,27 @@ Args:
                         Tree types: hierarchicalKMeans, huffman, completeInOrder, completeRandom,
                                     balancedInOrder, balancedRandom, onlineComplete, onlineBalanced,
                                     onlineRandom
-                                    
+
     K-Means tree:
     --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
     --kMeansBalanced    Use balanced K-Means clustering (default = 1)
-    
+
     Prediction:
     --topK              Predict top k elements (default = 5)
     --setUtility        Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
                         Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
                         See: https://arxiv.org/abs/1906.08129
-                        
+
     Set-Utility:
     --alfa
     --beta
     --delta
     --gamma
-    
+
     Test:
     --measures          Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")
-                        Measures: acc, p, r, c, p@k, r@k, c@k, s
-                        
+                        Measures: acc (accuracy), p (precision), r (recall), c (coverage),
+                                  p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
 ```
 
 ## Test script

@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2018 by Marek Wydmuch
+ * Copyright (c) 2019 by Marek Wydmuch, Kalina Kobus
  * All rights reserved.
  */
 
@@ -9,7 +10,6 @@
 
 #include "base.h"
 #include "linear.h"
-#include "online_training.h"
 #include "threads.h"
 #include "utils.h"
 
@@ -53,11 +53,11 @@ void Base::unsafeUpdate(double label, Feature* features, Args &args) {
         if (mapW != nullptr) updateSGD((*mapW), features, grad, args.eta);
         else if (W != nullptr) updateSGD(W, features, grad, args.eta);
     } else if (args.optimizerType == adagrad) {
-        if (mapW != nullptr) updateAdaGrad((*mapW), (*mapG), features, grad, args.eta, args.eps);
-        else if (W != nullptr) updateAdaGrad(W, G, features, grad, args.eta, args.eps);
+        if (mapW != nullptr) updateAdaGrad((*mapW), (*mapG), features, grad, args.eta, args.adagradEps);
+        else if (W != nullptr) updateAdaGrad(W, G, features, grad, args.eta, args.adagradEps);
     } else if (args.optimizerType == fobos) {
-        if (mapW != nullptr) updateFobos((*mapW), features, grad, args.eta, args.penalty);
-        else if (W != nullptr) updateFobos(W, features, grad, args.eta, args.penalty);
+        if (mapW != nullptr) updateFobos((*mapW), features, grad, args.eta, args.fobosPenalty);
+        else if (W != nullptr) updateFobos(W, features, grad, args.eta, args.fobosPenalty);
     }
 
     if (mapW != nullptr) {
@@ -215,8 +215,7 @@ double Base::predictValue(Feature* features){
     else throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
 
     if(firstClass == 0) val *= -1;
-
-    val /= pi; // FOBOS
+    val /= pi; // Fobos
 
     return val;
 }
@@ -266,7 +265,7 @@ void Base::clear(){
     delete mapG;
     mapG = nullptr;
 
-    delete sparseW;
+    delete[] sparseW;
 }
 
 void Base::toMap(){
@@ -395,9 +394,6 @@ void Base::load(std::istream& in) {
             in.read((char*) W, wSize * sizeof(Weight));
         }
     }
-
-    //std::cerr << "  Loaded base: sparse: " << sparse << ", classCount: " << classCount << ", firstClass: " << firstClass << ", weights: "
-    //    << nonZeroW << "/" << wSize << ", size: " << size()/1024 << "/" << denseSize()/1024 << "K\n";
 }
 
 size_t Base::size(){

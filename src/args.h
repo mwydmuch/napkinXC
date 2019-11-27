@@ -85,17 +85,15 @@ public:
     double cost;
     double weightsThreshold;
     bool labelsWeights;
-    int iter;
-    double eta;
-
     int ensemble;
     bool onTheTrotPrediction;
 
     // For online training
+    double eta;
     int epochs;
-    double penalty;
+    double fobosPenalty;
     int tmax;
-    double adagrad_eps;
+    double adagradEps;
 
     // Tree models
 

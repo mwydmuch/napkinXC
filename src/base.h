@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2018 by Marek Wydmuch
+ * Copyright (c) 2019 by Marek Wydmuch, Kalina Kobus
  * All rights reserved.
  */
 
@@ -15,10 +16,10 @@
 #include "types.h"
 #include "robin_hood.h"
 
+
 typedef float Weight;
 typedef std::pair<int, Weight> SparseWeight;
 #define UnorderedMap robin_hood::unordered_map
-//#define UnorderedMap std::unordered_map
 
 class Base {
 public:

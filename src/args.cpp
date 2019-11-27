@@ -32,7 +32,7 @@ Args::Args() {
     biasValue = 1.0;
     norm = true;
     tfidf = false;
-    featuresThreshold = 0.04;
+    featuresThreshold = 0.0;
 
     // Training options
     threads = getCpuCount();
@@ -44,8 +44,6 @@ Args::Args() {
     labelsWeights = false;
     optimizerName = "libliner";
     optimizerType = libliner;
-    iter = 50;
-    eta = 10;
     weightsThreshold = 0.1;
 
     // Ensemble options
@@ -53,10 +51,11 @@ Args::Args() {
     onTheTrotPrediction = false;
 
     // For online training
+    eta = 1.0;
     epochs = 1;
-    penalty = 0;
     tmax = -1;
-    adagrad_eps = 0.00000001;
+    fobosPenalty = 0.00001;
+    adagradEps = 0.00001;
 
     // Tree options
     treeStructure = "";
@@ -195,10 +194,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 featuresThreshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--weightsThreshold")
                 weightsThreshold = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--eta")
-                eta = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--iter")
-                iter = std::stoi(args.at(ai + 1));
 
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads"){
@@ -236,16 +231,16 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
-            else if (args[ai] == "--eta")
+            else if (args[ai] == "-l" || args[ai] == "--lr" || args[ai] == "--eta")
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epochs")
                 epochs = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--penalty")
-                penalty = std::stof(args.at(ai + 1));
             else if (args[ai] == "--tmax")
                 tmax = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--adagradEps")
-                adagrad_eps = std::stof(args.at(ai + 1));
+                adagradEps = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--fobosPenalty")
+                fobosPenalty = std::stof(args.at(ai + 1));
 
                 // Tree options
             else if (args[ai] == "-a" || args[ai] == "--arity")
@@ -336,7 +331,7 @@ void Args::printArgs(){
                 std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost
                           << ", weights threshold: " << weightsThreshold;
             else if (optimizerType == sgd)
-                std::cerr << "\n    SGD: eta: " << eta << ", iter: " << iter << ", threshold: " << weightsThreshold;
+                std::cerr << "\n    SGD: eta: " << eta << ", epochs: " << epochs << ", threshold: " << weightsThreshold;
         }
         if(modelType == plt || modelType == hsm || modelType == oplt){
             if(treeStructure.empty()) {
@@ -385,12 +380,12 @@ Args:
                         Header format for libsvm: #lines #features #labels
     --hash              Size of features space (default = 0)
                         Note: 0 to disable hashing
-    --featuresThreshold Prune features belowe given threshold (default = 0.04)
+    --featuresThreshold Prune features belowe given threshold (default = 0.0)
     --seed              Seed
 
     Base classifiers:
     --optimizer         Use LibLiner or online optimizers (default = libliner)
-                        Optimizers: liblinear, sgd, adagrad
+                        Optimizers: liblinear, sgd, adagrad, fobos
     --bias              Add bias term (default = 1)
     --labelsWeights     Increase the weight of minority labels in base classifiers (default = 1)
     --weightsThreshold  Prune weights belowe given threshold (default = 0.1)
@@ -407,9 +402,11 @@ Args:
     -e, --eps           Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
 
-    SGD/AdaGrad:
-    -e, --eta           Step size of SGD
-    --epochs            Number of epochs of SGD
+    SGD/AdaGrad/Fobos:
+    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad/Fobos (default = 1.0)
+    --epochs            Number of epochs of SGD/AdaGrad/Fobos (default = 10)
+    --adagradEps        AdaGrad epsilon (default = 0.00001)
+    --fobosPenalty      Regularization strength of Fobos algorithm (default = 0.00001)
 
     Tree:
     -a, --arity         Arity of a tree (default = 2)
@@ -438,7 +435,8 @@ Args:
 
     Test:
     --measures          Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")
-                        Measures: acc, p, r, c, p@k, r@k, c@k, s
+                        Measures: acc (accuracy), p (precision), r (recall), c (coverage),
+                                  p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
 
     )HELP";
     exit(EXIT_FAILURE);

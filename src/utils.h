@@ -267,6 +267,24 @@ inline int getCpuCount(){
     return std::thread::hardware_concurrency();
 }
 
+// Returns size of available RAM
+inline unsigned long long getSystemMemory()
+{
+    long pages = sysconf(_SC_PHYS_PAGES);
+    long page_size = sysconf(_SC_PAGE_SIZE);
+    return pages * page_size;
+}
+
+/*
+inline unsigned long long getSystemMemory()
+{
+    MEMORYSTATUSEX status;
+    status.dwLength = sizeof(status);
+    GlobalMemoryStatusEx(&status);
+    return status.ullTotalPhys;
+}
+ */
+
 // Prints progress
 inline void printProgress(int state, int max){
     //std::cerr << "  " << state << " / " << max << "\r";

@@ -13,12 +13,13 @@
 
 class Measure {
 public:
-    Measure(Args& args, Model* model);
+    static std::vector<std::shared_ptr<Measure>> factory(Args& args, int outputSize);
+
+    Measure(Args& args, int outputSize);
 
     virtual void accumulate(Label* labels, const std::vector<Prediction>& prediction) = 0;
-    void accumulate(std::vector<std::vector<Prediction>>& predictions, SRMatrix<Label>& labels);
+    void accumulate(SRMatrix<Label>& labels, std::vector<std::vector<Prediction>>& predictions);
     virtual double value();
-
 
     inline std::string getName(){ return name; }
 
@@ -30,7 +31,7 @@ protected:
 
 class MeasureAtK: public Measure {
 public:
-    MeasureAtK(Args& args, Model* model, int k);
+    MeasureAtK(Args& args, int outputSize, int k);
 
 protected:
     int k;
@@ -38,35 +39,35 @@ protected:
 
 class Recall: public Measure {
 public:
-    Recall(Args& args, Model* model);
+    Recall(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class RecallAtK: public MeasureAtK {
 public:
-    RecallAtK(Args& args, Model* model, int k);
+    RecallAtK(Args& args, int outputSize, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class Precision: public Measure {
 public:
-    Precision(Args& args, Model* model);
+    Precision(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class PrecisionAtK: public MeasureAtK {
 public:
-    PrecisionAtK(Args& args, Model* model, int k);
+    PrecisionAtK(Args& args, int outputSize, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class Coverage: public Measure {
 public:
-    Coverage(Args& args, Model* model);
+    Coverage(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;
@@ -78,7 +79,7 @@ protected:
 
 class CoverageAtK: public MeasureAtK {
 public:
-    CoverageAtK(Args& args, Model* model, int k);
+    CoverageAtK(Args& args, int outputSize, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;
@@ -90,16 +91,14 @@ protected:
 
 class Accuracy: public Measure {
 public:
-    Accuracy(Args& args, Model* model);
+    Accuracy(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class PredictionSize: public Measure{
 public:
-    PredictionSize(Args& args, Model* model);
+    PredictionSize(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
-
-std::vector<std::shared_ptr<Measure>> measuresFactory(Args& args, Model* model);

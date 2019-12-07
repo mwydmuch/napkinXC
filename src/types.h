@@ -33,10 +33,9 @@ struct IntFeature{
 
 // Elastic low-level sparse row matrix, type T needs to contain int at offset 0!
 template <typename T>
-class SRMatrix {
+class SRMatrix{
 public:
     SRMatrix();
-    SRMatrix(int rows, int cols);
     ~SRMatrix();
 
     inline void appendRow(const std::vector<T>& row);
@@ -75,24 +74,19 @@ public:
     inline const T* operator[] (const int index) const { return r[index]; }
 
     // Returns rows' sizes
-    inline std::vector<int>& sizes(){ return s; }
+    inline std::vector<int>& allSizes(){ return s; }
 
     // Returns single row size
     inline int size(const int index) const { return s[index]; }
-
-    // Returns transposed matrix
-    SRMatrix<T> transopose();
 
     // Returns size of matrix
     inline int rows() const { return m; }
     inline int cols() const { return n; }
     inline int cells() const { return c; }
+    inline unsigned long long mem() { return (c + n) * sizeof(T); }
 
     void clear();
-    void saveToFile(std::string outfile);
     void save(std::ostream& out);
-    void saveAsTextFile(std::string outfile);
-    void loadFromFile(std::string infile);
     void load(std::istream& in);
 
 private:
@@ -111,21 +105,6 @@ SRMatrix<T>::SRMatrix(){
     m = 0;
     n = 0;
     c = 0;
-}
-
-template <typename T>
-SRMatrix<T>::SRMatrix(int rows, int cols){
-    m = rows;
-    n = cols;
-    c = m * n;
-
-    for(int i = 0; i < m; ++i){
-        s.push_back(n);
-        T* newRow = new T[n + 1];
-        for(int j = 0; j < n; ++j) std::memset(&newRow[j], j, sizeof(int)); // Set next index
-        std::memset(&newRow[n], -1, sizeof(int)); // Add termination feature (-1)
-        r.push_back(newRow);
-    }
 }
 
 template <typename T>
@@ -215,14 +194,6 @@ inline U SRMatrix<T>::dotRow(const int index, const U* vector){ // Version witho
     return dotVectors(r[index], vector);
 }
 
-// TODO
-template <typename T>
-inline SRMatrix<T> SRMatrix<T>::transopose() {
-    SRMatrix<T> tMatrix;
-    return tMatrix;
-}
-
-
 template <typename T>
 void SRMatrix<T>::clear(){
     for(auto row : r) delete[] row;
@@ -235,13 +206,6 @@ void SRMatrix<T>::clear(){
 }
 
 template <typename T>
-void SRMatrix<T>::saveToFile(std::string outfile){
-    std::ofstream out(outfile);
-    save(out);
-    out.close();
-}
-
-template <typename T>
 void SRMatrix<T>::save(std::ostream& out){
     out << m << " " << n << "\n";
     for(int i = 0; i < m; ++i){
@@ -250,26 +214,6 @@ void SRMatrix<T>::save(std::ostream& out){
             out << " " << r[i][j];
         out << "\n";
     }
-}
-
-template <typename T>
-void SRMatrix<T>::saveAsTextFile(std::string outfile) {
-    std::ofstream out(outfile);
-    out << m << " " << n << "\n";
-    for (int i = 0; i < m; ++i) {
-        out << s[i];
-        for (int j = 0; j < s[i]; ++j)
-            out << " " << r[i][j];
-        out << "\n";
-    }
-    out.close();
-}
-
-template <typename T>
-void SRMatrix<T>::loadFromFile(std::string infile){
-    std::ifstream in(infile);
-    load(in);
-    in.close();
 }
 
 template <typename T>

@@ -76,7 +76,7 @@ public:
 
     // Threading and memory options
     int threads;
-    size_t memLimit; // TODO: Implement this for some models
+    unsigned long long memLimit; // TODO: Implement this for some models
 
     // Training options
     int solverType;

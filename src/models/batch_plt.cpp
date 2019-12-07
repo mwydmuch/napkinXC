@@ -13,7 +13,7 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
         tree = new Tree();
         tree->buildTreeStructure(labels, features, args);
     }
-    m = tree->numberOfLeaves();
+    m = tree->getNumberOfLeaves();
 
     std::cerr << "Training tree ...\n";
 

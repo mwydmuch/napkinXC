@@ -22,7 +22,7 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
     args.topK = -1;
     OVR::predict(allPredictions, features, args);
 
-    std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
+    std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
     double P = 0, bestU = 0;
     for(const auto& p : allPredictions){

@@ -21,6 +21,8 @@ struct Prediction{
 
 class Model{
 public:
+    static std::shared_ptr<Model> factory(Args &args);
+
     Model();
     virtual ~Model();
 
@@ -58,4 +60,4 @@ protected:
     static std::vector<Base*> loadBases(std::string infile);
 };
 
-std::shared_ptr<Model> modelFactory(Args &args);
+

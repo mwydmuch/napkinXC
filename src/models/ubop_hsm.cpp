@@ -17,7 +17,7 @@ void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Ar
     nQueue.push({tree->root, value});
     ++rCount;
 
-    std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
+    std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
     double P = 0, bestU = 0;
     while (!nQueue.empty()){

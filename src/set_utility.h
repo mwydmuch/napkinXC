@@ -11,7 +11,9 @@
 
 class SetUtility: public Measure {
 public:
-    SetUtility(Args& args, Model* model);
+    static std::shared_ptr<SetUtility> factory(Args& args, int outputSize);
+
+    SetUtility(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 
@@ -21,7 +23,7 @@ public:
 
 class PrecisionUtility: public SetUtility{
 public:
-    PrecisionUtility(Args& args, Model* model);
+    PrecisionUtility(Args& args, int outputSize);
 
     double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
@@ -29,7 +31,7 @@ public:
 
 class F1Utility: public SetUtility{
 public:
-    F1Utility(Args& args, Model* model);
+    F1Utility(Args& args, int outputSize);
 
     double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
@@ -37,7 +39,7 @@ public:
 
 class UtilityAlfa: public SetUtility{
 public:
-    UtilityAlfa(Args& args, Model* model);
+    UtilityAlfa(Args& args, int outputSize);
 
     double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
@@ -49,7 +51,7 @@ protected:
 
 class UtilityAlfaBeta: public SetUtility{
 public:
-    UtilityAlfaBeta(Args& args, Model* model);
+    UtilityAlfaBeta(Args& args, int outputSize);
 
     double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
@@ -62,7 +64,7 @@ protected:
 
 class UtilityDeltaGamma: public SetUtility{
 public:
-    UtilityDeltaGamma(Args& args, Model* model);
+    UtilityDeltaGamma(Args& args, int outputSize);
 
     double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
@@ -72,4 +74,4 @@ protected:
     double gamma;
 };
 
-std::shared_ptr<SetUtility> setUtilityFactory(Args& args, Model* model);
+

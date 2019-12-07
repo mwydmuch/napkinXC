@@ -16,7 +16,7 @@
 
 Args::Args() {
     command = "";
-    seed = time(0);
+    seed = time(nullptr);
     rngSeeder.seed(seed);
 
     // Input/output options
@@ -36,7 +36,7 @@ Args::Args() {
 
     // Training options
     threads = getCpuCount();
-    memLimit = 0;
+    memLimit = getSystemMemory();
     eps = 0.001;
     cost = 8.0;
     solverType = L2R_LR_DUAL;
@@ -196,10 +196,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 weightsThreshold = std::stof(args.at(ai + 1));
 
             // Training options
-            else if (args[ai] == "-t" || args[ai] == "--threads"){
+            else if (args[ai] == "-t" || args[ai] == "--threads") {
                 threads = std::stoi(args.at(ai + 1));
-                if(threads == 0) threads = getCpuCount();
-                else if(threads == -1) threads = getCpuCount() - 1;
+                if (threads == 0) threads = getCpuCount();
+                else if (threads == -1) threads = getCpuCount() - 1;
+            } else if (args[ai] == "--memLimit"){
+                memLimit = static_cast<unsigned long long>(std::stof(args.at(ai + 1)) * 1024 * 1024 * 1024);
+                if(memLimit == 0) memLimit = getSystemMemory();
             } else if (args[ai] == "-e" || args[ai] == "--eps")
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost")
@@ -352,7 +355,7 @@ void Args::printArgs(){
             if(setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
             if(setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
         }
-        std::cerr << "\n  Threads: " << threads << "\n";
+        std::cerr << "\n  Threads: " << threads << ", memory limit: " << static_cast<double>(memLimit) / 1024 / 1024 / 1024 << "G\n";
     }
 }
 
@@ -374,8 +377,10 @@ Args:
     --ensemble          Ensemble of models (default = 0)
     -d, --dataFormat    Type of data format (default = libsvm):
                         Supported data formats: libsvm
-    -t, --threads       Number of threads used for training and testing (default = -1)
-                        Note: -1 to use #cpus - 1, 0 to use #cpus
+    -t, --threads       Number of threads used for training and testing (default = 0)
+                        Note: -1 to use system #cpus - 1, 0 to use system #cpus
+    --memLimit          Amount of memory in GB used for training OVR and BR models (default = 0)
+                        Note: 0 to use system memory
     --header            Input contains header (default = 1)
                         Header format for libsvm: #lines #features #labels
     --hash              Size of features space (default = 0)
@@ -387,8 +392,8 @@ Args:
     --optimizer         Use LibLiner or online optimizers (default = libliner)
                         Optimizers: liblinear, sgd, adagrad, fobos
     --bias              Add bias term (default = 1)
-    --labelsWeights     Increase the weight of minority labels in base classifiers (default = 1)
-    --weightsThreshold  Prune weights belowe given threshold (default = 0.1)
+    --labelsWeights     Increase the weight of minority labels in base classifiers (default = 0)
+    --weightsThreshold  Prune weights below given threshold (default = 0.1)
 
     LibLinear:
     -s, --solver        LibLinear solver (default = L2R_LR_DUAL)

@@ -22,12 +22,12 @@ void train(Args &args) {
     args.saveToFile(joinPath(args.output, "args.bin"));
 
     // Create data reader and load train data
-    std::shared_ptr<DataReader> reader = dataReaderFactory(args);
+    std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->readData(labels, features, args);
     reader->saveToFile(joinPath(args.output, "data_reader.bin"));
 
     // Create and train model (train function also saves model)
-    std::shared_ptr<Model> model = modelFactory(args);
+    std::shared_ptr<Model> model = Model::factory(args);
     model->train(labels, features, args, args.output);
     model->printInfo();
 
@@ -46,7 +46,7 @@ void test(Args &args) {
     args.printArgs();
 
     // Create data reader and load test data
-    std::shared_ptr<DataReader> reader = dataReaderFactory(args);
+    std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
 
@@ -54,7 +54,7 @@ void test(Args &args) {
     timer.printTime();
 
     // Load model and test
-    std::shared_ptr<Model> model = modelFactory(args);
+    std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
     timer.checkpoint();
@@ -75,11 +75,11 @@ void predict(Args &args) {
     args.printArgs();
 
     // Create data reader
-    std::shared_ptr<DataReader> reader = dataReaderFactory(args);
+    std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
 
     // Load model
-    std::shared_ptr<Model> model = modelFactory(args);
+    std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
     std::cout << std::setprecision(5);

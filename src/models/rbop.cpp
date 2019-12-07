@@ -17,7 +17,7 @@
 RBOP::RBOP(){}
 
 void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
-    std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
+    std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
     std::priority_queue<TreeNodeValue> nQueue;
     std::priority_queue<TreeNodeValue> kQueue;
@@ -52,7 +52,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                     nQueue.push({c, P});
                     ++childrenAdded;
 
-                    double U = u->g(tree->numberOfLeaves(c)) * P;
+                    double U = u->g(tree->getNumberOfLeaves(c)) * P;
                     if(bestU < U) {
                         bestU = U;
                         bestN = c;
@@ -66,7 +66,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                     nQueue.push({c, P});
                     ++childrenAdded;
 
-                    double U = u->g(tree->numberOfLeaves(c)) * P;
+                    double U = u->g(tree->getNumberOfLeaves(c)) * P;
                     if(bestU < U) {
                         bestU = U;
                         bestN = c;
@@ -90,7 +90,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                         nQueue.push({c, P});
                         ++childrenAdded;
 
-                        double U = u->g(tree->numberOfLeaves(c)) * P;
+                        double U = u->g(tree->getNumberOfLeaves(c)) * P;
                         if(bestU < U) {
                             bestU = U;
                             bestN = c;
@@ -150,7 +150,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
             }
         }
 
-        double U = u->g(tree->numberOfLeaves(tmpBestN)) * tmpBestP;
+        double U = u->g(tree->getNumberOfLeaves(tmpBestN)) * tmpBestP;
         if(bestU < U) {
             bestU = U;
             bestN = tmpBestN;

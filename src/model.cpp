@@ -31,7 +31,7 @@
 #include "ubop_mips.h"
 #endif
 
-std::shared_ptr<Model> modelFactory(Args &args){
+std::shared_ptr<Model> Model::factory(Args &args){
     std::shared_ptr<Model> model = nullptr;
 
     if(args.ensemble > 0){
@@ -43,8 +43,7 @@ std::shared_ptr<Model> modelFactory(Args &args){
                 model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<BatchPLT>>());
                 break;
             default:
-                std::cerr << "Ensemble is not supported for this model type!\n";
-                exit(EXIT_FAILURE);
+                throw std::invalid_argument("Ensemble is not supported for this model type!");
         }
     } else {
         switch (args.modelType) {
@@ -88,7 +87,7 @@ std::shared_ptr<Model> modelFactory(Args &args){
                 break;
             #endif
             default:
-                throw std::invalid_argument("modelFactory: Unknown model type!");
+                throw std::invalid_argument("Unknown model type!");
         }
     }
 
@@ -132,8 +131,8 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     std::vector<std::vector<Prediction>> predictions = predictBatch(features, args);
 
     // Create measures and calculate scores
-    auto measures = measuresFactory(args, this);
-    for (auto& m : measures) m->accumulate(predictions, labels);
+    auto measures = Measure::factory(args, outputSize());
+    for (auto& m : measures) m->accumulate(labels, predictions);
 
     // Print results
     std::cerr << std::setprecision(5) << "Results:\n";

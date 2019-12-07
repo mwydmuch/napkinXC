@@ -82,7 +82,16 @@ public:
     inline bool isOnline(){ return online; }
     void expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
 
-    int numberOfLeaves(TreeNode *rootNode = nullptr);
+    // Tree utils
+    int getNumberOfLeaves(TreeNode *rootNode = nullptr);
+    int getNodeDepth(TreeNode *n);
+    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
+    inline void setParent(TreeNode *n, TreeNode *parent){
+        n->parent = parent;
+        if(parent != nullptr) parent->children.push_back(n);
+    }
+    void setLabel(TreeNode *n, int label);
+    void moveSubtree(TreeNode* n, TreeNode* m);
 
 private:
     bool online;
@@ -100,14 +109,7 @@ private:
     void buildBalancedTree(int labelCount, bool randomizeOrder, Args &args);
 
     // Tree utils
-    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
-    inline void setParent(TreeNode *n, TreeNode *parent){
-        n->parent = parent;
-        if(parent != nullptr) parent->children.push_back(n);
-    }
-    void setLabel(TreeNode *n, int label);
-    int getDepth(TreeNode *n);
-    void moveSubtree(TreeNode* n, TreeNode* m);
+
     void expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
     void expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
     void printTree(TreeNode *rootNode = nullptr);

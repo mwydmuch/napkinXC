@@ -57,7 +57,7 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
         p.value /= sum;
 
     // BOP part
-    std::shared_ptr<SetUtility> u = setUtilityFactory(args, static_cast<Model*>(this));
+    std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
     double P = 0, bestU = 0;
     for(int i = 0; i < allPredictions.size(); ++i){
         auto& p = allPredictions[i];

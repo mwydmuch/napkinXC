@@ -7,7 +7,33 @@
 
 #include "set_utility.h"
 
-SetUtility::SetUtility(Args& args, Model* model) : Measure(args, model){
+
+std::shared_ptr<SetUtility> SetUtility::factory(Args& args, int outputSize){
+    std::shared_ptr<SetUtility> u = nullptr;
+    switch (args.setUtilityType) {
+        case uP :
+            u = std::static_pointer_cast<SetUtility>(std::make_shared<PrecisionUtility>(args, outputSize));
+            break;
+        case uF1 :
+            u = std::static_pointer_cast<SetUtility>(std::make_shared<F1Utility>(args, outputSize));
+            break;
+        case uAlfa :
+            u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfa>(args, outputSize));
+            break;
+        case uAlfaBeta :
+            u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfaBeta>(args, outputSize));
+            break;
+        case uDeltaGamma :
+            u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityDeltaGamma>(args, outputSize));
+            break;
+        default:
+            throw std::invalid_argument("Unknown set based utility type!");
+    }
+
+    return u;
+}
+
+SetUtility::SetUtility(Args& args, int outputSize) : Measure(args, outputSize){
 
 }
 
@@ -16,7 +42,7 @@ void SetUtility::accumulate(Label* labels, const std::vector<Prediction>& predic
     ++count;
 }
 
-PrecisionUtility::PrecisionUtility(Args& args, Model* model) : SetUtility(args, model){
+PrecisionUtility::PrecisionUtility(Args& args, int outputSize) : SetUtility(args, outputSize){
     name = "U_P";
 }
 
@@ -31,7 +57,7 @@ double PrecisionUtility::g(int pSize){
     return 1.0 / pSize;
 }
 
-F1Utility::F1Utility(Args& args, Model* model) : SetUtility(args, model){
+F1Utility::F1Utility(Args& args, int outputSize) : SetUtility(args, outputSize){
     name = "U_F1";
 }
 
@@ -46,9 +72,9 @@ double F1Utility::g(int pSize){
     return 2.0 / (1.0 + pSize);
 }
 
-UtilityAlfa::UtilityAlfa(Args& args, Model* model) : SetUtility(args, model){
+UtilityAlfa::UtilityAlfa(Args& args, int outputSize) : SetUtility(args, outputSize){
     alfa = args.alfa;
-    m = model->outputSize();
+    m = outputSize;
     name = "U_alfa(" + std::to_string(alfa) + ")";
 }
 
@@ -66,10 +92,10 @@ double UtilityAlfa::g(int pSize){
     else return 1.0 - alfa;
 }
 
-UtilityAlfaBeta::UtilityAlfaBeta(Args& args, Model* model) : SetUtility(args, model){
+UtilityAlfaBeta::UtilityAlfaBeta(Args& args, int outputSize) : SetUtility(args, outputSize){
     alfa = args.alfa;
     beta = args.beta;
-    m = model->outputSize();
+    m = outputSize;
     if(alfa <= 0) alfa = static_cast<double>(m - 1) / m;
     if(beta <= 0) beta = std::log2(static_cast<double>(m) / (2 * (m - 1))) / std::log2(1.0 / (m - 1));
     name = "U_alfa_beta(" + std::to_string(alfa) + ", " + std::to_string(beta) + ")";
@@ -86,7 +112,7 @@ double UtilityAlfaBeta::g(int pSize){
     return 1.0 - alfa * pow(static_cast<double>(pSize - 1) / (m - 1), beta);
 }
 
-UtilityDeltaGamma::UtilityDeltaGamma(Args& args, Model* model) : SetUtility(args, model){
+UtilityDeltaGamma::UtilityDeltaGamma(Args& args, int outputSize) : SetUtility(args, outputSize){
     delta = args.delta;
     gamma = args.gamma;
     name = "U_delta_gamma(" + std::to_string(delta) + ", " + std::to_string(gamma) + ")";
@@ -98,30 +124,4 @@ double UtilityDeltaGamma::u(double c, const std::vector<Prediction>& prediction)
 
 double UtilityDeltaGamma::g(int pSize){
     return 1.0;
-}
-
-
-std::shared_ptr<SetUtility> setUtilityFactory(Args& args, Model* model){
-    std::shared_ptr<SetUtility> u = nullptr;
-    switch (args.setUtilityType) {
-        case uP :
-            u = std::static_pointer_cast<SetUtility>(std::make_shared<PrecisionUtility>(args, model));
-            break;
-        case uF1 :
-            u = std::static_pointer_cast<SetUtility>(std::make_shared<F1Utility>(args, model));
-            break;
-        case uAlfa :
-            u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfa>(args, model));
-            break;
-        case uAlfaBeta :
-            u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfaBeta>(args, model));
-            break;
-        case uDeltaGamma :
-            u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityDeltaGamma>(args, model));
-            break;
-        default:
-            throw "Unknown set based utility type!";
-    }
-
-    return u;
 }

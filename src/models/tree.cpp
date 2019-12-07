@@ -493,7 +493,7 @@ void Tree::printTree(TreeNode *rootNode){
     std::cerr << "\n";
 }
 
-int Tree::numberOfLeaves(TreeNode *rootNode){
+int Tree::getNumberOfLeaves(TreeNode *rootNode){
     if(rootNode == nullptr) // Root node
         return leaves.size();
 
@@ -521,7 +521,7 @@ void Tree::setLabel(TreeNode *n, int label){
     }
 }
 
-int Tree::getDepth(TreeNode *n){
+int Tree::getNodeDepth(TreeNode *n){
     uint32_t nDepth = 1;
 
     while(n != root){

@@ -27,12 +27,10 @@ public:
 
     void printInfo() override;
 
-    // TODO: make it better
     Tree* tree;
-
 protected:
     std::vector<Base*> bases;
-
+    
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                                   SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
     virtual void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
@@ -42,6 +40,8 @@ protected:
                      Feature* features);
     virtual Prediction predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features);
 
+    // Additional statistics
     int nCount; // Number of visited nodes (updated/evaluated classifiers) during training or prediction
     int rCount; // Data points count
+    std::vector<double> lossPerLevel;
 };

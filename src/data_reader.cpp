@@ -11,12 +11,14 @@
 #include "libsvm_reader.h"
 
 
-std::shared_ptr<DataReader> dataReaderFactory(Args &args){
+std::shared_ptr<DataReader> DataReader::factory(Args &args){
     std::shared_ptr<DataReader> dataReader = nullptr;
     switch (args.dataFormatType) {
         case libsvm :
             dataReader = std::static_pointer_cast<DataReader>(std::make_shared<LibSvmReader>());
             break;
+        default:
+            throw std::invalid_argument("Unknown data reader type!");
     }
 
     return dataReader;
@@ -88,10 +90,8 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     in.close();
 
     if(args.bias && !args.header){
-        for(int r = 0; r < features.rows(); ++r) {
-            features.data()[r][features.sizes()[r] - 1].index = features.cols() - 1;
-            features.data()[r][features.sizes()[r] - 1].value = args.biasValue;
-        }
+        for(int r = 0; r < features.rows(); ++r)
+            features[r][features.size(r) - 1] = {features.cols() - 1, args.biasValue};
     }
 
     if(!hLabels) hLabels = labels.cols();

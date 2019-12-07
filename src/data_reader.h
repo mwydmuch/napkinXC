@@ -13,6 +13,8 @@
 
 class DataReader: public FileHelper{
 public:
+    static std::shared_ptr<DataReader> factory(Args &args);
+
     DataReader();
     virtual ~DataReader();
 
@@ -29,4 +31,4 @@ protected:
     int hRows;
 };
 
-std::shared_ptr<DataReader> dataReaderFactory(Args &args);
+

@@ -10,9 +10,8 @@
 // One against all
 class OVR: public BR{  // OVR is multi-class version of BR
 public:
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-    void checkRow(Label* labels, Feature* feature) override;
-    double predictForLabel(Label label, Feature* features, Args &args) override;
+    OVR();
 
-    void printInfo() override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    double predictForLabel(Label label, Feature* features, Args &args) override;
 };

@@ -14,6 +14,11 @@
 #include "threads.h"
 
 
+OVR::OVR(){
+    type = ovr;
+    name = "OVR";
+}
+
 void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     double sum = 0;
 
@@ -42,23 +47,3 @@ double OVR::predictForLabel(Label label, Feature* features, Args &args){
 
     return exp(bases[label]->predictValue(features)) / sum;
 }
-
-void OVR::printInfo(){
-    std::cerr << "OVR additional stats:"
-              << "\n  Mean # estimators per data point: " << bases.size()
-              << "\n";
-}
-
-void OVR::checkRow(Label* labels, Feature* feature){
-    int l = -1;
-    while(labels[++l] > -1);
-    if (l > 1) {
-        //std::cerr << "Encountered example with more then 1 label! OVR is multi-class classifier, use BR instead!";
-        //throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
-    }
-    else if (l < 1){
-        std::cerr << "Example without label, skipping ...\n";
-    }
-}
-
-

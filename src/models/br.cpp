@@ -14,11 +14,13 @@
 #include "threads.h"
 
 
-BR::BR(){}
+BR::BR(){
+    type = br;
+    name = "BR";
+}
 
 BR::~BR() {
-    for(size_t i = 0; i < bases.size(); ++i)
-        delete bases[i];
+    for(auto b : bases) delete b;
 }
 
 void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
@@ -31,9 +33,13 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     int size = lCols;
     out.write((char*) &size, sizeof(size));
 
+    // Calculate required memory
+    unsigned long long reqMem = lCols * (rows * sizeof(double) + sizeof(void*)) + labels.mem() + features.mem();
+
     int parts = 1;
     int range = lCols / parts + 1;
 
+    assert(lCols < range * parts);
     std::vector<std::vector<double>> binLabels(range);
     for(int i = 0; i < binLabels.size(); ++i)
         binLabels[i].reserve(rows);
@@ -54,20 +60,21 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
             int rSize = labels.size(r);
             auto rLabels = labels.row(r);
 
-            //checkRow(rLabels, features.row(r));
+            if(type == ovr && rSize != 1) {
+                std::cerr << "Row " << r << ": encountered example with " << rSize << " labels! OVR is multi-class classifier, use BR instead!\n";
+                continue;
+            }
 
-            for(int i = 0; i < binLabels.size(); ++i)
-                binLabels[i].push_back(0.0);
+            for(auto &l : binLabels) l.push_back(0.0);
 
             for (int i = 0; i < rSize; ++i)
-                if(rSize == 1 && rLabels[0] >= rStart && rLabels[0] < rStop)
-                    binLabels[rLabels[0] - rStart].back() = 1.0;
+                if(rLabels[i] >= rStart && rLabels[i] < rStop)
+                    binLabels[rLabels[i] - rStart].back() = 1.0;
         }
 
         trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), args);
 
-        for(int i = 0; i < binLabels.size(); ++i)
-            binLabels[i].clear();
+        for(auto &l : binLabels) l.clear();
     }
 
     out.close();
@@ -93,3 +100,8 @@ void BR::load(Args &args, std::string infile){
     m = bases.size();
 }
 
+void BR::printInfo(){
+    std::cerr << name << " additional stats:"
+              << "\n  Mean # estimators per data point: " << bases.size()
+              << "\n";
+}

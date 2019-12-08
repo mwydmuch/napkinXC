@@ -20,6 +20,8 @@ public:
 
     void load(Args &args, std::string infile) override;
 
+    void printInfo() override;
+
 protected:
     std::vector<Base*> bases;
 };

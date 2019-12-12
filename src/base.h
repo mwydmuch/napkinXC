@@ -32,17 +32,23 @@ public:
     void trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, int positiveLabel, Args &args);
     void trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
 
+    // For online training
     void setupOnlineTraining(Args &args);
-    void finalizeOnlineTraining();
+    void finalizeOnlineTraining(Args &args);
 
     double predictValue(Feature* features);
     double predictLoss(Feature* features);
     double predictProbability(Feature* features);
 
+    inline Weight* getW() { return W; }
+    inline UnorderedMap<int, Weight>* getMapW() { return mapW; }
+    inline SparseWeight* getSparseW() { return sparseW; }
+
     inline size_t denseSize(){ return wSize * sizeof(Weight); }
     inline size_t mapSize(){ return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(Weight)); }
     inline size_t sparseSize(){ return nonZeroW * (sizeof(int) + sizeof(double)); }
     size_t size();
+    inline int getFirstClass(){ return firstClass; }
 
     void clear();
     void toMap(); // From dense weights (W) to sparse weights in hashmap (mapW)
@@ -50,6 +56,7 @@ public:
     void toSparse(); // From dense (W) to sparse weights (sparseW)
     void pruneWeights(double threshold);
     void invertWeights();
+
     void save(std::ostream& out);
     void load(std::istream& in);
 
@@ -67,8 +74,9 @@ private:
     int nonZeroW;
     int classCount;
     int firstClass;
+    int firstClassCount;
     int t;
-    float pi;
+    double pi; // For FOBOS
 
     // Weights
     Weight* W;

@@ -521,6 +521,28 @@ void Tree::setLabel(TreeNode *n, int label){
     }
 }
 
+int Tree::getTreeDepth(TreeNode * rootNode){
+    if(rootNode == nullptr) // Root node
+        return leaves.size();
+
+    int maxDepth = 1;
+    std::queue<std::pair<int, TreeNode*>> nQueue;
+    nQueue.push({1, root});
+
+    while(!nQueue.empty()) {
+        auto n = nQueue.front(); // Cu rrent node
+        nQueue.pop();
+
+        if(n.first > maxDepth)
+            maxDepth = n.first;
+
+        for(const auto& child : n.second->children)
+            nQueue.push({n.first + 1, child});
+    }
+
+    return maxDepth;
+}
+
 int Tree::getNodeDepth(TreeNode *n){
     uint32_t nDepth = 1;
 
@@ -532,16 +554,16 @@ int Tree::getNodeDepth(TreeNode *n){
     return nDepth;
 }
 
-void Tree::moveSubtree(TreeNode* n, TreeNode* m){
-    if(n->children.size()) {
-        for (auto child : n->children)
-            setParent(child, m);
-        n->children.clear();
+void Tree::moveSubtree(TreeNode* oldParent, TreeNode* newParent){
+    if(oldParent->children.size()) {
+        for (auto child : oldParent->children)
+            setParent(child, newParent);
+        oldParent->children.clear();
     }
     else
-        setLabel(m, n->label);
+        setLabel(newParent, oldParent->label);
 
-    setParent(m, n);
+    setParent(newParent, oldParent);
 }
 
 void Tree::expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args){

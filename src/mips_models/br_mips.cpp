@@ -14,7 +14,10 @@
 #include "ubop_mips.h"
 
 
-BRMIPS::BRMIPS(){}
+BRMIPS::BRMIPS(){
+    type = brMips;
+    name = "BR MIPS";
+}
 
 void BRMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
 
@@ -37,7 +40,9 @@ void BRMIPS::load(Args &args, std::string infile){
     for(int i = 0; i < m; ++i){
         printProgress(i, m);
         bases[i]->toMap();
-        mipsIndex->addPoint(bases[i]->getMapW(), i, bases[i]->getFirstClass() ? 1 : -1);
+        if(!bases[i]->getFirstClass()) bases[i]->invertWeights();
+        mipsIndex->addPoint(bases[i]->getMapW(), i);
+
         //bases[i]->toDense();
         //mipsIndex->addPoint(bases[i]->getW(), bases[i]->size(), i);
     }

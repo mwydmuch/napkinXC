@@ -22,8 +22,6 @@ MIPSIndex::MIPSIndex(size_t dim, Args& args): dim(dim){
 
     spaceType =  "negdotprod_sparse_fast";
     methodType = "hnsw";
-
-    // Create an instance of our custom space that uses L2-distance
     AnyParams empty;
     space = SpaceFactoryRegistry<DATA_T>::Instance().CreateSpace(spaceType, empty);
 }
@@ -43,11 +41,11 @@ void MIPSIndex::addPoint(double* pointData, int size, int label) {
     data.push_back(denseSpace->CreateObjFromVect(label, -1, output));
 }
 
-void MIPSIndex::addPoint(std::unordered_map<int, double>* pointData, int label, DATA_T multi) {
+void MIPSIndex::addPoint(UnorderedMap<int, Weight>* pointData, int label) {
     std::vector<SparseVectElem<DATA_T>> output;
 
     for (const auto &d : *pointData)
-        output.push_back(SparseVectElem<DATA_T>(d.first, multi * d.second));
+        output.push_back(SparseVectElem<DATA_T>(d.first, d.second));
 
     std::sort(output.begin(), output.end());
     auto sparseSpace = reinterpret_cast<const SpaceSparseVector<DATA_T>*>(space);

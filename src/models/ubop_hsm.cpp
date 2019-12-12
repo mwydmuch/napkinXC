@@ -7,7 +7,10 @@
 #include "set_utility.h"
 
 
-UBOPHSM::UBOPHSM(){}
+UBOPHSM::UBOPHSM(){
+    type = ubopHsm;
+    name = "UBOP HSM";
+}
 
 void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::priority_queue<TreeNodeValue> nQueue;

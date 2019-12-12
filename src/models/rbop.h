@@ -7,7 +7,7 @@
 
 #include "hsm.h"
 
-// One against all
+
 class RBOP: public HSM{
 public:
     RBOP();

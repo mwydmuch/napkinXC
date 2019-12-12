@@ -19,6 +19,7 @@ PLT::PLT(){
     tree = nullptr;
     nCount = 0;
     rCount = 0;
+    type = plt;
     name = "PLT";
 }
 
@@ -44,39 +45,47 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         nPositive.clear();
         nNegative.clear();
 
-        getNodesToUpdate(nPositive, nNegative, labels.row(r), labels.size(r));
-        addFeatures(binLabels, binFeatures, nPositive, nNegative, features.row(r));
+        getNodesToUpdate(r, nPositive, nNegative, labels[r], labels.size(r));
+        addFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
 
         nCount += nPositive.size() + nNegative.size();
         ++rCount;
     }
 }
 
-void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
-                           int* rLabels, int rSize){
-    if (rSize > 0){
-        for (int i = 0; i < rSize; ++i) {
-            TreeNode *n = tree->leaves[rLabels[i]];
+void PLT::getNodesToUpdate(const int row, std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                           const int* rLabels, const int rSize){
+    for (int i = 0; i < rSize; ++i) {
+        auto ni = tree->leaves.find(rLabels[i]);
+        if(ni == tree->leaves.end()) {
+            std::cerr << "Row: " << row << ", encountered example with label that does not exists in the tree!\n";
+            continue;
+        }
+        TreeNode *n = ni->second;
+        nPositive.insert(n);
+        while (n->parent) {
+            n = n->parent;
             nPositive.insert(n);
-            while (n->parent) {
-                n = n->parent;
-                nPositive.insert(n);
-            }
         }
+    }
 
-        std::queue<TreeNode*> nQueue; // Nodes queue
-        nQueue.push(tree->root); // Push root
+    if(!nPositive.count(tree->root)){
+        nNegative.insert(tree->root);
+        return;
+    }
 
-        while(!nQueue.empty()) {
-            TreeNode* n = nQueue.front(); // Current node
-            nQueue.pop();
+    std::queue<TreeNode*> nQueue; // Nodes queue
+    nQueue.push(tree->root); // Push root
 
-            for(const auto& child : n->children) {
-                if (nPositive.count(child)) nQueue.push(child);
-                else nNegative.insert(child);
-            }
+    while(!nQueue.empty()) {
+        TreeNode* n = nQueue.front(); // Current node
+        nQueue.pop();
+
+        for(const auto& child : n->children) {
+            if (nPositive.count(child)) nQueue.push(child);
+            else nNegative.insert(child);
         }
-    } else nNegative.insert(tree->root);
+    }
 }
 
 void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
@@ -149,8 +158,6 @@ void PLT::load(Args &args, std::string infile){
     bases = loadBases(joinPath(infile, "weights.bin"));
     assert(bases.size() == tree->nodes.size());
     m = tree->getNumberOfLeaves();
-
-    //lossPerLevel.resize(tree->getDepth(tree->root));
 }
 
 void PLT::printInfo(){

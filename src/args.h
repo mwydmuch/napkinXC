@@ -20,8 +20,6 @@ enum ModelType {
     ubop,
     rbop,
     ubopHsm,
-    pltNeg,
-    brpltNeg,
     oplt,
     // Mips extension models
     brMips,

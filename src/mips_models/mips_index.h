@@ -20,6 +20,7 @@
 
 #include "args.h"
 #include "model.h"
+#include "base.h"
 
 #include <iostream>
 #include <vector>
@@ -35,7 +36,7 @@ public:
     ~MIPSIndex();
 
     void addPoint(double* pointData, int size, int label);
-    void addPoint(std::unordered_map<int, double>* pointData, int label, DATA_T multi);
+    void addPoint(UnorderedMap<int, Weight>* pointData, int label);
     void createIndex(Args& args);
     inline size_t getSize(){ return data.size(); }
     std::priority_queue<Prediction> predict(Feature* data, size_t k);

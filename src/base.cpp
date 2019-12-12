@@ -21,6 +21,7 @@ Base::Base(){
     nonZeroW = 0;
     classCount = 0;
     firstClass = 0;
+    firstClassCount = 0;
     t = 0;
 
     W = nullptr;
@@ -46,6 +47,8 @@ void Base::unsafeUpdate(double label, Feature* features, Args &args) {
         return;
 
     ++t;
+    if(label == firstClass) ++firstClassCount;
+
     double pred = predictValue(features);
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
@@ -161,7 +164,7 @@ void Base::trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& bi
         unsafeUpdate(binLabels[r], binFeatures[r], args);
     }
 
-    finalizeOnlineTraining();
+    finalizeOnlineTraining(args);
 }
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
@@ -197,8 +200,15 @@ void Base::setupOnlineTraining(Args &args){
     firstClass = 1;
 }
 
-void Base::finalizeOnlineTraining(){
+void Base::finalizeOnlineTraining(Args &args){
     forEachW([&](Weight& w){ w /= pi; });
+
+    if(firstClassCount == t || firstClassCount == 0){
+        classCount = 1;
+        if(firstClassCount == 0) firstClass = 1 - firstClass;
+    }
+
+    pruneWeights(args.weightsThreshold);
 }
 
 double Base::predictValue(Feature* features){
@@ -221,7 +231,6 @@ double Base::predictValue(Feature* features){
 }
 
 double Base::predictLoss(Feature* features){
-    if(classCount < 2) return -static_cast<double>(firstClass);
     double val = predictValue(features);
     if(hingeLoss) val = std::pow(std::fmax(0, 1 - val), 2); // Hinge squared loss
     else val = log(1 + std::exp(-val)); // Log loss

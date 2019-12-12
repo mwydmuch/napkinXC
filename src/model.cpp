@@ -17,8 +17,6 @@
 #include "br.h"
 #include "ovr.h"
 #include "hsm.h"
-#include "plt_neg.h"
-#include "br_plt_neg.h"
 #include "ubop.h"
 #include "rbop.h"
 #include "ubop_hsm.h"
@@ -59,12 +57,6 @@ std::shared_ptr<Model> Model::factory(Args &args){
             case plt :
                 model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>());
                 break;
-            case pltNeg :
-                model = std::static_pointer_cast<Model>(std::make_shared<PLTNeg>());
-                break;
-            case brpltNeg :
-                model = std::static_pointer_cast<Model>(std::make_shared<BRPLTNeg>());
-                break;
             case ubop :
                 model = std::static_pointer_cast<Model>(std::make_shared<UBOP>());
                 break;
@@ -93,7 +85,6 @@ std::shared_ptr<Model> Model::factory(Args &args){
 
     return model;
 }
-
 
 Model::Model() { }
 
@@ -140,8 +131,6 @@ void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
         std::cerr << "  " << m->getName() << ": " << m->value() << std::endl;
 }
 
-void Model::checkRow(Label* labels, Feature* feature){ }
-
 Base* Model::trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args){
     Base* base = new Base();
     base->train(n, baseLabels, baseFeatures, args);
@@ -161,10 +150,9 @@ void Model::trainBases(std::string outfile, int n, std::vector<std::vector<doubl
 void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
                        std::vector<std::vector<Feature*>>& baseFeatures, Args& args){
 
-    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
-
     assert(baseLabels.size() == baseFeatures.size());
     int size = baseLabels.size(); // This "batch" size
+    std::cerr << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
 
     // Run learning in parallel
     ThreadPool tPool(args.threads);
@@ -194,8 +182,8 @@ void Model::trainBasesWithSameFeatures(std::string outfile, int n, std::vector<s
 void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
                                        std::vector<Feature*>& baseFeatures, Args& args){
 
-    std::cerr << "Starting training base estimators in " << args.threads << " threads ...\n";
     int size = baseLabels.size(); // This "batch" size
+    std::cerr << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
 
     // Run learning in parallel
     ThreadPool tPool(args.threads);

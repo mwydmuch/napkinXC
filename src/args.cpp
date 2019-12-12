@@ -137,8 +137,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "ovr") modelType = ovr;
                 else if (args.at(ai + 1) == "hsm") modelType = hsm;
                 else if (args.at(ai + 1) == "plt") modelType = plt;
-                else if (args.at(ai + 1) == "pltNeg") modelType = pltNeg;
-                else if (args.at(ai + 1) == "brpltNeg") modelType = brpltNeg;
                 else if (args.at(ai + 1) == "ubop") modelType = ubop;
                 else if (args.at(ai + 1) == "rbop") modelType = rbop;
                 else if (args.at(ai + 1) == "ubopHsm") modelType = ubopHsm;

@@ -21,89 +21,17 @@ HSM::HSM() {
     name = "HSM";
 }
 
-// Old assign data points code
-/*
-void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
-
-    std::cerr << "Assigning data points to nodes ...\n";
-
-    // Nodes on path
-    std::vector<TreeNode*> path;
-
-    // Gather examples for each node
-    int rows = features.rows();
-    for(int r = 0; r < rows; ++r){
-        printProgress(r, rows);
-
-        path.clear();
-
-        int rSize = labels.size(r);
-        auto rLabels = labels.row(r);
-
-        if (rSize == 1){
-            TreeNode *n = tree->leaves[rLabels[0]];
-            path.push_back(n);
-            while (n->parent){
-                n = n->parent;
-                path.push_back(n);
-            }
-        }
-        else {
-            if (rSize > 1) {
-                //std::cerr << "Encountered example with more then 1 label! HSM is multi-class classifier, use BR instead!";
-                continue;
-                //throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
-            }
-            else if (rSize < 1){
-                std::cerr << "Example without label, skipping ...\n";
-                continue;
-            }
-        }
-
-        assert(path.size());
-        assert(path.back() == tree->root);
-
-        for(int i = path.size() - 1; i >= 0; --i){
-            TreeNode *n = path[i], *p = n->parent;
-            if(p == nullptr || p->children.size() == 1){
-                binLabels[n->index].push_back(1.0);
-                binFeatures[n->index].push_back(features.row(r));
-                eCount += 1;
-            }
-            else if(p->children.size() == 2){ // Binary node requires just 1 probability estimator
-                TreeNode *c0 = n->parent->children[0], *c1 = n->parent->children[1];
-                if(c0 == n)
-                    binLabels[c0->index].push_back(1.0);
-                else
-                    binLabels[c0->index].push_back(0.0);
-                binFeatures[c0->index].push_back(features.row(r));
-                binLabels[c1->index].push_back(0.0); // Second one will end up as a dummy estimator
-                binFeatures[c1->index].push_back(features.row(r));
-                eCount += 1;
-            }
-            else if(p->children.size() > 2){ // Node with arity > 2 requires OVR estimator
-                for(const auto& c : p->children){
-                    binLabels[c->index].push_back(0.0);
-                    binFeatures[c->index].push_back(features.row(r));
-                }
-                binLabels[n->index].back() = 1.0;
-                eCount += p->children.size();
-            }
-        }
-
-        pLen += path.size();
-        ++rCount;
-    }
-}
-*/
-
-void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
-                           int* rLabels, int rSize){
+void HSM::getNodesToUpdate(const int row, std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                           const int* rLabels, const int rSize){
     
     std::vector<TreeNode*> path;
     if (rSize == 1){
-        TreeNode *n = tree->leaves[rLabels[0]];
+        auto ni = tree->leaves.find(rLabels[0]);
+        if(ni == tree->leaves.end()) {
+            std::cerr << "Row: " << row << ", encountered example with label that does not exists in the tree!\n";
+            return;
+        }
+        TreeNode *n = ni->second;
         path.push_back(n);
         while (n->parent){
             n = n->parent;
@@ -111,15 +39,8 @@ void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
         }
     }
     else {
-        if (rSize > 1) {
-            //std::cerr << "Encountered example with more then 1 label! HSM is multi-class classifier, use BR instead!";
-            return;
-            //throw "OVR is multi-class classifier, encountered example with more then 1 label! Use BR instead.";
-        }
-        else if (rSize < 1){
-            std::cerr << "Example without label, skipping ...\n";
-            return;
-        }
+        std::cerr << "Row " << row << ": encountered example with " << rSize << " labels! HSM is multi-class classifier, use PLT instead!\n";
+        return;
     }
 
     assert(path.size());

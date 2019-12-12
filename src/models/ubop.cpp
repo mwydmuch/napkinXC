@@ -14,7 +14,10 @@
 #include "set_utility.h"
 
 
-UBOP::UBOP(){}
+UBOP::UBOP(){
+    type = ubop;
+    name = "UBOP";
+}
 
 void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::vector<Prediction> allPredictions;

@@ -84,6 +84,7 @@ public:
 
     // Tree utils
     int getNumberOfLeaves(TreeNode *rootNode = nullptr);
+    int getTreeDepth(TreeNode * rootNode = nullptr);
     int getNodeDepth(TreeNode *n);
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
     inline void setParent(TreeNode *n, TreeNode *parent){
@@ -91,7 +92,7 @@ public:
         if(parent != nullptr) parent->children.push_back(n);
     }
     void setLabel(TreeNode *n, int label);
-    void moveSubtree(TreeNode* n, TreeNode* m);
+    void moveSubtree(TreeNode* oldParent, TreeNode* newParent);
 
 private:
     bool online;

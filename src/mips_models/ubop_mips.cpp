@@ -14,7 +14,10 @@
 #include "ubop_mips.h"
 
 
-UBOPMIPS::UBOPMIPS(){}
+UBOPMIPS::UBOPMIPS(){
+    type = ubopMips;
+    name = "UBOP MIPS";
+}
 
 void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
 

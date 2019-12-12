@@ -15,7 +15,7 @@ public:
     ~OnlinePLT() override;
 
     void init(int labelCount, Args &args) override;
-    void update(Label* labels, size_t labelsSize, Feature* features, size_t featuresSize, Args &args) override;
+    void update(const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize, Args &args) override;
     void save(Args &args, std::string output) override;
 
 protected:

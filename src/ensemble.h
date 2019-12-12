@@ -47,8 +47,8 @@ Ensemble<T>::Ensemble(){ }
 
 template <typename T>
 Ensemble<T>::~Ensemble(){
-    for(size_t i = 0; i < members.size(); ++i)
-        delete members[i];
+    for(auto &m : members)
+        delete m;
 }
 
 template <typename T>

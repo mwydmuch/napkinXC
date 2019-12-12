@@ -14,7 +14,10 @@
 #include "set_utility.h"
 
 
-RBOP::RBOP(){}
+RBOP::RBOP(){
+    type = rbop;
+    name = "RBOP";
+}
 
 void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());

@@ -23,5 +23,7 @@ public:
     void printInfo() override;
 
 protected:
+    void resizePredict(std::vector<Prediction>& prediction, Args &args);
+
     std::vector<Base*> bases;
 };

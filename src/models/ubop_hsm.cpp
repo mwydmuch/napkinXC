@@ -24,7 +24,7 @@ void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Ar
 
     double P = 0, bestU = 0;
     while (!nQueue.empty()){
-        auto p = predictNext(nQueue, features);
+        auto p = predictNextLabel(nQueue, features, 0.0);
         P += p.value;
         double U = u->g(prediction.size() + 1) * P;
         if(bestU < U) {

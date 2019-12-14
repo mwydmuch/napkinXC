@@ -20,8 +20,8 @@
 #include "ubop.h"
 #include "rbop.h"
 #include "ubop_hsm.h"
+#include "plt.h"
 #include "online_plt.h"
-#include "batch_plt.h"
 
 // Mips extension models
 #ifdef MIPS_EXT

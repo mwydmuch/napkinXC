@@ -263,7 +263,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
                 else if (args.at(ai + 1) == "hierarchicalKMeans") treeType = hierarchicalKMeans;
                 else if (args.at(ai + 1) == "huffman") treeType = huffman;
-
                 else if (args.at(ai + 1) == "onlineBalanced") treeType = onlineBalanced;
                 else if (args.at(ai + 1) == "onlineComplete") treeType = onlineComplete;
                 else if (args.at(ai + 1) == "onlineRandom") treeType = onlineRandom;
@@ -275,9 +274,11 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 }
             }
 
-            // Prediction options
+            // Prediction/test options
             else if (args[ai] == "--topK")
                 topK = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--threshold")
+                threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));
             else {
@@ -297,15 +298,30 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         printHelp();
     }
 
-    // Change default values for specific cases:
+    // Change default values for specific cases + parameters warnings
     if (modelType == oplt && optimizerType == libliner){
+        if(count(args.begin(), args.end(), "optimizer"))
+            std::cerr << "Online PLT does not support " <<  optimizerName << " optimizer! Changing to AdaGrad.\n";
         optimizerType = adagrad;
         optimizerName = "adagrad";
     }
 
     if (modelType == oplt && (treeType == hierarchicalKMeans || treeType == huffman)){
+        if(count(args.begin(), args.end(), "treeType"))
+            std::cerr << "Online PLT does not support " << treeTypeName << " tree type! Changing to complete in order tree.\n";
         treeType = completeInOrder;
-        treeTypeName = "completeInOrder";
+    }
+
+    if(topK > 0){
+        if(count(args.begin(), args.end(), "threshold"))
+            std::cerr << "Warning: Top K and threshold prediction are used at the same time!\n";
+        else threshold = 0.0;
+    }
+
+    if(threshold > 0){
+        if(count(args.begin(), args.end(), "topK"))
+            std::cerr << "Warning: Top K and threshold prediction are used at the same time!\n";
+        else topK = 0;
     }
 }
 
@@ -326,20 +342,22 @@ void Args::printArgs(){
                           << ", weights threshold: " << weightsThreshold;
             else if (optimizerType == sgd)
                 std::cerr << "\n    SGD: eta: " << eta << ", epochs: " << epochs << ", threshold: " << weightsThreshold;
-        }
-        if(modelType == plt || modelType == hsm || modelType == oplt){
-            if(treeStructure.empty()) {
-                std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
-                if (treeType == hierarchicalKMeans)
-                    std::cerr << ", k-means eps: " << kMeansEps
-                              << ", balanced: " << kMeansBalanced << ", weighted features: " << kMeansWeightedFeatures;
-                if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
-                    std::cerr << ", max leaves: " << maxLeaves;
+
+            if(modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm){
+                if(treeStructure.empty()) {
+                    std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
+                    if (treeType == hierarchicalKMeans)
+                        std::cerr << ", k-means eps: " << kMeansEps
+                                  << ", balanced: " << kMeansBalanced << ", weighted features: " << kMeansWeightedFeatures;
+                    if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
+                        std::cerr << ", max leaves: " << maxLeaves;
+                }
+                else {
+                    std::cerr << "\n    Tree: " << treeStructure;
+                }
             }
-            else {
-                std::cerr << "\n    Tree: " << treeStructure;
-            }
         }
+
         if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips)) {
             std::cerr << "\n  Set utility: " << setUtilityName;
             if(setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;

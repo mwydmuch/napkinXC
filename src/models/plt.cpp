@@ -103,33 +103,27 @@ void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<s
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
-    predictTopK(prediction, features, args.topK);
-}
-
-void PLT::predictTopK(std::vector<Prediction>& prediction, Feature* features, int k){
     std::priority_queue<TreeNodeValue> nQueue;
 
-    // Note: loss prediction gets worse results for tree with higher arity then 2
-    double val = bases[tree->root->index]->predictProbability(features);
-    //double val = -bases[tree->root->index]->predictLoss(features);
-    nQueue.push({tree->root, val});
+    nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
     ++nCount;
     ++rCount;
 
-    while (prediction.size() < k && !nQueue.empty()) prediction.push_back(predictNext(nQueue, features));
+    Prediction p = predictNextLabel(nQueue, features, args.threshold);
+    while ((prediction.size() < args.topK || args.topK == 0) && p.label != -1) {
+        prediction.push_back(p);
+        p = predictNextLabel(nQueue, features, args.threshold);
+    }
 }
 
-Prediction PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features) {
+Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features, double threshold) {
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
-        if(nVal.node->children.size()){
-            for(const auto& child : nVal.node->children){
-                double value = nVal.value * bases[child->index]->predictProbability(features); // When using probability
-                //double value = nVal.value - bases[child->index]->predictLoss(features); // When using loss
-                nQueue.push({child, value});
-            }
+        if(!nVal.node->children.empty()){
+            for(const auto& child : nVal.node->children)
+                addToQueue(nQueue, child, nVal.value * bases[child->index]->predictProbability(features), threshold);
             nCount += nVal.node->children.size();
         }
         if(nVal.node->label >= 0)
@@ -140,9 +134,8 @@ Prediction PLT::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature*
 }
 
 double PLT::predictForLabel(Label label, Feature* features, Args &args){
-    double value = 0;
     TreeNode *n = tree->leaves[label];
-    value *= bases[n->index]->predictProbability(features);
+    double value = bases[n->index]->predictProbability(features);
     while (n->parent){
         n = n->parent;
         value *= bases[n->index]->predictProbability(features);
@@ -164,4 +157,33 @@ void PLT::printInfo(){
     std::cerr << "PLT additional stats:"
               << "\n  Mean # nodes per data point: " << static_cast<double>(nCount) / rCount
               << "\n";
+}
+
+void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
+
+    // Create tree
+    if(!tree) {
+        tree = new Tree();
+        tree->buildTreeStructure(labels, features, args);
+    }
+    m = tree->getNumberOfLeaves();
+
+    std::cerr << "Training tree ...\n";
+
+    // Check data
+    assert(features.rows() == labels.rows());
+    assert(tree->k >= labels.cols());
+
+    // Examples selected for each node
+    std::vector<std::vector<double>> binLabels(tree->t);
+    std::vector<std::vector<Feature*>> binFeatures(tree->t);
+
+    assignDataPoints(binLabels, binFeatures, labels, features, args);
+    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
+
+    // Save tree
+    tree->saveToFile(joinPath(output, "tree.bin"));
+
+    // Save tree structure
+    tree->saveTreeStructure(joinPath(output, "tree.txt"));
 }

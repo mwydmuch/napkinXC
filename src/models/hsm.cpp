@@ -54,19 +54,15 @@ void HSM::getNodesToUpdate(const int row, std::unordered_set<TreeNode*>& nPositi
         }
         else if(p->children.size() == 2){ // Binary node requires just 1 probability estimator
             TreeNode *c0 = n->parent->children[0], *c1 = n->parent->children[1];
-            if(c0 == n)
-                nPositive.insert(c0);
-            else
-                nNegative.insert(c0);
+            if(c0 == n) nPositive.insert(c0);
+            else nNegative.insert(c0);
             nNegative.insert(c1);
             eCount += 1;
         }
         else if(p->children.size() > 2){ // Node with arity > 2 requires OVR estimator
             for(const auto& c : p->children){
-                if(c == n)
-                    nPositive.insert(c);
-                else
-                    nNegative.insert(c);
+                if(c == n) nPositive.insert(c);
+                else nNegative.insert(c);
             }
             eCount += p->children.size();
         }
@@ -75,17 +71,17 @@ void HSM::getNodesToUpdate(const int row, std::unordered_set<TreeNode*>& nPositi
     pLen += path.size();
 }
 
-Prediction HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features){
+Prediction HSM::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features, double threshold){
 
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
-        if(nVal.node->children.size()){
+        if(!nVal.node->children.empty()){
             if(nVal.node->children.size() == 2) {
                 double value = bases[nVal.node->children[0]->index]->predictProbability(features);
-                nQueue.push({nVal.node->children[0], nVal.value * value});
-                nQueue.push({nVal.node->children[1], nVal.value * (1.0 - value)});
+                addToQueue(nQueue, nVal.node->children[0], nVal.value * value, threshold);
+                addToQueue(nQueue, nVal.node->children[1], nVal.value * (1.0 - value), threshold);
                 ++eCount;
             }
             else {
@@ -99,7 +95,7 @@ Prediction HSM::predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature*
                 }
 
                 for(int i = 0; i < nVal.node->children.size(); ++i)
-                    nQueue.push({nVal.node->children[i], nVal.value * values[i] / sum});
+                    addToQueue(nQueue, nVal.node->children[i], nVal.value * values[i] / sum, threshold);
 
                 eCount += nVal.node->children.size();
             }

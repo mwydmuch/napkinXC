@@ -84,14 +84,23 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &a
     for(int i = 0; i < bases.size(); ++i)
         prediction.push_back({i, bases[i]->predictProbability(features)});
 
-    if(args.topK > 0){
-        sort(prediction.rbegin(), prediction.rend());
-        prediction.resize(args.topK);
-    }
+    sort(prediction.rbegin(), prediction.rend());
+    resizePredict(prediction, args);
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args &args){
     return bases[label]->predictProbability(features);
+}
+
+void BR::resizePredict(std::vector<Prediction>& prediction, Args &args){
+    if(args.topK > 0)
+        prediction.resize(args.topK);
+
+    if(args.threshold > 0){
+        int i = 0;
+        while(prediction[i++].value > args.threshold);
+        prediction.resize(i - 1);
+    }
 }
 
 void BR::load(Args &args, std::string infile){

@@ -14,7 +14,7 @@
 #include <algorithm>
 #include <random>
 
-#include "batch_plt.h"
+#include "plt.h"
 #include "tree.h"
 
 
@@ -28,7 +28,7 @@ public:
 protected:
     void getNodesToUpdate(const int r, std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize) override;
-    Prediction predictNext(std::priority_queue<TreeNodeValue>& nQueue, Feature* features) override;
+    Prediction predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features, double threshold) override;
 
     int eCount; // Number of updated/evaluated classifiers during training or prediction
     int pLen; // Len of the path

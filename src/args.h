@@ -9,7 +9,7 @@
 #include <random>
 
 #include "types.h"
-#include "utils.h"
+#include "misc.h"
 
 // All tree tree types
 enum ModelType {
@@ -96,13 +96,10 @@ public:
     // Tree models
 
     // Tree options
-    int arity;
     TreeType treeType;
     std::string treeStructure;
+    int arity;
     int maxLeaves;
-
-    // Tree sampling
-    int sampleK;
 
     // K-Means tree options
     double kMeansEps;
@@ -111,7 +108,7 @@ public:
 
     // Prediction options
     int topK;
-    bool sparseWeights;
+    double threshold;
 
     inline int getSeed(){ return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);

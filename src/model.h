@@ -29,7 +29,6 @@ public:
     void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
     virtual void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) = 0;
     virtual void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) = 0;
-    //TODO: virtual std::vector<Prediction> predict(Feature* features, Args &args) = 0;
     virtual double predictForLabel(Label label, Feature* features, Args &args) = 0;
     virtual std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args &args);
 

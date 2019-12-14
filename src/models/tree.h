@@ -18,7 +18,7 @@
 #include "types.h"
 #include "base.h"
 #include "models/kmeans.h"
-#include "utils.h"
+#include "misc.h"
 
 // Tree node
 struct TreeNode{
@@ -45,14 +45,6 @@ struct TreeNodeFrequency{
 
     // Sorted from the lowest to the highest frequency
     bool operator<(const TreeNodeFrequency &r) const { return frequency > r.frequency; }
-};
-
-// For prediction in tree based models
-struct TreeNodeValue{
-    TreeNode* node;
-    double value; // Node's value/probability/loss
-
-    bool operator<(const TreeNodeValue &r) const { return value < r.value; }
 };
 
 class Tree: public FileHelper{

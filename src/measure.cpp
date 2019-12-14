@@ -160,8 +160,6 @@ void PrecisionAtK::accumulate(Label* labels, const std::vector<Prediction>& pred
     }
     sum += tp / k;
     ++count;
-    //sum += tp;
-    //count += k;
 }
 
 Coverage::Coverage(Args& args, int outputSize) : Measure(args, outputSize){

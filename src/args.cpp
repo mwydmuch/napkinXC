@@ -12,7 +12,7 @@
 #include "version.h"
 #include "args.h"
 #include "linear.h"
-#include "utils.h"
+#include "misc.h"
 
 Args::Args() {
     command = "";
@@ -66,9 +66,6 @@ Args::Args() {
     treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
 
-    // Tree sampling
-    sampleK = 100;
-
     // K-Means tree options
     kMeansEps = 0.0001;
     kMeansBalanced = true;
@@ -76,7 +73,7 @@ Args::Args() {
 
     // Prediction options
     topK = 5;
-    sparseWeights = true;
+    threshold = 0.0;
 
     // Set utility options
     setUtilityType = uAlfaBeta;
@@ -277,14 +274,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
-            else if (args[ai] == "--sampleK")
-                sampleK = std::stoi(args.at(ai + 1));
 
             // Prediction options
             else if (args[ai] == "--topK")
                 topK = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--sparseWeights")
-                sparseWeights = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));
             else {

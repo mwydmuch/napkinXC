@@ -11,7 +11,7 @@
 #include "base.h"
 #include "linear.h"
 #include "threads.h"
-#include "utils.h"
+#include "misc.h"
 
 
 Base::Base(){
@@ -227,13 +227,6 @@ double Base::predictValue(Feature* features){
     if(firstClass == 0) val *= -1;
     val /= pi; // Fobos
 
-    return val;
-}
-
-double Base::predictLoss(Feature* features){
-    double val = predictValue(features);
-    if(hingeLoss) val = std::pow(std::fmax(0, 1 - val), 2); // Hinge squared loss
-    else val = log(1 + std::exp(-val)); // Log loss
     return val;
 }
 

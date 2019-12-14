@@ -10,7 +10,7 @@
 #include "data_reader.h"
 #include "model.h"
 #include "types.h"
-#include "utils.h"
+#include "misc.h"
 
 
 void train(Args &args) {

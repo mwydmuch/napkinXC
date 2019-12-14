@@ -9,7 +9,7 @@
 #include <climits>
 
 #include "kmeans.h"
-#include "utils.h"
+#include "misc.h"
 
 // (Heuristic) Balanced K-Means clustering
 // Partition is returned via reference, calculated for cosine distance

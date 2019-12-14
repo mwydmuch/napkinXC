@@ -4,7 +4,7 @@
  */
 
 #include "libsvm_reader.h"
-#include "utils.h"
+#include "misc.h"
 
 
 LibSvmReader::LibSvmReader(){}

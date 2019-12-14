@@ -39,6 +39,7 @@ configure_file(
 # Gather napkinXC source files
 file(GLOB SOURCES
     ${SRC_DIR}/*.cpp
+    ${SRC_DIR}/utils/*.cpp
     ${SRC_DIR}/blas/*.c
     ${SRC_DIR}/data_readers/*.cpp
     ${SRC_DIR}/liblinear/*.cpp
@@ -46,6 +47,7 @@ file(GLOB SOURCES
 
 set(INCLUDES
     ${SRC_DIR}
+    ${SRC_DIR}/utils
     ${SRC_DIR}/blas
     ${SRC_DIR}/data_readers
     ${SRC_DIR}/liblinear
@@ -70,6 +72,10 @@ endif ()
 add_executable(nxc ${SOURCES})
 target_include_directories(nxc PUBLIC ${INCLUDES})
 target_link_libraries(nxc PUBLIC ${LIBRARIES})
+
+add_custom_command(TARGET nxc
+        PRE_BUILD
+        COMMAND )
 
 set_target_properties(nxc
     PROPERTIES

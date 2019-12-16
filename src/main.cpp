@@ -3,17 +3,17 @@
  * All rights reserved.
  */
 
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
 #include "args.h"
 #include "data_reader.h"
+#include "misc.h"
 #include "model.h"
 #include "types.h"
-#include "misc.h"
 
 
-void train(Args &args) {
+void train(Args& args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
 
@@ -34,7 +34,7 @@ void train(Args &args) {
     std::cerr << "All done!\n";
 }
 
-void test(Args &args) {
+void test(Args& args) {
     TimeHelper timer;
     timer.start();
 
@@ -69,7 +69,7 @@ void test(Args &args) {
     std::cerr << "All done!\n";
 }
 
-void predict(Args &args) {
+void predict(Args& args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -85,8 +85,8 @@ void predict(Args &args) {
     std::cout << std::setprecision(5);
 
     // Predict data from cin and output to cout
-    if(args.input == "-"){
-        //TODO
+    if (args.input == "-") {
+        // TODO
     }
 
     // Read data from file and output prediction to cout
@@ -97,13 +97,12 @@ void predict(Args &args) {
 
         std::vector<Prediction> prediction;
         prediction.reserve(model->outputSize());
-        for(int r = 0; r < features.rows(); ++r){
+        for (int r = 0; r < features.rows(); ++r) {
             model->predict(prediction, features.row(r), args);
 
             // Print prediction
             std::cout << labels.row(r)[0];
-            for(const auto& p : prediction)
-                std::cout << " " << p.label << ":" << p.value;
+            for (const auto& p : prediction) std::cout << " " << p.label << ":" << p.value;
             std::cout << std::endl;
             prediction.clear();
         }
@@ -117,11 +116,11 @@ int main(int argc, char** argv) {
     // Parse args
     args.parseArgs(arg);
 
-    if(args.command == "train")
+    if (args.command == "train")
         train(args);
-    else if(args.command == "test")
+    else if (args.command == "test")
         test(args);
-    else if(args.command == "predict")
+    else if (args.command == "predict")
         predict(args);
 
     return 0;

@@ -8,9 +8,9 @@
 #include "models/ovr.h"
 
 
-class UBOP: public OVR{
+class UBOP : public OVR {
 public:
     UBOP();
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 };

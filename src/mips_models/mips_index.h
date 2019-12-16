@@ -5,22 +5,21 @@
 
 #pragma once
 
-#include "space.h"
-#include "init.h"
 #include "index.h"
-#include "params.h"
-#include "rangequery.h"
+#include "init.h"
 #include "knnquery.h"
 #include "knnqueue.h"
 #include "methodfactory.h"
+#include "params.h"
+#include "rangequery.h"
 #include "space.h"
-#include "space/space_vector.h"
 #include "space/space_sparse_vector.h"
+#include "space/space_vector.h"
 #include "spacefactory.h"
 
 #include "args.h"
-#include "model.h"
 #include "base.h"
+#include "model.h"
 
 #include <iostream>
 #include <vector>
@@ -38,7 +37,7 @@ public:
     void addPoint(double* pointData, int size, int label);
     void addPoint(UnorderedMap<int, Weight>* pointData, int label);
     void createIndex(Args& args);
-    inline size_t getSize(){ return data.size(); }
+    inline size_t getSize() { return data.size(); }
     std::priority_queue<Prediction> predict(Feature* data, size_t k);
 
 protected:

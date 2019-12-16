@@ -3,23 +3,23 @@
  * All rights reserved.
  */
 
-#include <cassert>
 #include <algorithm>
-#include <vector>
-#include <list>
-#include <cmath>
+#include <cassert>
 #include <climits>
+#include <cmath>
+#include <list>
+#include <vector>
 
-#include "ubop.h"
 #include "set_utility.h"
+#include "ubop.h"
 
 
-UBOP::UBOP(){
+UBOP::UBOP() {
     type = ubop;
     name = "UBOP";
 }
 
-void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::vector<Prediction> allPredictions;
 
     args.topK = -1;
@@ -28,15 +28,16 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
     double P = 0, bestU = 0;
-    for(const auto& p : allPredictions){
+    for (const auto& p : allPredictions) {
         P += p.value;
         double U = u->g(prediction.size() + 1) * P;
-        if(bestU <= U) {
+        if (bestU <= U) {
             prediction.push_back(p);
             bestU = U;
-        } else break;
+        } else
+            break;
     }
 
-    //std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum << "\n";
-    //exit(0);
+    // std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum <<
+    // "\n"; exit(0);
 }

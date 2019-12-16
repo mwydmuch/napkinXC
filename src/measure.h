@@ -21,7 +21,7 @@ public:
     void accumulate(SRMatrix<Label>& labels, std::vector<std::vector<Prediction>>& predictions);
     virtual double value();
 
-    inline std::string getName(){ return name; }
+    inline std::string getName() { return name; }
 
 protected:
     std::string name;
@@ -29,7 +29,7 @@ protected:
     int count;
 };
 
-class MeasureAtK: public Measure {
+class MeasureAtK : public Measure {
 public:
     MeasureAtK(Args& args, int outputSize, int k);
 
@@ -37,35 +37,35 @@ protected:
     int k;
 };
 
-class Recall: public Measure {
+class Recall : public Measure {
 public:
     Recall(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class RecallAtK: public MeasureAtK {
+class RecallAtK : public MeasureAtK {
 public:
     RecallAtK(Args& args, int outputSize, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class Precision: public Measure {
+class Precision : public Measure {
 public:
     Precision(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class PrecisionAtK: public MeasureAtK {
+class PrecisionAtK : public MeasureAtK {
 public:
     PrecisionAtK(Args& args, int outputSize, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class Coverage: public Measure {
+class Coverage : public Measure {
 public:
     Coverage(Args& args, int outputSize);
 
@@ -77,7 +77,7 @@ protected:
     int m;
 };
 
-class CoverageAtK: public MeasureAtK {
+class CoverageAtK : public MeasureAtK {
 public:
     CoverageAtK(Args& args, int outputSize, int k);
 
@@ -89,14 +89,14 @@ protected:
     int m;
 };
 
-class Accuracy: public Measure {
+class Accuracy : public Measure {
 public:
     Accuracy(Args& args, int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class PredictionSize: public Measure{
+class PredictionSize : public Measure {
 public:
     PredictionSize(Args& args, int outputSize);
 

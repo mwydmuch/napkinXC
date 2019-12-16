@@ -3,23 +3,23 @@
  * All rights reserved.
  */
 
-#include <cassert>
 #include <algorithm>
-#include <vector>
-#include <list>
-#include <cmath>
+#include <cassert>
 #include <climits>
+#include <cmath>
+#include <list>
+#include <vector>
 
 #include "rbop.h"
 #include "set_utility.h"
 
 
-RBOP::RBOP(){
+RBOP::RBOP() {
     type = rbop;
     name = "RBOP";
 }
 
-void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
     std::priority_queue<TreeNodeValue> nQueue;
@@ -39,24 +39,24 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
-        if(nVal.node->label >= 0){
+        if (nVal.node->label >= 0) {
             kQueue = std::priority_queue<TreeNodeValue>();
-            //prediction.push_back({nVal.node->label, nVal.value});
+            // prediction.push_back({nVal.node->label, nVal.value});
             break;
         }
 
         int childrenAdded = 0;
-        if(nVal.node->children.size()){
-            if(nVal.node->children.size() == 2) {
+        if (nVal.node->children.size()) {
+            if (nVal.node->children.size() == 2) {
                 double value = bases[nVal.node->children[0]->index]->predictProbability(features);
                 double P = nVal.value * value;
-                if(P >= args.epsilon) {
+                if (P >= args.epsilon) {
                     TreeNode* c = nVal.node->children[0];
                     nQueue.push({c, P});
                     ++childrenAdded;
 
                     double U = u->g(tree->getNumberOfLeaves(c)) * P;
-                    if(bestU < U) {
+                    if (bestU < U) {
                         bestU = U;
                         bestN = c;
                         bestP = P;
@@ -64,37 +64,36 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                 }
 
                 P = nVal.value * (1.0 - value);
-                if(P >= args.epsilon) {
+                if (P >= args.epsilon) {
                     TreeNode* c = nVal.node->children[1];
                     nQueue.push({c, P});
                     ++childrenAdded;
 
                     double U = u->g(tree->getNumberOfLeaves(c)) * P;
-                    if(bestU < U) {
+                    if (bestU < U) {
                         bestU = U;
                         bestN = c;
                         bestP = P;
                     }
                 }
                 ++eCount;
-            }
-            else {
+            } else {
                 double sum = 0;
                 std::vector<double> values;
-                for (const auto &child : nVal.node->children) {
+                for (const auto& child : nVal.node->children) {
                     values.emplace_back(bases[child->index]->predictProbability(features));
                     sum += values.back();
                 }
 
-                for(int i = 0; i < nVal.node->children.size(); ++i) {
+                for (int i = 0; i < nVal.node->children.size(); ++i) {
                     double P = nVal.value * values[i] / sum;
-                    if(P >= args.epsilon) {
+                    if (P >= args.epsilon) {
                         TreeNode* c = nVal.node->children[i];
                         nQueue.push({c, P});
                         ++childrenAdded;
 
                         double U = u->g(tree->getNumberOfLeaves(c)) * P;
-                        if(bestU < U) {
+                        if (bestU < U) {
                             bestU = U;
                             bestN = c;
                             bestP = P;
@@ -105,8 +104,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
                 eCount += nVal.node->children.size();
             }
 
-            if(!childrenAdded)
-                kQueue.push({nVal.node, nVal.value});
+            if (!childrenAdded) kQueue.push({nVal.node, nVal.value});
         }
     }
 
@@ -117,33 +115,32 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
         double tmpBestP = 0;
         TreeNode* tmpBestN = nVal.node;
 
-        if(nVal.node->children.size()){
-            if(nVal.node->children.size() == 2) {
+        if (nVal.node->children.size()) {
+            if (nVal.node->children.size() == 2) {
                 double value = bases[nVal.node->children[0]->index]->predictProbability(features);
                 double P = nVal.value * value;
-                if(P > tmpBestP) {
+                if (P > tmpBestP) {
                     tmpBestP = P;
                     tmpBestN = nVal.node->children[0];
                 }
 
                 P = nVal.value * (1.0 - value);
-                if(P > bestP) {
+                if (P > bestP) {
                     tmpBestP = P;
                     tmpBestN = nVal.node->children[1];
                 }
                 ++eCount;
-            }
-            else {
+            } else {
                 double sum = 0;
                 std::vector<double> values;
-                for (const auto &child : nVal.node->children) {
+                for (const auto& child : nVal.node->children) {
                     values.emplace_back(bases[child->index]->predictProbability(features));
                     sum += values.back();
                 }
 
-                for(int i = 0; i < nVal.node->children.size(); ++i) {
+                for (int i = 0; i < nVal.node->children.size(); ++i) {
                     double P = nVal.value * values[i] / sum;
-                    if(P > tmpBestP) {
+                    if (P > tmpBestP) {
                         tmpBestP = P;
                         tmpBestN = nVal.node->children[i];
                     }
@@ -154,7 +151,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
         }
 
         double U = u->g(tree->getNumberOfLeaves(tmpBestN)) * tmpBestP;
-        if(bestU < U) {
+        if (bestU < U) {
             bestU = U;
             bestN = tmpBestN;
             bestP = tmpBestP;
@@ -165,13 +162,13 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args 
     std::queue<TreeNode*> predQueue;
     predQueue.push(bestN);
 
-    while(!predQueue.empty()){
+    while (!predQueue.empty()) {
         TreeNode* n = predQueue.front();
         predQueue.pop();
 
-        if(n->label >= 0) prediction.push_back({n->label, bestP});
-        for(auto c : n->children) predQueue.push(c);
+        if (n->label >= 0) prediction.push_back({n->label, bestP});
+        for (auto c : n->children) predQueue.push(c);
     }
 
-    //TODO divide values?
+    // TODO divide values?
 }

@@ -8,17 +8,17 @@
 #include <string>
 
 #include "args.h"
-#include "types.h"
 #include "misc.h"
+#include "types.h"
 
-class DataReader: public FileHelper{
+class DataReader : public FileHelper {
 public:
-    static std::shared_ptr<DataReader> factory(Args &args);
+    static std::shared_ptr<DataReader> factory(Args& args);
 
     DataReader();
     virtual ~DataReader();
 
-    void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+    void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
     virtual void readHeader(std::string& line) = 0;
     virtual void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures) = 0;
 
@@ -30,5 +30,3 @@ protected:
     int hFeatures;
     int hRows;
 };
-
-

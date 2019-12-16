@@ -9,7 +9,7 @@
 #include "measure.h"
 
 
-class SetUtility: public Measure {
+class SetUtility : public Measure {
 public:
     static std::shared_ptr<SetUtility> factory(Args& args, int outputSize);
 
@@ -21,7 +21,7 @@ public:
     virtual double g(int pSize) = 0;
 };
 
-class PrecisionUtility: public SetUtility{
+class PrecisionUtility : public SetUtility {
 public:
     PrecisionUtility(Args& args, int outputSize);
 
@@ -29,7 +29,7 @@ public:
     double g(int pSize) override;
 };
 
-class F1Utility: public SetUtility{
+class F1Utility : public SetUtility {
 public:
     F1Utility(Args& args, int outputSize);
 
@@ -37,7 +37,7 @@ public:
     double g(int pSize) override;
 };
 
-class UtilityAlfa: public SetUtility{
+class UtilityAlfa : public SetUtility {
 public:
     UtilityAlfa(Args& args, int outputSize);
 
@@ -49,7 +49,7 @@ protected:
     int m;
 };
 
-class UtilityAlfaBeta: public SetUtility{
+class UtilityAlfaBeta : public SetUtility {
 public:
     UtilityAlfaBeta(Args& args, int outputSize);
 
@@ -62,7 +62,7 @@ protected:
     int m;
 };
 
-class UtilityDeltaGamma: public SetUtility{
+class UtilityDeltaGamma : public SetUtility {
 public:
     UtilityDeltaGamma(Args& args, int outputSize);
 
@@ -73,5 +73,3 @@ protected:
     double delta;
     double gamma;
 };
-
-

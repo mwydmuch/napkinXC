@@ -9,7 +9,7 @@
 
 #include "data_reader.h"
 
-class LibSvmReader: public DataReader{
+class LibSvmReader : public DataReader {
 public:
     LibSvmReader();
     ~LibSvmReader() override;

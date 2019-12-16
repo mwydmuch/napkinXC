@@ -4,18 +4,18 @@
  * All rights reserved.
  */
 
-#include <cassert>
-#include <unordered_set>
 #include <algorithm>
-#include <vector>
-#include <list>
-#include <cmath>
+#include <cassert>
 #include <climits>
+#include <cmath>
+#include <list>
+#include <unordered_set>
+#include <vector>
 
 #include "plt.h"
 
 
-PLT::PLT(){
+PLT::PLT() {
     tree = nullptr;
     nCount = 0;
     rCount = 0;
@@ -23,14 +23,14 @@ PLT::PLT(){
     name = "PLT";
 }
 
-PLT::~PLT(){
+PLT::~PLT() {
     delete tree;
-    for(auto b : bases) delete b;
+    for (auto b : bases) delete b;
 }
 
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                           std::vector<std::vector<double>*>* binWeights,
-                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
+                           std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
+                           SRMatrix<Feature>& features, Args& args) {
 
     std::cerr << "Assigning data points to nodes ...\n";
 
@@ -40,7 +40,7 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
 
     // Gather examples for each node
     int rows = features.rows();
-    for(int r = 0; r < rows; ++r){
+    for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
         nPositive.clear();
@@ -67,9 +67,9 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
 }
 
 void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
-                           const int* rLabels, const int rSize){
+                           const int* rLabels, const int rSize) {
     for (int i = 0; i < rSize; ++i) {
-        TreeNode *n = tree->leaves[rLabels[i]];
+        TreeNode* n = tree->leaves[rLabels[i]];
         nPositive.insert(n);
         while (n->parent) {
             n = n->parent;
@@ -77,40 +77,42 @@ void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
         }
     }
 
-    if(!nPositive.count(tree->root)){
+    if (!nPositive.count(tree->root)) {
         nNegative.insert(tree->root);
         return;
     }
 
     std::queue<TreeNode*> nQueue; // Nodes queue
-    nQueue.push(tree->root); // Push root
+    nQueue.push(tree->root);      // Push root
 
-    while(!nQueue.empty()) {
+    while (!nQueue.empty()) {
         TreeNode* n = nQueue.front(); // Current node
         nQueue.pop();
 
-        for(const auto& child : n->children) {
-            if (nPositive.count(child)) nQueue.push(child);
-            else nNegative.insert(child);
+        for (const auto& child : n->children) {
+            if (nPositive.count(child))
+                nQueue.push(child);
+            else
+                nNegative.insert(child);
         }
     }
 }
 
 void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                       std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
-                      Feature* features){
-    for (const auto& n : nPositive){
+                      Feature* features) {
+    for (const auto& n : nPositive) {
         binLabels[n->index].push_back(1.0);
         binFeatures[n->index].push_back(features);
     }
 
-    for (const auto& n : nNegative){
+    for (const auto& n : nNegative) {
         binLabels[n->index].push_back(0.0);
         binFeatures[n->index].push_back(features);
     }
 }
 
-void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::priority_queue<TreeNodeValue> nQueue;
 
     nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
@@ -129,29 +131,28 @@ Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
-        if(!nVal.node->children.empty()){
-            for(const auto& child : nVal.node->children)
+        if (!nVal.node->children.empty()) {
+            for (const auto& child : nVal.node->children)
                 addToQueue(nQueue, child, nVal.value * bases[child->index]->predictProbability(features), threshold);
             nCount += nVal.node->children.size();
         }
-        if(nVal.node->label >= 0)
-            return {nVal.node->label, nVal.value};
+        if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
     }
 
     return {-1, 0};
 }
 
-double PLT::predictForLabel(Label label, Feature* features, Args &args){
-    TreeNode *n = tree->leaves[label];
+double PLT::predictForLabel(Label label, Feature* features, Args& args) {
+    TreeNode* n = tree->leaves[label];
     double value = bases[n->index]->predictProbability(features);
-    while (n->parent){
+    while (n->parent) {
         n = n->parent;
         value *= bases[n->index]->predictProbability(features);
     }
     return value;
 }
 
-void PLT::load(Args &args, std::string infile){
+void PLT::load(Args& args, std::string infile) {
     std::cerr << "Loading " << name << " model ...\n";
 
     tree = new Tree();
@@ -161,16 +162,15 @@ void PLT::load(Args &args, std::string infile){
     m = tree->getNumberOfLeaves();
 }
 
-void PLT::printInfo(){
+void PLT::printInfo() {
     std::cerr << "PLT additional stats:"
-              << "\n  Mean # nodes per data point: " << static_cast<double>(nCount) / rCount
-              << "\n";
+              << "\n  Mean # nodes per data point: " << static_cast<double>(nCount) / rCount << "\n";
 }
 
-void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
+void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
 
     // Create tree
-    if(!tree) {
+    if (!tree) {
         tree = new Tree();
         tree->buildTreeStructure(labels, features, args);
     }
@@ -186,10 +186,10 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     std::vector<std::vector<double>> binLabels(tree->t);
     std::vector<std::vector<Feature*>> binFeatures(tree->t);
     std::vector<std::vector<double>*>* binWeights = nullptr;
-    if(type == hsm && args.hsmPickOneLabelWeighting){
+    if (type == hsm && args.hsmPickOneLabelWeighting) {
         binWeights = new std::vector<std::vector<double>*>();
         binWeights->resize(tree->t);
-        for(auto& p : *binWeights) p = new std::vector<double>();
+        for (auto& p : *binWeights) p = new std::vector<double>();
     }
 
     assignDataPoints(binLabels, binFeatures, binWeights, labels, features, args);

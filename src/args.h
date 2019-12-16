@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include <string>
 #include <random>
+#include <string>
 
-#include "types.h"
 #include "misc.h"
+#include "types.h"
 
 // All tree tree types
 enum ModelType {
@@ -44,15 +44,9 @@ enum OptimizerType { libliner, sgd, adagrad, fobos };
 
 enum DataFormatType { libsvm };
 
-enum SetUtilityType {
-    uP,
-    uF1,
-    uAlfa,
-    uAlfaBeta,
-    uDeltaGamma
-};
+enum SetUtilityType { uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma };
 
-class Args: public FileHelper{
+class Args : public FileHelper {
 public:
     Args();
 
@@ -111,7 +105,7 @@ public:
     int topK;
     double threshold;
 
-    inline int getSeed(){ return rngSeeder(); };
+    inline int getSeed() { return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);
     void printArgs();
     void printHelp();

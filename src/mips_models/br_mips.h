@@ -9,13 +9,13 @@
 #include "mips_index.h"
 
 
-class BRMIPS: public BR{
+class BRMIPS : public BR {
 public:
     BRMIPS();
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-    void load(Args &args, std::string infile) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void load(Args& args, std::string infile) override;
 
 protected:
-    MIPSIndex *mipsIndex;
+    MIPSIndex* mipsIndex;
 };

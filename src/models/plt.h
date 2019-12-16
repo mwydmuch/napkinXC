@@ -11,32 +11,35 @@
 #include "tree.h"
 
 // For prediction in tree based models
-struct TreeNodeValue{
+struct TreeNodeValue {
     TreeNode* node;
     double value; // Node's value/probability/loss
 
-    bool operator<(const TreeNodeValue &r) const { return value < r.value; }
+    bool operator<(const TreeNodeValue& r) const { return value < r.value; }
 };
 
 // This is virtual class for all PLT based models: HSM, Batch PLT, Online PLT
-class PLT: virtual public Model{
+class PLT : virtual public Model {
 public:
     PLT();
     ~PLT() override;
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-    double predictForLabel(Label label, Feature* features, Args &args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    double predictForLabel(Label label, Feature* features, Args& args) override;
 
-    void load(Args &args, std::string infile) override;
+    void load(Args& args, std::string infile) override;
 
     void printInfo() override;
 
     Tree* tree;
+
 protected:
     std::vector<Base*> bases;
 
-    virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                                  std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args);
+    virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
+                                  std::vector<std::vector<Feature*>>& binFeatures,
+                                  std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
+                                  SRMatrix<Feature>& features, Args& args);
     void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
     void addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
@@ -44,9 +47,11 @@ protected:
                      Feature* features);
 
     // Helper methods for prediction
-    virtual Prediction predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features, double threshold);
-    inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value, double threshold){
-        if(value >= threshold) nQueue.push({node, value});
+    virtual Prediction predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
+                                        double threshold);
+    inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value,
+                                  double threshold) {
+        if (value >= threshold) nQueue.push({node, value});
     }
 
     // Additional statistics
@@ -54,7 +59,7 @@ protected:
     int rCount; // Data points count
 };
 
-class BatchPLT: public PLT{
+class BatchPLT : public PLT {
 public:
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args, std::string output) override;
+    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
 };

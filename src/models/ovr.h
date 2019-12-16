@@ -8,10 +8,10 @@
 #include "br.h"
 
 // One against all
-class OVR: public BR{  // OVR is multi-class version of BR
+class OVR : public BR { // OVR is multi-class version of BR
 public:
     OVR();
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
-    double predictForLabel(Label label, Feature* features, Args &args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    double predictForLabel(Label label, Feature* features, Args& args) override;
 };

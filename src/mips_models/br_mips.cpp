@@ -3,33 +3,33 @@
  * All rights reserved.
  */
 
-#include <cassert>
 #include <algorithm>
-#include <vector>
-#include <list>
-#include <cmath>
+#include <cassert>
 #include <climits>
+#include <cmath>
+#include <list>
+#include <vector>
 
 #include "set_utility.h"
 #include "ubop_mips.h"
 
 
-BRMIPS::BRMIPS(){
+BRMIPS::BRMIPS() {
     type = brMips;
     name = "BR MIPS";
 }
 
-void BRMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+void BRMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
 
     std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, args.topK);
-    while(!mipsPrediction.empty()) {
+    while (!mipsPrediction.empty()) {
         auto p = mipsPrediction.top();
         mipsPrediction.pop();
         prediction.push_back(p);
     }
 }
 
-void BRMIPS::load(Args &args, std::string infile){
+void BRMIPS::load(Args& args, std::string infile) {
     std::cerr << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();
@@ -37,14 +37,14 @@ void BRMIPS::load(Args &args, std::string infile){
     std::cerr << "Adding points to MIPSIndex ...\n";
     size_t dim = bases[0]->size();
     mipsIndex = new MIPSIndex(dim, args);
-    for(int i = 0; i < m; ++i){
+    for (int i = 0; i < m; ++i) {
         printProgress(i, m);
         bases[i]->toMap();
-        if(!bases[i]->getFirstClass()) bases[i]->invertWeights();
+        if (!bases[i]->getFirstClass()) bases[i]->invertWeights();
         mipsIndex->addPoint(bases[i]->getMapW(), i);
 
-        //bases[i]->toDense();
-        //mipsIndex->addPoint(bases[i]->getW(), bases[i]->size(), i);
+        // bases[i]->toDense();
+        // mipsIndex->addPoint(bases[i]->getW(), bases[i]->size(), i);
     }
 
     mipsIndex->createIndex(args);

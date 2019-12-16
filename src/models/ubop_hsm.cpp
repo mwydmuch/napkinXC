@@ -7,12 +7,12 @@
 #include "set_utility.h"
 
 
-UBOPHSM::UBOPHSM(){
+UBOPHSM::UBOPHSM() {
     type = ubopHsm;
     name = "UBOP HSM";
 }
 
-void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Args &args){
+void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::priority_queue<TreeNodeValue> nQueue;
 
     double value = bases[tree->root->index]->predictProbability(features);
@@ -23,13 +23,14 @@ void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Ar
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
     double P = 0, bestU = 0;
-    while (!nQueue.empty()){
+    while (!nQueue.empty()) {
         auto p = predictNextLabel(nQueue, features, 0.0);
         P += p.value;
         double U = u->g(prediction.size() + 1) * P;
-        if(bestU < U) {
+        if (bestU < U) {
             prediction.push_back(p);
             bestU = U;
-        } else break;
+        } else
+            break;
     }
 }

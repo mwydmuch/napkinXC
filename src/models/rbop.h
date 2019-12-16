@@ -8,9 +8,9 @@
 #include "hsm.h"
 
 
-class RBOP: public HSM{
+class RBOP : public HSM {
 public:
     RBOP();
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 };

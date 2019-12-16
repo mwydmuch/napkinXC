@@ -8,9 +8,9 @@
 #include "br_mips.h"
 
 
-class UBOPMIPS: public BRMIPS{
+class UBOPMIPS : public BRMIPS {
 public:
     UBOPMIPS();
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args &args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 };

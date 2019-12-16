@@ -3,15 +3,15 @@
  * All rights reserved.
  */
 
-#include <iostream>
-#include <fstream>
 #include <cassert>
 #include <cmath>
+#include <fstream>
 #include <iomanip>
+#include <iostream>
 
-#include "version.h"
 #include "args.h"
 #include "misc.h"
+#include "version.h"
 
 Args::Args() {
     command = "";
@@ -60,8 +60,8 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    //treeType = completeInOrder;
-    //treeTypeName = "completeInOrder";
+    // treeType = completeInOrder;
+    // treeTypeName = "completeInOrder";
     treeType = hierarchicalKMeans;
     treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
@@ -91,10 +91,9 @@ Args::Args() {
 void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
 
-    if (command == "-h" || command == "--help" || command == "help")
-        printHelp();
+    if (command == "-h" || command == "--help" || command == "help") printHelp();
 
-    if(command != "train" && command != "test" && command != "predict"){
+    if (command != "train" && command != "test" && command != "predict") {
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
@@ -118,53 +117,65 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 output = std::string(args.at(ai + 1));
             else if (args[ai] == "-d" || args[ai] == "--dataFormat") {
                 dataFormatName = args.at(ai + 1);
-                if (args.at(ai + 1) == "libsvm") dataFormatType = libsvm;
+                if (args.at(ai + 1) == "libsvm")
+                    dataFormatType = libsvm;
                 else {
                     std::cerr << "Unknown date format type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            }
-            else if (args[ai] == "--ensemble")
+            } else if (args[ai] == "--ensemble")
                 ensemble = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--onTheTrotPrediction")
                 onTheTrotPrediction = std::stoi(args.at(ai + 1));
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
-                if (args.at(ai + 1) == "br") modelType = br;
-                else if (args.at(ai + 1) == "ovr") modelType = ovr;
-                else if (args.at(ai + 1) == "hsm") modelType = hsm;
-                else if (args.at(ai + 1) == "plt") modelType = plt;
-                else if (args.at(ai + 1) == "ubop") modelType = ubop;
-                else if (args.at(ai + 1) == "rbop") modelType = rbop;
-                else if (args.at(ai + 1) == "ubopHsm") modelType = ubopHsm;
-                else if (args.at(ai + 1) == "oplt") modelType = oplt;
-                // Mips extension models
-                #ifdef MIPS_EXT
-                else if (args.at(ai + 1) == "brMips") modelType = brMips;
-                else if (args.at(ai + 1) == "ubopMips") modelType = ubopMips;
-                #else
+                if (args.at(ai + 1) == "br")
+                    modelType = br;
+                else if (args.at(ai + 1) == "ovr")
+                    modelType = ovr;
+                else if (args.at(ai + 1) == "hsm")
+                    modelType = hsm;
+                else if (args.at(ai + 1) == "plt")
+                    modelType = plt;
+                else if (args.at(ai + 1) == "ubop")
+                    modelType = ubop;
+                else if (args.at(ai + 1) == "rbop")
+                    modelType = rbop;
+                else if (args.at(ai + 1) == "ubopHsm")
+                    modelType = ubopHsm;
+                else if (args.at(ai + 1) == "oplt")
+                    modelType = oplt;
+// Mips extension models
+#ifdef MIPS_EXT
+                else if (args.at(ai + 1) == "brMips")
+                    modelType = brMips;
+                else if (args.at(ai + 1) == "ubopMips")
+                    modelType = ubopMips;
+#else
                 else if (args.at(ai + 1) == "brMips" || args.at(ai + 1) == "ubopMips") {
                     std::cerr << args.at(ai + 1) << " model requires MIPS extension";
                     exit(EXIT_FAILURE);
                 }
-                #endif
+#endif
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            }
-            else if (args[ai] == "--setUtility") {
+            } else if (args[ai] == "--setUtility") {
                 setUtilityName = args.at(ai + 1);
-                if (args.at(ai + 1) == "uP") setUtilityType = uP;
-                else if (args.at(ai + 1) == "uF1") setUtilityType = uF1;
-                else if (args.at(ai + 1) == "uAlfaBeta") setUtilityType = uAlfaBeta;
-                else if (args.at(ai + 1) == "uDeltaGamma") setUtilityType = uDeltaGamma;
+                if (args.at(ai + 1) == "uP")
+                    setUtilityType = uP;
+                else if (args.at(ai + 1) == "uF1")
+                    setUtilityType = uF1;
+                else if (args.at(ai + 1) == "uAlfaBeta")
+                    setUtilityType = uAlfaBeta;
+                else if (args.at(ai + 1) == "uDeltaGamma")
+                    setUtilityType = uDeltaGamma;
                 else {
                     std::cerr << "Unknown set utility type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            }
-            else if (args[ai] == "--alfa")
+            } else if (args[ai] == "--alfa")
                 alfa = std::stof(args.at(ai + 1));
             else if (args[ai] == "--beta")
                 beta = std::stof(args.at(ai + 1));
@@ -193,11 +204,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             // Training options
             else if (args[ai] == "-t" || args[ai] == "--threads") {
                 threads = std::stoi(args.at(ai + 1));
-                if (threads == 0) threads = getCpuCount();
-                else if (threads == -1) threads = getCpuCount() - 1;
-            } else if (args[ai] == "--memLimit"){
+                if (threads == 0)
+                    threads = getCpuCount();
+                else if (threads == -1)
+                    threads = getCpuCount() - 1;
+            } else if (args[ai] == "--memLimit") {
                 memLimit = static_cast<unsigned long long>(std::stof(args.at(ai + 1)) * 1024 * 1024 * 1024);
-                if(memLimit == 0) memLimit = getSystemMemory();
+                if (memLimit == 0) memLimit = getSystemMemory();
             } else if (args[ai] == "-e" || args[ai] == "--eps")
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost")
@@ -208,30 +221,39 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hsmPickOneLabelWeighting = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
-                if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
-                else if (args.at(ai + 1) == "L2R_LR") solverType = L2R_LR;
-                else if (args.at(ai + 1) == "L1R_LR") solverType = L1R_LR;
-                else if (args.at(ai + 1) == "L2R_L2LOSS_SVC_DUAL") solverType = L2R_L2LOSS_SVC_DUAL;
-                else if (args.at(ai + 1) == "L2R_L2LOSS_SVC") solverType = L2R_L2LOSS_SVC;
-                else if (args.at(ai + 1) == "L2R_L1LOSS_SVC_DUAL") solverType = L2R_L1LOSS_SVC_DUAL;
-                else if (args.at(ai + 1) == "L1R_L2LOSS_SVC") solverType = L1R_L2LOSS_SVC;
+                if (args.at(ai + 1) == "L2R_LR_DUAL")
+                    solverType = L2R_LR_DUAL;
+                else if (args.at(ai + 1) == "L2R_LR")
+                    solverType = L2R_LR;
+                else if (args.at(ai + 1) == "L1R_LR")
+                    solverType = L1R_LR;
+                else if (args.at(ai + 1) == "L2R_L2LOSS_SVC_DUAL")
+                    solverType = L2R_L2LOSS_SVC_DUAL;
+                else if (args.at(ai + 1) == "L2R_L2LOSS_SVC")
+                    solverType = L2R_L2LOSS_SVC;
+                else if (args.at(ai + 1) == "L2R_L1LOSS_SVC_DUAL")
+                    solverType = L2R_L1LOSS_SVC_DUAL;
+                else if (args.at(ai + 1) == "L1R_L2LOSS_SVC")
+                    solverType = L1R_L2LOSS_SVC;
                 else {
                     std::cerr << "Unknown solver type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            }
-            else if (args[ai] == "--optimizer") {
+            } else if (args[ai] == "--optimizer") {
                 optimizerName = args.at(ai + 1);
-                if (args.at(ai + 1) == "liblinear") optimizerType = libliner;
-                else if (args.at(ai + 1) == "sgd") optimizerType = sgd;
-                else if (args.at(ai + 1) == "adagrad") optimizerType = adagrad;
-                else if (args.at(ai + 1) == "fobos") optimizerType = fobos;
-                else{
+                if (args.at(ai + 1) == "liblinear")
+                    optimizerType = libliner;
+                else if (args.at(ai + 1) == "sgd")
+                    optimizerType = sgd;
+                else if (args.at(ai + 1) == "adagrad")
+                    optimizerType = adagrad;
+                else if (args.at(ai + 1) == "fobos")
+                    optimizerType = fobos;
+                else {
                     std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            }
-            else if (args[ai] == "-l" || args[ai] == "--lr" || args[ai] == "--eta")
+            } else if (args[ai] == "-l" || args[ai] == "--lr" || args[ai] == "--eta")
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epochs")
                 epochs = std::stoi(args.at(ai + 1));
@@ -242,7 +264,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--fobosPenalty")
                 fobosPenalty = std::stof(args.at(ai + 1));
 
-                // Tree options
+            // Tree options
             else if (args[ai] == "-a" || args[ai] == "--arity")
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--maxLeaves")
@@ -256,19 +278,28 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--treeStructure") {
                 treeStructure = std::string(args.at(ai + 1));
                 treeType = custom;
-            }
-            else if (args[ai] == "--treeType") {
+            } else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
-                if (args.at(ai + 1) == "completeInOrder") treeType = completeInOrder;
-                else if (args.at(ai + 1) == "completeRandom") treeType = completeRandom;
-                else if (args.at(ai + 1) == "balancedInOrder") treeType = balancedInOrder;
-                else if (args.at(ai + 1) == "balancedRandom") treeType = balancedRandom;
-                else if (args.at(ai + 1) == "hierarchicalKMeans") treeType = hierarchicalKMeans;
-                else if (args.at(ai + 1) == "huffman") treeType = huffman;
-                else if (args.at(ai + 1) == "onlineBalanced") treeType = onlineBalanced;
-                else if (args.at(ai + 1) == "onlineComplete") treeType = onlineComplete;
-                else if (args.at(ai + 1) == "onlineRandom") treeType = onlineRandom;
-                else if (args.at(ai + 1) == "onlineBottomUp") treeType = onlineBottomUp;
+                if (args.at(ai + 1) == "completeInOrder")
+                    treeType = completeInOrder;
+                else if (args.at(ai + 1) == "completeRandom")
+                    treeType = completeRandom;
+                else if (args.at(ai + 1) == "balancedInOrder")
+                    treeType = balancedInOrder;
+                else if (args.at(ai + 1) == "balancedRandom")
+                    treeType = balancedRandom;
+                else if (args.at(ai + 1) == "hierarchicalKMeans")
+                    treeType = hierarchicalKMeans;
+                else if (args.at(ai + 1) == "huffman")
+                    treeType = huffman;
+                else if (args.at(ai + 1) == "onlineBalanced")
+                    treeType = onlineBalanced;
+                else if (args.at(ai + 1) == "onlineComplete")
+                    treeType = onlineComplete;
+                else if (args.at(ai + 1) == "onlineRandom")
+                    treeType = onlineRandom;
+                else if (args.at(ai + 1) == "onlineBottomUp")
+                    treeType = onlineBottomUp;
 
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << "!\n";
@@ -288,8 +319,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 printHelp();
             }
 
-        }
-        catch (std::out_of_range) {
+        } catch (std::out_of_range) {
             std::cerr << args[ai] << " is missing an argument!\n";
             printHelp();
         }
@@ -301,43 +331,43 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     }
 
     // Change default values for specific cases + parameters warnings
-    if (modelType == oplt && optimizerType == libliner){
-        if(count(args.begin(), args.end(), "optimizer"))
-            std::cerr << "Online PLT does not support " <<  optimizerName << " optimizer! Changing to AdaGrad.\n";
+    if (modelType == oplt && optimizerType == libliner) {
+        if (count(args.begin(), args.end(), "optimizer"))
+            std::cerr << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
         optimizerType = adagrad;
         optimizerName = "adagrad";
     }
 
-    if (modelType == oplt && (treeType == hierarchicalKMeans || treeType == huffman)){
-        if(count(args.begin(), args.end(), "treeType"))
-            std::cerr << "Online PLT does not support " << treeTypeName << " tree type! Changing to complete in order tree.\n";
+    if (modelType == oplt && (treeType == hierarchicalKMeans || treeType == huffman)) {
+        if (count(args.begin(), args.end(), "treeType"))
+            std::cerr << "Online PLT does not support " << treeTypeName
+                      << " tree type! Changing to complete in order tree.\n";
         treeType = completeInOrder;
     }
 
-    if(topK > 0){
-        if(count(args.begin(), args.end(), "threshold"))
+    if (topK > 0) {
+        if (count(args.begin(), args.end(), "threshold"))
             std::cerr << "Warning: Top K and threshold prediction are used at the same time!\n";
-        else threshold = 0.0;
+        else
+            threshold = 0.0;
     }
 
-    if(threshold > 0){
-        if(count(args.begin(), args.end(), "topK"))
+    if (threshold > 0) {
+        if (count(args.begin(), args.end(), "topK"))
             std::cerr << "Warning: Top K and threshold prediction are used at the same time!\n";
-        else topK = 0;
+        else
+            topK = 0;
     }
 }
 
-void Args::printArgs(){
-    if (command == "train" || command == "test"){
-        std::cerr << "napkinXC " << VERSION << " - " << command
-            << "\n  Input: " << input
-            << "\n    Data format: " << dataFormatType
-            << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm
-            << ", hash size: " << hash << ", features threshold: " << featuresThreshold
-            << "\n  Model: " << output
-            << "\n    Type: " << modelName;
-        if(ensemble > 1) std::cerr << ", ensemble: " << ensemble;
-        if(command == "train") {
+void Args::printArgs() {
+    if (command == "train" || command == "test") {
+        std::cerr << "napkinXC " << VERSION << " - " << command << "\n  Input: " << input
+                  << "\n    Data format: " << dataFormatType << "\n    Header: " << header << ", bias: " << bias
+                  << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
+                  << "\n  Model: " << output << "\n    Type: " << modelName;
+        if (ensemble > 1) std::cerr << ", ensemble: " << ensemble;
+        if (command == "train") {
             std::cerr << "\n    Optimizer: " << optimizerName;
             if (optimizerType == libliner)
                 std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost
@@ -345,32 +375,33 @@ void Args::printArgs(){
             else if (optimizerType == sgd)
                 std::cerr << "\n    SGD: eta: " << eta << ", epochs: " << epochs << ", threshold: " << weightsThreshold;
 
-            if(modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm){
-                if(treeStructure.empty()) {
+            if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
+                if (treeStructure.empty()) {
                     std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
                     if (treeType == hierarchicalKMeans)
-                        std::cerr << ", k-means eps: " << kMeansEps
-                                  << ", balanced: " << kMeansBalanced << ", weighted features: " << kMeansWeightedFeatures;
+                        std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced
+                                  << ", weighted features: " << kMeansWeightedFeatures;
                     if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
                         std::cerr << ", max leaves: " << maxLeaves;
-                }
-                else {
+                } else {
                     std::cerr << "\n    Tree: " << treeStructure;
                 }
             }
         }
 
-        if(command == "test" && (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips)) {
+        if (command == "test" &&
+            (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips)) {
             std::cerr << "\n  Set utility: " << setUtilityName;
-            if(setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
-            if(setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
-            if(setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
+            if (setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
+            if (setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
+            if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
         }
-        std::cerr << "\n  Threads: " << threads << ", memory limit: " << static_cast<double>(memLimit) / 1024 / 1024 / 1024 << "G\n";
+        std::cerr << "\n  Threads: " << threads
+                  << ", memory limit: " << static_cast<double>(memLimit) / 1024 / 1024 / 1024 << "G\n";
     }
 }
 
-void Args::printHelp(){
+void Args::printHelp() {
     std::cerr << R"HELP(Usage: nxc <command> <args>
 
 Commands:
@@ -458,21 +489,21 @@ Args:
     exit(EXIT_FAILURE);
 }
 
-void Args::save(std::ostream& out){
-    //TODO: save names and other parameters that are displayed
-    out.write((char*) &bias, sizeof(bias));
-    out.write((char*) &norm, sizeof(norm));
-    out.write((char*) &hash, sizeof(hash));
-    out.write((char*) &modelType, sizeof(modelType));
-    out.write((char*) &dataFormatType, sizeof(dataFormatType));
-    //out.write((char*) &ensemble, sizeof(ensemble));
+void Args::save(std::ostream& out) {
+    // TODO: save names and other parameters that are displayed
+    out.write((char*)&bias, sizeof(bias));
+    out.write((char*)&norm, sizeof(norm));
+    out.write((char*)&hash, sizeof(hash));
+    out.write((char*)&modelType, sizeof(modelType));
+    out.write((char*)&dataFormatType, sizeof(dataFormatType));
+    // out.write((char*) &ensemble, sizeof(ensemble));
 }
 
-void Args::load(std::istream& in){
-    in.read((char*) &bias, sizeof(bias));
-    in.read((char*) &norm, sizeof(norm));
-    in.read((char*) &hash, sizeof(hash));
-    in.read((char*) &modelType, sizeof(modelType));
-    in.read((char*) &dataFormatType, sizeof(dataFormatType));
-    //in.read((char*) &ensemble, sizeof(ensemble));
+void Args::load(std::istream& in) {
+    in.read((char*)&bias, sizeof(bias));
+    in.read((char*)&norm, sizeof(norm));
+    in.read((char*)&hash, sizeof(hash));
+    in.read((char*)&modelType, sizeof(modelType));
+    in.read((char*)&dataFormatType, sizeof(dataFormatType));
+    // in.read((char*) &ensemble, sizeof(ensemble));
 }

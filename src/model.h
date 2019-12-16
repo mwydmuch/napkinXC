@@ -6,6 +6,7 @@
 #pragma once
 
 #include <string>
+#include <future>
 #include <fstream>
 
 #include "args.h"
@@ -43,19 +44,26 @@ protected:
     int m; // Output size/number of labels
 
     // Base utils
-    static Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures, Args& args);
+    static Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
+                           std::vector<double>* instancesWeights, Args& args);
+
+    static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results);
 
     static void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                    std::vector<std::vector<Feature*>>& baseFeatures, Args& args);
+                           std::vector<std::vector<Feature*>>& baseFeatures,
+                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
 
     static void trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                    std::vector<std::vector<Feature*>>& baseFeatures, Args& args);
+                           std::vector<std::vector<Feature*>>& baseFeatures,
+                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
 
     static void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                                    std::vector<Feature*>& baseFeatures, Args& args);
+                                           std::vector<Feature*>& baseFeatures,
+                                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
 
     static void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                                    std::vector<Feature*>& baseFeatures, Args& args);
+                                           std::vector<Feature*>& baseFeatures,
+                                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
 
     static std::vector<Base*> loadBases(std::string infile);
 };

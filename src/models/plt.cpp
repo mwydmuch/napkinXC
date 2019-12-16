@@ -29,6 +29,7 @@ PLT::~PLT(){
 }
 
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                           std::vector<std::vector<double>*>* binWeights,
                            SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
 
     std::cerr << "Assigning data points to nodes ...\n";
@@ -45,7 +46,19 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         nPositive.clear();
         nNegative.clear();
 
-        getNodesToUpdate(r, nPositive, nNegative, labels[r], labels.size(r));
+        auto rSize = labels.size(r);
+        auto rLabels = labels[r];
+
+        // Check row
+        for (int i = 0; i < rSize; ++i) {
+            auto ni = tree->leaves.find(rLabels[i]);
+            if (ni == tree->leaves.end()) {
+                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree!\n";
+                continue;
+            }
+        }
+
+        getNodesToUpdate(nPositive, nNegative, rLabels, rSize);
         addFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
 
         nCount += nPositive.size() + nNegative.size();
@@ -53,15 +66,10 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     }
 }
 
-void PLT::getNodesToUpdate(const int row, std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
                            const int* rLabels, const int rSize){
     for (int i = 0; i < rSize; ++i) {
-        auto ni = tree->leaves.find(rLabels[i]);
-        if(ni == tree->leaves.end()) {
-            std::cerr << "Row: " << row << ", encountered example with label that does not exists in the tree!\n";
-            continue;
-        }
-        TreeNode *n = ni->second;
+        TreeNode *n = tree->leaves[rLabels[i]];
         nPositive.insert(n);
         while (n->parent) {
             n = n->parent;
@@ -177,9 +185,15 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     // Examples selected for each node
     std::vector<std::vector<double>> binLabels(tree->t);
     std::vector<std::vector<Feature*>> binFeatures(tree->t);
+    std::vector<std::vector<double>*>* binWeights = nullptr;
+    if(type == hsm && args.hsmPickOneLabelWeighting){
+        binWeights = new std::vector<std::vector<double>*>();
+        binWeights->resize(tree->t);
+        for(auto& p : *binWeights) p = new std::vector<double>();
+    }
 
-    assignDataPoints(binLabels, binFeatures, labels, features, args);
-    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, args);
+    assignDataPoints(binLabels, binFeatures, binWeights, labels, features, args);
+    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
 
     // Save tree
     tree->saveToFile(joinPath(output, "tree.bin"));

@@ -21,26 +21,62 @@ HSM::HSM() {
     name = "HSM";
 }
 
-void HSM::getNodesToUpdate(const int row, std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
-                           const int* rLabels, const int rSize){
-    
-    std::vector<TreeNode*> path;
-    if (rSize == 1){
-        auto ni = tree->leaves.find(rLabels[0]);
-        if(ni == tree->leaves.end()) {
-            std::cerr << "Row: " << row << ", encountered example with label that does not exists in the tree!\n";
-            return;
+void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                              std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args &args){
+    std::cerr << "Assigning data points to nodes ...\n";
+
+    // Positive and negative nodes
+    std::unordered_set<TreeNode*> nPositive;
+    std::unordered_set<TreeNode*> nNegative;
+
+    // Gather examples for each node
+    int rows = features.rows();
+    for(int r = 0; r < rows; ++r){
+        printProgress(r, rows);
+
+        nPositive.clear();
+        nNegative.clear();
+
+        auto rSize = labels.size(r);
+        auto rLabels = labels[r];
+
+        // Check row
+        if(!args.hsmPickOneLabelWeighting && rSize != 1) {
+            std::cerr << "Row " << r << ": encountered example with " << rSize << " labels! HSM is multi-class classifier, use PLT instead!\n";
+            continue;
         }
-        TreeNode *n = ni->second;
-        path.push_back(n);
-        while (n->parent){
-            n = n->parent;
-            path.push_back(n);
+
+        for (int i = 0; i < rSize; ++i) {
+            auto ni = tree->leaves.find(rLabels[i]);
+            if (ni == tree->leaves.end()) {
+                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree!\n";
+                continue;
+            }
+
+            getNodesToUpdate(nPositive, nNegative, rLabels[i]);
+            addFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
+            if(args.hsmPickOneLabelWeighting) {
+                double w = 1.0 / rSize;
+                for (const auto &n : nPositive) (*binWeights)[n->index]->push_back(w);
+                for (const auto &n : nNegative) (*binWeights)[n->index]->push_back(w);
+            }
+
+            nCount += nPositive.size() + nNegative.size();
         }
+        ++rCount;
     }
-    else {
-        std::cerr << "Row " << row << ": encountered example with " << rSize << " labels! HSM is multi-class classifier, use PLT instead!\n";
-        return;
+}
+
+void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                           const int rLabel){
+
+    std::vector<TreeNode*> path;
+
+    TreeNode *n = tree->leaves[rLabel];
+    path.push_back(n);
+    while (n->parent){
+        n = n->parent;
+        path.push_back(n);
     }
 
     assert(path.size());

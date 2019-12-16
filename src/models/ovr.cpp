@@ -33,7 +33,7 @@ void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args &
         p.value /= sum;
 
     sort(prediction.rbegin(), prediction.rend());
-    resizePredict(prediction, args);
+    resizePrediction(prediction, args);
 }
 
 double OVR::predictForLabel(Label label, Feature* features, Args &args){

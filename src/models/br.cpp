@@ -72,7 +72,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
                     binLabels[rLabels[i] - rStart].back() = 1.0;
         }
 
-        trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), args);
+        trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), nullptr, args);
 
         for(auto &l : binLabels) l.clear();
     }
@@ -85,14 +85,14 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args &a
         prediction.push_back({i, bases[i]->predictProbability(features)});
 
     sort(prediction.rbegin(), prediction.rend());
-    resizePredict(prediction, args);
+    resizePrediction(prediction, args);
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args &args){
     return bases[label]->predictProbability(features);
 }
 
-void BR::resizePredict(std::vector<Prediction>& prediction, Args &args){
+void BR::resizePrediction(std::vector<Prediction>& prediction, Args &args){
     if(args.topK > 0)
         prediction.resize(args.topK);
 

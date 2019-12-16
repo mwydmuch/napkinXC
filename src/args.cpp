@@ -11,7 +11,6 @@
 
 #include "version.h"
 #include "args.h"
-#include "linear.h"
 #include "misc.h"
 
 Args::Args() {
@@ -41,7 +40,8 @@ Args::Args() {
     cost = 8.0;
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
-    labelsWeights = false;
+    inbalanceLabelsWeighting = false;
+    hsmPickOneLabelWeighting = false;
     optimizerName = "libliner";
     optimizerType = libliner;
     weightsThreshold = 0.1;
@@ -202,8 +202,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost")
                 cost = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--labelsWeights")
-                labelsWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--inbalanceLabelsWeighting")
+                inbalanceLabelsWeighting = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--hsmPickOneLabelWeighting")
+                hsmPickOneLabelWeighting = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
                 if (args.at(ai + 1) == "L2R_LR_DUAL") solverType = L2R_LR_DUAL;
@@ -401,7 +403,7 @@ Args:
     --optimizer         Use LibLiner or online optimizers (default = libliner)
                         Optimizers: liblinear, sgd, adagrad, fobos
     --bias              Add bias term (default = 1)
-    --labelsWeights     Increase the weight of minority labels in base classifiers (default = 0)
+    --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 0)
     --weightsThreshold  Prune weights below given threshold (default = 0.1)
 
     LibLinear:

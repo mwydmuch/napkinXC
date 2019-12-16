@@ -82,9 +82,10 @@ public:
     double eps;
     double cost;
     double weightsThreshold;
-    bool labelsWeights;
     int ensemble;
     bool onTheTrotPrediction;
+    bool inbalanceLabelsWeighting;
+    bool hsmPickOneLabelWeighting;
 
     // For online training
     double eta;

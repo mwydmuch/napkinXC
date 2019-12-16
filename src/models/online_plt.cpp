@@ -30,6 +30,7 @@ void OnlinePLT::init(int labelCount, Args &args) {
 void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize, Args &args){
     std::unordered_set<TreeNode*> nPositive;
     std::unordered_set<TreeNode*> nNegative;
+    std::unordered_map<TreeNode*, double> weights;
 
     if(tree->isOnline()) { // Check if example contains a new label
         std::lock_guard<std::mutex> lock(treeMtx);
@@ -39,7 +40,7 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
         }
     }
 
-    getNodesToUpdate(row, nPositive, nNegative, labels, labelsSize);
+    getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
 
     // Update positive base estimators
     for (const auto& n : nPositive)

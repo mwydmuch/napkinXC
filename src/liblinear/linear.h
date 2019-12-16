@@ -9,49 +9,11 @@ struct feature_node
     int index;
     double value;
 
-	bool operator<(const feature_node &r) const { return value < r.value; }
+    bool operator<(const feature_node &r) const { return value < r.value; }
 
     friend std::ostream& operator<<(std::ostream& os, const feature_node& fn) {
         os << fn.index << ":" << fn.value;
         return os;
-    }
-};
-
-#define INF HUGE_VAL
-#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
-
-class sparse_operator
-{
-public:
-    static double nrm2_sq(const feature_node *x)
-    {
-        double ret = 0;
-        while(x->index != -1)
-        {
-            ret += x->value*x->value;
-            x++;
-        }
-        return (ret);
-    }
-
-    static double dot(const double *s, const feature_node *x)
-    {
-        double ret = 0;
-        while(x->index != -1)
-        {
-            ret += s[x->index-1]*x->value;
-            x++;
-        }
-        return (ret);
-    }
-
-    static void axpy(const double a, const feature_node *x, double *y)
-    {
-        while(x->index != -1)
-        {
-            y[x->index-1] += a*x->value;
-            x++;
-        }
     }
 };
 
@@ -67,6 +29,7 @@ struct problem
 	double *y;
 	struct feature_node **x;
 	double bias;            /* < 0 if no bias term */
+	double *W;              /* instance weight */
 };
 
 enum { L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, MCSVM_CS, L1R_L2LOSS_SVC, L1R_LR, L2R_LR_DUAL, L2R_L2LOSS_SVR = 11, L2R_L2LOSS_SVR_DUAL, L2R_L1LOSS_SVR_DUAL }; /* solver_type */
@@ -95,7 +58,7 @@ struct model
 	double bias;
 };
 
-struct model* train_linear(const struct problem *prob, const struct parameter *param);
+struct model* train_liblinear(const struct problem *prob, const struct parameter *param);
 void cross_validation(const struct problem *prob, const struct parameter *param, int nr_fold, double *target);
 void find_parameters(const struct problem *prob, const struct parameter *param, int nr_fold, double start_C, double start_p, double *best_C, double *best_p, double *best_score);
 
@@ -126,3 +89,4 @@ void set_print_string_function(void (*print_func) (const char*));
 #endif
 
 #endif /* _LIBLINEAR_H */
+

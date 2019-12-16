@@ -69,7 +69,8 @@ void Base::unsafeUpdate(double label, Feature* features, Args &args) {
     }
 }
 
-void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, int positiveLabels, Args &args){
+void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+                          std::vector<double>* instancesWeights, int positiveLabels, Args &args){
 
     model *M = nullptr;
     int labelsCount = 0;
@@ -78,7 +79,7 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
     int negativeLabels = static_cast<int>(binLabels.size()) - positiveLabels;
 
     // Apply some weighting for very unbalanced data
-    if(args.labelsWeights){
+    if(args.inbalanceLabelsWeighting){
         labelsCount = 2;
         labels = new int[2];
         labels[0] = 0;
@@ -98,11 +99,17 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
     auto x = binFeatures.data();
     int l = static_cast<int>(binLabels.size());
 
+    if(instancesWeights == nullptr) {
+        instancesWeights = new std::vector<double>(l);
+        std::fill(instancesWeights->begin(), instancesWeights->end(), 1.0);
+    }
+
     problem P = {
             .l = l,
             .n = n,
             .y = y,
             .x = x,
+            .W = instancesWeights->data(),
             .bias = (args.bias > 0 ? 1.0 : -1.0)
     };
 
@@ -129,7 +136,7 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
         C.C = bestC;
     } else if(args.cost < 0) C.C = 8.0;
 
-    M = train_linear(&P, &C);
+    M = train_liblinear(&P, &C);
 
     assert(M->nr_class <= 2);
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
@@ -167,7 +174,8 @@ void Base::trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& bi
     finalizeOnlineTraining(args);
 }
 
-void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args){
+void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+                 std::vector<double>* instancesWeights, Args &args){
 
     if(binLabels.empty()){
         firstClass = 0;
@@ -183,8 +191,9 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     }
 
     assert(binLabels.size() == binFeatures.size());
+    if(instancesWeights != nullptr) assert(instancesWeights->size() == binLabels.size());
 
-    if (args.optimizerType == libliner) trainLiblinear(n, binLabels, binFeatures, positiveLabels, args);
+    if (args.optimizerType == libliner) trainLiblinear(n, binLabels, binFeatures, instancesWeights, positiveLabels, args);
     else trainOnline(binLabels, binFeatures, args);
 
     // Apply threshold and calculate number of non-zero weights

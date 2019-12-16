@@ -28,8 +28,10 @@ public:
 
     void update(double label, Feature* features, Args &args);
     void unsafeUpdate(double label, Feature* features, Args &args);
-    void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
-    void trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, int positiveLabel, Args &args);
+    void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+               std::vector<double>* instancesWeights, Args &args);
+    void trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+                        std::vector<double>* instancesWeights, int positiveLabel, Args &args);
     void trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args &args);
 
     // For online training

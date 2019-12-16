@@ -14,6 +14,10 @@
 
 #include "linear.h"
 
+typedef float Weight;
+typedef std::pair<int, Weight> SparseWeight;
+#define UnorderedMap robin_hood::unordered_map
+
 typedef int Label;
 typedef int Example;
 typedef feature_node DoubleFeature;

@@ -142,6 +142,40 @@ Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
     return {-1, 0};
 }
 
+void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
+                                Args& args) {
+    if (tree->root->labels.empty()) tree->populateNodeLabels();
+
+    std::priority_queue<TreeNodeValue> nQueue;
+
+    nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
+    ++nCount;
+    ++rCount;
+
+    Prediction p = predictNextLabelWithThresholds(nQueue, features, thresholds);
+    while (p.label != -1) {
+        prediction.push_back(p);
+        p = predictNextLabelWithThresholds(nQueue, features, thresholds);
+    }
+}
+
+Prediction PLT::predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
+                                               std::vector<float>& thresholds) {
+    while (!nQueue.empty()) {
+        TreeNodeValue nVal = nQueue.top();
+        nQueue.pop();
+
+        if (!nVal.node->children.empty()) {
+            for (const auto& child : nVal.node->children)
+                addToQueue(nQueue, child, nVal.value * bases[child->index]->predictProbability(features), thresholds);
+            nCount += nVal.node->children.size();
+        }
+        if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
+    }
+
+    return {-1, 0};
+}
+
 double PLT::predictForLabel(Label label, Feature* features, Args& args) {
     TreeNode* n = tree->leaves[label];
     double value = bases[n->index]->predictProbability(features);
@@ -193,11 +227,12 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     }
 
     assignDataPoints(binLabels, binFeatures, binWeights, labels, features, args);
-    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
 
-    // Save tree
+    // Save tree and free it, it is no longer needed
     tree->saveToFile(joinPath(output, "tree.bin"));
-
-    // Save tree structure
     tree->saveTreeStructure(joinPath(output, "tree.txt"));
+    delete tree;
+    tree = nullptr;
+
+    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
 }

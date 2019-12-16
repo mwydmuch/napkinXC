@@ -16,6 +16,8 @@ public:
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
+                               Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
@@ -23,7 +25,7 @@ public:
     void printInfo() override;
 
 protected:
-    static void resizePrediction(std::vector<Prediction>& prediction, Args& args);
-
     std::vector<Base*> bases;
+
+    virtual std::vector<Prediction> predictForAllLabels(Feature* features, Args& args);
 };

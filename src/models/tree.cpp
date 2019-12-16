@@ -650,3 +650,13 @@ void Tree::expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Bas
     else
         expandTopDown(newLabel, bases, tmpBases, args);
 }
+
+void Tree::populateNodeLabels() {
+    for (auto& l : leaves) {
+        TreeNode* n = l.second;
+        while (n != nullptr) {
+            n->labels.push_back(l.first);
+            n = n->parent;
+        }
+    }
+}

@@ -19,7 +19,8 @@ OVR::OVR() {
     name = "OVR";
 }
 
-void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+std::vector<Prediction> OVR::predictForAllLabels(Feature* features, Args& args) {
+    std::vector<Prediction> prediction;
     double sum = 0;
 
     for (int i = 0; i < bases.size(); ++i) {
@@ -30,9 +31,7 @@ void OVR::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
     }
 
     for (auto& p : prediction) p.value /= sum;
-
-    sort(prediction.rbegin(), prediction.rend());
-    resizePrediction(prediction, args);
+    return prediction;
 }
 
 double OVR::predictForLabel(Label label, Feature* features, Args& args) {

@@ -25,15 +25,16 @@ public:
     ~PLT() override;
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
+                               Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
 
     void printInfo() override;
 
-    Tree* tree;
-
 protected:
+    Tree* tree;
     std::vector<Base*> bases;
 
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
@@ -49,9 +50,19 @@ protected:
     // Helper methods for prediction
     virtual Prediction predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
                                         double threshold);
+    virtual Prediction predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
+                                                      std::vector<float>& thresholds);
+
     inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value,
                                   double threshold) {
         if (value >= threshold) nQueue.push({node, value});
+    }
+
+    inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value,
+                                  std::vector<float>& thresholds) {
+        float minThreshold = 1.0;
+        for (const auto& l : node->labels) minThreshold = std::min(minThreshold, thresholds[l]);
+        if (value >= minThreshold) nQueue.push({node, value});
     }
 
     // Additional statistics

@@ -30,6 +30,8 @@ public:
     void test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
     virtual void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) = 0;
     virtual void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) = 0;
+    virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features,
+                                       std::vector<float>& thresholds, Args& args);
     virtual double predictForLabel(Label label, Feature* features, Args& args) = 0;
     virtual std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args);
 
@@ -66,4 +68,8 @@ protected:
                                            std::vector<std::vector<double>*>* instancesWeights, Args& args);
 
     static std::vector<Base*> loadBases(std::string infile);
+
+private:
+    static void batchTestThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+                                SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
 };

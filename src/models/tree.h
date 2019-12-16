@@ -30,6 +30,7 @@ struct TreeNode {
 
     int nextToExpand;
     int subtreeDepth;
+    std::vector<int> labels;
 };
 
 // For K-Means based trees
@@ -85,6 +86,7 @@ public:
     }
     void setLabel(TreeNode* n, int label);
     void moveSubtree(TreeNode* oldParent, TreeNode* newParent);
+    void populateNodeLabels();
 
 private:
     bool online;

@@ -66,8 +66,16 @@ Model::Model() {}
 
 Model::~Model() {}
 
-void batchTestThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
-                     SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
+void Model::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features,
+                                  std::vector<float>& thresholds, Args& args) {
+    std::vector<Prediction> tmpPrediction;
+    predict(tmpPrediction, features, args);
+    for (auto& p : tmpPrediction)
+        if (p.value >= thresholds[p.label]) prediction.push_back(p);
+}
+
+void Model::batchTestThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+                            SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
     const int batchSize = stopRow - startRow;
     for (int r = startRow; r < stopRow; ++r) {
         int i = r - startRow;

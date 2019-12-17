@@ -56,8 +56,9 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
                 measures.push_back(
                     std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args, outputSize)));
             else if (m == "s")
-                measures.push_back(
-                    std::static_pointer_cast<Measure>(std::make_shared<PredictionSize>(args, outputSize)));
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PredictionSize>(args, outputSize)));
+            else if (m == "HL")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UnnormalizedHammingLoss>(args, outputSize)));
             else
                 throw std::invalid_argument("Unknown measure type!");
         }
@@ -213,5 +214,48 @@ PredictionSize::PredictionSize(Args& args, int outputSize) : Measure(args, outpu
 
 void PredictionSize::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += prediction.size();
+    ++count;
+}
+
+UnnormalizedHammingLoss::UnnormalizedHammingLoss(Args& args, int outputSize) : Measure(args, outputSize){
+    name = "Unnormalized Hamming loss";
+}
+
+void UnnormalizedHammingLoss::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+    double fn = 0;
+    double fp = 0;
+    bool found;
+    int l;
+
+    // FN
+    l = -1;
+    while(labels[++l] > -1){
+        found = false;
+        for(std::vector<Prediction>::const_iterator it = prediction.begin(); it != prediction.end(); it++){
+            if((*it).label == labels[l]) {
+                found = true;
+                break;
+            }
+        }
+        if(!found){
+            fn++;
+        }
+    }
+    // FP
+    for(std::vector<Prediction>::const_iterator it = prediction.begin(); it != prediction.end(); it++) {
+        l = -1;
+        found = false;
+        while(labels[++l] > -1){
+            if((*it).label == labels[l]) {
+                found = true;
+                break;
+            }
+        }
+        if(!found){
+            fp++;
+        }
+    }
+
+    sum += (fn + fp);
     ++count;
 }

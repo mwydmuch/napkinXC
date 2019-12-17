@@ -107,7 +107,7 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
         std::fill(instancesWeights->begin(), instancesWeights->end(), 1.0);
     }
 
-    problem P = {.l = l, .n = n, .y = y, .x = x, .W = instancesWeights->data(), .bias = (args.bias > 0 ? 1.0 : -1.0)};
+    problem P = {.l = l, .n = n, .y = y, .x = x, .bias = (args.bias > 0 ? 1.0 : -1.0), .W = instancesWeights->data()};
 
     parameter C = {.solver_type = args.solverType,
                    .eps = args.eps,

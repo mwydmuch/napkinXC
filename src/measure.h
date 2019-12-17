@@ -102,3 +102,11 @@ public:
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
+
+class UnnormalizedHammingLoss: public Measure{
+public:
+    UnnormalizedHammingLoss(Args& args, int outputSize);
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+
+};

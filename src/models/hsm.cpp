@@ -19,6 +19,7 @@ HSM::HSM() {
     eCount = 0;
     pLen = 0;
     name = "HSM";
+    type = hsm;
 }
 
 void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,

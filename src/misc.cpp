@@ -137,21 +137,6 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
     }
 }
 
-void computeLabelsExamples(std::vector<std::vector<Example>>& labelsExamples, const SRMatrix<Label>& labels) {
-    std::cerr << "Computing labels' examples ...\n";
-
-    labelsExamples.clear();
-    labelsExamples.resize(labels.cols());
-    int rows = labels.rows();
-
-    for (int r = 0; r < rows; ++r) {
-        printProgress(r, rows);
-        int rSize = labels.size(r);
-        auto rLabels = labels.row(r);
-        for (int i = 0; i < rSize; ++i) labelsExamples[rLabels[i]].push_back(r);
-    }
-}
-
 // Splits string
 std::vector<std::string> split(std::string text, char d) {
     std::vector<std::string> tokens;
@@ -168,8 +153,13 @@ std::vector<std::string> split(std::string text, char d) {
     return tokens;
 }
 
-// Files utils
+std::string toLower(std::string text){
+    std::string lower = text;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    return lower;
+}
 
+// Files utils
 void FileHelper::saveToFile(std::string outfile) {
     std::ofstream out(outfile);
     save(out);

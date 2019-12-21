@@ -11,14 +11,14 @@
 std::shared_ptr<SetUtility> SetUtility::factory(Args& args, int outputSize) {
     std::shared_ptr<SetUtility> u = nullptr;
     switch (args.setUtilityType) {
-    case uP: u = std::static_pointer_cast<SetUtility>(std::make_shared<PrecisionUtility>(args, outputSize)); break;
-    case uF1: u = std::static_pointer_cast<SetUtility>(std::make_shared<F1Utility>(args, outputSize)); break;
-    case uAlfa: u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfa>(args, outputSize)); break;
+    case uP: u = std::static_pointer_cast<SetUtility>(std::make_shared<PrecisionUtility>()); break;
+    case uF1: u = std::static_pointer_cast<SetUtility>(std::make_shared<F1Utility>()); break;
+    case uAlfa: u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfa>(args.alfa, outputSize)); break;
     case uAlfaBeta:
-        u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfaBeta>(args, outputSize));
+        u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfaBeta>(args.alfa, args.beta, outputSize));
         break;
     case uDeltaGamma:
-        u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityDeltaGamma>(args, outputSize));
+        u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityDeltaGamma>(args.delta, args.gamma));
         break;
     default: throw std::invalid_argument("Unknown set based utility type!");
     }
@@ -26,14 +26,14 @@ std::shared_ptr<SetUtility> SetUtility::factory(Args& args, int outputSize) {
     return u;
 }
 
-SetUtility::SetUtility(Args& args, int outputSize) : Measure(args, outputSize) {}
+SetUtility::SetUtility() {}
 
 void SetUtility::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += u(labels[0], prediction);
     ++count;
 }
 
-PrecisionUtility::PrecisionUtility(Args& args, int outputSize) : SetUtility(args, outputSize) { name = "U_P"; }
+PrecisionUtility::PrecisionUtility(){ name = "U_P"; }
 
 double PrecisionUtility::u(double c, const std::vector<Prediction>& prediction) {
     for (const auto& p : prediction)
@@ -43,7 +43,7 @@ double PrecisionUtility::u(double c, const std::vector<Prediction>& prediction) 
 
 double PrecisionUtility::g(int pSize) { return 1.0 / pSize; }
 
-F1Utility::F1Utility(Args& args, int outputSize) : SetUtility(args, outputSize) { name = "U_F1"; }
+F1Utility::F1Utility() { name = "U_F1"; }
 
 double F1Utility::u(double c, const std::vector<Prediction>& prediction) {
     for (const auto& p : prediction)
@@ -53,9 +53,7 @@ double F1Utility::u(double c, const std::vector<Prediction>& prediction) {
 
 double F1Utility::g(int pSize) { return 2.0 / (1.0 + pSize); }
 
-UtilityAlfa::UtilityAlfa(Args& args, int outputSize) : SetUtility(args, outputSize) {
-    alfa = args.alfa;
-    m = outputSize;
+UtilityAlfa::UtilityAlfa(double alfa, int outputSize) : alfa(alfa), m(outputSize){
     name = "U_alfa(" + std::to_string(alfa) + ")";
 }
 
@@ -77,12 +75,8 @@ double UtilityAlfa::g(int pSize) {
         return 1.0 - alfa;
 }
 
-UtilityAlfaBeta::UtilityAlfaBeta(Args& args, int outputSize) : SetUtility(args, outputSize) {
-    alfa = args.alfa;
-    beta = args.beta;
-    m = outputSize;
+UtilityAlfaBeta::UtilityAlfaBeta(double alfa, double beta, int outputSize) : alfa(alfa), beta(beta), m(outputSize){
     if (alfa <= 0) alfa = static_cast<double>(m - 1) / m;
-    if (beta <= 0) beta = std::log2(static_cast<double>(m) / (2 * (m - 1))) / std::log2(1.0 / (m - 1));
     name = "U_alfa_beta(" + std::to_string(alfa) + ", " + std::to_string(beta) + ")";
 }
 
@@ -94,9 +88,7 @@ double UtilityAlfaBeta::u(double c, const std::vector<Prediction>& prediction) {
 
 double UtilityAlfaBeta::g(int pSize) { return 1.0 - alfa * pow(static_cast<double>(pSize - 1) / (m - 1), beta); }
 
-UtilityDeltaGamma::UtilityDeltaGamma(Args& args, int outputSize) : SetUtility(args, outputSize) {
-    delta = args.delta;
-    gamma = args.gamma;
+UtilityDeltaGamma::UtilityDeltaGamma(double delta, double gamma): delta(delta), gamma(gamma){
     name = "U_delta_gamma(" + std::to_string(delta) + ", " + std::to_string(gamma) + ")";
 }
 

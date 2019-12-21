@@ -79,7 +79,7 @@ Args:
     --optimizer         Use LibLiner or online optimizers (default = libliner)
                         Optimizers: liblinear, sgd, adagrad, fobos
     --bias              Add bias term (default = 1)
-    --labelsWeights     Increase the weight of minority labels in base classifiers (default = 1)
+    --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 1)
     --weightsThreshold  Prune weights belowe given threshold (default = 0.1)
 
     LibLinear:

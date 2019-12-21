@@ -15,7 +15,7 @@ class Measure {
 public:
     static std::vector<std::shared_ptr<Measure>> factory(Args& args, int outputSize);
 
-    Measure(Args& args, int outputSize);
+    Measure();
 
     virtual void accumulate(Label* labels, const std::vector<Prediction>& prediction) = 0;
     void accumulate(SRMatrix<Label>& labels, std::vector<std::vector<Prediction>>& predictions);
@@ -31,43 +31,75 @@ protected:
 
 class MeasureAtK : public Measure {
 public:
-    MeasureAtK(Args& args, int outputSize, int k);
+    MeasureAtK(int k);
 
 protected:
     int k;
 };
 
+class TruePositivesAtK: public MeasureAtK{
+public:
+    TruePositivesAtK(int k);
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(Label* labels, const std::vector<Prediction>& prediction, int k);
+};
+
+class TruePositives: public Measure{
+public:
+    TruePositives();
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(Label* labels, const std::vector<Prediction>& prediction);
+};
+
+class FalsePositives: public Measure{
+public:
+    FalsePositives();
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(Label* labels, const std::vector<Prediction>& prediction);
+};
+
+class FalseNegatives: public Measure{
+public:
+    FalseNegatives();
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(Label* labels, const std::vector<Prediction>& prediction);
+};
+
 class Recall : public Measure {
 public:
-    Recall(Args& args, int outputSize);
+    Recall();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class RecallAtK : public MeasureAtK {
 public:
-    RecallAtK(Args& args, int outputSize, int k);
+    RecallAtK(int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class Precision : public Measure {
 public:
-    Precision(Args& args, int outputSize);
+    Precision();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class PrecisionAtK : public MeasureAtK {
 public:
-    PrecisionAtK(Args& args, int outputSize, int k);
+    PrecisionAtK(int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class Coverage : public Measure {
 public:
-    Coverage(Args& args, int outputSize);
+    Coverage(int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;
@@ -79,7 +111,7 @@ protected:
 
 class CoverageAtK : public MeasureAtK {
 public:
-    CoverageAtK(Args& args, int outputSize, int k);
+    CoverageAtK(int outputSize, int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;
@@ -91,21 +123,21 @@ protected:
 
 class Accuracy : public Measure {
 public:
-    Accuracy(Args& args, int outputSize);
+    Accuracy();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
 class PredictionSize : public Measure {
 public:
-    PredictionSize(Args& args, int outputSize);
+    PredictionSize();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class UnnormalizedHammingLoss: public Measure{
+class HammingLoss: public Measure{
 public:
-    UnnormalizedHammingLoss(Args& args, int outputSize);
+    HammingLoss();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 

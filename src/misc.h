@@ -274,8 +274,10 @@ template <typename T> void printVector(std::vector<T> vec) {
 // Splits string
 std::vector<std::string> split(std::string text, char d = ',');
 
-// Files utils
+// String to lower
+std::string toLower(std::string text);
 
+// Files utils
 class FileHelper {
 public:
     void saveToFile(std::string outfile);

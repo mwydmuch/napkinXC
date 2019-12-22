@@ -85,6 +85,8 @@ void Model::batchTestThread(int threadId, Model* model, std::vector<std::vector<
 }
 
 std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& features, Args& args) {
+    std::cerr << "Starting prediction in " << args.threads << " threads ...\n";
+
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
 
@@ -97,21 +99,6 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
     tSet.joinAll();
 
     return predictions;
-}
-
-void Model::test(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
-    std::cerr << "Starting testing in " << args.threads << " threads ...\n";
-
-    // Predict for test set
-    std::vector<std::vector<Prediction>> predictions = predictBatch(features, args);
-
-    // Create measures and calculate scores
-    auto measures = Measure::factory(args, outputSize());
-    for (auto& m : measures) m->accumulate(labels, predictions);
-
-    // Print results
-    std::cerr << std::setprecision(5) << "Results:\n";
-    for (auto& m : measures) std::cerr << "  " << m->getName() << ": " << m->value() << std::endl;
 }
 
 Base* Model::trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,

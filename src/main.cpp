@@ -8,9 +8,10 @@
 
 #include "args.h"
 #include "data_reader.h"
-#include "misc.h"
+#include "measure.h"
 #include "model.h"
 #include "types.h"
+#include "resources.h"
 
 
 void train(Args& args) {
@@ -35,9 +36,6 @@ void train(Args& args) {
 }
 
 void test(Args& args) {
-    TimeHelper timer;
-    timer.start();
-
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
 
@@ -50,21 +48,41 @@ void test(Args& args) {
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
 
-    timer.checkpoint();
-    timer.printTime();
+    auto resAfterData = getResources();
 
     // Load model and test
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    timer.checkpoint();
-    timer.printTime();
+    auto resAfterModel = getResources();
 
-    model->test(labels, features, args);
+    // Predict for test set
+    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
     model->printInfo();
 
-    timer.checkpoint();
-    timer.printTime();
+    auto resAfterPrediction = getResources();
+
+    // Create measures and calculate scores
+    auto measures = Measure::factory(args, model->outputSize());
+    for (auto& m : measures) m->accumulate(labels, predictions);
+
+    // Print results
+    std::cout << std::setprecision(5) << "Results:\n";
+    for (auto& m : measures) std::cout << "  " << m->getName() << ": " << m->value() << std::endl;
+
+    // Print resources
+    auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(resAfterPrediction.timePoint - resAfterModel.timePoint).count()) / 1000;
+    auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
+    std::cout << "Resources:"
+                << "\n  Real time (s): " << realTime
+                << "\n  CPU time (s): " << cpuTime
+                << "\n  Real time / data point (ms): " << realTime * 1000 / labels.rows()
+                << "\n  CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
+                << "\n  Model real memory size (MB): " << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
+                << "\n  Model virtual memory size (MB): " << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
+                << "\n  Peak of real memory usage (MB): " << resAfterPrediction.peakRealMem / 1024
+                << "\n  Peak of virtual memory usage (MB): " << resAfterPrediction.peakVirtualMem / 1024
+                << "\n";
 
     std::cerr << "All done!\n";
 }
@@ -89,7 +107,7 @@ void predict(Args& args) {
         // TODO
     }
 
-    // Read data from file and output prediction to cout
+        // Read data from file and output prediction to cout
     else {
         SRMatrix<Label> labels;
         SRMatrix<Feature> features;

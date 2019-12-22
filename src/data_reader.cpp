@@ -112,13 +112,14 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
               << ", labels: " << labels.cols() << std::endl;
 
     // Print data stats
-    std::cerr << "Data stats:"
-              << "\n  # data points: " << features.rows() << "\n  # uniq features: " << features.cols()
-              << "\n  # uniq labels: " << labels.cols()
-              << "\n  Mean # labels per data point: " << static_cast<double>(labels.cells()) / labels.rows()
-              << "\n  Mean # features per data point: " << static_cast<double>(features.cells()) / features.rows()
-              << "\n  Mean # data points per label: " << static_cast<double>(labels.cols()) / labels.cells()
-              << "\n  Mean # data points per feature: " << static_cast<double>(features.cols()) / features.cells()
+    std::cerr << "  Data stats:"
+              << "\n    # data points: " << features.rows()
+              << "\n    # uniq features: " << features.cols()
+              << "\n    # uniq labels: " << labels.cols()
+              << "\n    Mean # labels per data point: " << static_cast<double>(labels.cells()) / labels.rows()
+              << "\n    Mean # features per data point: " << static_cast<double>(features.cells()) / features.rows()
+              << "\n    Mean # data points per label: " << static_cast<double>(labels.cols()) / labels.cells()
+              << "\n    Mean # data points per feature: " << static_cast<double>(features.cols()) / features.cells()
               << "\n";
 }
 

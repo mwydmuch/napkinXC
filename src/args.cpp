@@ -10,7 +10,7 @@
 #include <iostream>
 
 #include "args.h"
-#include "misc.h"
+#include "resources.h"
 #include "version.h"
 
 Args::Args() {

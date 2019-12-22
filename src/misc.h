@@ -14,9 +14,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <sys/times.h>
-#include <unistd.h>
-
 #include "types.h"
 
 #define LABELS_MUTEXES 1024
@@ -190,7 +187,6 @@ template <typename T> inline void divVector(std::vector<T>& vector, double scala
     divVector(vector.data(), scalar, vector.size());
 }
 
-// Unit norm for vector
 template <typename T> inline void unitNorm(T* data, size_t size) {
     T norm = 0;
     for (int f = 0; f < size; ++f) norm += data[f] * data[f];
@@ -237,15 +233,7 @@ template <typename T> inline uint32_t hash(T& v) {
     return h;
 }
 
-// Returns number of available cpus
-inline int getCpuCount() { return std::thread::hardware_concurrency(); }
 
-// Returns size of available RAM
-inline unsigned long long getSystemMemory() {
-    long pages = sysconf(_SC_PHYS_PAGES);
-    long page_size = sysconf(_SC_PAGE_SIZE);
-    return pages * page_size;
-}
 
 /*
 inline unsigned long long getSystemMemory()
@@ -308,37 +296,3 @@ void makeDir(const std::string& dirname);
 // Remove file or directory
 void remove(const std::string& path);
 
-// Time utils
-class TimeHelper {
-public:
-    void start() {
-        checkpoints.clear();
-        tms st;
-        times(&st);
-        checkpoints.push_back(st);
-    }
-
-    void checkpoint() {
-        tms ct;
-        times(&ct);
-        checkpoints.push_back(ct);
-    }
-
-    void printTime() {
-        const long ticks = sysconf(_SC_CLK_TCK);
-        size_t cpSize = checkpoints.size();
-        if (cpSize > 1) {
-            std::cerr << "Resources:\n"
-                      << "  CPU time: "
-                      << static_cast<double>(checkpoints[cpSize - 1].tms_utime - checkpoints[cpSize - 2].tms_utime) /
-                             ticks
-                      << "\n"
-                      << "  Total CPU time: "
-                      << static_cast<double>(checkpoints[cpSize - 1].tms_utime - checkpoints[0].tms_utime) / ticks
-                      << "\n";
-        }
-    }
-
-private:
-    std::vector<tms> checkpoints;
-};

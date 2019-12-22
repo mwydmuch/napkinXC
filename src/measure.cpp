@@ -24,16 +24,13 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
         if (mAt.size() > 1) {
             int k = std::stoi(mAt[1]);
             if (mAt[0] == "p")
-                measures.push_back(
-                    std::static_pointer_cast<Measure>(std::make_shared<PrecisionAtK>(k)));
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionAtK>(k)));
             else if (mAt[0] == "r")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<RecallAtK>(k)));
             else if (mAt[0] == "c")
-                measures.push_back(
-                    std::static_pointer_cast<Measure>(std::make_shared<CoverageAtK>(outputSize, k)));
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<CoverageAtK>(outputSize, k)));
             else if (mAt[0] == "tp")
-                measures.push_back(
-                        std::static_pointer_cast<Measure>(std::make_shared<TruePositivesAtK>(k)));
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<TruePositivesAtK>(k)));
             else
                 throw std::invalid_argument("Unknown measure type!");
         } else {
@@ -56,18 +53,18 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
             else if (m == "fn")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalseNegatives>()));
             else if (m == "uP")
-                measures.push_back(
-                        std::static_pointer_cast<Measure>(std::make_shared<PrecisionUtility>()));
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionUtility>()));
             else if (m == "uF1")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1Utility>()));
             else if (m == "uAlfa")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfa>(args.alfa, outputSize)));
-            else if (m == "uAlfaBeta")
                 measures.push_back(
-                        std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfaBeta>(args.alfa, args.beta, outputSize)));
+                    std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfa>(args.alfa, outputSize)));
+            else if (m == "uAlfaBeta")
+                measures.push_back(std::static_pointer_cast<Measure>(
+                    std::make_shared<UtilityAlfaBeta>(args.alfa, args.beta, outputSize)));
             else if (m == "uDeltaGamma")
                 measures.push_back(
-                        std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args.delta, args.gamma)));
+                    std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args.delta, args.gamma)));
             else
                 throw std::invalid_argument("Unknown measure type!");
         }
@@ -88,20 +85,18 @@ void Measure::accumulate(SRMatrix<Label>& labels, std::vector<std::vector<Predic
 
 double Measure::value() { return sum / count; }
 
-MeasureAtK::MeasureAtK(int k): k(k){
-    if(k < 1) throw std::invalid_argument("K cannot be lower then 1!");
+MeasureAtK::MeasureAtK(int k) : k(k) {
+    if (k < 1) throw std::invalid_argument("K cannot be lower then 1!");
 }
 
-TruePositivesAtK::TruePositivesAtK(int k) : MeasureAtK(k){
-    name = "TP@";
-}
+TruePositivesAtK::TruePositivesAtK(int k) : MeasureAtK(k) { name = "TP@"; }
 
-void TruePositivesAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+void TruePositivesAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += calculate(labels, prediction, k);
     ++count;
 }
 
-double TruePositivesAtK::calculate(Label* labels, const std::vector<Prediction>& prediction, int k){
+double TruePositivesAtK::calculate(Label* labels, const std::vector<Prediction>& prediction, int k) {
     double tp = 0;
     for (int i = 0; i < std::min(k, static_cast<int>(prediction.size())); ++i) {
         int l = -1;
@@ -115,68 +110,62 @@ double TruePositivesAtK::calculate(Label* labels, const std::vector<Prediction>&
     return tp;
 }
 
-TruePositives::TruePositives() {
-    name = "TP";
-}
+TruePositives::TruePositives() { name = "TP"; }
 
-void TruePositives::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+void TruePositives::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += TruePositives::calculate(labels, prediction);
     ++count;
 }
 
-double TruePositives::calculate(Label* labels, const std::vector<Prediction>& prediction){
+double TruePositives::calculate(Label* labels, const std::vector<Prediction>& prediction) {
     return TruePositivesAtK::calculate(labels, prediction, prediction.size());
 }
 
-FalsePositives::FalsePositives() {
-    name = "FP";
-}
+FalsePositives::FalsePositives() { name = "FP"; }
 
-void FalsePositives::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+void FalsePositives::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += FalsePositives::calculate(labels, prediction);
     ++count;
 }
 
-double FalsePositives::calculate(Label* labels, const std::vector<Prediction>& prediction){
+double FalsePositives::calculate(Label* labels, const std::vector<Prediction>& prediction) {
     double fp = 0;
 
-    for(const auto& p : prediction){
+    for (const auto& p : prediction) {
         int l = -1;
         bool found = false;
-        while(labels[++l] > -1){
-            if(p.label == labels[l]) {
+        while (labels[++l] > -1) {
+            if (p.label == labels[l]) {
                 found = true;
                 break;
             }
         }
-        if(!found) ++fp;
+        if (!found) ++fp;
     }
 
     return fp;
 }
 
-FalseNegatives::FalseNegatives() {
-    name = "FN";
-}
+FalseNegatives::FalseNegatives() { name = "FN"; }
 
-void FalseNegatives::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+void FalseNegatives::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += FalseNegatives::calculate(labels, prediction);
     ++count;
 }
 
-double FalseNegatives::calculate(Label* labels, const std::vector<Prediction>& prediction){
+double FalseNegatives::calculate(Label* labels, const std::vector<Prediction>& prediction) {
     double fn = 0;
 
     int l = -1;
-    while(labels[++l] > -1){
+    while (labels[++l] > -1) {
         bool found = false;
-        for(const auto& p : prediction){
-            if(p.label == labels[l]) {
+        for (const auto& p : prediction) {
+            if (p.label == labels[l]) {
                 found = true;
                 break;
             }
         }
-        if(!found) ++fn;
+        if (!found) ++fn;
     }
     return fn;
 }
@@ -195,9 +184,7 @@ void Recall::accumulate(Label* labels, const std::vector<Prediction>& prediction
     }
 }
 
-RecallAtK::RecallAtK(int k) : MeasureAtK(k) {
-    name = "R@" + std::to_string(k);
-}
+RecallAtK::RecallAtK(int k) : MeasureAtK(k) { name = "R@" + std::to_string(k); }
 
 void RecallAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositivesAtK::calculate(labels, prediction, k);
@@ -214,24 +201,20 @@ Precision::Precision() { name = "Precision"; }
 
 void Precision::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositives::calculate(labels, prediction);
-    if(!prediction.empty()){
+    if (!prediction.empty()) {
         sum += tp / prediction.size();
         ++count;
     }
 }
 
-PrecisionAtK::PrecisionAtK(int k) : MeasureAtK(k) {
-    name = "P@" + std::to_string(k);
-}
+PrecisionAtK::PrecisionAtK(int k) : MeasureAtK(k) { name = "P@" + std::to_string(k); }
 
 void PrecisionAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += TruePositivesAtK::calculate(labels, prediction, k) / k;
     ++count;
 }
 
-Coverage::Coverage(int outputSize) : m(outputSize) {
-    name = "Coverage";
-}
+Coverage::Coverage(int outputSize) : m(outputSize) { name = "Coverage"; }
 
 void Coverage::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     int l;
@@ -247,9 +230,7 @@ void Coverage::accumulate(Label* labels, const std::vector<Prediction>& predicti
 
 double Coverage::value() { return static_cast<double>(seen.size()) / m; }
 
-CoverageAtK::CoverageAtK(int outputSize, int k) : MeasureAtK(k), m(outputSize) {
-    name = "C@" + std::to_string(k);
-}
+CoverageAtK::CoverageAtK(int outputSize, int k) : MeasureAtK(k), m(outputSize) { name = "C@" + std::to_string(k); }
 
 void CoverageAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     for (int i = 0; i < std::min(k, static_cast<int>(prediction.size())); ++i) {
@@ -264,29 +245,23 @@ void CoverageAtK::accumulate(Label* labels, const std::vector<Prediction>& predi
 
 double CoverageAtK::value() { return static_cast<double>(seen.size()) / m; }
 
-Accuracy::Accuracy() {
-    name = "Acc";
-}
+Accuracy::Accuracy() { name = "Acc"; }
 
 void Accuracy::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     if (!prediction.empty() && labels[0] == prediction[0].label) ++sum;
     ++count;
 }
 
-PredictionSize::PredictionSize() {
-    name = "Prediction size";
-}
+PredictionSize::PredictionSize() { name = "Prediction size"; }
 
 void PredictionSize::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += prediction.size();
     ++count;
 }
 
-HammingLoss::HammingLoss() {
-    name = "Hamming loss";
-}
+HammingLoss::HammingLoss() { name = "Hamming loss"; }
 
-void HammingLoss::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+void HammingLoss::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += FalsePositives::calculate(labels, prediction) + FalseNegatives::calculate(labels, prediction);
     ++count;
 }

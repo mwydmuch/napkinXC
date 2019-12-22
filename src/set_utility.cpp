@@ -33,7 +33,7 @@ void SetUtility::accumulate(Label* labels, const std::vector<Prediction>& predic
     ++count;
 }
 
-PrecisionUtility::PrecisionUtility(){ name = "U_P"; }
+PrecisionUtility::PrecisionUtility() { name = "U_P"; }
 
 double PrecisionUtility::u(double c, const std::vector<Prediction>& prediction) {
     for (const auto& p : prediction)
@@ -53,7 +53,7 @@ double F1Utility::u(double c, const std::vector<Prediction>& prediction) {
 
 double F1Utility::g(int pSize) { return 2.0 / (1.0 + pSize); }
 
-UtilityAlfa::UtilityAlfa(double alfa, int outputSize) : alfa(alfa), m(outputSize){
+UtilityAlfa::UtilityAlfa(double alfa, int outputSize) : alfa(alfa), m(outputSize) {
     name = "U_alfa(" + std::to_string(alfa) + ")";
 }
 
@@ -75,7 +75,7 @@ double UtilityAlfa::g(int pSize) {
         return 1.0 - alfa;
 }
 
-UtilityAlfaBeta::UtilityAlfaBeta(double alfa, double beta, int outputSize) : alfa(alfa), beta(beta), m(outputSize){
+UtilityAlfaBeta::UtilityAlfaBeta(double alfa, double beta, int outputSize) : alfa(alfa), beta(beta), m(outputSize) {
     if (alfa <= 0) alfa = static_cast<double>(m - 1) / m;
     name = "U_alfa_beta(" + std::to_string(alfa) + ", " + std::to_string(beta) + ")";
 }
@@ -88,7 +88,7 @@ double UtilityAlfaBeta::u(double c, const std::vector<Prediction>& prediction) {
 
 double UtilityAlfaBeta::g(int pSize) { return 1.0 - alfa * pow(static_cast<double>(pSize - 1) / (m - 1), beta); }
 
-UtilityDeltaGamma::UtilityDeltaGamma(double delta, double gamma): delta(delta), gamma(gamma){
+UtilityDeltaGamma::UtilityDeltaGamma(double delta, double gamma) : delta(delta), gamma(gamma) {
     name = "U_delta_gamma(" + std::to_string(delta) + ", " + std::to_string(gamma) + ")";
 }
 

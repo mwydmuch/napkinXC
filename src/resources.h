@@ -1,7 +1,7 @@
 // Time & resources utils
 
-#include <thread>
 #include <chrono>
+#include <thread>
 
 struct Resources {
     std::chrono::steady_clock::time_point timePoint;
@@ -12,6 +12,8 @@ struct Resources {
     double peakRealMem;
     double currentVirtualMem;
     double peakVirtualMem;
+    double dataMemory;
+    double stackMemory;
 };
 
 // Returns Resources structure

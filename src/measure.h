@@ -37,7 +37,7 @@ protected:
     int k;
 };
 
-class TruePositivesAtK: public MeasureAtK{
+class TruePositivesAtK : public MeasureAtK {
 public:
     TruePositivesAtK(int k);
 
@@ -45,7 +45,7 @@ public:
     static double calculate(Label* labels, const std::vector<Prediction>& prediction, int k);
 };
 
-class TruePositives: public Measure{
+class TruePositives : public Measure {
 public:
     TruePositives();
 
@@ -53,7 +53,7 @@ public:
     static double calculate(Label* labels, const std::vector<Prediction>& prediction);
 };
 
-class FalsePositives: public Measure{
+class FalsePositives : public Measure {
 public:
     FalsePositives();
 
@@ -61,7 +61,7 @@ public:
     static double calculate(Label* labels, const std::vector<Prediction>& prediction);
 };
 
-class FalseNegatives: public Measure{
+class FalseNegatives : public Measure {
 public:
     FalseNegatives();
 
@@ -135,10 +135,9 @@ public:
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class HammingLoss: public Measure{
+class HammingLoss : public Measure {
 public:
     HammingLoss();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-
 };

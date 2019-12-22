@@ -153,7 +153,7 @@ std::vector<std::string> split(std::string text, char d) {
     return tokens;
 }
 
-std::string toLower(std::string text){
+std::string toLower(std::string text) {
     std::string lower = text;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     return lower;

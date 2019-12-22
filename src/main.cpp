@@ -10,8 +10,8 @@
 #include "data_reader.h"
 #include "measure.h"
 #include "model.h"
-#include "types.h"
 #include "resources.h"
+#include "types.h"
 
 
 void train(Args& args) {
@@ -71,18 +71,21 @@ void test(Args& args) {
     for (auto& m : measures) std::cout << "  " << m->getName() << ": " << m->value() << std::endl;
 
     // Print resources
-    auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(resAfterPrediction.timePoint - resAfterModel.timePoint).count()) / 1000;
+    auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                            resAfterPrediction.timePoint - resAfterModel.timePoint)
+                                            .count()) /
+                    1000;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
     std::cout << "Resources:"
-                << "\n  Real time (s): " << realTime
-                << "\n  CPU time (s): " << cpuTime
-                << "\n  Real time / data point (ms): " << realTime * 1000 / labels.rows()
-                << "\n  CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
-                << "\n  Model real memory size (MB): " << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
-                << "\n  Model virtual memory size (MB): " << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
-                << "\n  Peak of real memory usage (MB): " << resAfterPrediction.peakRealMem / 1024
-                << "\n  Peak of virtual memory usage (MB): " << resAfterPrediction.peakVirtualMem / 1024
-                << "\n";
+              << "\n  Real time (s): " << realTime << "\n  CPU time (s): " << cpuTime
+              << "\n  Real time / data point (ms): " << realTime * 1000 / labels.rows()
+              << "\n  CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
+              << "\n  Model real memory size (MB): "
+              << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
+              << "\n  Model virtual memory size (MB): "
+              << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
+              << "\n  Peak of real memory usage (MB): " << resAfterPrediction.peakRealMem / 1024
+              << "\n  Peak of virtual memory usage (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
 
     std::cerr << "All done!\n";
 }
@@ -107,7 +110,7 @@ void predict(Args& args) {
         // TODO
     }
 
-        // Read data from file and output prediction to cout
+    // Read data from file and output prediction to cout
     else {
         SRMatrix<Label> labels;
         SRMatrix<Feature> features;

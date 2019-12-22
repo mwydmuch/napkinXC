@@ -113,8 +113,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
     // Print data stats
     std::cerr << "  Data stats:"
-              << "\n    # data points: " << features.rows()
-              << "\n    # uniq features: " << features.cols()
+              << "\n    # data points: " << features.rows() << "\n    # uniq features: " << features.cols()
               << "\n    # uniq labels: " << labels.cols()
               << "\n    Mean # labels per data point: " << static_cast<double>(labels.cells()) / labels.rows()
               << "\n    Mean # features per data point: " << static_cast<double>(features.cells()) / features.rows()

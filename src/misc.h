@@ -233,18 +233,6 @@ template <typename T> inline uint32_t hash(T& v) {
     return h;
 }
 
-
-
-/*
-inline unsigned long long getSystemMemory()
-{
-    MEMORYSTATUSEX status;
-    status.dwLength = sizeof(status);
-    GlobalMemoryStatusEx(&status);
-    return status.ullTotalPhys;
-}
- */
-
 // Prints progress
 inline void printProgress(int state, int max) {
     // std::cerr << "  " << state << " / " << max << "\r";
@@ -295,4 +283,3 @@ void makeDir(const std::string& dirname);
 
 // Remove file or directory
 void remove(const std::string& path);
-

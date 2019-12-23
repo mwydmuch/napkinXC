@@ -51,7 +51,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     if (!hRows) std::cerr << "  ?%\r";
     int i = 0;
     while (getline(in, line)) {
-        if (hRows) printProgress(i, hRows); // If the number of rows is know, print progress
+        if (hRows) printProgress(i++, hRows); // If the number of rows is know, print progress
 
         lLabels.clear();
         lFeatures.clear();

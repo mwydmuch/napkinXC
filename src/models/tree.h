@@ -103,8 +103,10 @@ private:
     void buildCompleteTree(int labelCount, bool randomizeOrder, Args& args);
     void buildBalancedTree(int labelCount, bool randomizeOrder, Args& args);
 
-    // Tree utils
+    // Build tree in online way
+    void buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 
+    // Tree utils
     void expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
     void expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
     void printTree(TreeNode* rootNode = nullptr);

@@ -197,8 +197,9 @@ void PLT::load(Args& args, std::string infile) {
 }
 
 void PLT::printInfo() {
-    std::cerr << "PLT additional stats:"
-              << "\n  Mean # nodes per data point: " << static_cast<double>(nCount) / rCount << "\n";
+    std::cout << "PLT additional stats:"
+              << "\n  Tree size: " << tree->nodes.size()
+              << "\n  # estimators / data point: " << static_cast<double>(nCount) / rCount << "\n";
 }
 
 void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {

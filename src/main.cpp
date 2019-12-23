@@ -58,7 +58,6 @@ void test(Args& args) {
 
     // Predict for test set
     std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
-    model->printInfo();
 
     auto resAfterPrediction = getResources();
 
@@ -69,6 +68,7 @@ void test(Args& args) {
     // Print results
     std::cout << std::setprecision(5) << "Results:\n";
     for (auto& m : measures) std::cout << "  " << m->getName() << ": " << m->value() << std::endl;
+    model->printInfo();
 
     // Print resources
     auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(

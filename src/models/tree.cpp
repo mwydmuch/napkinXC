@@ -76,8 +76,7 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
         // labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
         buildKMeansTree(labelsFeatures, args);
     } else if (args.treeType == onlineBalanced || args.treeType == onlineComplete || args.treeType == onlineRandom) {
-        std::cerr << "Online tree is not supported for this model type!\n";
-        exit(EXIT_FAILURE);
+        buildOnlineTree(labels, features, args);
     } else if (args.treeType != custom) {
         throw std::invalid_argument("buildTreeStructure: Unknown tree type");
     }
@@ -181,7 +180,7 @@ void Tree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
 }
 
 void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
-    std::cout << "Building Huffman Tree ...\n";
+    std::cerr << "Building Huffman Tree ...\n";
 
     k = labels.cols();
 
@@ -217,7 +216,7 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
     }
 
     t = nodes.size(); // size of the tree
-    std::cout << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
+    std::cerr << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
 void Tree::buildBalancedTree(int labelCount, bool randomizeOrder, Args& args) {
@@ -311,6 +310,56 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
     std::cerr << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
+void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+    std::cerr << "Building online tree ...\n";
+
+    int rows = features.rows();
+    for (int r = 0; r < rows; ++r) {
+        printProgress(r, rows);
+
+        auto rSize = labels.size(r);
+        auto rLabels = labels[r];
+
+        // Check row
+        for (int i = 0; i < rSize; ++i) {
+            if (!leaves.count(rLabels[i])) {
+
+                int newLabel = rLabels[i];
+
+                if (nodes.empty()) { // Empty tree
+                    root = createTreeNode(nullptr, newLabel);
+                    nextSubtree = root;
+                    continue;
+                }
+
+                TreeNode* toExpand = root;
+
+                // Select node based on policy
+                if (args.treeType == onlineBalanced) { // Balanced policy
+                    while (toExpand->children.size() >= args.arity) {
+                        toExpand = toExpand->children[toExpand->nextToExpand++ % toExpand->children.size()];
+                    }
+                } else if (args.treeType == onlineComplete) { // Complete
+                    if (nodes[nextToExpand]->children.size() >= args.arity) ++nextToExpand;
+                    toExpand = nodes[nextToExpand];
+                } else if (args.treeType == onlineRandom) { // Random policy
+                    std::default_random_engine rng(args.getSeed());
+                    std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
+                    while (toExpand->children.size() >= args.arity) toExpand = toExpand->children[dist(rng)];
+                }
+
+                // Expand selected node
+                if (toExpand->children.empty())
+                    TreeNode* parentLabelNode = createTreeNode(toExpand, toExpand->label);
+                TreeNode* newLabelNode = createTreeNode(toExpand, newLabel);
+            }
+        }
+    }
+
+    t = nodes.size(); // size of the tree
+    std::cerr << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
+}
+
 void Tree::loadTreeStructure(std::string file) {
     std::cerr << "Loading Tree structure from: " << file << "...\n";
 
@@ -371,7 +420,7 @@ void Tree::loadTreeStructure(std::string file) {
 
     assert(nodes.size() == t);
     assert(leaves.size() == k);
-    std::cout << "  Loaded: nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+    std::cerr << "  Loaded: nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
 void Tree::saveTreeStructure(std::string file) {
@@ -466,6 +515,7 @@ void Tree::load(std::istream& in) {
 }
 
 void Tree::printTree(TreeNode* rootNode) {
+    std::cerr << "Tree:";
     if (rootNode == nullptr) rootNode = root;
 
     std::unordered_set<TreeNode*> nSet;

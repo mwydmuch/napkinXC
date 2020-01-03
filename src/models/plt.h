@@ -10,13 +10,7 @@
 #include "model.h"
 #include "tree.h"
 
-// For prediction in tree based models
-struct TreeNodeValue {
-    TreeNode* node;
-    double value; // Node's value/probability/loss
 
-    bool operator<(const TreeNodeValue& r) const { return value < r.value; }
-};
 
 // This is virtual class for all PLT based models: HSM, Batch PLT, Online PLT
 class PLT : virtual public Model {
@@ -66,6 +60,7 @@ protected:
     }
 
     // Additional statistics
+    int treeSize;
     int nCount; // Number of visited nodes (updated/evaluated classifiers) during training or prediction
     int rCount; // Data points count
 };

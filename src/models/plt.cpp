@@ -198,8 +198,9 @@ void PLT::load(Args& args, std::string infile) {
 
 void PLT::printInfo() {
     std::cout << "PLT additional stats:"
-              << "\n  Tree size: " << tree->nodes.size()
-              << "\n  # estimators / data point: " << static_cast<double>(nCount) / rCount << "\n";
+              << "\n  Tree size: " << (tree != nullptr ? tree->nodes.size() : treeSize)
+              << "\n  Evaluated estimators / data point: " << static_cast<double>(nCount) / rCount
+              << "\n";
 }
 
 void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
@@ -232,6 +233,7 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     // Save tree and free it, it is no longer needed
     tree->saveToFile(joinPath(output, "tree.bin"));
     tree->saveTreeStructure(joinPath(output, "tree.txt"));
+    treeSize = tree->nodes.size();
     delete tree;
     tree = nullptr;
 

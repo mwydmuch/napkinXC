@@ -17,15 +17,9 @@
 #include "types.h"
 
 #define LABELS_MUTEXES 1024
-typedef IntFeature Frequency;
-typedef DoubleFeature Probability;
 
 // Data utils
-void computeTfIdfFeatures(SRMatrix<Feature>& features, bool omitBias = false);
-
-void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels);
-
-void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels);
+std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels);
 
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
@@ -35,8 +29,6 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, doubl
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads = 1, bool norm = false,
                                  bool weightedFeatures = false);
-
-void computeLabelsExamples(std::vector<std::vector<Example>>& labelsFeatures, const SRMatrix<Label>& labels);
 
 // Math utils
 template <typename T, typename U> inline T argMax(const std::unordered_map<T, U>& map) {
@@ -265,6 +257,19 @@ public:
 template <typename T> inline void saveVar(std::ostream& out, T& var) { out.write((char*)&var, sizeof(var)); }
 
 template <typename T> inline void loadVar(std::istream& in, T& var) { in.read((char*)&var, sizeof(var)); }
+
+inline void saveVar(std::ostream& out, std::string& var) {
+    size_t size = var.size();
+    out.write((char*)&size, sizeof(size));
+    out.write((char*)&var[0], size);
+}
+
+inline void loadVar(std::istream& in, std::string& var) {
+    size_t size;
+    in.read((char*)&size, sizeof(size));
+    var.resize(size);
+    in.read((char*)&var[0], size);
+}
 
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2);

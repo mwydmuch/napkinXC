@@ -9,7 +9,8 @@ struct feature_node
     int index;
     double value;
 
-    bool operator<(const feature_node &r) const { return value < r.value; }
+    // Features are sorted by index
+    bool operator<(const feature_node &r) const { return index < r.index; }
 
     friend std::ostream& operator<<(std::ostream& os, const feature_node& fn) {
         os << fn.index << ":" << fn.value;

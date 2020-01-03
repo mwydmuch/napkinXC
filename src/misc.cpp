@@ -15,37 +15,29 @@
 
 
 // Data utils
-void computeLabelsFrequencies(std::vector<Frequency>& labelsFreq, const SRMatrix<Label>& labels) {
-    std::cerr << "Computing labels' frequencies ...\n";
+std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
+    std::cerr << "Computing labels' prior probabilities ...\n";
 
-    labelsFreq.clear();
-    labelsFreq.resize(labels.cols());
-    for (int i = 0; i < labelsFreq.size(); ++i) {
-        labelsFreq[i].index = i;
-        labelsFreq[i].value = 0;
+    std::vector<Prediction> labelsProb;
+
+    labelsProb.resize(labels.cols());
+    for (int i = 0; i < labelsProb.size(); ++i) {
+        labelsProb[i].label = i;
+        labelsProb[i].value = 0;
     }
     int rows = labels.rows();
 
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
         int rSize = labels.size(r);
-        auto rLabels = labels.row(r);
-        for (int i = 0; i < rSize; ++i) ++labelsFreq[rLabels[i]].value;
+        auto rLabels = labels[r];
+        for (int i = 0; i < rSize; ++i) ++labelsProb[rLabels[i]].value;
     }
-}
 
-void computeLabelsPrior(std::vector<Probability>& labelsProb, const SRMatrix<Label>& labels) {
-    std::cerr << "Computing labels' probabilities ...\n";
+    for (auto& p : labelsProb)
+        p.value /= labels.rows();
 
-    std::vector<Frequency> labelsFreq;
-    computeLabelsFrequencies(labelsFreq, labels);
-
-    labelsProb.clear();
-    labelsProb.resize(labels.cols());
-    for (int i = 0; i < labelsFreq.size(); ++i) {
-        labelsProb[i].index = i;
-        labelsProb[i].value = static_cast<double>(labelsFreq[i].value) / labels.rows();
-    }
+    return labelsProb;
 }
 
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
@@ -89,41 +81,17 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
     std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
     assert(features.rows() == labels.rows());
 
-    if (threads > 1) {
-        std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
+    std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
 
-        std::array<std::mutex, LABELS_MUTEXES> mutexes;
-        ThreadSet tSet;
-        for (int t = 0; t < threads; ++t)
-            tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels),
-                     std::ref(features), weightedFeatures, t, threads, std::ref(mutexes));
-        tSet.joinAll();
-    } else {
-        std::cerr << "Computing labels' features matrix ...\n";
+    std::array<std::mutex, LABELS_MUTEXES> mutexes;
+    ThreadSet tSet;
+    for (int t = 0; t < threads; ++t)
+        tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels),
+                 std::ref(features), weightedFeatures, t, threads, std::ref(mutexes));
+    tSet.joinAll();
 
-        int rows = features.rows();
-        for (int r = 0; r < rows; ++r) {
-            printProgress(r, rows);
-            int rFeaturesSize = features.size(r);
-            int rLabelsSize = labels.size(r);
-            auto rFeatures = features.row(r);
-            auto rLabels = labels.row(r);
-            for (int i = 0; i < rFeaturesSize; ++i) {
-                for (int j = 0; j < rLabelsSize; ++j) {
-                    auto f = tmpLabelsFeatures[rLabels[j]].find(rFeatures[i].index);
-                    auto v = rFeatures[i].value;
-                    if (weightedFeatures) v /= rLabelsSize;
-                    if (f == tmpLabelsFeatures[rLabels[j]].end())
-                        tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = v;
-                    else
-                        f->second += v;
-                }
-            }
-        }
-    }
-
-    std::vector<Frequency> labelsFreq;
-    if (!norm) computeLabelsFrequencies(labelsFreq, labels);
+    std::vector<Prediction> labelsProb;
+    if (!norm) labelsProb = computeLabelsPriors(labels);
 
     for (int l = 0; l < labels.cols(); ++l) {
         std::vector<Feature> labelFeatures;
@@ -132,7 +100,7 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
         if (norm)
             unitNorm(labelFeatures);
         else
-            divVector(labelFeatures, labelsFreq[l].value);
+            divVector(labelFeatures, labelsProb[l].value * labels.rows());
         labelsFeatures.appendRow(labelFeatures);
     }
 }
@@ -141,13 +109,13 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
 std::vector<std::string> split(std::string text, char d) {
     std::vector<std::string> tokens;
     const char* str = text.c_str();
+    std::string strD = std::string("") + d;
 
     do {
-        std::string str_d = std::string("") + d;
         const char* begin = str;
         while (*str != d && *str) ++str;
         std::string token = std::string(begin, str);
-        if (token.length() && token != str_d) tokens.push_back(std::string(begin, str));
+        if (token.length() && token != strD) tokens.emplace_back(begin, str);
     } while (0 != *str++);
 
     return tokens;

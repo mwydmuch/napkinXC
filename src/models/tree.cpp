@@ -184,35 +184,34 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
 
     k = labels.cols();
 
-    std::vector<Frequency> labelsFreq;
-    computeLabelsFrequencies(labelsFreq, labels);
+    auto labelsProb = computeLabelsPriors(labels);
 
-    std::priority_queue<TreeNodeFrequency> freqQueue;
+    std::priority_queue<TreeNodeValue> probQueue;
     for (int i = 0; i < k; i++) {
         TreeNode* n = createTreeNode(nullptr, i);
-        freqQueue.push({n, labelsFreq[i].value});
+        probQueue.push({n, labelsProb[i].value});
     }
 
-    while (!freqQueue.empty()) {
-        std::vector<TreeNodeFrequency> toMerge;
+    while (!probQueue.empty()) {
+        std::vector<TreeNodeValue> toMerge;
         for (int a = 0; a < args.arity; ++a) {
-            toMerge.push_back(freqQueue.top());
-            freqQueue.pop();
-            if (freqQueue.empty()) break;
+            toMerge.push_back(probQueue.top());
+            probQueue.pop();
+            if (probQueue.empty()) break;
         }
 
         TreeNode* parent = createTreeNode();
-        int aggregatedFreq = 0;
-        for (TreeNodeFrequency& e : toMerge) {
+        double aggregatedProb = 0;
+        for (TreeNodeValue& e : toMerge) {
             e.node->parent = parent;
             parent->children.push_back(e.node);
-            aggregatedFreq += e.frequency;
+            aggregatedProb += e.value;
         }
 
-        if (freqQueue.empty())
+        if (probQueue.empty())
             root = parent;
         else
-            freqQueue.push({parent, aggregatedFreq});
+            probQueue.push({parent, aggregatedProb});
     }
 
     t = nodes.size(); // size of the tree

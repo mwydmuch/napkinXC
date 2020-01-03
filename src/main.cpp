@@ -26,11 +26,30 @@ void train(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->readData(labels, features, args);
     reader->saveToFile(joinPath(args.output, "data_reader.bin"));
+    DataReader::printInfoAboutData(labels, features);
 
+    auto resAfterData = getResources();
+    
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = Model::factory(args);
     model->train(labels, features, args, args.output);
     model->printInfo();
+
+    auto resAfterTraining = getResources();
+
+    // Print resources
+    auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            resAfterTraining.timePoint - resAfterData.timePoint)
+            .count()) /
+                    1000;
+    auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
+    std::cout << "Resources:"
+              << "\n  Train real time (s): " << realTime
+              << "\n  Train CPU time (s): " << cpuTime
+              << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
+              << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
+              << "\n  Peak of real memory usage (MB): " << resAfterTraining.peakRealMem / 1024
+              << "\n  Peak of virtual memory usage (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
 
     std::cerr << "All done!\n";
 }
@@ -47,6 +66,7 @@ void test(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
+    DataReader::printInfoAboutData(labels, features);
 
     auto resAfterData = getResources();
 
@@ -55,6 +75,8 @@ void test(Args& args) {
     model->load(args, args.output);
 
     auto resAfterModel = getResources();
+
+    // TODO: If thresholds provided
 
     // Predict for test set
     std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
@@ -77,9 +99,10 @@ void test(Args& args) {
                     1000;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
     std::cout << "Resources:"
-              << "\n  Real time (s): " << realTime << "\n  CPU time (s): " << cpuTime
-              << "\n  Real time / data point (ms): " << realTime * 1000 / labels.rows()
-              << "\n  CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
+              << "\n  Test real time (s): " << realTime 
+              << "\n  Test CPU time (s): " << cpuTime
+              << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
+              << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
               << "\n  Model real memory size (MB): "
               << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
               << "\n  Model virtual memory size (MB): "

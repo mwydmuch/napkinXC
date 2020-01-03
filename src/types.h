@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "linear.h"
+#include "robin_hood.h"
 
 typedef float Weight;
 typedef std::pair<int, Weight> SparseWeight;
@@ -27,12 +28,20 @@ struct IntFeature {
     int index;
     int value;
 
-    bool operator<(const IntFeature& r) const { return value < r.value; }
+    // Features are sorted by index
+    bool operator<(const IntFeature& r) const { return index < r.index; }
 
     friend std::ostream& operator<<(std::ostream& os, const IntFeature& f) {
         os << f.index << ":" << f.value;
         return os;
     }
+};
+
+struct Prediction {
+    int label;
+    double value; // labels's value/probability/loss
+
+    bool operator<(const Prediction& r) const { return value < r.value; }
 };
 
 // Elastic low-level sparse row matrix, type T needs to contain int at offset 0!

@@ -13,13 +13,6 @@
 #include "base.h"
 #include "types.h"
 
-struct Prediction {
-    int label;
-    double value; // Node's value/probability/loss
-
-    bool operator<(const Prediction& r) const { return value < r.value; }
-};
-
 class Model {
 public:
     static std::shared_ptr<Model> factory(Args& args);

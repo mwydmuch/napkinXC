@@ -33,19 +33,18 @@ struct TreeNode {
     std::vector<int> labels;
 };
 
+// For prediction in tree based models / Huffman trees building
+struct TreeNodeValue {
+    TreeNode* node;
+    double value; // Node's value/probability/loss
+
+    bool operator<(const TreeNodeValue& r) const { return value < r.value; }
+};
+
 // For K-Means based trees
 struct TreeNodePartition {
     TreeNode* node;
     std::vector<Assignation>* partition;
-};
-
-// For Huffman based trees
-struct TreeNodeFrequency {
-    TreeNode* node;
-    int frequency;
-
-    // Sorted from the lowest to the highest frequency
-    bool operator<(const TreeNodeFrequency& r) const { return frequency > r.frequency; }
 };
 
 class Tree : public FileHelper {

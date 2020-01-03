@@ -40,9 +40,9 @@ enum TreeType {
     custom
 };
 
-enum OptimizerType { libliner, sgd, adagrad, fobos };
+enum OptimizerType { liblinear, sgd, adagrad, fobos };
 
-enum DataFormatType { libsvm };
+enum DataFormatType { libsvm, vw };
 
 enum SetUtilityType { uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma };
 
@@ -62,7 +62,6 @@ public:
     bool bias;
     double biasValue;
     bool norm;
-    bool tfidf;
     int hash;
     double featuresThreshold;
 
@@ -104,6 +103,7 @@ public:
     // Prediction options
     int topK;
     double threshold;
+    std::string thresholds;
 
     inline int getSeed() { return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);

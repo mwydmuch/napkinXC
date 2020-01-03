@@ -8,6 +8,7 @@
 
 #include "data_reader.h"
 #include "libsvm_reader.h"
+#include "vw_reader.h"
 #include "misc.h"
 
 
@@ -15,6 +16,7 @@ std::shared_ptr<DataReader> DataReader::factory(Args& args) {
     std::shared_ptr<DataReader> dataReader = nullptr;
     switch (args.dataFormatType) {
     case libsvm: dataReader = std::static_pointer_cast<DataReader>(std::make_shared<LibSvmReader>()); break;
+    case vw: dataReader = std::static_pointer_cast<DataReader>(std::make_shared<VowpalWabbitReader>()); break;
     default: throw std::invalid_argument("Unknown data reader type!");
     }
 
@@ -29,6 +31,8 @@ DataReader::DataReader() {
 
 DataReader::~DataReader() {}
 
+void DataReader::readHeader(std::string& line) {}
+
 // Reads train/test data to sparse matrix
 void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
     std::cerr << "Loading data from: " << args.input << std::endl;
@@ -38,7 +42,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     std::string line;
 
     // Read header
-    if (args.header) {
+    if (args.header && supportHeader) {
         getline(in, line);
         readHeader(line);
     }
@@ -79,6 +83,8 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
         else if (args.bias)
             lFeatures.push_back({hFeatures + 1, args.biasValue});
 
+        // TODO: If bias will be feature with index = 1, then sorting won't be required
+
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
     }
@@ -110,16 +116,6 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     // Print info about loaded data
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (args.bias ? 1 : 0)
               << ", labels: " << labels.cols() << std::endl;
-
-    // Print data stats
-    std::cerr << "  Data stats:"
-              << "\n    # data points: " << features.rows() << "\n    # uniq features: " << features.cols()
-              << "\n    # uniq labels: " << labels.cols()
-              << "\n    Mean # labels per data point: " << static_cast<double>(labels.cells()) / labels.rows()
-              << "\n    Mean # features per data point: " << static_cast<double>(features.cells()) / features.rows()
-              << "\n    Mean # data points per label: " << static_cast<double>(labels.cols()) / labels.cells()
-              << "\n    Mean # data points per feature: " << static_cast<double>(features.cols()) / features.cells()
-              << "\n";
 }
 
 void DataReader::save(std::ostream& out) {
@@ -130,4 +126,16 @@ void DataReader::save(std::ostream& out) {
 void DataReader::load(std::istream& in) {
     in.read((char*)&hFeatures, sizeof(hFeatures));
     in.read((char*)&hLabels, sizeof(hLabels));
+}
+
+void DataReader::printInfoAboutData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+    std::cout << "Data stats:"
+              << "\n  Data points: " << features.rows()
+              << "\n  Uniq features: " << features.cols()
+              << "\n  Uniq labels: " << labels.cols()
+              << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
+              << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows()
+              << "\n  Data points / label: " << static_cast<double>(labels.cols()) / labels.cells()
+              << "\n  Data points / feature: " << static_cast<double>(features.cols()) / features.cells()
+              << "\n";
 }

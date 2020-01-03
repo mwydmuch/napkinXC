@@ -30,7 +30,6 @@ Args::Args() {
     bias = true;
     biasValue = 1.0;
     norm = true;
-    tfidf = false;
     featuresThreshold = 0.0;
 
     // Training options
@@ -42,8 +41,8 @@ Args::Args() {
     solverName = "L2R_LR_DUAL";
     inbalanceLabelsWeighting = false;
     hsmPickOneLabelWeighting = false;
-    optimizerName = "libliner";
-    optimizerType = libliner;
+    optimizerName = "liblinear";
+    optimizerType = liblinear;
     weightsThreshold = 0.1;
 
     // Ensemble options
@@ -60,8 +59,6 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    // treeType = completeInOrder;
-    // treeTypeName = "completeInOrder";
     treeType = hierarchicalKMeans;
     treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
@@ -74,6 +71,7 @@ Args::Args() {
     // Prediction options
     topK = 5;
     threshold = 0.0;
+    thresholds = "";
 
     // Set utility options
     setUtilityType = uAlfaBeta;
@@ -119,6 +117,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 dataFormatName = args.at(ai + 1);
                 if (args.at(ai + 1) == "libsvm")
                     dataFormatType = libsvm;
+                else if (args.at(ai + 1) == "vw" || args.at(ai + 1) == "vowpalwabbit")
+                    dataFormatType = vw;
                 else {
                     std::cerr << "Unknown date format type: " << args.at(ai + 1) << "!\n";
                     printHelp();
@@ -192,8 +192,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 bias = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--norm")
                 norm = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--tfidf")
-                tfidf = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--hash")
                 hash = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--featuresThreshold")
@@ -242,7 +240,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             } else if (args[ai] == "--optimizer") {
                 optimizerName = args.at(ai + 1);
                 if (args.at(ai + 1) == "liblinear")
-                    optimizerType = libliner;
+                    optimizerType = liblinear;
                 else if (args.at(ai + 1) == "sgd")
                     optimizerType = sgd;
                 else if (args.at(ai + 1) == "adagrad")
@@ -312,6 +310,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 topK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--thresholds")
+                thresholds = std::string(args.at(ai + 1));
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));
             else {
@@ -331,7 +331,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     }
 
     // Change default values for specific cases + parameters warnings
-    if (modelType == oplt && optimizerType == libliner) {
+    if (modelType == oplt && optimizerType == liblinear) {
         if (count(args.begin(), args.end(), "optimizer"))
             std::cerr << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
         optimizerType = adagrad;
@@ -345,35 +345,38 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         treeType = completeInOrder;
     }
 
-    if (topK > 0) {
-        if (count(args.begin(), args.end(), "threshold"))
-            std::cerr << "Warning: Top K and threshold prediction are used at the same time!\n";
-        else
-            threshold = 0.0;
-    }
-
+    // If only threshold used set topK to 0, otherwise display warning
     if (threshold > 0) {
         if (count(args.begin(), args.end(), "topK"))
             std::cerr << "Warning: Top K and threshold prediction are used at the same time!\n";
         else
             topK = 0;
     }
+
+    // Warnings about arguments overrides while testing / predicting
 }
 
 void Args::printArgs() {
     if (command == "train" || command == "test") {
-        std::cerr << "napkinXC " << VERSION << " - " << command << "\n  Input: " << input
-                  << "\n    Data format: " << dataFormatType << "\n    Header: " << header << ", bias: " << bias
-                  << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
-                  << "\n  Model: " << output << "\n    Type: " << modelName;
+        std::cerr << "napkinXC " << VERSION << " - " << command
+                  << "\n  Input: " << input
+                  << "\n    Data format: " << dataFormatName
+                  << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
+                  << "\n  Model: " << output
+                  << "\n    Type: " << modelName;
         if (ensemble > 1) std::cerr << ", ensemble: " << ensemble;
+
         if (command == "train") {
-            std::cerr << "\n    Optimizer: " << optimizerName;
-            if (optimizerType == libliner)
-                std::cerr << "\n    LibLinear: Solver: " << solverName << ", eps: " << eps << ", cost: " << cost
-                          << ", weights threshold: " << weightsThreshold;
-            else if (optimizerType == sgd)
-                std::cerr << "\n    SGD: eta: " << eta << ", epochs: " << epochs << ", threshold: " << weightsThreshold;
+            std::cerr << "\n  Base models optimizer: " << optimizerName;
+            if (optimizerType == liblinear)
+                std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost;
+            else
+                std::cerr << "\n    Eta: " << eta << ", epochs: " << epochs;
+            if (optimizerType == adagrad)
+                std::cerr << ", AdaGrad eps " << adagradEps;
+            if (optimizerType == fobos)
+                std::cerr << ", Fobos penalty: " << fobosPenalty;
+            std::cerr << ", weights threshold: " << weightsThreshold;
 
             if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
                 if (treeStructure.empty()) {
@@ -389,12 +392,15 @@ void Args::printArgs() {
             }
         }
 
-        if (command == "test" &&
-            (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips)) {
-            std::cerr << "\n  Set utility: " << setUtilityName;
-            if (setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
-            if (setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
-            if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
+        if (command == "test"){
+            std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
+
+            if(modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips) {
+                std::cerr << "\n  Set utility: " << setUtilityName;
+                if (setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
+                if (setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
+                if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
+            }
         }
         std::cerr << "\n  Threads: " << threads
                   << ", memory limit: " << static_cast<double>(memLimit) / 1024 / 1024 / 1024 << "G\n";
@@ -496,7 +502,10 @@ void Args::save(std::ostream& out) {
     out.write((char*)&hash, sizeof(hash));
     out.write((char*)&modelType, sizeof(modelType));
     out.write((char*)&dataFormatType, sizeof(dataFormatType));
-    // out.write((char*) &ensemble, sizeof(ensemble));
+    //out.write((char*) &ensemble, sizeof(ensemble));
+
+    saveVar(out, modelName);
+    saveVar(out, dataFormatName);
 }
 
 void Args::load(std::istream& in) {
@@ -505,5 +514,8 @@ void Args::load(std::istream& in) {
     in.read((char*)&hash, sizeof(hash));
     in.read((char*)&modelType, sizeof(modelType));
     in.read((char*)&dataFormatType, sizeof(dataFormatType));
-    // in.read((char*) &ensemble, sizeof(ensemble));
+    //in.read((char*) &ensemble, sizeof(ensemble));
+
+    loadVar(in, modelName);
+    loadVar(in, dataFormatName);
 }

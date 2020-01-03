@@ -13,13 +13,11 @@
 #include <vector>
 
 #include "args.h"
-#include "robin_hood.h"
 #include "types.h"
 
 
 typedef float Weight;
 typedef std::pair<int, Weight> SparseWeight;
-#define UnorderedMap robin_hood::unordered_map
 
 class Base {
 public:

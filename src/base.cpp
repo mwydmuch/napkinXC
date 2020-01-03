@@ -187,7 +187,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     assert(binLabels.size() == binFeatures.size());
     if (instancesWeights != nullptr) assert(instancesWeights->size() == binLabels.size());
 
-    if (args.optimizerType == libliner)
+    if (args.optimizerType == liblinear)
         trainLiblinear(n, binLabels, binFeatures, instancesWeights, positiveLabels, args);
     else
         trainOnline(binLabels, binFeatures, args);

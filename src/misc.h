@@ -16,15 +16,13 @@
 
 #include "types.h"
 
-#define LABELS_MUTEXES 1024
-
 // Data utils
 std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels);
 
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures, int threadId, int threads,
-                                       std::array<std::mutex, LABELS_MUTEXES>& mutexes);
+                                       std::vector<std::mutex>& mutexes);
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads = 1, bool norm = false,
@@ -73,7 +71,7 @@ template <typename T> inline T dotVectors(Feature* vector1, const T* vector2, co
     T val = 0;
     Feature* f = vector1;
     while (f->index != -1 && f->index < size) {
-        val += f->value * vector2[f->index];
+        val += f->value * vector2[f->index - 1];
         ++f;
     }
     return val;

@@ -29,6 +29,7 @@ void VowpalWabbitReader::readLine(std::string& line, std::vector<Label>& lLabels
         lLabels.push_back(il);
     }
 
+    UnorderedMap<int, double> tmpLFeatures;
     for(auto& f : features) {
         std::string sIndex = f;
         double value = 1.0;
@@ -39,14 +40,17 @@ void VowpalWabbitReader::readLine(std::string& line, std::vector<Label>& lLabels
             value = std::stof(f.substr(pos + 1, f.length() - pos));
         }
 
-        int index = featuresMap.size() + 1; // Feature (LibLinear ignore feature 0)
+        int index = featuresMap.size() + 2; // Feature (LibLinear ignore feature 0 and feature 1 is reserved for bias)
         auto ff = featuresMap.find(f);
         if (ff != featuresMap.end())
             index = ff->second;
         else
             featuresMap.insert({sIndex, index});
-        lFeatures.push_back({index, value});
+        tmpLFeatures[index] += value;
     }
+
+    for(auto& f : tmpLFeatures)
+        lFeatures.push_back({f.first, f.second});
 }
 
 void VowpalWabbitReader::save(std::ostream& out) {

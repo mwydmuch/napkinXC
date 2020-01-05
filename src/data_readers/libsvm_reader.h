@@ -14,6 +14,6 @@ public:
     LibSvmReader();
     ~LibSvmReader() override;
 
-    void readHeader(std::string& line) override;
+    void readHeader(std::string& line, int& hLabels, int& hFeatures, int& hRows) override;
     void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures) override;
 };

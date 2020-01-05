@@ -380,7 +380,7 @@ void Args::printArgs() {
 
             if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
                 if (treeStructure.empty()) {
-                    std::cerr << "\n    Tree type: " << treeTypeName << ", arity: " << arity;
+                    std::cerr << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
                     if (treeType == hierarchicalKMeans)
                         std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced
                                   << ", weighted features: " << kMeansWeightedFeatures;
@@ -403,7 +403,8 @@ void Args::printArgs() {
             }
         }
         std::cerr << "\n  Threads: " << threads
-                  << ", memory limit: " << static_cast<double>(memLimit) / 1024 / 1024 / 1024 << "G\n";
+                  << ", memory limit: " << static_cast<double>(memLimit) / 1024 / 1024 / 1024 << "G"
+                  << "\n  Seed: " << seed << std::endl;
     }
 }
 

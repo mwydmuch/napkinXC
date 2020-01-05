@@ -14,13 +14,11 @@ LibSvmReader::LibSvmReader() {
 LibSvmReader::~LibSvmReader() {}
 
 // Read header in LibSvm Format: #rows #features #labels
-void LibSvmReader::readHeader(std::string& line) {
+void LibSvmReader::readHeader(std::string& line, int& hLabels, int& hFeatures, int& hRows) {
     auto hTokens = split(line, ' ');
     hRows = std::stoi(hTokens[0]);
-    if (!hFeatures) hFeatures = std::stoi(hTokens[1]);
-    if (!hLabels) hLabels = std::stoi(hTokens[2]);
-
-    std::cerr << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << std::endl;
+    hFeatures = std::stoi(hTokens[1]);
+    hLabels = std::stoi(hTokens[2]);
 }
 
 // Reads line in LibSvm format label,label,... feature(:value) feature(:value) ...
@@ -36,7 +34,7 @@ void LibSvmReader::readLine(std::string& line, std::vector<Label>& lLabels, std:
 
         // Feature index
         else if (line[pos - 1] == ' ' && line[nextPos] == ':') {
-            int index = std::stoi(line.substr(pos, nextPos - pos)) + 1; // Feature (LibLinear ignore feature 0)
+            int index = std::stoi(line.substr(pos, nextPos - pos)) + 2; // Feature (LibLinear ignore feature 0 and feature 1 is reserved for bias)
             lFeatures.push_back({index, 1.0});
         }
 

@@ -43,7 +43,7 @@ std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
 void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures, int threadId, int threads,
-                                       std::array<std::mutex, LABELS_MUTEXES>& mutexes) {
+                                       std::vector<std::mutex>& mutexes) {
 
     int rows = features.rows();
     int part = (rows / threads) + 1;
@@ -54,20 +54,19 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, doubl
         if (threadId == 0) printProgress(r, partEnd);
         int rFeaturesSize = features.size(r);
         int rLabelsSize = labels.size(r);
-        auto rFeatures = features.row(r);
-        auto rLabels = labels.row(r);
+        auto rFeatures = features[r];
+        auto rLabels = labels[r];
         for (int i = 0; i < rFeaturesSize; ++i) {
             for (int j = 0; j < rLabelsSize; ++j) {
+                if(rFeatures[i].index == 1) continue; // Skip bias feature
+
                 std::mutex& m = mutexes[rLabels[j] % mutexes.size()];
+
                 m.lock();
 
-                auto f = tmpLabelsFeatures[rLabels[j]].find(rFeatures[i].index);
                 auto v = rFeatures[i].value;
                 if (weightedFeatures) v /= rLabelsSize;
-                if (f == tmpLabelsFeatures[rLabels[j]].end())
-                    tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] = v;
-                else
-                    f->second += v;
+                tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] += v;
 
                 m.unlock();
             }
@@ -83,7 +82,7 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
 
     std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
 
-    std::array<std::mutex, LABELS_MUTEXES> mutexes;
+    std::vector<std::mutex> mutexes(1031); // First prime number larger then 1024
     ThreadSet tSet;
     for (int t = 0; t < threads; ++t)
         tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels),
@@ -97,10 +96,8 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
         std::vector<Feature> labelFeatures;
         for (const auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({f.first, f.second});
         std::sort(labelFeatures.begin(), labelFeatures.end());
-        if (norm)
-            unitNorm(labelFeatures);
-        else
-            divVector(labelFeatures, labelsProb[l].value * labels.rows());
+        if (norm) unitNorm(labelFeatures);
+        else divVector(labelFeatures, labelsProb[l].value * labels.rows());
         labelsFeatures.appendRow(labelFeatures);
     }
 }

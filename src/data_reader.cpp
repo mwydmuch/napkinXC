@@ -24,14 +24,12 @@ std::shared_ptr<DataReader> DataReader::factory(Args& args) {
 }
 
 DataReader::DataReader() {
-    hLabels = 0;
-    hFeatures = 0;
-    hRows = 0;
+    supportHeader = false;
 }
 
 DataReader::~DataReader() {}
 
-void DataReader::readHeader(std::string& line) {}
+void DataReader::readHeader(std::string& line, int& hLabels, int& hFeatures, int& hRows) {}
 
 // Reads train/test data to sparse matrix
 void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
@@ -42,67 +40,79 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     std::string line;
 
     // Read header
+    int i = 1;
+    int hLabels = 0, hFeatures = 0, hRows = 0;
     if (args.header && supportHeader) {
         getline(in, line);
-        readHeader(line);
+        ++i;
+        try {
+            readHeader(line, hLabels, hFeatures, hRows);
+            std::cerr << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "  Failed to read header from input!\n";
+            exit(1);
+        }
     }
-
-    std::vector<Label> lLabels;
-    std::vector<Feature> lFeatures;
     if (args.hash) hFeatures = args.hash;
 
-    // Read examples
+    // Read data points
+    std::vector<Label> lLabels;
+    std::vector<Feature> lFeatures;
     if (!hRows) std::cerr << "  ?%\r";
-    int i = 0;
+
     while (getline(in, line)) {
         if (hRows) printProgress(i++, hRows); // If the number of rows is know, print progress
 
         lLabels.clear();
         lFeatures.clear();
 
-        readLine(line, lLabels, lFeatures);
+        // Add bias feature (bias feature has index 1)
+        if (args.bias) lFeatures.push_back({1, 0.0});
 
+        try {
+            readLine(line, lLabels, lFeatures);
+        } catch (const std::exception& e) {
+            std::cerr << "  Failed to read line " << i << " from input!\n";
+            exit(1);
+        }
+
+        // Hash features
         if (args.hash) {
-            std::unordered_map<int, double> lHashed;
+            UnorderedMap<int, double> lHashed;
             for (auto& f : lFeatures) lHashed[hash(f.index) % args.hash] += f.value;
 
             lFeatures.clear();
             for (const auto& f : lHashed) lFeatures.push_back({f.first + 1, f.second});
         }
 
+        // Norm row
+        if (args.norm) unitNorm(lFeatures);
+
+        if (args.bias) lFeatures[0].value = args.biasValue;
+
+        // Apply features threshold
+        if (args.featuresThreshold > 0) threshold(lFeatures, args.featuresThreshold);
+
         // Check if it requires sorting
         if (!std::is_sorted(lFeatures.begin(), lFeatures.end())) sort(lFeatures.begin(), lFeatures.end());
 
-        // Norm row
-        if (args.norm) unitNorm(lFeatures);
-        if (args.featuresThreshold > 0) threshold(lFeatures, args.featuresThreshold);
-
-        // Add bias feature after applying norm
-        if (args.bias && !hFeatures)
-            lFeatures.push_back({lFeatures.back().index + 1, args.biasValue});
-        else if (args.bias)
-            lFeatures.push_back({hFeatures + 1, args.biasValue});
-
-        // TODO: If bias will be feature with index = 1, then sorting won't be required
-
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
+        ++i;
     }
 
     in.close();
 
-    if (args.bias && !args.header) {
-        for (int r = 0; r < features.rows(); ++r)
-            features[r][features.size(r) - 1] = {features.cols() - 1, args.biasValue};
-    }
-
-    if (!hLabels) hLabels = labels.cols();
-    if (!hFeatures) hFeatures = features.cols() - (args.bias ? 1 : 0);
-
     // Checks
     assert(labels.rows() == features.rows());
-    // assert(hLabels >= labels.cols());
-    // assert(hFeatures + 1 + (args.bias ? 1 : 0) >= features.cols());
+    if(args.header && supportHeader){
+        if(hRows != features.rows())
+            std::cerr << "  Warning: Number of lines does not match number in the file header!\n";
+        if(hLabels != labels.cols())
+            std::cerr << "  Warning: Number of labels does not match number in the file header!\n";
+        if(hFeatures != features.rows() - 2)
+            std::cerr << "  Warning: Number of features does not match number in the file header!\n";
+    }
 
     // Print data
     /*
@@ -114,24 +124,17 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     */
 
     // Print info about loaded data
-    std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 1 - (args.bias ? 1 : 0)
-              << ", labels: " << labels.cols() << std::endl;
+    std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2 << ", labels: " << labels.cols() << std::endl;
 }
 
-void DataReader::save(std::ostream& out) {
-    out.write((char*)&hFeatures, sizeof(hFeatures));
-    out.write((char*)&hLabels, sizeof(hLabels));
-}
+void DataReader::save(std::ostream& out) { }
 
-void DataReader::load(std::istream& in) {
-    in.read((char*)&hFeatures, sizeof(hFeatures));
-    in.read((char*)&hLabels, sizeof(hLabels));
-}
+void DataReader::load(std::istream& in) { }
 
 void DataReader::printInfoAboutData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
     std::cout << "Data stats:"
               << "\n  Data points: " << features.rows()
-              << "\n  Uniq features: " << features.cols()
+              << "\n  Uniq features: " << features.cols() - 2
               << "\n  Uniq labels: " << labels.cols()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
               << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows()

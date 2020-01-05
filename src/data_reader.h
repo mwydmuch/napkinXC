@@ -19,7 +19,7 @@ public:
     virtual ~DataReader();
 
     void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
-    virtual void readHeader(std::string& line);
+    virtual void readHeader(std::string& line, int& hLabels, int& hFeatures, int& hRows);
     virtual void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures) = 0;
 
     void save(std::ostream& out) override;
@@ -29,7 +29,5 @@ public:
 
 protected:
     bool supportHeader;
-    int hLabels;
-    int hFeatures;
-    int hRows;
+
 };

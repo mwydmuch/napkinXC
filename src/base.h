@@ -30,10 +30,10 @@ public:
                std::vector<double>* instancesWeights, Args& args);
     void trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                         std::vector<double>* instancesWeights, int positiveLabel, Args& args);
-    void trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args);
+    void trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args);
 
     // For online training
-    void setupOnlineTraining(Args& args);
+    void setupOnlineTraining(Args& args, int n = 0, bool startWithDenseW = true);
     void finalizeOnlineTraining(Args& args);
 
     double predictValue(Feature* features);
@@ -102,7 +102,6 @@ template <typename T> void Base::updateSGD(T& W, Feature* features, double grad,
         W[f->index - 1] -= lr * grad * f->value;
         ++f;
     }
-    if (f != features && (f - 1)->index > wSize) wSize = (f - 1)->index;
 }
 
 template <typename T> void Base::updateAdaGrad(T& W, T& G, Feature* features, double grad, double eta, double eps) {
@@ -113,7 +112,6 @@ template <typename T> void Base::updateAdaGrad(T& W, T& G, Feature* features, do
         W[f->index - 1] -= lr * (grad * f->value);
         ++f;
     }
-    if (f != features && (f - 1)->index > wSize) wSize = (f - 1)->index;
 }
 
 template <typename T> void Base::updateFobos(T& W, Feature* features, double grad, double eta, double penalty) {
@@ -125,5 +123,4 @@ template <typename T> void Base::updateFobos(T& W, Feature* features, double gra
         W[f->index - 1] -= pi * lr * grad * f->value;
         ++f;
     }
-    if (f != features && (f - 1)->index > wSize) wSize = (f - 1)->index;
 }

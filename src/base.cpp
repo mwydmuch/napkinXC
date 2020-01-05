@@ -46,6 +46,12 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     ++t;
     if (label == firstClass) ++firstClassCount;
 
+    // Check if we should change sparse W to dense W
+    if (mapW != nullptr && wSize != 0) {
+        nonZeroW = mapW->size();
+        if (mapSize() > denseSize()) toDense();
+    }
+
     double pred = predictValue(features);
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
@@ -64,11 +70,6 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
             updateFobos((*mapW), features, grad, args.eta, args.fobosPenalty);
         else if (W != nullptr)
             updateFobos(W, features, grad, args.eta, args.fobosPenalty);
-    }
-
-    if (mapW != nullptr) {
-        nonZeroW = mapW->size();
-        if (mapSize() > denseSize()) toDense();
     }
 }
 
@@ -156,8 +157,8 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
     delete M;
 }
 
-void Base::trainOnline(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args) {
-    setupOnlineTraining(args);
+void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args) {
+    setupOnlineTraining(args, n);
 
     const int examples = binFeatures.size() * args.epochs;
     for (int i = 0; i < examples; ++i) {
@@ -190,22 +191,33 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     if (args.optimizerType == liblinear)
         trainLiblinear(n, binLabels, binFeatures, instancesWeights, positiveLabels, args);
     else
-        trainOnline(binLabels, binFeatures, args);
+        trainOnline(n, binLabels, binFeatures, args);
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
     if (sparseSize() < denseSize()) toSparse();
 }
 
-void Base::setupOnlineTraining(Args& args) {
-    mapW = new UnorderedMap<int, Weight>();
-    if (args.optimizerType == adagrad) mapG = new UnorderedMap<int, Weight>();
+void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
+    wSize = n;
+    if(wSize != 0 && startWithDenseW) {
+        W = new Weight[wSize];
+        std::memset(W, 0, wSize * sizeof(Weight));
+        if (args.optimizerType == adagrad) {
+            G = new Weight[wSize];
+            std::memset(G, 0, wSize * sizeof(Weight));
+        }
+    } else {
+        mapW = new UnorderedMap<int, Weight>();
+        if (args.optimizerType == adagrad) mapG = new UnorderedMap<int, Weight>();
+    }
+
     classCount = 2;
     firstClass = 1;
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
-    forEachW([&](Weight& w) { w /= pi; });
+    if(pi != 1) forEachW([&](Weight& w) { w /= pi; });
 
     if (firstClassCount == t || firstClassCount == 0) {
         classCount = 1;
@@ -226,7 +238,7 @@ double Base::predictValue(Feature* features) {
             ++f;
         }
     } else if (W)
-        val = dotVectors(features, W); // Sparse features dot dense weights
+        val = dotVectors(features, W, wSize); // Sparse features dot dense weights
     else
         throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
 

@@ -75,7 +75,7 @@ void Model::predictWithThresholds(std::vector<Prediction>& prediction, Feature* 
 }
 
 void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
-                            SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
+                               SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
     const int batchSize = stopRow - startRow;
     for (int r = startRow; r < stopRow; ++r) {
         int i = r - startRow;
@@ -101,8 +101,10 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
     return predictions;
 }
 
-void Model::predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
-                            SRMatrix<Feature>& features, std::vector<float>& thresholds, Args& args, const int startRow, const int stopRow) {
+void Model::predictBatchWithThresholdsThread(int threadId, Model* model,
+                                             std::vector<std::vector<Prediction>>& predictions,
+                                             SRMatrix<Feature>& features, std::vector<float>& thresholds, Args& args,
+                                             const int startRow, const int stopRow) {
     const int batchSize = stopRow - startRow;
     for (int r = startRow; r < stopRow; ++r) {
         int i = r - startRow;
@@ -111,7 +113,8 @@ void Model::predictBatchWithThresholdsThread(int threadId, Model* model, std::ve
     }
 }
 
-std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<Feature>& features, std::vector<float>& thresholds, Args& args){
+std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<Feature>& features,
+                                                                       std::vector<float>& thresholds, Args& args) {
     std::cerr << "Starting prediction in " << args.threads << " threads ...\n";
 
     int rows = features.rows();
@@ -121,8 +124,8 @@ std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(rows) / args.threads);
     for (int t = 0; t < args.threads; ++t)
-        tSet.add(predictBatchWithThresholdsThread, t, this, std::ref(predictions), std::ref(features), std::ref(thresholds), std::ref(args), t * tRows,
-                 std::min((t + 1) * tRows, rows));
+        tSet.add(predictBatchWithThresholdsThread, t, this, std::ref(predictions), std::ref(features),
+                 std::ref(thresholds), std::ref(args), t * tRows, std::min((t + 1) * tRows, rows));
     tSet.joinAll();
 
     return predictions;

@@ -16,9 +16,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "data_reader.h"
 #include "threads.h"
 #include "tree.h"
-#include "data_reader.h"
 
 Tree::Tree() {
     online = false;
@@ -86,7 +86,8 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
     assert(t == nodes.size());
 }
 
-TreeNodePartition Tree::buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed) {
+TreeNodePartition Tree::buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args,
+                                              int seed) {
     kMeans(nPart.partition, labelsFeatures, args.arity, args.kMeansEps, args.kMeansBalanced, seed);
     return nPart;
 }
@@ -180,8 +181,10 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
             aggregatedProb += e.value;
         }
 
-        if (probQueue.empty()) root = parent;
-        else probQueue.push({parent, aggregatedProb});
+        if (probQueue.empty())
+            root = parent;
+        else
+            probQueue.push({parent, aggregatedProb});
     }
 
     t = nodes.size(); // size of the tree
@@ -264,8 +267,10 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
     for (size_t i = 1; i < t; ++i) {
         int label = -1;
         if (i >= ti) {
-            if (randomizeOrder) label = labelsOrder[i - ti];
-            else label = i - ti;
+            if (randomizeOrder)
+                label = labelsOrder[i - ti];
+            else
+                label = i - ti;
         }
 
         TreeNode* parent = nodes[static_cast<int>(floor(static_cast<double>(i - 1) / args.arity))];
@@ -275,7 +280,7 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
     std::cerr << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
-void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
     std::cerr << "Building online tree ...\n";
 
     int rows = features.rows();
@@ -314,8 +319,7 @@ void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features,
                 }
 
                 // Expand selected node
-                if (toExpand->children.empty())
-                    TreeNode* parentLabelNode = createTreeNode(toExpand, toExpand->label);
+                if (toExpand->children.empty()) TreeNode* parentLabelNode = createTreeNode(toExpand, toExpand->label);
                 TreeNode* newLabelNode = createTreeNode(toExpand, newLabel);
             }
         }
@@ -676,21 +680,21 @@ void Tree::populateNodeLabels() {
     }
 }
 
-int Tree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2){
+int Tree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2) {
     UnorderedMap<TreeNode*, int> path1;
 
     int i = 0;
     TreeNode* n = n1;
-    while(n != nullptr){
+    while (n != nullptr) {
         path1.insert({n, i++});
         n = n->parent;
     }
 
     i = 0;
     n = n2;
-    while(n != nullptr){
+    while (n != nullptr) {
         auto fn = path1.find(n);
-        if(fn != path1.end()) return fn->second + i;
+        if (fn != path1.end()) return fn->second + i;
         n = n->parent;
         ++i;
     }

@@ -8,8 +8,8 @@
 #include <string>
 
 #include "args.h"
-#include "types.h"
 #include "misc.h"
+#include "types.h"
 
 class DataReader : public FileHelper {
 public:
@@ -29,5 +29,4 @@ public:
 
 protected:
     bool supportHeader;
-
 };

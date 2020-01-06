@@ -8,8 +8,8 @@
 
 #include "data_reader.h"
 #include "libsvm_reader.h"
-#include "vw_reader.h"
 #include "misc.h"
+#include "vw_reader.h"
 
 
 std::shared_ptr<DataReader> DataReader::factory(Args& args) {
@@ -23,9 +23,7 @@ std::shared_ptr<DataReader> DataReader::factory(Args& args) {
     return dataReader;
 }
 
-DataReader::DataReader() {
-    supportHeader = false;
-}
+DataReader::DataReader() { supportHeader = false; }
 
 DataReader::~DataReader() {}
 
@@ -47,7 +45,8 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
         ++i;
         try {
             readHeader(line, hLabels, hFeatures, hRows);
-            std::cerr << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << std::endl;
+            std::cerr << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels
+                      << std::endl;
         } catch (const std::exception& e) {
             std::cerr << "  Failed to read header from input!\n";
             exit(1);
@@ -104,12 +103,12 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
     // Checks
     assert(labels.rows() == features.rows());
-    if(args.header && supportHeader){
-        if(hRows != features.rows())
+    if (args.header && supportHeader) {
+        if (hRows != features.rows())
             std::cerr << "  Warning: Number of lines does not match number in the file header!\n";
-        if(hLabels != labels.cols())
+        if (hLabels != labels.cols())
             std::cerr << "  Warning: Number of labels does not match number in the file header!\n";
-        if(hFeatures != features.rows() - 2)
+        if (hFeatures != features.rows() - 2)
             std::cerr << "  Warning: Number of features does not match number in the file header!\n";
     }
 
@@ -123,21 +122,20 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     */
 
     // Print info about loaded data
-    std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2 << ", labels: " << labels.cols() << std::endl;
+    std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2
+              << ", labels: " << labels.cols() << std::endl;
 }
 
-void DataReader::save(std::ostream& out) { }
+void DataReader::save(std::ostream& out) {}
 
-void DataReader::load(std::istream& in) { }
+void DataReader::load(std::istream& in) {}
 
-void DataReader::printInfoAboutData(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+void DataReader::printInfoAboutData(SRMatrix<Label>& labels, SRMatrix<Feature>& features) {
     std::cout << "Data stats:"
-              << "\n  Data points: " << features.rows()
-              << "\n  Uniq features: " << features.cols() - 2
+              << "\n  Data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
               << "\n  Uniq labels: " << labels.cols()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
               << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows()
               << "\n  Data points / label: " << static_cast<double>(labels.cols()) / labels.cells()
-              << "\n  Data points / feature: " << static_cast<double>(features.cols()) / features.cells()
-              << "\n";
+              << "\n  Data points / feature: " << static_cast<double>(features.cols()) / features.cells() << "\n";
 }

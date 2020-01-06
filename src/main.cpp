@@ -29,7 +29,7 @@ void train(Args& args) {
     DataReader::printInfoAboutData(labels, features);
 
     auto resAfterData = getResources();
-    
+
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = Model::factory(args);
     model->train(labels, features, args, args.output);
@@ -39,13 +39,12 @@ void train(Args& args) {
 
     // Print resources
     auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
-            resAfterTraining.timePoint - resAfterData.timePoint)
-            .count()) /
+                                            resAfterTraining.timePoint - resAfterData.timePoint)
+                                            .count()) /
                     1000;
     auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
     std::cout << "Resources:"
-              << "\n  Train real time (s): " << realTime
-              << "\n  Train CPU time (s): " << cpuTime
+              << "\n  Train real time (s): " << realTime << "\n  Train CPU time (s): " << cpuTime
               << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
               << "\n  Peak of real memory usage (MB): " << resAfterTraining.peakRealMem / 1024
@@ -80,7 +79,7 @@ void test(Args& args) {
 
     // Predict for test set
     std::vector<std::vector<Prediction>> predictions;
-    if(args.thresholds != ""){
+    if (args.thresholds != "") {
         std::vector<float> thresholds;
         std::ifstream thresholdsIn(args.thresholds);
         float t;
@@ -107,8 +106,7 @@ void test(Args& args) {
                     1000;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
     std::cout << "Resources:"
-              << "\n  Test real time (s): " << realTime 
-              << "\n  Test CPU time (s): " << cpuTime
+              << "\n  Test real time (s): " << realTime << "\n  Test CPU time (s): " << cpuTime
               << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
               << "\n  Model real memory size (MB): "

@@ -97,7 +97,8 @@ private:
     TreeNode* nextSubtree;
 
     // Hierarchical K-Means
-    static TreeNodePartition buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed);
+    static TreeNodePartition buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures,
+                                                   Args& args, int seed);
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args);
 
     // Huffman tree

@@ -19,10 +19,10 @@ void VowpalWabbitReader::readLine(std::string& line, std::vector<Label>& lLabels
     auto labels = split(tokens[0], ',');
     auto features = split(tokens[1], ' ');
 
-    for(const auto& l : labels) {
+    for (const auto& l : labels) {
         int il = labelsMap.size();
         auto fl = labelsMap.find(l);
-        if(fl != labelsMap.end())
+        if (fl != labelsMap.end())
             il = fl->second;
         else
             labelsMap.insert({l, il});
@@ -30,7 +30,7 @@ void VowpalWabbitReader::readLine(std::string& line, std::vector<Label>& lLabels
     }
 
     UnorderedMap<int, double> tmpLFeatures;
-    for(auto& f : features) {
+    for (auto& f : features) {
         std::string sIndex = f;
         double value = 1.0;
 
@@ -49,8 +49,7 @@ void VowpalWabbitReader::readLine(std::string& line, std::vector<Label>& lLabels
         tmpLFeatures[index] += value;
     }
 
-    for(auto& f : tmpLFeatures)
-        lFeatures.push_back({f.first, f.second});
+    for (auto& f : tmpLFeatures) lFeatures.push_back({f.first, f.second});
 }
 
 void VowpalWabbitReader::save(std::ostream& out) {
@@ -59,14 +58,14 @@ void VowpalWabbitReader::save(std::ostream& out) {
     // Save maps
     size_t size = labelsMap.size();
     saveVar(out, size);
-    for(auto& l : labelsMap){
+    for (auto& l : labelsMap) {
         saveVar(out, l.first);
         saveVar(out, l.second);
     }
 
     size = featuresMap.size();
     saveVar(out, size);
-    for(auto& l : featuresMap){
+    for (auto& l : featuresMap) {
         saveVar(out, l.first);
         saveVar(out, l.second);
     }
@@ -81,14 +80,14 @@ void VowpalWabbitReader::load(std::istream& in) {
     int value;
 
     loadVar(in, size);
-    for(int i = 0; i < size; ++i){
+    for (int i = 0; i < size; ++i) {
         loadVar(in, key);
         loadVar(in, value);
         labelsMap.insert({key, value});
     }
 
     loadVar(in, size);
-    for(int i = 0; i < size; ++i){
+    for (int i = 0; i < size; ++i) {
         loadVar(in, key);
         loadVar(in, value);
         featuresMap.insert({key, value});

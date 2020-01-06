@@ -358,12 +358,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
 void Args::printArgs() {
     if (command == "train" || command == "test") {
-        std::cerr << "napkinXC " << VERSION << " - " << command
-                  << "\n  Input: " << input
-                  << "\n    Data format: " << dataFormatName
-                  << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
-                  << "\n  Model: " << output
-                  << "\n    Type: " << modelName;
+        std::cerr << "napkinXC " << VERSION << " - " << command << "\n  Input: " << input
+                  << "\n    Data format: " << dataFormatName << "\n    Header: " << header << ", bias: " << bias
+                  << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
+                  << "\n  Model: " << output << "\n    Type: " << modelName;
         if (ensemble > 1) std::cerr << ", ensemble: " << ensemble;
 
         if (command == "train") {
@@ -372,10 +370,8 @@ void Args::printArgs() {
                 std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost;
             else
                 std::cerr << "\n    Eta: " << eta << ", epochs: " << epochs;
-            if (optimizerType == adagrad)
-                std::cerr << ", AdaGrad eps " << adagradEps;
-            if (optimizerType == fobos)
-                std::cerr << ", Fobos penalty: " << fobosPenalty;
+            if (optimizerType == adagrad) std::cerr << ", AdaGrad eps " << adagradEps;
+            if (optimizerType == fobos) std::cerr << ", Fobos penalty: " << fobosPenalty;
             std::cerr << ", weights threshold: " << weightsThreshold;
 
             if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
@@ -392,10 +388,10 @@ void Args::printArgs() {
             }
         }
 
-        if (command == "test"){
+        if (command == "test") {
             std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
 
-            if(modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips) {
+            if (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips) {
                 std::cerr << "\n  Set utility: " << setUtilityName;
                 if (setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
                 if (setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
@@ -503,7 +499,7 @@ void Args::save(std::ostream& out) {
     out.write((char*)&hash, sizeof(hash));
     out.write((char*)&modelType, sizeof(modelType));
     out.write((char*)&dataFormatType, sizeof(dataFormatType));
-    //out.write((char*) &ensemble, sizeof(ensemble));
+    // out.write((char*) &ensemble, sizeof(ensemble));
 
     saveVar(out, modelName);
     saveVar(out, dataFormatName);
@@ -515,7 +511,7 @@ void Args::load(std::istream& in) {
     in.read((char*)&hash, sizeof(hash));
     in.read((char*)&modelType, sizeof(modelType));
     in.read((char*)&dataFormatType, sizeof(dataFormatType));
-    //in.read((char*) &ensemble, sizeof(ensemble));
+    // in.read((char*) &ensemble, sizeof(ensemble));
 
     loadVar(in, modelName);
     loadVar(in, dataFormatName);

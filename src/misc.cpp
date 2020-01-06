@@ -34,8 +34,7 @@ std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
         for (int i = 0; i < rSize; ++i) ++labelsProb[rLabels[i]].value;
     }
 
-    for (auto& p : labelsProb)
-        p.value /= labels.rows();
+    for (auto& p : labelsProb) p.value /= labels.rows();
 
     return labelsProb;
 }
@@ -58,7 +57,7 @@ void computeLabelsFeaturesMatrixThread(std::vector<UnorderedMap<int, double>>& t
         auto rLabels = labels[r];
         for (int i = 0; i < rFeaturesSize; ++i) {
             for (int j = 0; j < rLabelsSize; ++j) {
-                if(rFeatures[i].index == 1) continue; // Skip bias feature
+                if (rFeatures[i].index == 1) continue; // Skip bias feature
 
                 std::mutex& m = mutexes[rLabels[j] % mutexes.size()];
                 m.lock();
@@ -84,8 +83,8 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
     std::vector<std::mutex> mutexes(1031); // First prime number larger then 1024
     ThreadSet tSet;
     for (int t = 0; t < threads; ++t)
-        tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels),
-                 std::ref(features), weightedFeatures, t, threads, std::ref(mutexes));
+        tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels), std::ref(features),
+                 weightedFeatures, t, threads, std::ref(mutexes));
     tSet.joinAll();
 
     std::vector<Prediction> labelsProb;
@@ -97,8 +96,10 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
         for (const auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({f.first, f.second});
         std::sort(labelFeatures.begin(), labelFeatures.end());
 
-        if (norm) unitNorm(labelFeatures);
-        else divVector(labelFeatures, labelsProb[l].value * labels.rows());
+        if (norm)
+            unitNorm(labelFeatures);
+        else
+            divVector(labelFeatures, labelsProb[l].value * labels.rows());
 
         labelsFeatures.appendRow(labelFeatures);
     }

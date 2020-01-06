@@ -200,7 +200,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
 
 void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
     wSize = n;
-    if(wSize != 0 && startWithDenseW) {
+    if (wSize != 0 && startWithDenseW) {
         W = new Weight[wSize];
         std::memset(W, 0, wSize * sizeof(Weight));
         if (args.optimizerType == adagrad) {
@@ -217,7 +217,7 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
-    if(pi != 1) forEachW([&](Weight& w) { w /= pi; });
+    if (pi != 1) forEachW([&](Weight& w) { w /= pi; });
 
     if (firstClassCount == t || firstClassCount == 0) {
         classCount = 1;

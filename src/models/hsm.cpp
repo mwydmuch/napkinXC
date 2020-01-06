@@ -175,7 +175,6 @@ double HSM::predictForLabel(Label label, Feature* features, Args& args) {
 
 void HSM::printInfo() {
     std::cerr << "HSM additional stats:"
-              << "\n  Tree size: " << tree->nodes.size()
-              << "\n  Path length: " << static_cast<double>(pLen) / rCount
+              << "\n  Tree size: " << tree->nodes.size() << "\n  Path length: " << static_cast<double>(pLen) / rCount
               << "\n  # estimators / data point: " << static_cast<double>(eCount) / rCount << "\n";
 }

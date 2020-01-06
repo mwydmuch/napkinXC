@@ -11,7 +11,6 @@
 #include "tree.h"
 
 
-
 // This is virtual class for all PLT based models: HSM, Batch PLT, Online PLT
 class PLT : virtual public Model {
 public:

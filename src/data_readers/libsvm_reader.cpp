@@ -29,7 +29,7 @@ void LibSvmReader::readLine(std::string& line, std::vector<Label>& lLabels, std:
 
     while ((nextPos = line.find_first_of(",: ", pos))) {
         // Label
-        if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' ' || nextPos == std::string::npos))
+        if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' '))// || nextPos == std::string::npos))
             lLabels.push_back(std::stoi(line.substr(pos, nextPos - pos)));
 
         // Feature index

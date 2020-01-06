@@ -26,6 +26,7 @@ public:
                                        std::vector<float>& thresholds, Args& args);
     virtual double predictForLabel(Label label, Feature* features, Args& args) = 0;
     virtual std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args);
+    virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features, std::vector<float>& thresholds, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
 
@@ -62,6 +63,9 @@ protected:
     static std::vector<Base*> loadBases(std::string infile);
 
 private:
-    static void batchTestThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+    static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                 SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
+
+    static void predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+                                                 SRMatrix<Feature>& features, std::vector<float>& thresholds, Args& args, const int startRow, const int stopRow);
 };

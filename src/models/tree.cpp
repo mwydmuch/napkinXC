@@ -18,7 +18,7 @@
 
 #include "threads.h"
 #include "tree.h"
-
+#include "data_reader.h"
 
 Tree::Tree() {
     online = false;
@@ -86,8 +86,7 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
     assert(t == nodes.size());
 }
 
-TreeNodePartition treeNodeKMeansThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args,
-                                       int seed) {
+TreeNodePartition Tree::buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed) {
     kMeans(nPart.partition, labelsFeatures, args.arity, args.kMeansEps, args.kMeansBalanced, seed);
     return nPart;
 }
@@ -99,79 +98,52 @@ void Tree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
     k = labelsFeatures.rows();
 
     long seed = args.getSeed();
-    std::cerr << "  Seed: " << seed << std::endl;
     std::default_random_engine rng(seed);
     std::uniform_int_distribution<int> kMeansSeeder(0, INT_MAX);
 
     auto partition = new std::vector<Assignation>(k);
     for (int i = 0; i < k; ++i) (*partition)[i].index = i;
 
-    if (args.threads > 1) {
-        // Run clustering in parallel
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<TreeNodePartition>> results;
+    // Run clustering in parallel
+    ThreadPool tPool(args.threads);
+    std::vector<std::future<TreeNodePartition>> results;
 
-        TreeNodePartition rootPart = {root, partition};
-        results.emplace_back(
-            tPool.enqueue(treeNodeKMeansThread, rootPart, std::ref(labelsFeatures), std::ref(args), kMeansSeeder(rng)));
+    TreeNodePartition rootPart = {root, partition};
+    results.emplace_back(
+        tPool.enqueue(buildKMeansTreeThread, rootPart, std::ref(labelsFeatures), std::ref(args), kMeansSeeder(rng)));
 
-        for (int r = 0; r < results.size(); ++r) {
-            // Enqueuing new clustering tasks in the main thread ensures determinism
-            TreeNodePartition nPart = results[r].get();
+    for (int r = 0; r < results.size(); ++r) {
+        // Enqueuing new clustering tasks in the main thread ensures determinism
+        TreeNodePartition nPart = results[r].get();
 
-            // This needs to be done this way in case of imbalanced K-Means
-            auto partitions = new std::vector<Assignation>*[args.arity];
-            for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
-            for (auto a : *nPart.partition) partitions[a.value]->push_back({a.index, 0});
+        // This needs to be done this way in case of imbalanced K-Means
+        auto partitions = new std::vector<Assignation>*[args.arity];
+        for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
+        for (auto a : *nPart.partition) partitions[a.value]->push_back({a.index, 0});
 
-            for (int i = 0; i < args.arity; ++i) {
-                if (partitions[i]->empty())
-                    continue;
-                else if (partitions[i]->size() == 1) {
-                    createTreeNode(nPart.node, partitions[i]->front().index);
-                    delete partitions[i];
-                    continue;
-                }
-
-                TreeNode* n = createTreeNode(nPart.node);
-
-                if (partitions[i]->size() <= args.maxLeaves) {
-                    for (const auto& a : *partitions[i]) createTreeNode(n, a.index);
-                    delete partitions[i];
-                } else {
-                    TreeNodePartition childPart = {n, partitions[i]};
-                    results.emplace_back(tPool.enqueue(treeNodeKMeansThread, childPart, std::ref(labelsFeatures),
-                                                       std::ref(args), kMeansSeeder(rng)));
-                }
+        // Create children
+        for (int i = 0; i < args.arity; ++i) {
+            if (partitions[i]->empty())
+                continue;
+            else if (partitions[i]->size() == 1) {
+                createTreeNode(nPart.node, partitions[i]->front().index);
+                delete partitions[i];
+                continue;
             }
 
-            delete nPart.partition;
+            TreeNode* n = createTreeNode(nPart.node);
+
+            if (partitions[i]->size() <= args.maxLeaves) {
+                for (const auto& a : *partitions[i]) createTreeNode(n, a.index);
+                delete partitions[i];
+            } else {
+                TreeNodePartition childPart = {n, partitions[i]};
+                results.emplace_back(tPool.enqueue(buildKMeansTreeThread, childPart, std::ref(labelsFeatures),
+                                                   std::ref(args), kMeansSeeder(rng)));
+            }
         }
-    } else {
-        std::queue<TreeNodePartition> nQueue;
-        nQueue.push({root, partition});
 
-        while (!nQueue.empty()) {
-            TreeNodePartition nPart = nQueue.front(); // Current node
-            nQueue.pop();
-
-            if (nPart.partition->size() > args.maxLeaves) {
-                kMeans(nPart.partition, labelsFeatures, args.arity, args.kMeansEps, args.kMeansBalanced,
-                       kMeansSeeder(rng));
-                auto partitions = new std::vector<Assignation>*[args.arity];
-                for (int i = 0; i < args.arity; ++i) partitions[i] = new std::vector<Assignation>();
-                for (auto a : *nPart.partition) partitions[a.value]->push_back({a.index, 0});
-
-                // Create children
-                for (int i = 0; i < args.arity; ++i) {
-                    TreeNode* n = createTreeNode(nPart.node);
-                    nQueue.push({n, partitions[i]});
-                }
-            } else
-                for (const auto& a : *nPart.partition) createTreeNode(nPart.node, a.index);
-
-            delete nPart.partition;
-        }
+        delete nPart.partition;
     }
 
     t = nodes.size();
@@ -208,10 +180,8 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
             aggregatedProb += e.value;
         }
 
-        if (probQueue.empty())
-            root = parent;
-        else
-            probQueue.push({parent, aggregatedProb});
+        if (probQueue.empty()) root = parent;
+        else probQueue.push({parent, aggregatedProb});
     }
 
     t = nodes.size(); // size of the tree
@@ -293,16 +263,12 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
     root = createTreeNode();
     for (size_t i = 1; i < t; ++i) {
         int label = -1;
-        TreeNode* parent = nullptr;
-
         if (i >= ti) {
-            if (randomizeOrder)
-                label = labelsOrder[i - ti];
-            else
-                label = i - ti;
+            if (randomizeOrder) label = labelsOrder[i - ti];
+            else label = i - ti;
         }
 
-        parent = nodes[static_cast<int>(floor(static_cast<double>(i - 1) / args.arity))];
+        TreeNode* parent = nodes[static_cast<int>(floor(static_cast<double>(i - 1) / args.arity))];
         createTreeNode(parent, label);
     }
 
@@ -708,4 +674,26 @@ void Tree::populateNodeLabels() {
             n = n->parent;
         }
     }
+}
+
+int Tree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2){
+    UnorderedMap<TreeNode*, int> path1;
+
+    int i = 0;
+    TreeNode* n = n1;
+    while(n != nullptr){
+        path1.insert({n, i++});
+        n = n->parent;
+    }
+
+    i = 0;
+    n = n2;
+    while(n != nullptr){
+        auto fn = path1.find(n);
+        if(fn != path1.end()) return fn->second + i;
+        n = n->parent;
+        ++i;
+    }
+
+    return INT_MAX;
 }

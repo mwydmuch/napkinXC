@@ -40,7 +40,7 @@ std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
     return labelsProb;
 }
 
-void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
+void computeLabelsFeaturesMatrixThread(std::vector<UnorderedMap<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures, int threadId, int threads,
                                        std::vector<std::mutex>& mutexes) {
@@ -61,7 +61,6 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, doubl
                 if(rFeatures[i].index == 1) continue; // Skip bias feature
 
                 std::mutex& m = mutexes[rLabels[j] % mutexes.size()];
-
                 m.lock();
 
                 auto v = rFeatures[i].value;
@@ -77,7 +76,7 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, doubl
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures) {
 
-    std::vector<std::unordered_map<int, double>> tmpLabelsFeatures(labels.cols());
+    std::vector<UnorderedMap<int, double>> tmpLabelsFeatures(labels.cols());
     assert(features.rows() == labels.rows());
 
     std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
@@ -94,10 +93,13 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
 
     for (int l = 0; l < labels.cols(); ++l) {
         std::vector<Feature> labelFeatures;
+        labelFeatures.reserve(tmpLabelsFeatures.size());
         for (const auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({f.first, f.second});
         std::sort(labelFeatures.begin(), labelFeatures.end());
+
         if (norm) unitNorm(labelFeatures);
         else divVector(labelFeatures, labelsProb[l].value * labels.rows());
+
         labelsFeatures.appendRow(labelFeatures);
     }
 }

@@ -79,7 +79,15 @@ void test(Args& args) {
     // TODO: If thresholds provided
 
     // Predict for test set
-    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+    std::vector<std::vector<Prediction>> predictions;
+    if(args.thresholds != ""){
+        std::vector<float> thresholds;
+        std::ifstream thresholdsIn(args.thresholds);
+        float t;
+        while (thresholdsIn >> t) thresholds.push_back(t);
+        predictions = model->predictBatchWithThresholds(features, thresholds, args);
+    } else
+        predictions = model->predictBatch(features, args);
 
     auto resAfterPrediction = getResources();
 

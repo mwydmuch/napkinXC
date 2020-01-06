@@ -82,7 +82,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
             for (auto& f : lFeatures) lHashed[hash(f.index) % args.hash] += f.value;
 
             lFeatures.clear();
-            for (const auto& f : lHashed) lFeatures.push_back({f.first + 1, f.second});
+            for (const auto& f : lHashed) lFeatures.push_back({f.first + 2, f.second});
         }
 
         // Norm row
@@ -98,7 +98,6 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
-        ++i;
     }
 
     in.close();

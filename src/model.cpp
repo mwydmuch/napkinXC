@@ -74,7 +74,7 @@ void Model::predictWithThresholds(std::vector<Prediction>& prediction, Feature* 
         if (p.value >= thresholds[p.label]) prediction.push_back(p);
 }
 
-void Model::batchTestThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                             SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
     const int batchSize = stopRow - startRow;
     for (int r = startRow; r < stopRow; ++r) {
@@ -94,7 +94,34 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(rows) / args.threads);
     for (int t = 0; t < args.threads; ++t)
-        tSet.add(batchTestThread, t, this, std::ref(predictions), std::ref(features), std::ref(args), t * tRows,
+        tSet.add(predictBatchThread, t, this, std::ref(predictions), std::ref(features), std::ref(args), t * tRows,
+                 std::min((t + 1) * tRows, rows));
+    tSet.joinAll();
+
+    return predictions;
+}
+
+void Model::predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+                            SRMatrix<Feature>& features, std::vector<float>& thresholds, Args& args, const int startRow, const int stopRow) {
+    const int batchSize = stopRow - startRow;
+    for (int r = startRow; r < stopRow; ++r) {
+        int i = r - startRow;
+        model->predictWithThresholds(predictions[r], features[r], thresholds, args);
+        if (!threadId) printProgress(i, batchSize);
+    }
+}
+
+std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<Feature>& features, std::vector<float>& thresholds, Args& args){
+    std::cerr << "Starting prediction in " << args.threads << " threads ...\n";
+
+    int rows = features.rows();
+    std::vector<std::vector<Prediction>> predictions(rows);
+
+    // Run prediction in parallel using thread set
+    ThreadSet tSet;
+    int tRows = ceil(static_cast<double>(rows) / args.threads);
+    for (int t = 0; t < args.threads; ++t)
+        tSet.add(predictBatchWithThresholdsThread, t, this, std::ref(predictions), std::ref(features), std::ref(thresholds), std::ref(args), t * tRows,
                  std::min((t + 1) * tRows, rows));
     tSet.joinAll();
 

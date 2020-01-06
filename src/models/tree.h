@@ -31,6 +31,9 @@ struct TreeNode {
     int nextToExpand;
     int subtreeDepth;
     std::vector<int> labels;
+
+    int exampleCount;
+    UnorderedMap<int, float> centroid;
 };
 
 // For prediction in tree based models / Huffman trees building
@@ -86,6 +89,7 @@ public:
     void setLabel(TreeNode* n, int label);
     void moveSubtree(TreeNode* oldParent, TreeNode* newParent);
     void populateNodeLabels();
+    int distanceBetweenNodes(TreeNode* n1, TreeNode* n2);
 
 private:
     bool online;
@@ -93,6 +97,7 @@ private:
     TreeNode* nextSubtree;
 
     // Hierarchical K-Means
+    static TreeNodePartition buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed);
     void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args);
 
     // Huffman tree

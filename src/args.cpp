@@ -54,7 +54,7 @@ Args::Args() {
     epochs = 1;
     tmax = -1;
     fobosPenalty = 0.00001;
-    adagradEps = 0.00001;
+    adagradEps = 0.001;
 
     // Tree options
     treeStructure = "";
@@ -441,8 +441,8 @@ Args:
     --optimizer         Use LibLiner or online optimizers (default = libliner)
                         Optimizers: liblinear, sgd, adagrad, fobos
     --bias              Add bias term (default = 1)
-    --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 0)
     --weightsThreshold  Prune weights below given threshold (default = 0.1)
+    --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 0)
 
     LibLinear:
     -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
@@ -450,33 +450,34 @@ Args:
                                            L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
                         See: https://github.com/cjlin1/liblinear
     -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
-                        Like in support vector machines, smaller values specify stronger
-                        regularization. (default = 10.0)
+                        Smaller values specify stronger regularization. (default = 10.0)
                         Note: -1 to automatically find best value for each node.
     -e, --eps           Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
 
     SGD/AdaGrad/Fobos:
     -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad/Fobos (default = 1.0)
-    --epochs            Number of epochs of SGD/AdaGrad/Fobos (default = 10)
-    --adagradEps        AdaGrad epsilon (default = 0.00001)
+    --epochs            Number of epochs of SGD/AdaGrad/Fobos (default = 5)
+    --adagradEps        AdaGrad epsilon (default = 0.001)
     --fobosPenalty      Regularization strength of Fobos algorithm (default = 0.00001)
 
     Tree:
     -a, --arity         Arity of a tree (default = 2)
-    --maxLeaves         Maximum number of leaves (labels) in one internal node. (default = 100)
+    --maxLeaves         Maximum number of leaves (labels) in one internal node.
+                        Supported by k-means and balanced trees. (default = 100)
     --tree              File with tree structure
     --treeType          Type of a tree to build if file with structure is not provided
                         Tree types: hierarchicalKMeans, huffman, completeInOrder, completeRandom,
                                     balancedInOrder, balancedRandom, onlineComplete, onlineBalanced,
                                     onlineRandom
 
-    K-Means tree:
+    K-means tree:
     --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
     --kMeansBalanced    Use balanced K-Means clustering (default = 1)
 
     Prediction:
     --topK              Predict top k elements (default = 5)
+    --threshold         Probability threshold (default = 0)
     --setUtility        Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
                         Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
                         See: https://arxiv.org/abs/1906.08129
@@ -497,7 +498,6 @@ Args:
 }
 
 void Args::save(std::ostream& out) {
-    // TODO: save names and other parameters that are displayed
     out.write((char*)&bias, sizeof(bias));
     out.write((char*)&norm, sizeof(norm));
     out.write((char*)&hash, sizeof(hash));

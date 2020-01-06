@@ -19,7 +19,7 @@
 // Data utils
 std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels);
 
-void computeLabelsFeaturesMatrixThread(std::vector<std::unordered_map<int, double>>& tmpLabelsFeatures,
+void computeLabelsFeaturesMatrixThread(std::vector<UnorderedMap<int, double>>& tmpLabelsFeatures,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
                                        bool weightedFeatures, int threadId, int threads,
                                        std::vector<std::mutex>& mutexes);

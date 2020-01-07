@@ -60,7 +60,7 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
             double maxDist = INT_MIN;
             for (int j = 0; j < centroids; ++j) {
                 distances[i].values[j].index = j;
-                distances[i].values[j].value = pointsFeatures.dotRow((*partition)[i].index, centroidsFeatures[j]);
+                distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
                 if (distances[i].values[j].value > maxDist) maxDist = distances[i].values[j].value;
             }
 

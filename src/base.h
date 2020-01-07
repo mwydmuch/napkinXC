@@ -33,7 +33,7 @@ public:
     void trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args);
 
     // For online training
-    void setupOnlineTraining(Args& args, int n = 0, bool startWithDenseW = true);
+    void setupOnlineTraining(Args& args, int n = 0, bool startWithDenseW = false);
     void finalizeOnlineTraining(Args& args);
 
     double predictValue(Feature* features);
@@ -99,7 +99,7 @@ template <typename T> void Base::updateSGD(T& W, Feature* features, double grad,
     double lr = eta * sqrt(1.0 / t);
     Feature* f = features;
     while (f->index != -1) {
-        W[f->index - 1] -= lr * grad * f->value;
+        W[f->index] -= lr * grad * f->value;
         ++f;
     }
 }
@@ -107,9 +107,9 @@ template <typename T> void Base::updateSGD(T& W, Feature* features, double grad,
 template <typename T> void Base::updateAdaGrad(T& W, T& G, Feature* features, double grad, double eta, double eps) {
     Feature* f = features;
     while (f->index != -1) {
-        G[f->index - 1] += f->value * f->value * grad * grad;
-        double lr = eta * std::sqrt(1.0 / (eps + G[f->index - 1]));
-        W[f->index - 1] -= lr * (grad * f->value);
+        G[f->index] += f->value * f->value * grad * grad;
+        double lr = eta * std::sqrt(1.0 / (eps + G[f->index]));
+        W[f->index] -= lr * (grad * f->value);
         ++f;
     }
 }
@@ -120,7 +120,7 @@ template <typename T> void Base::updateFobos(T& W, Feature* features, double gra
 
     Feature* f = features;
     while (f->index != -1) {
-        W[f->index - 1] -= pi * lr * grad * f->value;
+        W[f->index] -= pi * lr * grad * f->value;
         ++f;
     }
 }

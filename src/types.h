@@ -55,17 +55,9 @@ public:
 
     inline void replaceRow(const int index, const std::vector<T>& row);
     void replaceRow(const int index, const T* row, const int size);
-
-    // Inefficient operation
+    
     void appendToRow(const int index, const std::vector<T>& row);
     void appendToRow(const int index, const T* data, const int size = 1);
-
-    // Row multiplication
-    template <typename U> inline U dotRow(const int index, const std::vector<U>& vector);
-
-    template <typename U> inline U dotRow(const int index, const U* vector);
-
-    template <typename U> inline U dotRow(const int index, const U* vector, const int size);
 
     // Returns data as T**
     inline T** data() { return r.data(); }
@@ -171,24 +163,6 @@ template <typename T> inline void SRMatrix<T>::appendToRow(const int index, cons
     r[index] = newRow;
     s[index] += size;
     c += size;
-}
-
-template <typename T>
-template <typename U>
-inline U SRMatrix<T>::dotRow(const int index, const std::vector<U>& vector) {
-    return dotVectors(r[index], vector.data(), vector.size());
-}
-
-template <typename T>
-template <typename U>
-inline U SRMatrix<T>::dotRow(const int index, const U* vector, const int size) {
-    return dotVectors(r[index], vector, size);
-}
-
-template <typename T>
-template <typename U>
-inline U SRMatrix<T>::dotRow(const int index, const U* vector) { // Version without size checks
-    return dotVectors(r[index], vector);
 }
 
 template <typename T> void SRMatrix<T>::clear() {

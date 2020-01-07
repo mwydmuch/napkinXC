@@ -71,7 +71,7 @@ template <typename T> inline T dotVectors(Feature* vector1, const T* vector2, co
     T val = 0;
     Feature* f = vector1;
     while (f->index != -1 && f->index < size) {
-        val += f->value * vector2[f->index - 1];
+        val += f->value * vector2[f->index];
         ++f;
     }
     return val;
@@ -81,15 +81,14 @@ template <typename T> inline T dotVectors(Feature* vector1, const T* vector2) { 
     T val = 0;
     Feature* f = vector1;
     while (f->index != -1) {
-        val += f->value * vector2[f->index - 1];
+        val += f->value * vector2[f->index];
         ++f;
     }
     return val;
 }
 
 template <typename T> inline T dotVectors(Feature* vector1, const std::vector<T>& vector2) {
-    // dotVectors(vector1, vector2.data(), vector2.size());
-    dotVectors(vector1, vector2.data());
+    return dotVectors(vector1, vector2.data(), vector2.size());
 }
 
 // Sets values of a dense vector to values of a sparse vector
@@ -111,8 +110,8 @@ inline void setVector(Feature* vector1, T* vector2, int shift = 0) { // Version 
 }
 
 template <typename T> inline void setVector(Feature* vector1, std::vector<T>& vector2, int shift = 0) {
-    // setVector(vector1, vector2.data(), vector2.size(), shift);
-    setVector(vector1, vector2.data(), shift);
+    setVector(vector1, vector2.data(), vector2.size(), shift);
+    //setVector(vector1, vector2.data(), shift);
 }
 
 // Zeros selected values of a dense vactor

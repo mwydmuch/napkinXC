@@ -46,12 +46,6 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     ++t;
     if (label == firstClass) ++firstClassCount;
 
-    // Check if we should change sparse W to dense W
-    if (mapW != nullptr && wSize != 0) {
-        nonZeroW = mapW->size();
-        if (mapSize() > denseSize()) toDense();
-    }
-
     double pred = predictValue(features);
     double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
 
@@ -70,6 +64,12 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
             updateFobos((*mapW), features, grad, args.eta, args.fobosPenalty);
         else if (W != nullptr)
             updateFobos(W, features, grad, args.eta, args.fobosPenalty);
+    }
+
+    // Check if we should change sparse W to dense W
+    if (mapW != nullptr && wSize != 0) {
+        nonZeroW = mapW->size();
+        if (mapSize() > denseSize()) toDense();
     }
 }
 
@@ -144,7 +144,7 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
 
     // Copy weights
     W = new Weight[n];
-    for (int i = 0; i < n; ++i) W[i] = M->w[i];
+    for (int i = 0; i < n; ++i) W[i + 1] = M->w[i];
     delete[] M->w;
 
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
@@ -233,7 +233,7 @@ double Base::predictValue(Feature* features) {
     if (mapW) { // Sparse features dot sparse weights in hash map
         Feature* f = features;
         while (f->index != -1) {
-            auto w = mapW->find(f->index - 1);
+            auto w = mapW->find(f->index);
             if (w != mapW->end()) val += w->second * f->value;
             ++f;
         }

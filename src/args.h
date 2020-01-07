@@ -24,6 +24,7 @@ enum ModelType {
     // Mips extension models
     brMips,
     ubopMips,
+    plg
 };
 
 enum TreeType {
@@ -123,6 +124,10 @@ public:
 
     // Measures
     std::string measures;
+
+    // PLG
+    int plgLayerSize;
+    int plgLayers;
 
 private:
     std::default_random_engine rngSeeder;

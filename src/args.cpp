@@ -83,6 +83,9 @@ Args::Args() {
 
     // Measures
     measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
+
+    plgLayerSize = 100;
+    plgLayers = 10;
 }
 
 // Parse args
@@ -157,6 +160,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     exit(EXIT_FAILURE);
                 }
 #endif
+                else if (args.at(ai + 1) == "plg")
+                    modelType = plg;
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << "!\n";
                     printHelp();
@@ -304,6 +309,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
+
+            // PLG options
+            else if (args[ai] == "--plgLayerSize")
+                plgLayerSize = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--plgLayers")
+                plgLayers = std::stoi(args.at(ai + 1)) != 0;
 
             // Prediction/test options
             else if (args[ai] == "--topK")

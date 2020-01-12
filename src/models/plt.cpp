@@ -17,8 +17,11 @@
 
 PLT::PLT() {
     tree = nullptr;
-    nCount = 0;
-    rCount = 0;
+    treeSize = 0;
+    treeDepth = 0;
+    nodeEvaluationCount = 0;
+    nodeUpdateCount = 0;
+    dataPointCount = 0;
     type = plt;
     name = "PLT";
 }
@@ -61,8 +64,8 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         getNodesToUpdate(nPositive, nNegative, rLabels, rSize);
         addFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
 
-        nCount += nPositive.size() + nNegative.size();
-        ++rCount;
+        nodeUpdateCount += nPositive.size() + nNegative.size();
+        ++dataPointCount;
     }
 }
 
@@ -116,8 +119,8 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
     std::priority_queue<TreeNodeValue> nQueue;
 
     nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
-    ++nCount;
-    ++rCount;
+    ++nodeEvaluationCount;
+    ++dataPointCount;
 
     Prediction p = predictNextLabel(nQueue, features, args.threshold);
     while ((prediction.size() < args.topK || args.topK == 0) && p.label != -1) {
@@ -134,7 +137,7 @@ Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
         if (!nVal.node->children.empty()) {
             for (const auto& child : nVal.node->children)
                 addToQueue(nQueue, child, nVal.value * bases[child->index]->predictProbability(features), threshold);
-            nCount += nVal.node->children.size();
+            nodeEvaluationCount += nVal.node->children.size();
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
     }
@@ -149,8 +152,8 @@ void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* fe
     std::priority_queue<TreeNodeValue> nQueue;
 
     nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
-    ++nCount;
-    ++rCount;
+    ++nodeEvaluationCount;
+    ++dataPointCount;
 
     Prediction p = predictNextLabelWithThresholds(nQueue, features, thresholds);
     while (p.label != -1) {
@@ -168,7 +171,7 @@ Prediction PLT::predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue
         if (!nVal.node->children.empty()) {
             for (const auto& child : nVal.node->children)
                 addToQueue(nQueue, child, nVal.value * bases[child->index]->predictProbability(features), thresholds);
-            nCount += nVal.node->children.size();
+            nodeEvaluationCount += nVal.node->children.size();
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
     }
@@ -182,6 +185,7 @@ double PLT::predictForLabel(Label label, Feature* features, Args& args) {
     while (n->parent) {
         n = n->parent;
         value *= bases[n->index]->predictProbability(features);
+        ++nodeEvaluationCount;
     }
     return value;
 }
@@ -197,9 +201,13 @@ void PLT::load(Args& args, std::string infile) {
 }
 
 void PLT::printInfo() {
-    std::cout << "PLT additional stats:"
+    std::cout << name << " additional stats:"
               << "\n  Tree size: " << (tree != nullptr ? tree->nodes.size() : treeSize)
-              << "\n  Evaluated estimators / data point: " << static_cast<double>(nCount) / rCount << "\n";
+              << "\n  Tree depth: " << (tree != nullptr ? tree->getTreeDepth() : treeDepth) << "\n";
+    if(nodeUpdateCount > 0)
+        std::cout << "  Updated estimators / data point: " << static_cast<double>(nodeUpdateCount) / dataPointCount << "\n";
+    if(nodeEvaluationCount > 0)
+        std::cout << "  Evaluated estimators / data point: " << static_cast<double>(nodeEvaluationCount) / dataPointCount << "\n";
 }
 
 void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
@@ -231,8 +239,9 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
 
     // Save tree and free it, it is no longer needed
     tree->saveToFile(joinPath(output, "tree.bin"));
-    tree->saveTreeStructure(joinPath(output, "tree.txt"));
+    tree->saveTreeStructure(joinPath(output, "tree"));
     treeSize = tree->nodes.size();
+    treeDepth = tree->getTreeDepth();
     delete tree;
     tree = nullptr;
 

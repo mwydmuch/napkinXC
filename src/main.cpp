@@ -26,7 +26,11 @@ void train(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->readData(labels, features, args);
     reader->saveToFile(joinPath(args.output, "data_reader.bin"));
-    DataReader::printInfoAboutData(labels, features);
+    std::cout << "Train data statistics:"
+              << "\n  Train data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
+              << "\n  Uniq labels: " << labels.cols()
+              << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
+              << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
 
     auto resAfterData = getResources();
 
@@ -43,12 +47,12 @@ void train(Args& args) {
                                             .count()) /
                     1000;
     auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
-    std::cout << "Resources:"
+    std::cout << "Resources during training:"
               << "\n  Train real time (s): " << realTime << "\n  Train CPU time (s): " << cpuTime
               << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
-              << "\n  Peak of real memory usage (MB): " << resAfterTraining.peakRealMem / 1024
-              << "\n  Peak of virtual memory usage (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
+              << "\n  Peak of real memory during training (MB): " << resAfterTraining.peakRealMem / 1024
+              << "\n  Peak of virtual memory during training (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
 
     std::cerr << "All done!\n";
 }
@@ -65,7 +69,8 @@ void test(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
-    DataReader::printInfoAboutData(labels, features);
+    std::cout << "Test data statistics:"
+              << "\n  Test data points: " << features.rows() << "\n";
 
     auto resAfterData = getResources();
 
@@ -75,11 +80,9 @@ void test(Args& args) {
 
     auto resAfterModel = getResources();
 
-    // TODO: If thresholds provided
-
     // Predict for test set
     std::vector<std::vector<Prediction>> predictions;
-    if (args.thresholds != "") {
+    if (!args.thresholds.empty()) { // Using thresholds if provided
         std::vector<float> thresholds;
         std::ifstream thresholdsIn(args.thresholds);
         float t;
@@ -105,7 +108,7 @@ void test(Args& args) {
                                             .count()) /
                     1000;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
-    std::cout << "Resources:"
+    std::cout << "Resources during test:"
               << "\n  Test real time (s): " << realTime << "\n  Test CPU time (s): " << cpuTime
               << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
@@ -113,8 +116,8 @@ void test(Args& args) {
               << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
               << "\n  Model virtual memory size (MB): "
               << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
-              << "\n  Peak of real memory usage (MB): " << resAfterPrediction.peakRealMem / 1024
-              << "\n  Peak of virtual memory usage (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
+              << "\n  Peak of real memory during testing (MB): " << resAfterPrediction.peakRealMem / 1024
+              << "\n  Peak of virtual memory during testing (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
 
     std::cerr << "All done!\n";
 }

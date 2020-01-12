@@ -60,8 +60,10 @@ protected:
 
     // Additional statistics
     int treeSize;
-    int nCount; // Number of visited nodes (updated/evaluated classifiers) during training or prediction
-    int rCount; // Data points count
+    int treeDepth;
+    int nodeEvaluationCount; // Number of visited nodes during training prediction (updated/evaluated classifiers)
+    int nodeUpdateCount; // Number of visited nodes during training or prediction
+    int dataPointCount; // Data points count
 };
 
 class BatchPLT : public PLT {

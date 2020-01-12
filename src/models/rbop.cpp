@@ -28,7 +28,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args&
     double value = bases[tree->root->index]->predictProbability(features);
     assert(value == 1);
     nQueue.push({tree->root, value});
-    ++rCount;
+    ++dataPointCount;
 
     TreeNode* bestN = tree->root;
     double bestU = u->g(tree->leaves.size()) * value;
@@ -76,7 +76,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args&
                         bestP = P;
                     }
                 }
-                ++eCount;
+                ++nodeEvaluationCount;
             } else {
                 double sum = 0;
                 std::vector<double> values;
@@ -101,7 +101,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args&
                     }
                 }
 
-                eCount += nVal.node->children.size();
+                nodeEvaluationCount += nVal.node->children.size();
             }
 
             if (!childrenAdded) kQueue.push({nVal.node, nVal.value});
@@ -129,7 +129,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args&
                     tmpBestP = P;
                     tmpBestN = nVal.node->children[1];
                 }
-                ++eCount;
+                ++nodeEvaluationCount;
             } else {
                 double sum = 0;
                 std::vector<double> values;
@@ -146,7 +146,7 @@ void RBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args&
                     }
                 }
 
-                eCount += nVal.node->children.size();
+                nodeEvaluationCount += nVal.node->children.size();
             }
         }
 

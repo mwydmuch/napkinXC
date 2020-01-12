@@ -129,13 +129,3 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 void DataReader::save(std::ostream& out) {}
 
 void DataReader::load(std::istream& in) {}
-
-void DataReader::printInfoAboutData(SRMatrix<Label>& labels, SRMatrix<Feature>& features) {
-    std::cout << "Data stats:"
-              << "\n  Data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
-              << "\n  Uniq labels: " << labels.cols()
-              << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
-              << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows()
-              << "\n  Data points / label: " << static_cast<double>(labels.cols()) / labels.cells()
-              << "\n  Data points / feature: " << static_cast<double>(features.cols()) / features.cells() << "\n";
-}

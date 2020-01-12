@@ -90,6 +90,9 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     command = args[1];
 
     if (command == "-h" || command == "--help" || command == "help") printHelp();
+    if (command == "-v" || command == "--version" || command == "version") {
+
+    }
 
     if (command != "train" && command != "test" && command != "predict") {
         std::cerr << "Unknown command type: " << command << "!\n";
@@ -405,7 +408,7 @@ void Args::printArgs() {
 }
 
 void Args::printHelp() {
-    std::cerr << R"HELP(Usage: nxc <command> <args>
+    std::cerr << R"HELP(Usage: nxc [command] [args ...]
 
 Commands:
     train

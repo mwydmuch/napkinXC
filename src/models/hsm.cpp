@@ -16,8 +16,7 @@
 
 
 HSM::HSM() {
-    eCount = 0;
-    pLen = 0;
+    pathLength = 0;
     name = "HSM";
     type = hsm;
 }
@@ -64,9 +63,9 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
                 for (const auto& n : nNegative) (*binWeights)[n->index]->push_back(w);
             }
 
-            nCount += nPositive.size() + nNegative.size();
+            nodeUpdateCount += nPositive.size() + nNegative.size();
         }
-        ++rCount;
+        ++dataPointCount;
     }
 }
 
@@ -89,15 +88,12 @@ void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
         TreeNode *n = path[i], *p = n->parent;
         if (p == nullptr || p->children.size() == 1) {
             nPositive.insert(n);
-            eCount += 1;
         } else if (p->children.size() == 2) { // Binary node requires just 1 probability estimator
             TreeNode *c0 = n->parent->children[0], *c1 = n->parent->children[1];
             if (c0 == n)
                 nPositive.insert(c0);
             else
                 nNegative.insert(c0);
-            nNegative.insert(c1);
-            eCount += 1;
         } else if (p->children.size() > 2) { // Node with arity > 2 requires OVR estimator
             for (const auto& c : p->children) {
                 if (c == n)
@@ -105,11 +101,10 @@ void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
                 else
                     nNegative.insert(c);
             }
-            eCount += p->children.size();
         }
     }
 
-    pLen += path.size();
+    pathLength += path.size();
 }
 
 Prediction HSM::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features, double threshold) {
@@ -123,7 +118,7 @@ Prediction HSM::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
                 double value = bases[nVal.node->children[0]->index]->predictProbability(features);
                 addToQueue(nQueue, nVal.node->children[0], nVal.value * value, threshold);
                 addToQueue(nQueue, nVal.node->children[1], nVal.value * (1.0 - value), threshold);
-                ++eCount;
+                ++nodeEvaluationCount;
             } else {
                 double sum = 0;
                 std::vector<double> values;
@@ -137,7 +132,7 @@ Prediction HSM::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
                 for (int i = 0; i < nVal.node->children.size(); ++i)
                     addToQueue(nQueue, nVal.node->children[i], nVal.value * values[i] / sum, threshold);
 
-                eCount += nVal.node->children.size();
+                nodeEvaluationCount += nVal.node->children.size();
             }
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
@@ -155,6 +150,7 @@ double HSM::predictForLabel(Label label, Feature* features, Args& args) {
                 value *= bases[n->children[0]->index]->predictProbability(features);
             else
                 value *= 1.0 - bases[n->children[0]->index]->predictProbability(features);
+            ++nodeEvaluationCount;
         } else {
             double sum = 0;
             double tmpValue = 0;
@@ -166,6 +162,7 @@ double HSM::predictForLabel(Label label, Feature* features, Args& args) {
                     sum += bases[child->index]->predictProbability(features);
             }
             value *= tmpValue / sum;
+            nodeEvaluationCount += n->parent->children.size();
         }
         n = n->parent;
     }
@@ -174,7 +171,7 @@ double HSM::predictForLabel(Label label, Feature* features, Args& args) {
 }
 
 void HSM::printInfo() {
-    std::cerr << "HSM additional stats:"
-              << "\n  Tree size: " << tree->nodes.size() << "\n  Path length: " << static_cast<double>(pLen) / rCount
-              << "\n  # estimators / data point: " << static_cast<double>(eCount) / rCount << "\n";
+    PLT::printInfo();
+    if(pathLength > 0)
+        std::cout << "  Path length: " << static_cast<double>(pathLength) / dataPointCount << "\n";
 }

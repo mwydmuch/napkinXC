@@ -34,6 +34,5 @@ protected:
     Prediction predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
                                 double threshold) override;
 
-    int eCount; // Number of updated/evaluated classifiers during training or prediction
-    int pLen;   // Len of the path
+    int pathLength;   // Length of the path
 };

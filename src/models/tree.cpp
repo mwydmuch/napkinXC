@@ -351,10 +351,7 @@ void Tree::loadTreeStructure(std::string file) {
 
         std::istringstream lineISS(line);
         lineISS >> parent >> child >> sLabel;
-        // std::cout << parent << " " << child << " " << sLabel << " ";
         if (sLabel.size()) label = std::stoi(sLabel);
-
-        // std::cout << parent << " " << child << " " << label << "\n";
 
         if (child >= t) throw std::invalid_argument("Node index is higher then specified number of nodes!");
         if (parent >= t) throw std::invalid_argument("Parent index is higher then specified number of nodes!");
@@ -398,15 +395,14 @@ void Tree::saveTreeStructure(std::string file) {
     std::ofstream out(file);
     out << k << " " << t << "\n";
     for (auto& n : nodes) {
-        if (n->parent != nullptr) out << n->parent->index;
-        // else out << -1
-
-        out << " " << n->index << " ";
-
-        if (n->label >= 0) out << n->label;
-        // else out << -1;
-
-        out << "\n";
+        if (n->parent != nullptr) {
+            out << n->parent->index;
+            // else out << -1
+            out << " " << n->index << " ";
+            if (n->label >= 0) out << n->label;
+            // else out << -1;
+            out << "\n";
+        }
     }
     out.close();
 }
@@ -543,14 +539,14 @@ void Tree::setLabel(TreeNode* n, int label) {
 
 int Tree::getTreeDepth(TreeNode* rootNode) {
     if (rootNode == nullptr) // Root node
-        return leaves.size();
+        rootNode = root;
 
     int maxDepth = 1;
     std::queue<std::pair<int, TreeNode*>> nQueue;
     nQueue.push({1, root});
 
     while (!nQueue.empty()) {
-        auto n = nQueue.front(); // Cu rrent node
+        auto n = nQueue.front(); // Current node
         nQueue.pop();
 
         if (n.first > maxDepth) maxDepth = n.first;

@@ -18,7 +18,7 @@ void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Ar
     double value = bases[tree->root->index]->predictProbability(features);
     assert(value == 1);
     nQueue.push({tree->root, value});
-    ++rCount;
+    ++dataPointCount;
 
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 

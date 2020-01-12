@@ -25,8 +25,6 @@ public:
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
-    static void printInfoAboutData(SRMatrix<Label>& labels, SRMatrix<Feature>& features);
-
 protected:
     bool supportHeader;
 };

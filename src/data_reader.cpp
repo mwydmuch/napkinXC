@@ -108,7 +108,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
             std::cerr << "  Warning: Number of lines does not match number in the file header!\n";
         if (hLabels != labels.cols())
             std::cerr << "  Warning: Number of labels does not match number in the file header!\n";
-        if (hFeatures != features.rows() - 2)
+        if (hFeatures != features.cols() - 2)
             std::cerr << "  Warning: Number of features does not match number in the file header!\n";
     }
 

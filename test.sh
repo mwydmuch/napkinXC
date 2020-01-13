@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -o pipefail
 
 DATASET_NAME=$1
 MODEL_DIR=models
@@ -31,7 +32,7 @@ DATASET_FILE=${DATASET_DIR}/${DATASET_NAME}
 
 # Download dataset
 if [[ ! -e $DATASET_DIR ]]; then
-    bash get_data.sh $DATASET_NAME
+    bash scripts/get_data.sh $DATASET_NAME
 fi
 
 # Find train / test file

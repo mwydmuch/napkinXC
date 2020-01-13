@@ -22,8 +22,8 @@ else
     TEST_ARGS=""
 fi
 
-TRAIN_CONFIG=${DATASET_NAME}_$(echo "${TRAIN_ARGS}" | tr " " "_")
-TEST_CONFIG=${TRAIN_CONFIG}_$(echo "${TEST_ARGS}" | tr " " "_")
+TRAIN_CONFIG=${DATASET_NAME}_$(echo "${TRAIN_ARGS}" | tr " /" "__")
+TEST_CONFIG=${TRAIN_CONFIG}_$(echo "${TEST_ARGS}" | tr " /" "__")
 
 MODEL=${MODEL_DIR}/${TRAIN_CONFIG}
 DATASET_DIR=data/${DATASET_NAME}

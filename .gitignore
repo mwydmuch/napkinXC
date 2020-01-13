@@ -5,11 +5,9 @@
 **/Makefile
 
 /src/version.h
-/nxml
 /nxc
 /data
 /models
-/outputs
 /results
 /nmslib
 

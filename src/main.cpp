@@ -148,16 +148,10 @@ void predict(Args& args) {
         SRMatrix<Feature> features;
         reader->readData(labels, features, args);
 
-        std::vector<Prediction> prediction;
-        prediction.reserve(model->outputSize());
-        for (int r = 0; r < features.rows(); ++r) {
-            model->predict(prediction, features.row(r), args);
-
-            // Print prediction
-            std::cout << labels.row(r)[0];
-            for (const auto& p : prediction) std::cout << " " << p.label << ":" << p.value;
+        std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+        for(const auto& p : predictions){
+            for (const auto& l : p) std::cout << l.label << ":" << l.value << " ";
             std::cout << std::endl;
-            prediction.clear();
         }
     }
 }

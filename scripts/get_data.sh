@@ -51,8 +51,9 @@ esac
 
 SCRIPT_DIR=$( dirname "${BASH_SOURCE[0]}" )
 
-mkdir -p data
-DATA_DIR=${SCRIPT_DIR}/data
+
+DATA_DIR=data
+mkdir -p $DATA_DIR
 DATASET_PATH="${DATA_DIR}/${DATASET}"
 
 if [ ! -e $DATASET_PATH ]; then

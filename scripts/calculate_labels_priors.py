@@ -12,10 +12,9 @@ if __name__ == "__main__":
     input = sys.argv[1]
     output = sys.argv[2]
     min_value = float(sys.argv[3]) if len(sys.argv) > 3 else 0.0
-    max_value = float(sys.argv[4]) if len(sys.argv) > 4 else 0.0
+    max_value = float(sys.argv[4]) if len(sys.argv) > 4 else 1.0
 
     X, y = load_svmlight_file(input, multilabel=True)
-    print(len(y))
     y_count = {}
     row_count = 0
     for y_row in y:

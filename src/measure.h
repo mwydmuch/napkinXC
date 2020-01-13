@@ -69,9 +69,16 @@ public:
     static double calculate(Label* labels, const std::vector<Prediction>& prediction);
 };
 
-class Recall : public Measure {
+class Recall : public Measure { // (Macro)
 public:
     Recall();
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
+
+class MicroRecall : public Measure {
+public:
+    MicroRecall();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
@@ -83,9 +90,16 @@ public:
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class Precision : public Measure {
+class Precision : public Measure { // (Macro)
 public:
     Precision();
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
+
+class MicroPrecision : public Measure {
+public:
+    MicroPrecision();
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
@@ -95,6 +109,13 @@ public:
     PrecisionAtK(int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
+
+class F1 : public Measure {
+public:
+    F1();
+
+    void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
 };
 
 class Coverage : public Measure {

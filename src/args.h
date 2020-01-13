@@ -37,7 +37,10 @@ enum TreeType {
     onlineComplete,
     onlineRandom,
     onlineBottomUp,
-    custom
+    custom,
+
+    onlineBestScore,
+    onlineKMeans
 };
 
 enum OptimizerType { liblinear, sgd, adagrad, fobos };
@@ -94,11 +97,13 @@ public:
     std::string treeStructure;
     int arity;
     int maxLeaves;
+    int maxDepth;
 
     // K-Means tree options
     double kMeansEps;
     bool kMeansBalanced;
     bool kMeansWeightedFeatures;
+    int kMeansHash;
 
     // Prediction options
     int topK;

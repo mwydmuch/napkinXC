@@ -20,6 +20,10 @@ public:
     void save(Args& args, std::string output) override;
 
 protected:
+    bool onlineTree;
     std::vector<Base*> tmpBases;
     std::mutex treeMtx;
+
+    void expandTopDown(Label newLabel, Feature* features, Args& args);
+    void expandBottomUp(Label newLabel, Args& args);
 };

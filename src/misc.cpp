@@ -73,7 +73,7 @@ void computeLabelsFeaturesMatrixThread(std::vector<UnorderedMap<int, double>>& t
 }
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
-                                 const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures) {
+                                 const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures, int featuresHash) {
 
     std::vector<UnorderedMap<int, double>> tmpLabelsFeatures(labels.cols());
     assert(features.rows() == labels.rows());
@@ -93,7 +93,10 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
     for (int l = 0; l < labels.cols(); ++l) {
         std::vector<Feature> labelFeatures;
         labelFeatures.reserve(tmpLabelsFeatures.size());
-        for (const auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({f.first, f.second});
+        if(featuresHash)
+            for (auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({static_cast<int>(hash(f.first) % featuresHash), f.second});
+        else
+            for (const auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({f.first, f.second});
         std::sort(labelFeatures.begin(), labelFeatures.end());
 
         if (norm)

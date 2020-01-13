@@ -62,11 +62,13 @@ Args::Args() {
     treeType = hierarchicalKMeans;
     treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
+    maxDepth = 16;
 
     // K-Means tree options
     kMeansEps = 0.0001;
     kMeansBalanced = true;
     kMeansWeightedFeatures = false;
+    kMeansHash = 0;
 
     // Prediction options
     topK = 5;
@@ -301,6 +303,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     treeType = onlineRandom;
                 else if (args.at(ai + 1) == "onlineBottomUp")
                     treeType = onlineBottomUp;
+                else if (args.at(ai + 1) == "onlineBestScore")
+                    treeType = onlineBestScore;
+                else if (args.at(ai + 1) == "onlineKMeans")
+                    treeType = onlineKMeans;
 
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << "!\n";

@@ -26,7 +26,7 @@ void computeLabelsFeaturesMatrixThread(std::vector<UnorderedMap<int, double>>& t
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads = 1, bool norm = false,
-                                 bool weightedFeatures = false);
+                                 bool weightedFeatures = false, int featuresHash = 0);
 
 // Math utils
 template <typename T, typename U> inline T argMax(const std::unordered_map<T, U>& map) {

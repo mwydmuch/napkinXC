@@ -32,7 +32,7 @@ struct TreeNode {
     int subtreeDepth;
     std::vector<int> labels;
 
-    int exampleCount;
+    double norm;
     UnorderedMap<int, float> centroid;
 };
 
@@ -73,10 +73,6 @@ public:
     std::vector<TreeNode*> nodes;              // Pointers to tree nodes
     std::unordered_map<int, TreeNode*> leaves; // Leaves map;
 
-    // Online tree
-    inline bool isOnline() { return online; }
-    void expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
-
     // Tree utils
     int getNumberOfLeaves(TreeNode* rootNode = nullptr);
     int getTreeDepth(TreeNode* rootNode = nullptr);
@@ -90,12 +86,12 @@ public:
     void moveSubtree(TreeNode* oldParent, TreeNode* newParent);
     void populateNodeLabels();
     int distanceBetweenNodes(TreeNode* n1, TreeNode* n2);
+    void printTree(TreeNode* rootNode = nullptr);
 
-private:
-    bool online;
     int nextToExpand;
     TreeNode* nextSubtree;
 
+private:
     // Hierarchical K-Means
     static TreeNodePartition buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures,
                                                    Args& args, int seed);
@@ -108,11 +104,11 @@ private:
     void buildCompleteTree(int labelCount, bool randomizeOrder, Args& args);
     void buildBalancedTree(int labelCount, bool randomizeOrder, Args& args);
 
-    // Build tree in online way
+    // Build tree in online way (simulate online tree building)
     void buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 
     // Tree utils
-    void expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
-    void expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args);
-    void printTree(TreeNode* rootNode = nullptr);
+    void expandTopDown(Label newLabel, Args& args);
+    void expandBottomUp(Label newLabel, Args& args);
+
 };

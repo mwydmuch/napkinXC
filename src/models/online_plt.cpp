@@ -35,44 +35,21 @@ void OnlinePLT::init(int labelCount, Args& args) {
 
 void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize,
                        Args& args) {
-
-    std::cerr << "Update row " << row << "\n";
-
     std::unordered_set<TreeNode*> nPositive;
     std::unordered_set<TreeNode*> nNegative;
 
     if (onlineTree) { // Check if example contains a new label
         std::lock_guard<std::mutex> lock(treeMtx);
 
-        for (int i = 0; i < labelsSize; ++i) {
+        for (int i = 0; i < labelsSize; ++i)
             if (!tree->leaves.count(labels[i])) { // Expand tree in case of the new label
-
-                std::cerr << "New label " << labels[i] << "\n";
-
-                int newLabel = labels[i];
-
-                if (tree->nodes.empty()) { // Empty tree
-                    tree->root = tree->createTreeNode(nullptr, newLabel);
-                    bases.push_back(new Base());
-                    bases.back()->setupOnlineTraining(args);
-                    tmpBases.push_back(new Base());
-                    tmpBases.back()->setupOnlineTraining(args);
-                    tree->nextSubtree = tree->root;
-                } else if ((args.treeType == onlineKMeans) && tree->root->children.size() < args.arity) {
-                    // Bootstrap Best Score and K-Means
-                    TreeType tmpTreeType = args.treeType;
-                    args.treeType = onlineBalanced;
-
-                    args.treeType = tmpTreeType;
-                } else if (args.treeType == onlineBottomUp)
-                    expandBottomUp(newLabel, args);
-                else
-                    expandTopDown(newLabel, features, args);
+                if (args.newOnline) expandTree(labels[i], features, args);
+                else expandTopDown(labels[i], features, args);
             }
-        }
-    }
 
-    getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+        getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+    } else
+        getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
 
     // Update positive base estimators
     for (const auto& n : nPositive) bases[n->index]->update(1.0, features, args);
@@ -82,7 +59,38 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
 
     // Update temporary nodes
     if (onlineTree)
-        for (const auto& n : nPositive) tmpBases[n->index]->update(0.0, features, args);
+        for (const auto& n : nPositive){
+            if(tmpBases[n->index] != nullptr)
+                tmpBases[n->index]->update(0.0, features, args);
+        }
+
+    // Update centroids
+    if (args.treeType == onlineKMeans){
+        //std::cerr << "  Updateing centroid\n";
+        for (const auto& n : nPositive){
+            if(n->label == -1 || n->index != 0){
+                //std::cerr << "  For node " << n->index << "\n";
+                // Update centroids
+                UnorderedMap<int, float> &map = n->centroid;
+                Feature *f = features;
+                while (f->index != -1) {
+                    if (f->index == 1){
+                        ++f;
+                        continue;
+                    }
+                    int index = f->index;
+                    if (args.kMeansHash) index = hash(f->index) % args.hash;
+                    map[index] += f->value;
+                    ++f;
+                }
+
+                n->norm = 0;
+                for(const auto& w : map)
+                    n->norm += w.second * w.second;
+                n->norm = std::sqrt(n->norm);
+            }
+        }
+    }
 }
 
 void OnlinePLT::save(Args& args, std::string output) {
@@ -102,17 +110,169 @@ void OnlinePLT::save(Args& args, std::string output) {
 
     // Save tree structure
     tree->saveTreeStructure(joinPath(output, "tree"));
-    tree->printTree();
+}
+
+void OnlinePLT::expandTree(Label newLabel, Feature* features, Args& args){
+    //std::cerr << "  New label " << newLabel << "\n";
+
+    std::default_random_engine rng(args.getSeed());
+    std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
+
+    if (tree->nodes.empty()) { // Empty tree
+        tree->root = tree->createTreeNode(nullptr);
+        bases.push_back(new Base());
+        bases.back()->setupOnlineTraining(args);
+        tmpBases.push_back(new Base());
+        tmpBases.back()->setupOnlineTraining(args);
+        TreeNode* firstLabel = tree->createTreeNode(tree->root, newLabel);
+        bases.push_back(new Base());
+        bases.back()->setupOnlineTraining(args);
+        tmpBases.push_back(nullptr); // Label node doesn't need tmp classfier
+        tree->nextSubtree = firstLabel;
+        return;
+    }
+
+    // Else
+    TreeNode* toExpand = tree->root;
+
+    while (toExpand->children.size() >= args.arity && toExpand->children[0]->label == -1) {
+        if (args.treeType == onlineBalanced)
+            toExpand = toExpand->children[toExpand->nextToExpand++ % toExpand->children.size()];
+
+        else if (args.treeType == onlineRandom)
+            toExpand = toExpand->children[dist(rng)];
+
+        else if (args.treeType == onlineBestScore) { // Best score
+            //std::cerr << "  toExpand: " << toExpand->index << "\n";
+            double bestScore = INT_MIN;
+            TreeNode *bestChild;
+            for (auto &child : toExpand->children) {
+                double score = bases[child->index]->predictValue(features);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestChild = child;
+                }
+                //std::cerr << "  child: " << child->index << " " << score << "\n";
+            }
+            //std::cerr << bestScore << " " << bestChild->index << "\n";
+            toExpand = bestChild;
+        }
+
+        else if (args.treeType == onlineKMeans) { // Online K-Means tree
+            //std::cerr << "  toExpand: " << toExpand->index << "\n";
+
+            double bestScore = INT_MIN;
+            TreeNode *bestChild;
+            for (auto &child : toExpand->children) {
+                double score = 0.0;
+                UnorderedMap<int, float> &map = child->centroid;
+
+                Feature *f = features;
+                while (f->index != -1) {
+                    if (f->index == 1){
+                        ++f;
+                        continue;
+                    }
+                    int index = f->index;
+                    if(args.kMeansHash) index = hash(f->index) % args.hash;
+                    auto w = map.find(index);
+                    if (w != map.end()) score += (w->second / child->norm) * f->value;
+                    ++f;
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestChild = child;
+                }
+
+                //std::cerr << "  child: " << child->index << " " << score << "\n";
+            }
+            //std::cerr << bestScore << " " << bestChild->index << "\n";
+            toExpand = bestChild;
+        }
+    }
+
+    // Expand selected node
+    //std::cerr << "  Node " << toExpand->index << " selected to expand\n";
+
+    // If number of children have not reached max leaves
+    if (toExpand->children.size() < args.maxLeaves) {
+        TreeNode* newLabelNode = tree->createTreeNode(toExpand, newLabel);
+        bases.push_back(tmpBases[toExpand->index]->copy());
+        tmpBases.push_back(nullptr);
+        //std::cerr << "  Added as " << newLabelNode->index << " as " << toExpand->index << " child\n";
+        //tree->printTree();
+    } else {
+        // Check if one of siblings OVR is avaialble
+        if(toExpand->parent) {
+            //std::cerr << "  Looking for other free siblings...\n";
+            for (auto &sibling : toExpand->parent->children) {
+                if (sibling->children.size() < args.maxLeaves && sibling->children[0]->label != -1) {
+                    toExpand = sibling;
+
+                    TreeNode *newLabelNode = tree->createTreeNode(toExpand, newLabel);
+                    bases.push_back(tmpBases[toExpand->index]->copy());
+                    tmpBases.push_back(nullptr);
+
+                    //std::cerr << "  Added as " << newLabelNode->index << " as " << toExpand->index << " child\n";
+                    //tree->printTree();
+
+                    return;
+                }
+            }
+        }
+
+        // If not, expand node
+        //std::cerr << "  Expanding " << toExpand->index << " node to bottom...\n";
+
+        TreeNode* newParentOfChildren = tree->createTreeNode();
+        bases.push_back(tmpBases[toExpand->index]->copyInverted());
+        tmpBases.push_back(tmpBases[toExpand->index]->copy());
+
+        // Move leaves to the new node
+        for (auto& child : toExpand->children) tree->setParent(child, newParentOfChildren);
+        toExpand->children.clear();
+        tree->setParent(newParentOfChildren, toExpand);
+
+        // Create new branch
+        TreeNode* newBranch = tree->createTreeNode(toExpand);
+        bases.push_back(tmpBases[toExpand->index]->copy());
+        tmpBases.push_back(new Base());
+        tmpBases.back()->setupOnlineTraining(args);
+
+        // Create new node
+        TreeNode* newLabelNode = tree->createTreeNode(newBranch, newLabel);
+        bases.push_back(tmpBases[toExpand->index]->copy());
+        tmpBases.push_back(nullptr);
+
+        // Remove temporary classifier
+        if (toExpand->children.size() == args.arity - 1) {
+            delete tmpBases[toExpand->index];
+            tmpBases[toExpand->index] = nullptr;
+        }
+
+        //tree->printTree();
+    }
 }
 
 void OnlinePLT::expandTopDown(Label newLabel, Feature* features, Args& args) {
+
+    if (tree->nodes.empty()) { // Empty tree
+        tree->root = tree->createTreeNode(nullptr, newLabel);
+        bases.push_back(new Base());
+        bases.back()->setupOnlineTraining(args);
+        tmpBases.push_back(new Base());
+        tmpBases.back()->setupOnlineTraining(args);
+        tree->nextSubtree = tree->root;
+        return;
+    }
 
     TreeNode* toExpand = tree->root;
     int depth = 0;
 
     // Select node based on policy
     if (args.treeType == onlineBalanced) { // Balanced policy
-        while (toExpand->children.size() >= args.arity && depth < args.maxDepth) {
+        while (toExpand->children.size() >= args.arity) {
             toExpand = toExpand->children[toExpand->nextToExpand++ % toExpand->children.size()];
             ++depth;
         }
@@ -122,7 +282,7 @@ void OnlinePLT::expandTopDown(Label newLabel, Feature* features, Args& args) {
     } else if (args.treeType == onlineRandom) { // Random policy
         std::default_random_engine rng(args.getSeed());
         std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
-        while (toExpand->children.size() >= args.arity && depth < args.maxDepth){
+        while (toExpand->children.size() >= args.arity){
             toExpand = toExpand->children[dist(rng)];
             ++depth;
         }
@@ -153,7 +313,10 @@ void OnlinePLT::expandTopDown(Label newLabel, Feature* features, Args& args) {
 
                 Feature *f = features;
                 while (f->index != -1) {
-                    if (f->index == 1) continue;
+                    if (f->index == 1){
+                        ++f;
+                        continue;
+                    }
                     int index = f->index;
                     if(args.kMeansHash) index = hash(f->index) % args.hash;
                     auto w = map.find(f->index);
@@ -167,28 +330,13 @@ void OnlinePLT::expandTopDown(Label newLabel, Feature* features, Args& args) {
                 }
             }
             toExpand = bestChild;
-
-            // Update centroids
-            UnorderedMap<int, float> &map = toExpand->centroid;
-            Feature *f = features;
-            while (f->index != -1) {
-                if (f->index == 1) continue;
-                int index = f->index;
-                if (args.kMeansHash) index = hash(f->index) % args.hash;
-                map[f->index] += f->value;
-            }
-
-            toExpand->norm = 0;
-            for(const auto& w : map)
-                toExpand->norm += w.second * w.second;
-            toExpand->norm = std::sqrt(toExpand->norm);
         }
     }
 
     // Expand selected node
     if (toExpand->children.size() == 0) {
         TreeNode* parentLabelNode = tree->createTreeNode(toExpand, toExpand->label);
-        bases.push_back(bases[toExpand->index]->copyInverted());
+        bases.push_back(tmpBases[toExpand->index]->copyInverted());
         tmpBases.push_back(tmpBases[toExpand->index]->copy());
     }
 

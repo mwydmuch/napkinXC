@@ -474,13 +474,14 @@ void Tree::printTree(TreeNode* rootNode) {
 
         if (nSet.count(n->parent)) {
             nSet.clear();
-            std::cerr << "\nDepth " << ++depth << ":";
+            std::cerr << "\nDepth " << ++depth << ": ";
         }
 
         nSet.insert(n);
-        std::cerr << " " << n->index;
-        if (n->parent) std::cerr << "(" << n->parent->index << ")";
-        if (n->label >= 0) std::cerr << "<" << n->label << ">";
+        if (n->parent) std::cerr << n->parent->index << ">";
+        std::cerr << n->index;
+        if (n->label >= 0) std::cerr << "(" << n->label << ")";
+        std::cerr << " ";
         for (auto c : n->children) nQueue.push(c);
     }
 

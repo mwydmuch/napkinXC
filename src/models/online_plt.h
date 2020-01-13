@@ -24,6 +24,7 @@ protected:
     std::vector<Base*> tmpBases;
     std::mutex treeMtx;
 
+    void expandTree(Label newLabel, Feature* features, Args& args);
     void expandTopDown(Label newLabel, Feature* features, Args& args);
     void expandBottomUp(Label newLabel, Args& args);
 };

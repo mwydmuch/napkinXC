@@ -8,6 +8,9 @@
 #include "online_model.h"
 #include "plt.h"
 
+#include <mutex>
+#include <shared_mutex>
+
 
 class OnlinePLT : public OnlineModel, public PLT {
 public:
@@ -22,7 +25,7 @@ public:
 protected:
     bool onlineTree;
     std::vector<Base*> tmpBases;
-    std::mutex treeMtx;
+    std::shared_timed_mutex treeMtx;
 
     void expandTree(Label newLabel, Feature* features, Args& args);
     void expandTopDown(Label newLabel, Feature* features, Args& args);

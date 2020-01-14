@@ -5,6 +5,8 @@
 
 #include "online_plt.h"
 
+
+
 OnlinePLT::OnlinePLT() {
     onlineTree = true;
     type = oplt;
@@ -39,17 +41,19 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
     std::unordered_set<TreeNode*> nNegative;
 
     if (onlineTree) { // Check if example contains a new label
-        std::lock_guard<std::mutex> lock(treeMtx);
+        std::unique_lock<std::shared_timed_mutex> lock(treeMtx);
 
         for (int i = 0; i < labelsSize; ++i)
             if (!tree->leaves.count(labels[i])) { // Expand tree in case of the new label
                 if (args.newOnline) expandTree(labels[i], features, args);
                 else expandTopDown(labels[i], features, args);
             }
+    }
 
+    {
+        std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
         getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
-    } else
-        getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+    }
 
     // Update positive base estimators
     for (const auto& n : nPositive) bases[n->index]->update(1.0, features, args);

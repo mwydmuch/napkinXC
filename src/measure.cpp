@@ -36,14 +36,18 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
         } else {
             if (m == "p")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Precision>()));
-            else if (m == "mp")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroPrecision>()));
+//            else if (m == "microp")
+//                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroPrecision>()));
             else if (m == "r")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Recall>()));
-            else if (m == "mr")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroRecall>()));
+//            else if (m == "micror")
+//                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroRecall>()));
             else if (m == "f1")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1>()));
+            else if (m == "microf")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroF>()));
+            else if (m == "macrof")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MacroF>(outputSize)));
             else if (m == "c")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Coverage>(outputSize)));
             else if (m == "acc")
@@ -190,16 +194,6 @@ void Recall::accumulate(Label* labels, const std::vector<Prediction>& prediction
     }
 }
 
-MicroRecall::MicroRecall() { name = "Micro Recall"; }
-
-void MicroRecall::accumulate(Label* labels, const std::vector<Prediction>& prediction){
-    // tp / (tp + fn);
-    double tp = TruePositives::calculate(labels, prediction);
-    double fn = FalseNegatives::calculate(labels, prediction);
-    sum += tp;
-    count += tp + fn;
-}
-
 RecallAtK::RecallAtK(int k) : MeasureAtK(k) { name = "R@" + std::to_string(k); }
 
 void RecallAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
@@ -223,37 +217,11 @@ void Precision::accumulate(Label* labels, const std::vector<Prediction>& predict
     }
 }
 
-MicroPrecision::MicroPrecision() { name = "Micro Precision"; }
-
-void MicroPrecision::accumulate(Label* labels, const std::vector<Prediction>& prediction){
-    // tp / (tp + fp);
-    double tp = TruePositives::calculate(labels, prediction);
-    double fp = FalsePositives::calculate(labels, prediction);
-    sum += tp;
-    count += tp + fp;
-}
-
 PrecisionAtK::PrecisionAtK(int k) : MeasureAtK(k) { name = "P@" + std::to_string(k); }
 
 void PrecisionAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     sum += TruePositivesAtK::calculate(labels, prediction, k) / k;
     ++count;
-}
-
-F1::F1() { name = "F1"; }
-
-void F1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
-    double tp = TruePositives::calculate(labels, prediction);
-    int l = -1;
-    while (labels[++l] > -1)
-        ;
-
-    if (!prediction.empty() && l > 0) {
-        double p = tp / prediction.size();
-        double r = tp / l;
-        if(p > 0 && r > 0) sum += 2 * p * r / (p + r);
-        ++count;
-    }
 }
 
 Coverage::Coverage(int outputSize) : m(outputSize) { name = "Coverage"; }
@@ -307,3 +275,96 @@ void HammingLoss::accumulate(Label* labels, const std::vector<Prediction>& predi
     sum += FalsePositives::calculate(labels, prediction) + FalseNegatives::calculate(labels, prediction);
     ++count;
 }
+
+
+F1::F1() { name = "F1"; }
+
+void F1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+    double tp = TruePositives::calculate(labels, prediction);
+    int l = -1;
+    while (labels[++l] > -1)
+        ;
+
+    if (!prediction.empty() && l > 0) {
+        double p = tp / prediction.size();
+        double r = tp / l;
+        if(p > 0 && r > 0) sum += 2 * p * r / (p + r);
+        ++count;
+    }
+}
+
+MicroF::MicroF() { name = "MicroF"; }
+
+void MicroF::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+    double tp = TruePositives::calculate(labels, prediction);
+    sum += 2 * tp;
+    count += 2 * tp + FalsePositives::calculate(labels, prediction) + FalseNegatives::calculate(labels, prediction);
+}
+
+MacroF::MacroF(int outputSize) : m(outputSize) {
+    name = "MacroF";
+    labelsTP.resize(m);
+    labelsFP.resize(m);
+    labelsFN.resize(m);
+}
+
+void MacroF::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+
+    for (const auto& p : prediction) {
+        int l = -1;
+        bool found = false;
+        while (labels[++l] > -1) {
+            if (p.label == labels[l]) {
+                found = true;
+                ++labelsTP[p.label];
+                break;
+            }
+        }
+        if (!found) ++labelsFP[p.label];
+    }
+
+    int l = -1;
+    while (labels[++l] > -1) {
+        bool found = false;
+        for (const auto& p : prediction) {
+            if (p.label == labels[l]) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) ++labelsFN[labels[l]];
+    }
+}
+
+double MacroF::value(){
+    double sum = 0;
+    for(int i = 0; i < m; ++i){
+        double denominator = 2 * labelsTP[i] + labelsFP[i] + labelsFN[i];
+        if(denominator > 0) sum += 2 * labelsTP[i] / denominator;
+    }
+    return sum / m;
+}
+
+
+/*
+MicroPrecision::MicroPrecision() { name = "Micro Precision"; }
+
+void MicroPrecision::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+    // tp / (tp + fp);
+    double tp = TruePositives::calculate(labels, prediction);
+    double fp = FalsePositives::calculate(labels, prediction);
+    sum += tp;
+    count += tp + fp;
+}
+
+MicroRecall::MicroRecall() { name = "Micro Recall"; }
+
+void MicroRecall::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+    // tp / (tp + fn);
+    double tp = TruePositives::calculate(labels, prediction);
+    double fn = FalseNegatives::calculate(labels, prediction);
+    sum += tp;
+    count += tp + fn;
+}
+*/
+

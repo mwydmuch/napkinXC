@@ -76,13 +76,6 @@ public:
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class MicroRecall : public Measure {
-public:
-    MicroRecall();
-
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-};
-
 class RecallAtK : public MeasureAtK {
 public:
     RecallAtK(int k);
@@ -97,13 +90,6 @@ public:
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class MicroPrecision : public Measure {
-public:
-    MicroPrecision();
-
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-};
-
 class PrecisionAtK : public MeasureAtK {
 public:
     PrecisionAtK(int k);
@@ -111,12 +97,7 @@ public:
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class F1 : public Measure {
-public:
-    F1();
 
-    void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
-};
 
 class Coverage : public Measure {
 public:
@@ -162,3 +143,48 @@ public:
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
+
+class F1 : public Measure {
+public:
+    F1();
+
+    void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
+};
+
+class MicroF : public Measure {
+public:
+    MicroF();
+
+    void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
+};
+
+class MacroF : public Measure {
+public:
+    MacroF(int outputSize);
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    double value() override;
+
+protected:
+    std::vector<double> labelsTP;
+    std::vector<double> labelsFP;
+    std::vector<double> labelsFN;
+    int m;
+};
+
+
+/*
+class MicroRecall : public Measure {
+public:
+    MicroRecall();
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
+
+class MicroPrecision : public Measure {
+public:
+    MicroPrecision();
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
+ */

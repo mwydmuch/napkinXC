@@ -337,6 +337,7 @@ void MacroF::accumulate(Label* labels, const std::vector<Prediction>& prediction
 }
 
 double MacroF::value(){
+    // TODO jaka jest wartosc miary f jesli nie ma zadnych pozytywow potrzebnych? 0 czy 1?
     double sum = 0;
     for(int i = 0; i < m; ++i){
         double denominator = 2 * labelsTP[i] + labelsFP[i] + labelsFN[i];

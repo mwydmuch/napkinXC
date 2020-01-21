@@ -24,6 +24,7 @@ public:
     virtual void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) = 0;
     virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features,
                                        std::vector<float>& thresholds, Args& args);
+    virtual std::vector<float> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
     virtual double predictForLabel(Label label, Feature* features, Args& args) = 0;
     virtual std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args);
     virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features,

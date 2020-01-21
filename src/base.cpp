@@ -143,6 +143,7 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
 
     // Copy weights
     W = new Weight[wSize];
+    W[0] = 0;
     for (int i = 0; i < n; ++i) W[i + 1] = M->w[i];
 
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||

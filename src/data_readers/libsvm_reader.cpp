@@ -25,7 +25,7 @@ void LibSvmReader::readLine(std::string& line, std::vector<Label>& lLabels, std:
     // Trim leading spaces
     size_t nextPos, pos = line.find_first_not_of(' ');
 
-    while ((nextPos = line.find_first_of(",: ", pos))) {
+    while ((nextPos = line.find_first_of(",:| ", pos))) {
         // Label
         if ((pos == 0 || line[pos - 1] == ',') &&
             (line[nextPos] == ',' || line[nextPos] == ' ')) // || nextPos == std::string::npos))

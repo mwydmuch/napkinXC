@@ -20,12 +20,16 @@ void VowpalWabbitReader::readLine(std::string& line, std::vector<Label>& lLabels
     auto features = split(tokens[1], ' ');
 
     for (const auto& l : labels) {
+        /*
         int il = labelsMap.size();
         auto fl = labelsMap.find(l);
         if (fl != labelsMap.end())
             il = fl->second;
         else
             labelsMap.insert({l, il});
+        */
+        // Just read labels without remapping
+        int il = std::stoi(l);
         lLabels.push_back(il);
     }
 

@@ -150,7 +150,8 @@ void predict(Args& args) {
 
         std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
         for(const auto& p : predictions){
-            for (const auto& l : p) std::cout << l.label << ":" << l.value << " ";
+            //for (const auto& l : p) std::cout << l.label << ":" << l.value << " ";
+            for (const auto& l : p) std::cout << l.label << " ";
             std::cout << std::endl;
         }
     }

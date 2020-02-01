@@ -83,7 +83,6 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
 void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                           std::vector<double>* instancesWeights, int positiveLabels, Args& args) {
 
-    model* M = nullptr;
     int labelsCount = 0;
     int* labels = NULL;
     double* labelsWeights = NULL;
@@ -139,29 +138,29 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
     } else if (args.cost < 0)
         C.C = 8.0;
 
-    M = train_liblinear(&P, &C);
+    model* M = train_liblinear(&P, &C);
 
     assert(M->nr_class <= 2);
     assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
 
     // Set base's attributes
-    wSize = n;
+    wSize = n + 1;
     firstClass = M->label[0];
     classCount = M->nr_class;
 
     // Copy weights
-    W = new Weight[n];
+    W = new Weight[wSize];
+    W[0] = 0;
     for (int i = 0; i < n; ++i) W[i + 1] = M->w[i];
-    delete[] M->w;
 
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
                 args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
 
     // Delete LibLinear model
-    delete[] M->label;
+    free_model_content(M);
+    free(M);
     delete[] labels;
     delete[] labelsWeights;
-    delete M;
 }
 
 void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args) {

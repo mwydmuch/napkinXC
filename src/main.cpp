@@ -157,6 +157,35 @@ void predict(Args& args) {
     }
 }
 
+void ofo(Args& args) {
+    // Load model args
+    args.loadFromFile(joinPath(args.output, "args.bin"));
+    args.printArgs();
+
+    // Create data reader
+    std::shared_ptr<DataReader> reader = DataReader::factory(args);
+    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
+
+    // Load model
+    std::shared_ptr<Model> model = Model::factory(args);
+    model->load(args, args.output);
+
+    std::cout << std::setprecision(5);
+
+    // Read data from file and output prediction to cout
+    SRMatrix<Label> labels;
+    SRMatrix<Feature> features;
+    reader->readData(labels, features, args);
+
+    std::vector<float> thresholds = model->ofo(features, labels, args);
+
+    std::ofstream out(args.thresholds);
+    for(auto t : thresholds)
+        out << t <<std::endl;
+    out.close();
+}
+
+
 int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);
     Args args = Args();
@@ -170,6 +199,8 @@ int main(int argc, char** argv) {
         test(args);
     else if (args.command == "predict")
         predict(args);
+    else if (args.command == "ofo")
+        ofo(args);
 
     return 0;
 }

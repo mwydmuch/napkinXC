@@ -97,7 +97,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
     }
 
-    if (command != "train" && command != "test" && command != "predict") {
+    if (command != "train" && command != "test" && command != "predict" && command != "ofo") {
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }

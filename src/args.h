@@ -36,7 +36,6 @@ enum TreeType {
     onlineBalanced,
     onlineComplete,
     onlineRandom,
-    onlineBottomUp,
     custom,
 
     onlineBestScore,

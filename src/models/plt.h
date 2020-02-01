@@ -59,8 +59,6 @@ protected:
     }
 
     // Additional statistics
-    int treeSize;
-    int treeDepth;
     int nodeEvaluationCount; // Number of visited nodes during training prediction (updated/evaluated classifiers)
     int nodeUpdateCount; // Number of visited nodes during training or prediction
     int dataPointCount; // Data points count

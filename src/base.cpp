@@ -32,6 +32,13 @@ Base::Base() {
     pi = 1.0;
 }
 
+Base::Base(Args& args) {
+    Base();
+
+    if(args.optimizerType != liblinear)
+        setupOnlineTraining(args);
+}
+
 Base::~Base() { clear(); }
 
 void Base::update(double label, Feature* features, Args& args) {
@@ -214,6 +221,8 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 
     classCount = 2;
     firstClass = 1;
+    pi = 1.0;
+    t = 0;
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
@@ -288,6 +297,7 @@ void Base::clear() {
     mapG = nullptr;
 
     delete[] sparseW;
+    sparseW = nullptr;
 }
 
 void Base::toMap() {

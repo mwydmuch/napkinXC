@@ -42,6 +42,8 @@ void Tree::buildTreeStructure(int labelCount, Args& args) {
         buildBalancedTree(labelCount, true, args);
     else
         throw std::invalid_argument("Tree type is not supported for this model type\n");
+
+    calculateNodesDepth();
 }
 
 void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
@@ -76,6 +78,8 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
     // Check tree
     assert(k == leaves.size());
     assert(t == nodes.size());
+
+    calculateNodesDepth();
 }
 
 TreeNodePartition Tree::buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args,
@@ -294,15 +298,15 @@ void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features,
                     continue;
                 }
 
-                if (args.treeType == onlineBottomUp)
-                    expandBottomUp(newLabel, args);
-                else
-                    expandTopDown(newLabel, args);
+                auto toExpand = getNodeToExpand(args);
+
+
             }
         }
     }
 
     t = nodes.size(); // size of the tree
+    k = leaves.size();
     std::cerr << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
@@ -384,18 +388,6 @@ void Tree::saveTreeStructure(std::string file) {
     out.close();
 }
 
-TreeNode* Tree::createTreeNode(TreeNode* parent, int label) {
-    TreeNode* n = new TreeNode();
-    n->index = nodes.size();
-    nodes.push_back(n);
-    setLabel(n, label);
-    setParent(n, parent);
-    n->nextToExpand = 0;
-    n->subtreeDepth = 1;
-    n->norm = 1.0;
-    return n;
-}
-
 void Tree::save(std::ostream& out) {
     std::cerr << "Saving tree ...\n";
 
@@ -458,7 +450,15 @@ void Tree::load(std::istream& in) {
 }
 
 void Tree::printTree(TreeNode* rootNode) {
-    std::cerr << "Tree:";
+    calculateNodesDepth();
+
+    std::cerr << "Tree statistics:";
+    std::cerr << "\n  Tree size: " << nodes.size()
+              << "\n  Tree depth (max leaf depth): " << maxLeafDepth()
+              << "\n  Tree min leaf depth: " << minLeafDepth()
+              << "\n  Tree mean leaf depth: " << meanLeafDepth() << "\n";
+
+    std::cerr << "Tree structure:";
     if (rootNode == nullptr) rootNode = root;
 
     std::unordered_set<TreeNode*> nSet;
@@ -466,7 +466,7 @@ void Tree::printTree(TreeNode* rootNode) {
     nQueue.push(rootNode);
     nSet.insert(rootNode);
     int depth = 0;
-    std::cerr << "\nDepth " << depth << ":";
+    std::cerr << "\n  Depth " << depth << ": ";
 
     while (!nQueue.empty()) {
         TreeNode* n = nQueue.front();
@@ -474,7 +474,7 @@ void Tree::printTree(TreeNode* rootNode) {
 
         if (nSet.count(n->parent)) {
             nSet.clear();
-            std::cerr << "\nDepth " << ++depth << ": ";
+            std::cerr << "\n  Depth " << ++depth << ": ";
         }
 
         nSet.insert(n);
@@ -507,6 +507,25 @@ int Tree::getNumberOfLeaves(TreeNode* rootNode) {
     return lCount;
 }
 
+TreeNode* Tree::createTreeNode(TreeNode* parent, int label) {
+    TreeNode* n = new TreeNode();
+    n->index = nodes.size();
+    nodes.push_back(n);
+    setLabel(n, label);
+    setParent(n, parent);
+    n->subtreeLeaves = 0;
+    n->norm = 1.0;
+    return n;
+}
+
+void Tree::setParent(TreeNode* n, TreeNode* parent) {
+    n->parent = parent;
+    if (parent != nullptr){
+        parent->children.push_back(n);
+        n->depth = parent->depth + 1;
+    }
+}
+
 void Tree::setLabel(TreeNode* n, int label) {
     n->label = label;
     if (label >= 0) {
@@ -520,31 +539,19 @@ int Tree::getTreeDepth(TreeNode* rootNode) {
     if (rootNode == nullptr) // Root node
         rootNode = root;
 
-    int maxDepth = 1;
-    std::queue<std::pair<int, TreeNode*>> nQueue;
-    nQueue.push({1, root});
+    int maxDepth = rootNode->depth;
+    std::queue<TreeNode*> nQueue;
+    nQueue.push(rootNode);
 
     while (!nQueue.empty()) {
         auto n = nQueue.front(); // Current node
         nQueue.pop();
 
-        if (n.first > maxDepth) maxDepth = n.first;
-
-        for (const auto& child : n.second->children) nQueue.push({n.first + 1, child});
+        if (n->depth > maxDepth) maxDepth = n->depth;
+        for (const auto& child : n->children) nQueue.push(child);
     }
 
-    return maxDepth;
-}
-
-int Tree::getNodeDepth(TreeNode* n) {
-    uint32_t nDepth = 1;
-
-    while (n != root) {
-        n = n->parent;
-        ++nDepth;
-    }
-
-    return nDepth;
+    return maxDepth - rootNode->depth;
 }
 
 void Tree::moveSubtree(TreeNode* oldParent, TreeNode* newParent) {
@@ -555,6 +562,48 @@ void Tree::moveSubtree(TreeNode* oldParent, TreeNode* newParent) {
         setLabel(newParent, oldParent->label);
 
     setParent(newParent, oldParent);
+}
+
+void Tree::calculateNodesDepth() {
+    std::queue<TreeNode*> nQueue;
+    root->depth = 0;
+    nQueue.push(root);
+
+    while (!nQueue.empty()) {
+        auto n = nQueue.front(); // Current node
+        nQueue.pop();
+
+        for (const auto& child : n->children){
+            child->depth = n->depth + 1;
+            nQueue.push(child);
+        }
+    }
+}
+
+double Tree::meanLeafDepth() {
+    double depth = 0;
+    for(const auto& l : leaves)
+        depth += l.second->depth;
+
+    return depth / leaves.size();
+}
+
+int Tree::minLeafDepth() {
+    int min = INT_MAX;
+    for(const auto& l : leaves)
+        if(l.second->depth < min)
+            min = l.second->depth;
+
+    return min;
+}
+
+int Tree::maxLeafDepth() {
+    int max = 0;
+    for(const auto& l : leaves)
+        if(l.second->depth > max)
+            max = l.second->depth;
+
+    return max;
 }
 
 void Tree::populateNodeLabels() {
@@ -589,47 +638,21 @@ int Tree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2) {
     return INT_MAX;
 }
 
-void Tree::expandTopDown(Label newLabel, Args& args) {
+TreeNode* Tree::getNodeToExpand(Args& args) {
     TreeNode *toExpand = root;
+    std::default_random_engine rng(args.getSeed());
 
     // Select node based on policy
     if (args.treeType == onlineBalanced) { // Balanced policy
         while (toExpand->children.size() >= args.arity)
-            toExpand = toExpand->children[toExpand->nextToExpand++ % toExpand->children.size()];
+            toExpand = toExpand->children[toExpand->subtreeLeaves++ % toExpand->children.size()];
     } else if (args.treeType == onlineComplete) { // Complete
         if (nodes[nextToExpand]->children.size() >= args.arity) ++nextToExpand;
         toExpand = nodes[nextToExpand];
     } else if (args.treeType == onlineRandom) { // Random policy
-        std::default_random_engine rng(args.getSeed());
         std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
         while (toExpand->children.size() >= args.arity) toExpand = toExpand->children[dist(rng)];
     }
 
-    // Expand selected node
-    if (toExpand->children.empty()) TreeNode *parentLabelNode = createTreeNode(toExpand, toExpand->label);
-    TreeNode *newLabelNode = createTreeNode(toExpand, newLabel);
-}
-
-void Tree::expandBottomUp(Label newLabel, Args& args) {
-    if (nextSubtree->children.size() < args.arity) {
-        if (nextSubtree->label != -1) {
-            TreeNode* labelChild = createTreeNode(nextSubtree, nextSubtree->label);
-            ++nextSubtree->subtreeDepth;
-        }
-
-        TreeNode* newChild = createTreeNode(nextSubtree, newLabel);
-        if (nextSubtree->subtreeDepth > 2) nextSubtree = newChild;
-    } else if (nextSubtree->parent && nextSubtree->parent->subtreeDepth == nextSubtree->subtreeDepth + 1) {
-        // Moving up
-        nextSubtree = nextSubtree->parent;
-        expandBottomUp(newLabel, args);
-    } else {
-        // Expanding subtree
-        TreeNode* parentOfOldTree = createTreeNode();
-        parentOfOldTree->subtreeDepth = nextSubtree->subtreeDepth;
-        moveSubtree(nextSubtree, parentOfOldTree);
-        ++nextSubtree->subtreeDepth;
-
-        expandBottomUp(newLabel, args);
-    }
+    return toExpand;
 }

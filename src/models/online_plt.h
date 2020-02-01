@@ -28,6 +28,6 @@ protected:
     std::shared_timed_mutex treeMtx;
 
     void expandTree(Label newLabel, Feature* features, Args& args);
-    void expandTopDown(Label newLabel, Feature* features, Args& args);
-    void expandBottomUp(Label newLabel, Args& args);
+    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1, Base* base = nullptr, Base* tmpBase = nullptr);
+    void expandTree(const std::vector<Label>& newLabels, Feature* features, Args& args);
 };

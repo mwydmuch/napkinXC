@@ -17,8 +17,6 @@
 
 PLT::PLT() {
     tree = nullptr;
-    treeSize = 0;
-    treeDepth = 0;
     nodeEvaluationCount = 0;
     nodeUpdateCount = 0;
     dataPointCount = 0;
@@ -201,9 +199,11 @@ void PLT::load(Args& args, std::string infile) {
 }
 
 void PLT::printInfo() {
-    std::cout << name << " additional stats:"
-              << "\n  Tree size: " << (tree != nullptr ? tree->nodes.size() : treeSize)
-              << "\n  Tree depth: " << (tree != nullptr ? tree->getTreeDepth() : treeDepth) << "\n";
+    std::cout << name << " additional statistics:"
+              << "\n  Tree size: " << tree->nodes.size()
+              << "\n  Tree depth (max leaf depth): " << tree->maxLeafDepth()
+              << "\n  Tree min leaf depth: " << tree->minLeafDepth()
+              << "\n  Tree mean leaf depth: " << tree->meanLeafDepth() << "\n";
     if(nodeUpdateCount > 0)
         std::cout << "  Updated estimators / data point: " << static_cast<double>(nodeUpdateCount) / dataPointCount << "\n";
     if(nodeEvaluationCount > 0)
@@ -237,13 +237,9 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
 
     assignDataPoints(binLabels, binFeatures, binWeights, labels, features, args);
 
-    // Save tree and free it, it is no longer needed
+    // Save tree
     tree->saveToFile(joinPath(output, "tree.bin"));
     tree->saveTreeStructure(joinPath(output, "tree"));
-    treeSize = tree->nodes.size();
-    treeDepth = tree->getTreeDepth();
-    delete tree;
-    tree = nullptr;
 
     trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
 }

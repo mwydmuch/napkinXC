@@ -28,8 +28,11 @@ struct TreeNode {
     TreeNode* parent;                // Pointer to the parent node
     std::vector<TreeNode*> children; // Pointers to the children nodes
 
-    int nextToExpand;
-    int subtreeDepth;
+    // Node helpers
+    int depth;
+    int subtreeLeaves;
+
+    // TODO: to remove
     std::vector<int> labels;
 
     double norm;
@@ -69,20 +72,24 @@ public:
     int k; // Number of labels, should be equal to leaves.size()
     int t; // Number of tree nodes, should be equal to nodes.size()
 
-    TreeNode* root;                            // Pointer to root node
-    std::vector<TreeNode*> nodes;              // Pointers to tree nodes
-    std::unordered_map<int, TreeNode*> leaves; // Leaves map;
+    TreeNode* root;                         // Pointer to root node
+    std::vector<TreeNode*> nodes;           // Pointers to tree nodes
+    UnorderedMap<int, TreeNode*> leaves;    // Leaves map;
 
     // Tree utils
+    // TODO: Clean it up
     int getNumberOfLeaves(TreeNode* rootNode = nullptr);
     int getTreeDepth(TreeNode* rootNode = nullptr);
-    int getNodeDepth(TreeNode* n);
+
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1);
-    inline void setParent(TreeNode* n, TreeNode* parent) {
-        n->parent = parent;
-        if (parent != nullptr) parent->children.push_back(n);
-    }
+    void setParent(TreeNode* n, TreeNode* parent);
     void setLabel(TreeNode* n, int label);
+
+    void calculateNodesDepth();
+    double meanLeafDepth();
+    int minLeafDepth();
+    int maxLeafDepth();
+
     void moveSubtree(TreeNode* oldParent, TreeNode* newParent);
     void populateNodeLabels();
     int distanceBetweenNodes(TreeNode* n1, TreeNode* n2);
@@ -106,9 +113,6 @@ private:
 
     // Build tree in online way (simulate online tree building)
     void buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
-
-    // Tree utils
-    void expandTopDown(Label newLabel, Args& args);
-    void expandBottomUp(Label newLabel, Args& args);
+    TreeNode* getNodeToExpand(Args& args);
 
 };

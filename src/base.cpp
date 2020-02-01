@@ -32,14 +32,14 @@ Base::Base() {
     pi = 1.0;
 }
 
-Base::Base(Args& args) {
-    Base();
-
+Base::Base(Args& args): Base() {
     if(args.optimizerType != liblinear)
         setupOnlineTraining(args);
 }
 
-Base::~Base() { clear(); }
+Base::~Base() {
+    clear();
+}
 
 void Base::update(double label, Feature* features, Args& args) {
     std::lock_guard<std::mutex> lock(updateMtx);
@@ -292,6 +292,7 @@ void Base::clear() {
 
     delete mapW;
     mapW = nullptr;
+
     delete mapG;
     mapG = nullptr;
 

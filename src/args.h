@@ -97,7 +97,7 @@ public:
     int arity;
     int maxLeaves;
     int maxDepth;
-    bool newOnline;
+    float onlineTreeAlfa;
 
     // K-Means tree options
     double kMeansEps;

@@ -63,7 +63,7 @@ Args::Args() {
     treeTypeName = "hierarchicalKMeans";
     maxLeaves = 100;
     maxDepth = 99999;
-    newOnline = true;
+    onlineTreeAlfa = 0.5;
 
     // K-Means tree options
     kMeansEps = 0.0001;
@@ -311,8 +311,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            } else if (args[ai] == "--newOnline")
-                newOnline = std::stoi(args.at(ai + 1));
+            } else if (args[ai] == "--onlineTreeAlfa")
+                onlineTreeAlfa = std::stof(args.at(ai + 1));
 
             // Prediction/test options
             else if (args[ai] == "--topK")

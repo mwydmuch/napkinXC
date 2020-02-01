@@ -199,6 +199,7 @@ void PLT::load(Args& args, std::string infile) {
 }
 
 void PLT::printInfo() {
+    tree->calculateNodesDepth();
     std::cout << name << " additional statistics:"
               << "\n  Tree size: " << tree->nodes.size()
               << "\n  Tree depth (max leaf depth): " << tree->maxLeafDepth()

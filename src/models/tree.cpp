@@ -481,6 +481,7 @@ void Tree::printTree(TreeNode* rootNode) {
         if (n->parent) std::cerr << n->parent->index << ">";
         std::cerr << n->index;
         if (n->label >= 0) std::cerr << "(" << n->label << ")";
+        std::cerr << "<" << n->subtreeLeaves << ">";
         std::cerr << " ";
         for (auto c : n->children) nQueue.push(c);
     }

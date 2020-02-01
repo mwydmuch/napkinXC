@@ -43,26 +43,25 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
     if (onlineTree) { // Check if example contains a new label
         std::vector<int> newLabels;
 
-        std::unique_lock<std::shared_timed_mutex> lock(treeMtx);
-
         {
-            //std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
+            std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
             for (int i = 0; i < labelsSize; ++i)
                 if (!tree->leaves.count(labels[i])) newLabels.push_back(labels[i]);
         }
 
         if(!newLabels.empty()){
+            std::unique_lock<std::shared_timed_mutex> lock(treeMtx);
             // Expand tree in case of the new label
 
             expandTree(newLabels, features, args);
 
-//            for(const auto& l : newLabels)
-//                expandTree(l, features, args);
 
-            std::cerr << "  Gathering as part of extension\n";
-                getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+            //std::cerr << "  Gathering as part of extension\n";
 
-            std::cerr << "  Updating as part of extension\n";
+            /*
+            getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+
+            //std::cerr << "  Updating as part of extension\n";
 
             // Update positive base estimators
             for (const auto& n : nPositive) bases[n->index]->update(1.0, features, args);
@@ -76,33 +75,35 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
                     if(tmpBases[n->index] != nullptr)
                         tmpBases[n->index]->update(0.0, features, args);
                 }
+            */
 
-            return;
+            //return;
         }
     }
 
     {
-        std::cerr << "  Gathering \n";
+        //std::cerr << "  Gathering \n";
         std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
         getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+
+        //std::cerr << "  Updating\n";
     }
 
-    std::cerr << "  Updating\n";
-
     // Update positive base estimators
-    for (const auto& n : nPositive) bases[n->index]->update(1.0, features, args);
+    for (const auto &n : nPositive) bases[n->index]->update(1.0, features, args);
 
     // Update negative
-    for (const auto& n : nNegative) bases[n->index]->update(0.0, features, args);
+    for (const auto &n : nNegative) bases[n->index]->update(0.0, features, args);
 
     // Update temporary nodes
     if (onlineTree)
-        for (const auto& n : nPositive){
-            if(tmpBases[n->index] != nullptr)
+        for (const auto &n : nPositive) {
+            if (tmpBases[n->index] != nullptr)
                 tmpBases[n->index]->update(0.0, features, args);
         }
 
     // Update centroids
+    /*
     if (args.treeType == onlineKMeans){
         //std::cerr << "  Updateing centroid\n";
         for (const auto& n : nPositive){
@@ -129,6 +130,7 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
             }
         }
     }
+    */
 }
 
 void OnlinePLT::save(Args& args, std::string output) {
@@ -160,7 +162,7 @@ TreeNode* OnlinePLT::createTreeNode(TreeNode* parent, int label, Base* base, Bas
 
 void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* features, Args& args){
 
-    std::cerr << "  New labels in size of " << newLabels.size() << " ...\n";
+    //std::cerr << "  New labels in size of " << newLabels.size() << " ...\n";
 
     std::default_random_engine rng(args.getSeed());
     std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
@@ -172,14 +174,17 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
         TreeNode* newGroup = createTreeNode(tree->root, -1, new Base(args), new Base(args)); // Group node needs tmp classifier
         for(const auto nl : newLabels)
             createTreeNode(newGroup, nl, new Base(args), nullptr);
+        newGroup->subtreeLeaves += newLabels.size();
+        tree->root->subtreeLeaves += newLabels.size();
         return;
     }
 
     TreeNode* toExpand = tree->root;
 
-    std::cerr << "  Looking for node to expand ...\n";
+    //std::cerr << "  Looking for node to expand ...\n";
 
     int depth = 0;
+    float alfa = args.onlineTreeAlfa;
     while (tmpBases[toExpand->index] == nullptr) { // Stop when we reach expandable node
         ++depth;
 
@@ -187,37 +192,46 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
             toExpand = toExpand->children[dist(rng)];
 
         else if (args.treeType == onlineBestScore) { // Best score
-            std::cerr << "    Current node: " << toExpand->index << "\n";
+            //std::cerr << "    Current node: " << toExpand->index << "\n";
             double bestScore = -DBL_MAX;
             TreeNode *bestChild;
+
             for (auto &child : toExpand->children) {
-                double score = bases[child->index]->predictValue(features);
+                double prob = bases[child->index]->predictProbability(features);
+                double score = (1.0 - alfa) * prob + alfa * std::log(
+                    (static_cast<double>(toExpand->subtreeLeaves) / toExpand->children.size()) / child->subtreeLeaves);
                 if (score > bestScore) {
                     bestScore = score;
                     bestChild = child;
                 }
-                std::cerr << "      Child " << child->index << ": " << score << "\n";
+                //std::cerr << "      Child " << child->index << " score: " << score << ", prob: " << prob << "\n";
             }
             toExpand = bestChild;
-            ++toExpand->subtreeLeaves;
         }
+
+        toExpand->parent->subtreeLeaves += newLabels.size();
     }
 
     // Add labels
-    for(const auto nl : newLabels){
+    for(int li = 0; li < newLabels.size(); ++li){
+        Label nl = newLabels[li];
         if (toExpand->children.size() < args.maxLeaves) { // If there is still place in OVR
+            ++toExpand->subtreeLeaves;
             auto newLabelNode = createTreeNode(toExpand, nl, tmpBases[toExpand->index]->copy());
-            std::cerr << "    Added node " << newLabelNode->index << " with label " << nl << " as " << toExpand->index << " child\n";
+            //std::cerr << "    Added node " << newLabelNode->index << " with label " << nl << " as " << toExpand->index << " child\n";
         } else {
             // If not, expand node
             bool inserted = false;
-            std::cerr << "    Looking for other free siblings...\n";
+
+            //std::cerr << "    Looking for other free siblings...\n";
+
             for (auto &sibling : toExpand->parent->children) {
                 if (sibling->children.size() < args.maxLeaves && tmpBases[sibling->index] != nullptr) {
                     auto newLabelNode = createTreeNode(sibling, nl, tmpBases[sibling->index]->copy());
+                    ++sibling->subtreeLeaves;
                     inserted = true;
 
-                    std::cerr << "    Added node " << newLabelNode->index << " with label " << nl << " as " << sibling->index << " child\n";
+                    //std::cerr << "    Added node " << newLabelNode->index << " with label " << nl << " as " << sibling->index << " child\n";
 
                     break;
                 }
@@ -225,13 +239,14 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
 
             if(inserted) continue;
 
-            std::cerr << "    Expanding " << toExpand->index << " node to bottom...\n";
+           //std::cerr << "    Expanding " << toExpand->index << " node to bottom...\n";
 
             // Create the new node for children and move leaves to the new node
             TreeNode* newParentOfChildren = createTreeNode(nullptr, -1, tmpBases[toExpand->index]->copyInverted(), tmpBases[toExpand->index]->copy());
             for (auto& child : toExpand->children) tree->setParent(child, newParentOfChildren);
             toExpand->children.clear();
             tree->setParent(newParentOfChildren, toExpand);
+            newParentOfChildren->subtreeLeaves = toExpand->subtreeLeaves;
 
             // Create new branch with new node
             auto newBranch = createTreeNode(toExpand, -1, tmpBases[toExpand->index]->copy(), new Base(args));
@@ -243,13 +258,15 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
                 tmpBases[toExpand->index] = nullptr;
             }
 
+            toExpand->subtreeLeaves += newLabels.size() - li;
             toExpand = newBranch;
+            ++toExpand->subtreeLeaves;
         }
     }
 
-    tree->printTree();
-    int x;
-    std::cin >> x;
+//    tree->printTree();
+//    int x;
+//    std::cin >> x;
 }
 
 void OnlinePLT::expandTree(Label newLabel, Feature* features, Args& args){

@@ -8,7 +8,6 @@
 #include <climits>
 #include <cmath>
 #include <list>
-#include <unordered_set>
 #include <vector>
 
 #include "hsm.h"
@@ -27,8 +26,8 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     std::cerr << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
-    std::unordered_set<TreeNode*> nPositive;
-    std::unordered_set<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> nPositive;
+    UnorderedSet<TreeNode*> nNegative;
 
     // Gather examples for each node
     int rows = features.rows();
@@ -69,7 +68,7 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     }
 }
 
-void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                            const int rLabel) {
 
     std::vector<TreeNode*> path;

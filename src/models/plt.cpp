@@ -9,7 +9,6 @@
 #include <climits>
 #include <cmath>
 #include <list>
-#include <unordered_set>
 #include <vector>
 
 #include "plt.h"
@@ -36,8 +35,8 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     std::cerr << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
-    std::unordered_set<TreeNode*> nPositive;
-    std::unordered_set<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> nPositive;
+    UnorderedSet<TreeNode*> nNegative;
 
     // Gather examples for each node
     int rows = features.rows();
@@ -67,7 +66,7 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     }
 }
 
-void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                            const int* rLabels, const int rSize) {
     for (int i = 0; i < rSize; ++i) {
         TreeNode* n = tree->leaves[rLabels[i]];
@@ -100,7 +99,7 @@ void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
 }
 
 void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                      std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                      UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                       Feature* features) {
     for (const auto& n : nPositive) {
         binLabels[n->index].push_back(1.0);
@@ -145,7 +144,7 @@ Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
 
 void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
                                 Args& args) {
-    if (tree->root->labels.empty()) tree->populateNodeLabels();
+    //if (tree->root->labels.empty()) tree->populateNodeLabels();
 
     std::priority_queue<TreeNodeValue> nQueue;
 

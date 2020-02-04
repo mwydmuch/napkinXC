@@ -28,7 +28,7 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
         k = std::ceil(static_cast<double>(bases.size()) / 10);
 
     std::vector<Prediction> allPredictions;
-    std::unordered_set<int> seenLabels;
+    UnorderedSet<int> seenLabels;
     double sum = 0;
 
     std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, k);

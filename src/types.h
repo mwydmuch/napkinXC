@@ -17,10 +17,10 @@
 
 typedef float Weight;
 typedef std::pair<int, Weight> SparseWeight;
-#define UnorderedMap robin_hood::unordered_map
+#define UnorderedMap robin_hood::unordered_flat_map
+#define UnorderedSet robin_hood::unordered_flat_set
 
 typedef int Label;
-typedef int Example;
 typedef feature_node DoubleFeature;
 typedef DoubleFeature Feature;
 

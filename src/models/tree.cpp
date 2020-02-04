@@ -13,7 +13,6 @@
 #include <list>
 #include <random>
 #include <sstream>
-#include <unordered_set>
 #include <vector>
 
 #include "data_reader.h"
@@ -461,7 +460,7 @@ void Tree::printTree(TreeNode* rootNode) {
     std::cerr << "Tree structure:";
     if (rootNode == nullptr) rootNode = root;
 
-    std::unordered_set<TreeNode*> nSet;
+    UnorderedSet<TreeNode*> nSet;
     std::queue<TreeNode*> nQueue;
     nQueue.push(rootNode);
     nSet.insert(rootNode);
@@ -515,7 +514,6 @@ TreeNode* Tree::createTreeNode(TreeNode* parent, int label) {
     setLabel(n, label);
     setParent(n, parent);
     n->subtreeLeaves = 0;
-    n->norm = 1.0;
     return n;
 }
 
@@ -605,16 +603,6 @@ int Tree::maxLeafDepth() {
             max = l.second->depth;
 
     return max;
-}
-
-void Tree::populateNodeLabels() {
-    for (auto& l : leaves) {
-        TreeNode* n = l.second;
-        while (n != nullptr) {
-            n->labels.push_back(l.first);
-            n = n->parent;
-        }
-    }
 }
 
 int Tree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2) {

@@ -27,6 +27,10 @@ protected:
     std::vector<Base*> tmpBases;
     std::shared_timed_mutex treeMtx;
 
+    std::vector<float> norms;
+    std::vector<UnorderedMap<int, float>> centroids;
+    std::mutex centroidsMtx;
+
     void expandTree(Label newLabel, Feature* features, Args& args);
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1, Base* base = nullptr, Base* tmpBase = nullptr);
     void expandTree(const std::vector<Label>& newLabels, Feature* features, Args& args);

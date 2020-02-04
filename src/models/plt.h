@@ -29,15 +29,16 @@ public:
 protected:
     Tree* tree;
     std::vector<Base*> bases;
+    std::vector<float> thresholds;
 
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,
                                   std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
                                   SRMatrix<Feature>& features, Args& args);
-    void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
     void addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                     std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                     UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                      Feature* features);
 
     // Helper methods for prediction
@@ -53,9 +54,7 @@ protected:
 
     inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value,
                                   std::vector<float>& thresholds) {
-        float minThreshold = 1.0;
-        for (const auto& l : node->labels) minThreshold = std::min(minThreshold, thresholds[l]);
-        if (value >= minThreshold) nQueue.push({node, value});
+        if (value >= thresholds[node->index]) nQueue.push({node, value});
     }
 
     // Additional statistics

@@ -31,12 +31,6 @@ struct TreeNode {
     // Node helpers
     int depth;
     int subtreeLeaves;
-
-    // TODO: to remove
-    std::vector<int> labels;
-
-    double norm;
-    UnorderedMap<int, float> centroid;
 };
 
 // For prediction in tree based models / Huffman trees building
@@ -91,7 +85,6 @@ public:
     int maxLeafDepth();
 
     void moveSubtree(TreeNode* oldParent, TreeNode* newParent);
-    void populateNodeLabels();
     int distanceBetweenNodes(TreeNode* n1, TreeNode* n2);
     void printTree(TreeNode* rootNode = nullptr);
 

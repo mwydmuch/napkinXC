@@ -54,7 +54,7 @@ Args::Args() {
     epochs = 1;
     tmax = -1;
     fobosPenalty = 0.00001;
-    adagradEps = 0.001;
+    adagradEps = 0.01;
 
     // Tree options
     treeStructure = "";
@@ -340,18 +340,16 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     }
 
     // Change default values for specific cases + parameters warnings
-    if (modelType == oplt && optimizerType == liblinear) {
-        if (count(args.begin(), args.end(), "optimizer"))
+    if (modelType == oplt){
+        if((treeType == hierarchicalKMeans || treeType == huffman) && count(args.begin(), args.end(), "treeType"))
+            std::cerr << "Online PLT does not support " << treeTypeName << " tree type! Changing to complete in order tree.\n";
+        treeType = onlineBestScore;
+        treeTypeNameKy = "onlineBestScore";
+
+        if (optimizerType == liblinear && count(args.begin(), args.end(), "optimizer"))
             std::cerr << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
         optimizerType = adagrad;
         optimizerName = "adagrad";
-    }
-
-    if (modelType == oplt && (treeType == hierarchicalKMeans || treeType == huffman)) {
-        if (count(args.begin(), args.end(), "treeType"))
-            std::cerr << "Online PLT does not support " << treeTypeName
-                      << " tree type! Changing to complete in order tree.\n";
-        treeType = completeInOrder;
     }
 
     // If only threshold used set topK to 0, otherwise display warning

@@ -6,6 +6,8 @@ DATASET="$1"
 
 case "$DATASET" in
     # Multi-label datasets from The Extreme Classification Repository (manikvarma.org/downloads/XC/XMLRepository.html)
+    "rcv1x") # RCV1X-2K
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdnEzRWZWQWJMRnc" ;;
     "amazonCat") # AmazonCat-13K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc" ;;
     "amazonCat-14K") # AmazonCat-14K
@@ -28,13 +30,13 @@ case "$DATASET" in
     # Multi-class datasets from PD-Sparse (http://www.cs.utexas.edu/~xrhuang/PDSparse/)
     "bibtex")
 	    DATASET_LINK="https://www.dropbox.com/s/yizjmqxi6ulub3y/bibtex.tar.bz2" ;;
-	"sector")
+	  "sector")
 	    DATASET_LINK="https://www.dropbox.com/s/9qhaxn9rxb0n4mq/sector.tar.bz2" ;;
-	"rcv1_regions")
+	  "rcv1_regions")
         DATASET_LINK="https://www.dropbox.com/s/be6sit7zcxxy4uw/rcv1_regions.tar.bz2" ;;
-	"aloi.bin")
+	  "aloi.bin")
 	    DATASET_LINK="https://www.dropbox.com/s/jwousxredtggq3y/aloi.bin.tar.bz2" ;;
-	"Dmoz")
+	  "Dmoz")
 	    DATASET_LINK="https://www.dropbox.com/s/lq6vd7t6nz1w7iy/Dmoz.tar.bz2" ;;
     "Eur-Lex")
 	    DATASET_LINK="https://www.dropbox.com/s/swjyqbtxea1q1mp/Eur-Lex.tar.bz2" ;;

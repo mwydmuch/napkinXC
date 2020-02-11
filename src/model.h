@@ -72,4 +72,9 @@ private:
                                                  std::vector<std::vector<Prediction>>& predictions,
                                                  SRMatrix<Feature>& features, std::vector<float>& thresholds,
                                                  Args& args, const int startRow, const int stopRow);
+
+    static void ofoThread(int threadId, Model* model, std::vector<float>& thresholds,
+                          std::vector<float>& as, std::vector<float>& bs,
+                          SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
+                          const int startRow, const int stopRow);
 };

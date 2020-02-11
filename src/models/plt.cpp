@@ -147,8 +147,6 @@ Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
 
 void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
                                 Args& args) {
-    if (tree->root->labels.empty()) tree->populateNodeLabels();
-
     std::priority_queue<TreeNodeValue> nQueue;
 
     nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
@@ -198,6 +196,9 @@ void PLT::load(Args& args, std::string infile) {
     bases = loadBases(joinPath(infile, "weights.bin"));
     assert(bases.size() == tree->nodes.size());
     m = tree->getNumberOfLeaves();
+
+    if(!args.thresholds.empty())
+        tree->populateNodeLabels();
 }
 
 void PLT::printInfo() {

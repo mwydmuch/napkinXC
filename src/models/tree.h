@@ -31,9 +31,6 @@ struct TreeNode {
     int nextToExpand;
     int subtreeDepth;
     std::vector<int> labels;
-
-    int exampleCount;
-    UnorderedMap<int, float> centroid;
 };
 
 // For prediction in tree based models / Huffman trees building

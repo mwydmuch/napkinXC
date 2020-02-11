@@ -36,7 +36,12 @@ Args::Args() {
     threads = getCpuCount();
     memLimit = getSystemMemory();
     eps = 0.001;
-    cost = 8.0;
+    cost = 4.0;
+
+
+    L2R_LR_DUAL, L2R_LR, L1R_LR,
+            L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     inbalanceLabelsWeighting = false;
@@ -80,6 +85,10 @@ Args::Args() {
     epsilon = 0.0;
     delta = 1.6;
     gamma = 0.6;
+
+    // OFO options
+    ofoA = 10;
+    ofoB = 20;
 
     // Measures
     measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
@@ -307,6 +316,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     printHelp();
                 }
             }
+
+            // OFO options
+            else if (args[ai] == "--ofoA")
+                ofoA = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--ofoB")
+                ofoB = std::stoi(args.at(ai + 1));
 
             // Prediction/test options
             else if (args[ai] == "--topK")

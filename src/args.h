@@ -121,6 +121,10 @@ public:
     double delta;
     double gamma;
 
+    // OFO options
+    double ofoA = 10;
+    double ofoB = 20;
+
     // Measures
     std::string measures;
 

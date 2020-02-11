@@ -1,5 +1,6 @@
 /**
  * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2020 by Marek Wydmuch, Kalina Kobus
  * All rights reserved.
  */
 
@@ -131,57 +132,70 @@ std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<
     return predictions;
 }
 
+void Model::ofoThread(int threadId, Model* model, std::vector<float>& thresholds,
+                      std::vector<float>& as, std::vector<float>& bs,
+                      SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
+                      const int startRow, const int stopRow) {
+
+    const int rowsRange = stopRow - startRow;
+    const int examples = rowsRange * args.epochs;
+
+    for (int i = 0; i < examples; ++i) {
+        if (!threadId) printProgress(i, examples);
+        int r = startRow + i % rowsRange;
+
+        // Predict with current thresholds
+        std::vector<Prediction> prediction;
+        model->predictWithThresholds(prediction, features[r], thresholds, args);
+
+        // Update a and b counters
+        for (const auto& p : prediction) {
+            // b[j] =  sum_{i = 1}^{t} \hat y_j + ..
+            bs[p.label]++;
+
+            // a[j] = sum_{i = 1}^{t} y_j \hat y_j
+            int l = -1;
+            while (labels[r][++l] > -1)
+                if (p.label == labels[r][l]) {
+                    as[p.label]++;
+                    break;
+                }
+        }
+
+        // b[j] =  .. + sum_{i = 1}^{t} y_j
+        int l = -1;
+        while (labels[r][++l] > -1)
+            bs[labels[r][l]]++;
+
+        // Update thresholds, only those that may have changed due to update of as or bs,
+        // For simplicity I compute some of them twice because it does not really matter
+        for (const auto& p : prediction)
+            thresholds[p.label] = as[p.label] / bs[p.label];
+
+        l = -1;
+        while (labels[r][++l] > -1)
+            thresholds[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
+
+    }
+}
+
 std::vector<float> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
+    std::cerr << "Optimizing thresholds with OFO for " << args.epochs << " epochs using " << args.threads << " thread ...\n";
 
     // Initialize thresholds with zeros
-    std::vector<float> thresholds(m, 0);
+    std::vector<float> thresholds(m, args.ofoA/args.ofoB);
+
     // Variables required for OFO
-    std::vector<float> as(m, 0);
-    std::vector<float> bs(m, 0);
+    std::vector<float> as(m, args.ofoA);
+    std::vector<float> bs(m, args.ofoB);
 
-    std::cerr << "Optimizing thresholds with OFO using 1 thread.\n";
-    int rows = features.rows();
-    int log_every = rows/100;
-    int l;
+    ThreadSet tSet;
+    int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
+    for (int t = 0; t < args.threads; ++t)
+        tSet.add(ofoThread, t, this, std::ref(thresholds), std::ref(as), std::ref(bs), std::ref(features),
+                 std::ref(labels), std::ref(args), t * tRows, std::min((t + 1) * tRows, features.rows()));
+    tSet.joinAll();
 
-    for(int epoch = 0; epoch < args.epochs; epoch++){
-        for (int r = 0; r < rows; ++r) {
-            // Predict with current thresholds
-            std::vector<Prediction> prediction; // In every iteration a clear vector
-            this->predictWithThresholds(prediction, features[r], thresholds, args);
-            if (r % log_every == 0) printProgress(r, rows);
-
-            // Update a and b counters
-            for (const auto& p : prediction) {
-                // b[j] =  sum_{i = 1}^{t} \hat y_j + ..
-                bs[p.label]++;
-
-                // a[j] = sum_{i = 1}^{t} y_j \hat y_j
-                l = -1;
-                while (labels[r][++l] > -1)
-                    if (p.label == labels[r][l]) {
-                        as[p.label]++;
-                        break;
-                    }
-            }
-            // b[j] =  .. + sum_{i = 1}^{t} y_j
-            l = -1;
-            while (labels[r][++l] > -1){
-                bs[labels[r][l]]++;
-            }
-
-            // Update thresholds, only those that may have changed due to update of as or bs,
-            // For simplicity I compute some of them twice because it does not really matter
-
-            for (const auto& p : prediction) {
-                thresholds[p.label] = as[p.label] / bs[p.label];
-            }
-            l = -1;
-            while (labels[r][++l] > -1){
-                thresholds[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
-            }
-        }
-    }
     return thresholds;
 }
 

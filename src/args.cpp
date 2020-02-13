@@ -38,10 +38,6 @@ Args::Args() {
     eps = 0.001;
     cost = 4.0;
 
-
-    L2R_LR_DUAL, L2R_LR, L1R_LR,
-            L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
-
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     inbalanceLabelsWeighting = false;

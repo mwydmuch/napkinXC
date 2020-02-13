@@ -13,6 +13,13 @@
 #include "resources.h"
 #include "types.h"
 
+std::vector<float> loadThresholds(std::string infile){
+    std::vector<float> thresholds;
+    std::ifstream thresholdsIn(infile);
+    float t;
+    while (thresholdsIn >> t) thresholds.push_back(t);
+    return thresholds;
+}
 
 void train(Args& args) {
     SRMatrix<Label> labels;
@@ -83,10 +90,7 @@ void test(Args& args) {
     // Predict for test set
     std::vector<std::vector<Prediction>> predictions;
     if (!args.thresholds.empty()) { // Using thresholds if provided
-        std::vector<float> thresholds;
-        std::ifstream thresholdsIn(args.thresholds);
-        float t;
-        while (thresholdsIn >> t) thresholds.push_back(t);
+        std::vector<float> thresholds = loadThresholds(args.thresholds);
         predictions = model->predictBatchWithThresholds(features, thresholds, args);
     } else
         predictions = model->predictBatch(features, args);
@@ -135,6 +139,7 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
+
     std::cout << std::setprecision(5);
 
     // Predict data from cin and output to cout
@@ -148,7 +153,13 @@ void predict(Args& args) {
         SRMatrix<Feature> features;
         reader->readData(labels, features, args);
 
-        std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+        std::vector<std::vector<Prediction>> predictions;
+        if (!args.thresholds.empty()) { // Using thresholds if provided
+            std::vector<float> thresholds = loadThresholds(args.thresholds);
+            predictions = model->predictBatchWithThresholds(features, thresholds, args);
+        } else
+            predictions = model->predictBatch(features, args);
+
         for(const auto& p : predictions){
             for (const auto& l : p) std::cout << l.label << ":" << l.value << " ";
             std::cout << std::endl;

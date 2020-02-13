@@ -60,13 +60,13 @@ TRAIN_LOCK_FILE=${MODEL}/.train_lock
 if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
     mkdir -p $MODEL
     touch $TRAIN_LOCK_FILE
-    (time ./nxc train -i $TRAIN_FILE -o $MODEL -t -1 $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
+    (time ./nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
     echo
     echo "Train date: $(date)" | tee -a $TRAIN_RESULT_FILE
     rm -rf $TRAIN_LOCK_FILE
 fi
 
-# Test model
+## Test model
 TEST_RESULT_FILE=${RESULTS_DIR}/${TEST_CONFIG}
 TEST_LOCK_FILE=${RESULTS_DIR}/.test_lock_${TEST_CONFIG}
 if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
@@ -75,7 +75,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     if [ -e $TRAIN_RESULT_FILE ]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
-    (time ./nxc test -i $TEST_FILE -o $MODEL -t -1 $TEST_ARGS | tee -a $TEST_RESULT_FILE)
+    (time ./nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
 
     echo
     echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TEST_RESULT_FILE

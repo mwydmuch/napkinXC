@@ -32,12 +32,6 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
         assert(centroids * maxPartitionSize + maxWithOneMore == partition->size());
     }
 
-    // Test split
-    /*
-    for(int i = 0; i < partition->size(); ++i)
-        partition->at(i).value = i / maxPartitionSize;
-    */
-
     // Init centroids
     std::vector<std::vector<double>> centroidsFeatures(centroids);
     for (int i = 0; i < centroids; ++i) {
@@ -49,44 +43,71 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
     double oldCos = INT_MIN, newCos = -1;
 
     std::vector<Distances> distances(points);
-    for (int i = 0; i < points; ++i) distances[i].values.resize(centroids);
+    for (int i = 0; i < points; ++i) {
+        distances[i].values.resize(centroids);
+        distances[i].differences.resize(centroids);
+    }
 
     while (newCos - oldCos >= eps) {
-        std::vector<int> centroidsSizes(centroids, 0);
 
-        // Calculate distances to centroids
-        for (int i = 0; i < points; ++i) {
-            distances[i].index = i;
-            double maxDist = INT_MIN;
-            for (int j = 0; j < centroids; ++j) {
-                distances[i].values[j].index = j;
-                distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
-                if (distances[i].values[j].value > maxDist) maxDist = distances[i].values[j].value;
-            }
-
-            for (int j = 0; j < centroids; ++j) distances[i].values[j].value -= maxDist;
-
-            std::sort(distances[i].values.begin(), distances[i].values.end());
-        }
-
-        // Assign points to centroids and calculate new loss
         oldCos = newCos;
         newCos = 0;
 
-        std::sort(distances.begin(), distances.end());
+        if(centroids == 2){ // Faster version for 2-means
 
-        for (int i = 0; i < points; ++i) {
-            for (int j = 0; j < centroids; ++j) {
-                int cIndex = distances[i].values[j].index;
-                int lIndex = distances[i].index;
+            // Calculate distances to centroids
+            for (int i = 0; i < points; ++i) {
+                distances[i].index = i;
+                for (int j = 0; j < centroids; ++j) {
+                    distances[i].values[j].index = j;
+                    distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
+                }
+                distances[i].differences[0].value = distances[i].values[0].value - distances[i].values[1].value;
+            }
 
-                if (centroidsSizes[cIndex] <= maxPartitionSize ||
-                    (centroidsSizes[cIndex] <= maxPartitionSize + 1 && maxWithOneMore > 0)) {
-                    if (centroidsSizes[cIndex] > maxPartitionSize) --maxWithOneMore;
-                    (*partition)[lIndex].value = cIndex;
-                    ++centroidsSizes[cIndex];
-                    newCos += distances[i].values[j].value;
-                    break;
+            // Assign points to centroids and calculate new loss
+            std::sort(distances.begin(), distances.end());
+
+            for (int i = 0; i < points; ++i) {
+                int cIndex = (i < (maxPartitionSize + maxWithOneMore)) ? 0 : 1;
+                (*partition)[distances[i].index].value = cIndex;
+                newCos += distances[i].values[cIndex].value;
+            }
+        }
+
+        else {
+            std::vector<int> centroidsSizes(centroids, 0);
+
+            for (int i = 0; i < points; ++i) {
+                distances[i].index = i;
+                double maxDist = INT_MIN;
+                for (int j = 0; j < centroids; ++j) {
+                    distances[i].values[j].index = j;
+                    distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
+                    if (distances[i].values[j].value > maxDist) maxDist = distances[i].values[j].value;
+                }
+
+                for (int j = 0; j < centroids; ++j) distances[i].differences[j].value = distances[i].values[j].value - maxDist;
+
+                std::sort(distances[i].values.begin(), distances[i].values.end());
+            }
+
+            // Assign points to centroids and calculate new loss
+            std::sort(distances.begin(), distances.end());
+
+            for (int i = 0; i < points; ++i) {
+                for (int j = 0; j < centroids; ++j) {
+                    int cIndex = distances[i].values[j].index;
+                    int lIndex = distances[i].index;
+
+                    if (centroidsSizes[cIndex] <= maxPartitionSize ||
+                        (centroidsSizes[cIndex] <= maxPartitionSize + 1 && maxWithOneMore > 0)) {
+                        if (centroidsSizes[cIndex] > maxPartitionSize) --maxWithOneMore;
+                        (*partition)[lIndex].value = cIndex;
+                        ++centroidsSizes[cIndex];
+                        newCos += distances[i].values[j].value;
+                        break;
+                    }
                 }
             }
         }
@@ -94,13 +115,10 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
         newCos /= points;
 
         // Update centroids
-        for (int i = 0; i < centroids; ++i) std::fill(centroidsFeatures[i].begin(), centroidsFeatures[i].end(), 0);
-
-        for (int i = 0; i < points; ++i) {
-            int lIndex = (*partition)[i].index;
-            int lCentroid = (*partition)[i].value;
-            addVector(pointsFeatures.row(lIndex), centroidsFeatures[lCentroid]);
-        }
+        for (int i = 0; i < centroids; ++i)
+            std::fill(centroidsFeatures[i].begin(), centroidsFeatures[i].end(), 0);
+        for (int i = 0; i < points; ++i)
+            addVector(pointsFeatures.row((*partition)[i].index), centroidsFeatures[(*partition)[i].value]);
 
         // Norm new centroids
         for (int i = 0; i < centroids; ++i) unitNorm(centroidsFeatures[i]);

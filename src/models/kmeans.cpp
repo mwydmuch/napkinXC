@@ -73,23 +73,19 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
                 (*partition)[distances[i].index].value = cIndex;
                 newCos += distances[i].values[cIndex].value;
             }
-        }
-
-        else {
+        } else {
             std::vector<int> centroidsSizes(centroids, 0);
 
             for (int i = 0; i < points; ++i) {
                 distances[i].index = i;
-                double maxDist = INT_MIN;
                 for (int j = 0; j < centroids; ++j) {
                     distances[i].values[j].index = j;
-                    distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
-                    if (distances[i].values[j].value > maxDist) maxDist = distances[i].values[j].value;
-                }
-
-                for (int j = 0; j < centroids; ++j) distances[i].differences[j].value = distances[i].values[j].value - maxDist;
+                    distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);}
 
                 std::sort(distances[i].values.begin(), distances[i].values.end());
+
+                for (int j = 0; j < centroids - 1; ++j)
+                    distances[i].differences[j].value = distances[i].values[j].value - distances[i].values[j + 1].value;
             }
 
             // Assign points to centroids and calculate new loss

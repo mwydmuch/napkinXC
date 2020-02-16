@@ -36,7 +36,7 @@ Args::Args() {
     threads = getCpuCount();
     memLimit = getSystemMemory();
     eps = 0.001;
-    cost = 4.0;
+    cost = 10.0;
 
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
@@ -83,8 +83,8 @@ Args::Args() {
     gamma = 0.6;
 
     // OFO options
-    ofoA = 10;
-    ofoB = 20;
+    ofoA = 100;
+    ofoB = 200;
 
     // Measures
     measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";

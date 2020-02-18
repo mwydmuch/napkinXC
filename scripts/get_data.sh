@@ -6,6 +6,8 @@ DATASET="$1"
 
 case "$DATASET" in
     # Multi-label datasets from The Extreme Classification Repository (manikvarma.org/downloads/XC/XMLRepository.html)
+    "rcv1x") # RCV1X-2K
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdnEzRWZWQWJMRnc" ;;
     "amazonCat") # AmazonCat-13K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc" ;;
     "amazonCat-14K") # AmazonCat-14K
@@ -78,6 +80,4 @@ if [ ! -e $DATASET_PATH ]; then
         tar xjC $DATA_DIR -f ${DATASET_PATH}.tar.bz2
         rm ${DATASET_PATH}.tar.bz2
     fi
-
-
 fi

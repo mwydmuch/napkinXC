@@ -239,6 +239,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
     // Run learning in parallel
     ThreadPool tPool(args.threads);
     std::vector<std::future<Base*>> results;
+    results.reserve(size);
 
     for (int i = 0; i < size; ++i)
         results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i],
@@ -250,7 +251,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
 
 void Model::trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                                        std::vector<Feature*>& baseFeatures,
-                                       std::vector<std::vector<double>*>* instancesWeights, Args& args) {
+                                       std::vector<double>* instancesWeights, Args& args) {
     std::ofstream out(outfile);
     int size = baseLabels.size();
     out.write((char*)&size, sizeof(size));
@@ -260,7 +261,7 @@ void Model::trainBasesWithSameFeatures(std::string outfile, int n, std::vector<s
 
 void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
                                        std::vector<Feature*>& baseFeatures,
-                                       std::vector<std::vector<double>*>* instancesWeights, Args& args) {
+                                       std::vector<double>* instancesWeights, Args& args) {
 
     int size = baseLabels.size(); // This "batch" size
     std::cerr << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
@@ -268,10 +269,10 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
     // Run learning in parallel
     ThreadPool tPool(args.threads);
     std::vector<std::future<Base*>> results;
+    results.reserve(size);
 
     for (int i = 0; i < size; ++i)
-        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures,
-                                           (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
+        results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, instancesWeights, args));
 
     // Saving in the main thread
     saveResults(out, results);

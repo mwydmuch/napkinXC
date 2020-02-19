@@ -102,9 +102,11 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
     auto x = binFeatures.data();
     int l = static_cast<int>(binLabels.size());
 
+    bool deleteInstanceWeights = false;
     if (instancesWeights == nullptr) {
         instancesWeights = new std::vector<double>(l);
         std::fill(instancesWeights->begin(), instancesWeights->end(), 1.0);
+        deleteInstanceWeights = true;
     }
 
     problem P = {.l = l, .n = n, .y = y, .x = x, .bias = (args.bias > 0 ? 1.0 : -1.0), .W = instancesWeights->data()};
@@ -154,6 +156,7 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
     free(M);
     delete[] labels;
     delete[] labelsWeights;
+    if(deleteInstanceWeights) delete instancesWeights;
 }
 
 void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args) {
@@ -170,6 +173,9 @@ void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Featur
 
 void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                  std::vector<double>* instancesWeights, Args& args) {
+
+    if(instancesWeights != nullptr && args.optimizerType != liblinear)
+        throw std::invalid_argument("train: optimizer type does not support training with weights");
 
     if (binLabels.empty()) {
         firstClass = 0;
@@ -227,6 +233,7 @@ void Base::finalizeOnlineTraining(Args& args) {
 }
 
 double Base::predictValue(Feature* features) {
+    if (classCount < 2) return static_cast<double>(firstClass * 100);
     double val = 0;
 
     if (mapW) { // Sparse features dot sparse weights in hash map
@@ -248,7 +255,6 @@ double Base::predictValue(Feature* features) {
 }
 
 double Base::predictProbability(Feature* features) {
-    if (classCount < 2) return static_cast<double>(firstClass);
     double val = predictValue(features);
     if (hingeLoss)
         val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver

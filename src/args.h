@@ -78,7 +78,7 @@ public:
     int ensemble;
     bool onTheTrotPrediction;
     bool inbalanceLabelsWeighting;
-    bool hsmPickOneLabelWeighting;
+    bool pickOneLabelWeighting;
 
     // For online training
     double eta;

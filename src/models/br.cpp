@@ -33,7 +33,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     int size = lCols;
     out.write((char*)&size, sizeof(size));
 
-    // Calculate required memory
+    // TODO: Calculate required memory
     unsigned long long reqMem = lCols * (rows * sizeof(double) + sizeof(void*)) + labels.mem() + features.mem();
 
     int parts = 1;
@@ -44,7 +44,6 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     for (int i = 0; i < binLabels.size(); ++i) binLabels[i].reserve(rows);
 
     for (int p = 0; p < parts; ++p) {
-
         if (parts > 1)
             std::cerr << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
         else
@@ -59,20 +58,12 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
             int rSize = labels.size(r);
             auto rLabels = labels.row(r);
 
-            if (type == ovr && rSize != 1) {
-                std::cerr << "Row " << r << ": encountered example with " << rSize
-                          << " labels! OVR is multi-class classifier, use BR instead!\n";
-                continue;
-            }
-
-            for (auto& l : binLabels) l.push_back(0.0);
-
+            for (auto &l : binLabels) l.push_back(0.0);
             for (int i = 0; i < rSize; ++i)
                 if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart].back() = 1.0;
         }
 
         trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), nullptr, args);
-
         for (auto& l : binLabels) l.clear();
     }
 
@@ -94,6 +85,7 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& a
 
 std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {
     std::vector<Prediction> prediction;
+    prediction.reserve(bases.size());
     for (int i = 0; i < bases.size(); ++i) prediction.push_back({i, bases[i]->predictProbability(features)});
     return prediction;
 }

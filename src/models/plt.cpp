@@ -230,9 +230,8 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     std::vector<std::vector<double>> binLabels(tree->t);
     std::vector<std::vector<Feature*>> binFeatures(tree->t);
     std::vector<std::vector<double>*>* binWeights = nullptr;
-    if (type == hsm && args.hsmPickOneLabelWeighting) {
-        binWeights = new std::vector<std::vector<double>*>();
-        binWeights->resize(tree->t);
+    if (type == hsm && args.pickOneLabelWeighting) {
+        binWeights = new std::vector<std::vector<double>*>(tree->t);
         for (auto& p : *binWeights) p = new std::vector<double>();
     }
 
@@ -247,4 +246,8 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     tree = nullptr;
 
     trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
+    if (type == hsm && args.pickOneLabelWeighting) {
+        for (auto& p : *binWeights) delete p;
+        delete binWeights;
+    }
 }

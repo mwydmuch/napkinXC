@@ -42,7 +42,7 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         auto rLabels = labels[r];
 
         // Check row
-        if (!args.hsmPickOneLabelWeighting && rSize != 1) {
+        if (!args.pickOneLabelWeighting && rSize != 1) {
             std::cerr << "Row " << r << ": encountered example with " << rSize
                       << " labels! HSM is multi-class classifier, use PLT instead!\n";
             continue;
@@ -57,7 +57,7 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
 
             getNodesToUpdate(nPositive, nNegative, rLabels[i]);
             addFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
-            if (args.hsmPickOneLabelWeighting) {
+            if (args.pickOneLabelWeighting) {
                 double w = 1.0 / rSize;
                 for (const auto& n : nPositive) (*binWeights)[n->index]->push_back(w);
                 for (const auto& n : nNegative) (*binWeights)[n->index]->push_back(w);
@@ -89,17 +89,13 @@ void HSM::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
         if (p == nullptr || p->children.size() == 1) {
             nPositive.insert(n);
         } else if (p->children.size() == 2) { // Binary node requires just 1 probability estimator
-            TreeNode *c0 = n->parent->children[0], *c1 = n->parent->children[1];
-            if (c0 == n)
-                nPositive.insert(c0);
-            else
-                nNegative.insert(c0);
+            TreeNode *c0 = n->parent->children[0];
+            if (c0 == n) nPositive.insert(c0);
+            else nNegative.insert(c0);
         } else if (p->children.size() > 2) { // Node with arity > 2 requires OVR estimator
             for (const auto& c : p->children) {
-                if (c == n)
-                    nPositive.insert(c);
-                else
-                    nNegative.insert(c);
+                if (c == n) nPositive.insert(c);
+                else nNegative.insert(c);
             }
         }
     }
@@ -124,7 +120,6 @@ Prediction HSM::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
                 std::vector<double> values;
                 values.reserve(nVal.node->children.size());
                 for (const auto& child : nVal.node->children) {
-                    // values.emplace_back(bases[child->index]->predictProbability(features)); // Normalization
                     values.emplace_back(std::exp(bases[child->index]->predictValue(features))); // Softmax normalization
                     sum += values.back();
                 }
@@ -156,10 +151,10 @@ double HSM::predictForLabel(Label label, Feature* features, Args& args) {
             double tmpValue = 0;
             for (const auto& child : n->parent->children) {
                 if (child == n) {
-                    tmpValue = bases[child->index]->predictProbability(features);
+                    tmpValue = std::exp(bases[child->index]->predictValue(features)); // Softmax normalization
                     sum += tmpValue;
                 } else
-                    sum += bases[child->index]->predictProbability(features);
+                    sum += std::exp(bases[child->index]->predictValue(features));
             }
             value *= tmpValue / sum;
             nodeEvaluationCount += n->parent->children.size();

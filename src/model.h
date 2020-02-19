@@ -56,11 +56,11 @@ protected:
 
     static void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                                            std::vector<Feature*>& baseFeatures,
-                                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
+                                           std::vector<double>* instancesWeights, Args& args);
 
     static void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
                                            std::vector<Feature*>& baseFeatures,
-                                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
+                                           std::vector<double>* instancesWeights, Args& args);
 
     static std::vector<Base*> loadBases(std::string infile);
 

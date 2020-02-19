@@ -41,7 +41,7 @@ Args::Args() {
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
     inbalanceLabelsWeighting = false;
-    hsmPickOneLabelWeighting = false;
+    pickOneLabelWeighting = false;
     optimizerName = "liblinear";
     optimizerType = liblinear;
     weightsThreshold = 0.1;
@@ -223,8 +223,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 cost = std::stof(args.at(ai + 1));
             else if (args[ai] == "--inbalanceLabelsWeighting")
                 inbalanceLabelsWeighting = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--hsmPickOneLabelWeighting")
-                hsmPickOneLabelWeighting = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--pickOneLabelWeighting")
+                pickOneLabelWeighting = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
                 if (args.at(ai + 1) == "L2R_LR_DUAL")

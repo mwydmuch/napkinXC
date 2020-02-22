@@ -54,8 +54,10 @@ Args::Args() {
     eta = 1.0;
     epochs = 1;
     tmax = -1;
+    l2Penalty = 0;
     fobosPenalty = 0.00001;
     adagradEps = 0.001;
+    dims = 100;
 
     // Tree options
     treeStructure = "";
@@ -153,6 +155,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     modelType = ubopHsm;
                 else if (args.at(ai + 1) == "oplt")
                     modelType = oplt;
+                else if (args.at(ai + 1) == "extremeText")
+                    modelType = extremeText;
 // Mips extension models
 #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips")
@@ -269,6 +273,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 adagradEps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--fobosPenalty")
                 fobosPenalty = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--l2Penalty")
+                l2Penalty = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--dims")
+                dims = std::stoi(args.at(ai + 1));
 
             // Tree options
             else if (args[ai] == "-a" || args[ai] == "--arity")

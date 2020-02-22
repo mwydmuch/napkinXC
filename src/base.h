@@ -16,9 +16,6 @@
 #include "types.h"
 
 
-typedef float Weight;
-typedef std::pair<int, Weight> SparseWeight;
-
 class Base {
 public:
     Base();

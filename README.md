@@ -8,6 +8,7 @@ Right now it implements:
 - OVA and BR with inference using Maximum Inner Product Search (MIPS),
 - Hierarchical Softmax (HSM),
 - Probabilistic Label Tree (PLT),
+- extremeText (XT),
 - Ensembles of tree based models,
 - Top-k and set-valued prediction,
 - LibLinear and SGD solvers for base classifiers,

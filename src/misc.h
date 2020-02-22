@@ -67,78 +67,82 @@ template <typename T> inline size_t argMin(const std::vector<T>& vector) {
 }
 
 // Sparse vector dot dense vector
-template <typename T> inline T dotVectors(Feature* vector1, const T* vector2, const int& size) {
-    T val = 0;
-    Feature* f = vector1;
-    while (f->index != -1 && f->index < size) {
-        val += f->value * vector2[f->index];
-        ++f;
-    }
+template <typename T> inline double dotVectors(Feature* vector1, T* vector2, const size_t size) {
+    double val = 0;
+    for(Feature* f = vector1; f->index != -1 && f->index < size; ++f) val += f->value * vector2[f->index];
     return val;
 }
 
-template <typename T> inline T dotVectors(Feature* vector1, const T* vector2) { // Version without size checks
-    T val = 0;
-    Feature* f = vector1;
-    while (f->index != -1) {
-        val += f->value * vector2[f->index];
-        ++f;
-    }
+template <typename T> inline double dotVectors(Feature* vector1, T* vector2) { // Version without size checks
+    double val = 0;
+    for(Feature* f = vector1; f->index != -1; ++f) val += f->value * vector2[f->index];
     return val;
 }
 
-template <typename T> inline T dotVectors(Feature* vector1, const std::vector<T>& vector2) {
+template <typename T> inline double dotVectors(T* vector1, T* vector2, const size_t size) {
+    double val = 0;
+    for(size_t i = 0; i < size; ++i) val += vector1[i] * vector2[i];
+    return val;
+}
+
+template <typename T> inline double dotVectors(Feature* vector1, T& vector2) {
     return dotVectors(vector1, vector2.data(), vector2.size());
 }
 
+template <typename T> inline double dotVectors(T& vector1, T& vector2) {
+    assert(vector1.size() == vector2.size());
+    return dotVectors(vector1.data(), vector2.data(), vector2.size());
+}
+
 // Sets values of a dense vector to values of a sparse vector
-template <typename T> inline void setVector(Feature* vector1, T* vector2, size_t size, int shift = 0) {
-    Feature* f = vector1;
-    while (f->index != -1 && f->index + shift < size) {
-        vector2[f->index + shift] = f->value;
-        ++f;
-    }
+template <typename T> inline void setVector(Feature* vector1, T* vector2, const size_t size) {
+    for(Feature* f = vector1; f->index != -1 && f->index < size; ++f) vector2[f->index] = f->value;
 }
 
-template <typename T>
-inline void setVector(Feature* vector1, T* vector2, int shift = 0) { // Version without size checks
-    Feature* f = vector1;
-    while (f->index != -1) {
-        vector2[f->index + shift] = f->value;
-        ++f;
-    }
+template <typename T> inline void setVector(Feature* vector1, T* vector2) { // Version without size checks
+    for(Feature* f = vector1; f->index != -1; ++f) vector2[f->index] = f->value;
 }
 
-template <typename T> inline void setVector(Feature* vector1, std::vector<T>& vector2, int shift = 0) {
-    setVector(vector1, vector2.data(), vector2.size(), shift);
-    //setVector(vector1, vector2.data(), shift);
+template <typename T> inline void setVector(Feature* vector1, std::vector<T>& vector2) {
+    setVector(vector1, vector2.data(), vector2.size());
 }
 
 // Zeros selected values of a dense vactor
-template <typename T> inline void setVectorToZeros(Feature* vector1, T* vector2, size_t size, int shift = 0) {
-    Feature* f = vector1;
-    while (f->index != -1 && f->index + shift < size) {
-        vector2[f->index + shift] = 0;
-        ++f;
-    }
+template <typename T> inline void setVectorToZeros(Feature* vector1, T* vector2, const size_t size) {
+    for(Feature* f = vector1; f->index != -1 && f->index < size; ++f) vector2[f->index] = 0;
 }
 
 template <typename T>
-inline void setVectorToZeros(Feature* vector1, T* vector2, int shift = 0) { // Version without size checks
-    Feature* f = vector1;
-    while (f->index != -1) {
-        vector2[f->index + shift] = 0;
-        ++f;
-    }
+inline void setVectorToZeros(Feature* vector1, T* vector2) { // Version without size checks
+    for(Feature* f = vector1; f->index != -1; ++f) vector2[f->index] = 0;
 }
 
-template <typename T> inline void setVectorToZeros(Feature* vector1, std::vector<T>& vector2, int shift = 0) {
+template <typename T> inline void setVectorToZeros(Feature* vector1, T& vector2) {
     // setVectorToZeros(vector1, vector2.data(), vector2.size());
-    setVectorToZeros(vector1, vector2.data(), shift);
+    setVectorToZeros(vector1, vector2.data());
 }
 
-// Adds values of sparse vector to dense vector
-template <typename T> inline void addVector(Feature* vector1, T* vector2, size_t size) {
+// Add values of vector 1 to vector 2
+template <typename T> inline void addVector(T* vector1, T* vector2, const size_t size) {
+    for(int i = 0; i < size; ++i) vector2[i] += vector1[i];
+}
+
+template <typename T> inline void addVector(T& vector1, T& vector2) {
+    assert(vector1.size() == vector2.size());
+    addVector(vector1.data(), vector2.data(), vector2.size());
+}
+
+// Add values of vector 1 to vector 2 multiplied by scalar
+template <typename T> inline void addVector(T* vector1, double scalar, T* vector2, const size_t size) {
+    for(int i = 0; i < size; ++i) vector2[i] += vector1[i] * scalar;
+}
+
+template <typename T> inline void addVector(T& vector1, double scalar, T& vector2) {
+    addVector(vector1.data(), scalar, vector2.data(), vector2.size());
+}
+
+// Add values of sparse vector 1 to vector 2
+template <typename T> inline void addVector(Feature* vector1, T* vector2, const size_t size) {
     Feature* f = vector1;
     while (f->index != -1 && f->index < size) {
         vector2[f->index] += f->value;
@@ -146,37 +150,41 @@ template <typename T> inline void addVector(Feature* vector1, T* vector2, size_t
     }
 }
 
-template <typename T> inline void addVector(Feature* vector1, std::vector<T>& vector2) {
+template <typename T> inline void addVector(Feature* vector1, T& vector2) {
     addVector(vector1, vector2.data(), vector2.size());
 }
 
 // Multiply vector by scalar
-template <typename T> inline void mulVector(T* vector, double scalar, size_t size) {
+template <typename T> inline void mulVector(T* vector, double scalar, const size_t size) {
     for (int f = 0; f < size; ++f) vector[f] *= scalar;
 }
 
-template <typename T> inline void mulVector(Feature* vector, double scalar, size_t size) {
-    for (int f = 0; f < size; ++f) vector[f].value *= scalar;
+template <typename T> inline void mulVector(Feature* vector, double scalar) {
+    for (Feature* f = vector; f->index != -1; ++f) f->value *= scalar;
 }
 
-template <typename T> inline void mulVector(std::vector<T>& vector, double scalar) {
+template <typename T> inline void mulVector(T& vector, double scalar) {
     mulVector(vector.data(), scalar, vector.size());
 }
 
 // Divide vector by scalar
-template <typename T> inline void divVector(T* vector, double scalar, size_t size) {
+inline void divVector(Feature* vector, double scalar, const size_t size) {
+    for (Feature* f = vector; f->index != -1; ++f) f->value /= scalar;
+}
+
+inline void divVector(Feature* vector, double scalar) {
+    for (Feature* f = vector; f->index != -1; ++f) f->value /= scalar;
+}
+
+template <typename T> inline void divVector(T* vector, double scalar, const size_t size) {
     for (int f = 0; f < size; ++f) vector[f] /= scalar;
 }
 
-inline void divVector(Feature* vector, double scalar, size_t size) {
-    for (int f = 0; f < size; ++f) vector[f].value /= scalar;
-}
-
-template <typename T> inline void divVector(std::vector<T>& vector, double scalar) {
+template <typename T> inline void divVector(T& vector, double scalar) {
     divVector(vector.data(), scalar, vector.size());
 }
 
-template <typename T> inline void unitNorm(T* data, size_t size) {
+template <typename T> inline void unitNorm(T* data, const size_t size) {
     T norm = 0;
     for (int f = 0; f < size; ++f) norm += data[f] * data[f];
     norm = std::sqrt(norm);
@@ -184,7 +192,7 @@ template <typename T> inline void unitNorm(T* data, size_t size) {
     for (int f = 0; f < size; ++f) data[f] /= norm;
 }
 
-inline void unitNorm(Feature* data, size_t size) {
+inline void unitNorm(Feature* data, const size_t size) {
     double norm = 0;
     for (int f = 0; f < size; ++f) norm += data[f].value * data[f].value;
     norm = std::sqrt(norm);
@@ -192,7 +200,7 @@ inline void unitNorm(Feature* data, size_t size) {
     for (int f = 0; f < size; ++f) data[f].value /= norm;
 }
 
-template <typename T> inline void unitNorm(std::vector<T>& vector) { unitNorm(vector.data(), vector.size()); }
+template <typename T> inline void unitNorm(T& vector) { unitNorm(vector.data(), vector.size()); }
 
 inline void threshold(std::vector<Feature>& vector, double threshold) {
     int c = 0;

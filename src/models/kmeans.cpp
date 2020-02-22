@@ -114,7 +114,7 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
         for (int i = 0; i < centroids; ++i)
             std::fill(centroidsFeatures[i].begin(), centroidsFeatures[i].end(), 0);
         for (int i = 0; i < points; ++i)
-            addVector(pointsFeatures.row((*partition)[i].index), centroidsFeatures[(*partition)[i].value]);
+            addVector(pointsFeatures[(*partition)[i].index], centroidsFeatures[(*partition)[i].value]);
 
         // Norm new centroids
         for (int i = 0; i < centroids; ++i) unitNorm(centroidsFeatures[i]);

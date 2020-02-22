@@ -21,6 +21,7 @@ enum ModelType {
     rbop,
     ubopHsm,
     oplt,
+    extremeText,
     // Mips extension models
     brMips,
     ubopMips,
@@ -83,9 +84,13 @@ public:
     // For online training
     double eta;
     int epochs;
+    double l2Penalty;
     double fobosPenalty;
     int tmax;
     double adagradEps;
+
+    // extremeText
+    size_t dims;
 
     // Tree models
 

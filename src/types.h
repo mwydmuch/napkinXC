@@ -24,6 +24,8 @@ typedef int Example;
 typedef feature_node DoubleFeature;
 typedef DoubleFeature Feature;
 
+class FileHelper;
+
 struct IntFeature {
     int index;
     int value;
@@ -43,6 +45,136 @@ struct Prediction {
 
     bool operator<(const Prediction& r) const { return value < r.value; }
 };
+
+// Simple dense vector
+template <typename T> class Vector {
+public:
+    Vector();
+    Vector(size_t s);
+    Vector(size_t s, T v);
+    ~Vector();
+
+    Vector<T>& operator=(Vector<T> v){
+        if (this == &v) return *this;
+        v.s = s;
+        v.d = new T[s];
+        std::copy(d, d + s, v.d);
+        return *this;
+    }
+
+    void resize(size_t newS);
+
+    // Returns data as T*
+    inline T* data() { return d; }
+
+    // Access row also by [] operator
+    inline T& operator[](const int index) { return d[index]; }
+    inline const T& operator[](const int index) const { return d[index]; }
+
+    // Returns single row size
+    inline int size() const { return s; }
+    inline unsigned long long mem() { return s * sizeof(T); }
+
+    inline void print(){
+        for(int i = 0; i < s; ++i) std::cout << d[i] << " ";
+        std::cout << "\n";
+    }
+
+    void save(std::ostream& out) const;
+    void load(std::istream& in);
+private:
+    size_t s;   // Size
+    T* d;       // Data
+};
+
+template <typename T> Vector<T>::Vector() {
+    s = 0;
+    d = nullptr;
+}
+
+template <typename T> Vector<T>::Vector(size_t s): s(s) {
+    d = new T[s];
+}
+
+template <typename T> Vector<T>::Vector(size_t s, T v): s(s) {
+    d = new T[s];
+    std::fill(d, d + s, v);
+}
+
+template <typename T> Vector<T>::~Vector(){
+    delete[] d;
+}
+
+template <typename T> void Vector<T>::resize(size_t newS){
+    T* newD = new T[newS];
+    if(d != nullptr){
+        std::copy(d, d + s, newD);
+        delete[] d;
+    }
+    s = newS;
+    d = newD;
+}
+
+template <typename T> void Vector<T>::save(std::ostream& out) const {
+    out.write((char*)&s, sizeof(s));
+    out.write((char*)d, s * sizeof(T));
+}
+
+template <typename T> void Vector<T>::load(std::istream& in){
+    in.read((char*)&s, sizeof(s));
+    delete[] d;
+    d = new T[s];
+    in.read((char*)d, s * sizeof(T));
+}
+
+
+// Simple dense matrix
+template <typename T> class Matrix {
+public:
+    Matrix();
+    Matrix(size_t m, size_t n);
+
+    // Access row also by [] operator
+    inline Vector<T>& operator[](const int index) { return r[index]; }
+    inline const Vector<T>& operator[](const int index) const { return r[index]; }
+
+    // Returns size of matrix
+    inline int rows() const { return m; }
+    inline int cols() const { return n; }
+    inline unsigned long long mem() const { return (m * n) * sizeof(T); }
+
+    void save(std::ostream& out) const;
+    void load(std::istream& in);
+
+private:
+    size_t m;                      // Row count
+    size_t n;                      // Col count
+    std::vector<Vector<T>> r;      // Rows
+};
+
+template <typename T> Matrix<T>::Matrix() {
+    m = 0;
+    n = 0;
+}
+
+template <typename T> Matrix<T>::Matrix(size_t m, size_t n): m(m), n(n) {
+    r.resize(m);
+    for(auto& v : r) v.resize(n);
+}
+
+template <typename T> void Matrix<T>::save(std::ostream& out) const {
+    out.write((char*)&m, sizeof(m));
+    out.write((char*)&n, sizeof(n));
+    for(const auto& v : r) v.save(out);
+}
+
+template <typename T> void Matrix<T>::load(std::istream& in){
+    in.read((char*)&m, sizeof(m));
+    in.read((char*)&n, sizeof(n));
+    r.resize(m);
+    for(auto& v : r) v.load(in);
+}
+
 
 // Elastic low-level sparse row matrix, type T needs to contain int at offset 0!
 template <typename T> class SRMatrix {

@@ -118,7 +118,7 @@ void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<s
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::priority_queue<TreeNodeValue> nQueue;
 
-    nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
+    nQueue.push({tree->root, predictForNode(tree->root, features)});
     ++nodeEvaluationCount;
     ++dataPointCount;
 
@@ -136,7 +136,7 @@ Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
 
         if (!nVal.node->children.empty()) {
             for (const auto& child : nVal.node->children)
-                addToQueue(nQueue, child, nVal.value * bases[child->index]->predictProbability(features), threshold);
+                addToQueue(nQueue, child, nVal.value * predictForNode(child, features), threshold);
             nodeEvaluationCount += nVal.node->children.size();
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
@@ -149,7 +149,7 @@ void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* fe
                                 Args& args) {
     std::priority_queue<TreeNodeValue> nQueue;
 
-    nQueue.push({tree->root, bases[tree->root->index]->predictProbability(features)});
+    nQueue.push({tree->root, predictForNode(tree->root, features)});
     ++nodeEvaluationCount;
     ++dataPointCount;
 
@@ -168,7 +168,7 @@ Prediction PLT::predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue
 
         if (!nVal.node->children.empty()) {
             for (const auto& child : nVal.node->children)
-                addToQueue(nQueue, child, nVal.value * bases[child->index]->predictProbability(features), thresholds);
+                addToQueue(nQueue, child, nVal.value * predictForNode(child, features), thresholds);
             nodeEvaluationCount += nVal.node->children.size();
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
@@ -182,7 +182,7 @@ double PLT::predictForLabel(Label label, Feature* features, Args& args) {
     double value = bases[n->index]->predictProbability(features);
     while (n->parent) {
         n = n->parent;
-        value *= bases[n->index]->predictProbability(features);
+        value *= predictForNode(n, features);
         ++nodeEvaluationCount;
     }
     return value;

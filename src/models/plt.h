@@ -46,6 +46,10 @@ protected:
     virtual Prediction predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
                                                       std::vector<float>& thresholds);
 
+    virtual inline double predictForNode(TreeNode* node, Feature* features){
+        return bases[node->index]->predictProbability(features);
+    }
+
     inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value,
                                   double threshold) {
         if (value >= threshold) nQueue.push({node, value});

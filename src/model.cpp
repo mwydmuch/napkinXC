@@ -23,6 +23,7 @@
 #include "ubop.h"
 #include "ubop_hsm.h"
 #include "version.h"
+#include "extreme_text.h"
 
 // Mips extension models
 #ifdef MIPS_EXT
@@ -48,11 +49,10 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case ubop: model = std::static_pointer_cast<Model>(std::make_shared<UBOP>()); break;
         case rbop: model = std::static_pointer_cast<Model>(std::make_shared<RBOP>()); break;
         case ubopHsm: model = std::static_pointer_cast<Model>(std::make_shared<UBOPHSM>()); break;
-        case oplt:
-            model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>());
-            break;
-            // Mips extension models
+        case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
+        case extremeText: model = std::static_pointer_cast<Model>(std::make_shared<ExtremeText>()); break;
 #ifdef MIPS_EXT
+        // Mips extension models
         case brMips: model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>()); break;
         case ubopMips: model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>()); break;
 #endif

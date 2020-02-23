@@ -96,10 +96,8 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
         for (const auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({f.first, f.second});
         std::sort(labelFeatures.begin(), labelFeatures.end());
 
-        if (norm)
-            unitNorm(labelFeatures);
-        else
-            divVector(labelFeatures, labelsProb[l].value * labels.rows());
+        if (norm) unitNorm(labelFeatures);
+        else divVector(labelFeatures, labelsProb[l].value * labels.rows());
 
         labelsFeatures.appendRow(labelFeatures);
     }

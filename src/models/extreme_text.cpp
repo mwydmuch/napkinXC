@@ -29,26 +29,29 @@ void ExtremeText::trainThread(int threadId, ExtremeText* model, SRMatrix<Label>&
 double ExtremeText::updateNode(TreeNode* node, double label, Vector<XTWeight>& hidden, Vector<XTWeight>& gradient, double lr, double l2){
     size_t i = node->index;
 
-    double pred = 1.0 / (1.0 + std::exp(-dotVectors(outputW[i], hidden)));
+    //double pred = 1.0 / (1.0 + std::exp(-dotVectors(outputW[i], hidden)));
+    double val = dotVectors(outputW[i], hidden);
+    double pred = sigmoid(dotVectors(outputW[i], hidden));
     double grad = label - pred;
+    std::cout << val << " " << pred << " " << grad << "\n";
+    if(isnan(pred))
+        exit(1);
 
     for(int j = 0; j < dims; ++j){
         gradient[j] += lr * (grad * outputW[i][j] - l2 * gradient[j]);
         outputW[i][j] += lr * (grad * hidden[j] - l2 * outputW[i][j]);
     }
 
-    return label ? -std::log(pred) : -std::log(1.0 - pred);
+    return label ? -log(pred) : -log(1.0 - pred);
 }
 
 double ExtremeText::update(double lr, Feature* features, Label* labels, int rSize, Args& args){
 
     // Compute hidden
     double valuesSum = 0;
-    double fCount = 0;
     Vector<XTWeight> hidden(dims, 0);
     for(Feature* f = features; f->index != -1; ++f){
         valuesSum += f->value;
-        fCount += 1.0;
         addVector(inputW[f->index], f->value, hidden);
     }
     divVector(hidden, valuesSum);
@@ -92,8 +95,8 @@ void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     std::default_random_engine rng(args.getSeed());
     std::uniform_real_distribution<double> dist(-1.0 / dims, 1.0 / dims);
 
-    for(int i = 0; i < features.cols(); ++i)
-        for(int j = 0; j < dims; ++j) inputW[i][j] = dist(rng);
+    for(int i = 0; i < inputW.rows(); ++i)
+        for(int j = 0; j < inputW.cols(); ++j) inputW[i][j] = dist(rng);
 
     outputW = Matrix<XTWeight>(tree->t, dims);
 

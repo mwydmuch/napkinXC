@@ -87,7 +87,7 @@ if __name__ == "__main__":
             for rk, rv in r.items():
                 if type(rv) is list:
                     result[rk + " (mean)"] = mean(rv)
-                    result[rk + " (std)"] = stdev(rv)
+                    result[rk + " (std)"] = stdev(rv) if len(rv) > 1 else 0
                 else:
                     result[rk] = rv
             accumulated_results.append(result)

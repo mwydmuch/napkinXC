@@ -44,4 +44,14 @@ protected:
             std::cerr << "  Progress: " << state / (max / 100) << "%, lr: " << lr << ", loss: " << loss << "\r";
     }
 
+    inline double log(double x) {
+        return std::log(x + 1e-5);
+    }
+
+    inline double sigmoid(double x) const {
+        if (x < -8) return 0.0;
+        else if (x > 8) return 1.0;
+        else return 1.0 / (1.0 + std::exp(-x));
+    }
+
 };

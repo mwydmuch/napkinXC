@@ -97,7 +97,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
     }
 
-    if (command != "train" && command != "test" && command != "predict" && command != "ofo") {
+    if (command != "train" && command != "test" && command != "predict" && command != "ofo" && command != "predictprob") {
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
@@ -344,7 +344,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         if((treeType == hierarchicalKMeans || treeType == huffman) && count(args.begin(), args.end(), "treeType"))
             std::cerr << "Online PLT does not support " << treeTypeName << " tree type! Changing to complete in order tree.\n";
         treeType = onlineBestScore;
-        treeTypeNameKy = "onlineBestScore";
+        treeTypeName = "onlineBestScore";
 
         if (optimizerType == liblinear && count(args.begin(), args.end(), "optimizer"))
             std::cerr << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";

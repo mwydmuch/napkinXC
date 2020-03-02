@@ -157,6 +157,33 @@ void predict(Args& args) {
     }
 }
 
+void predictProbabilities(Args& args) {
+    // Load model args
+    args.loadFromFile(joinPath(args.output, "args.bin"));
+    args.printArgs();
+
+    // Create data reader
+    std::shared_ptr<DataReader> reader = DataReader::factory(args);
+    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
+
+    // Load model
+    std::shared_ptr<Model> model = Model::factory(args);
+    model->load(args, args.output);
+
+    SRMatrix<Label> labels;
+    SRMatrix<Feature> features;
+    reader->readData(labels, features, args);
+    int r = 0;
+    for (std::string line; std::getline(std::cin, line); ++r) {
+        auto labels = split(line, ' ');
+        for (auto l : labels) {
+            auto v = split(l, ':');
+            std::cout << l << ":" << model->predictForLabel(std::stoi(v[0]), features[r], args);
+        }
+        std::cout << std::endl;
+    }
+}
+
 void ofo(Args& args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
@@ -201,6 +228,9 @@ int main(int argc, char** argv) {
         predict(args);
     else if (args.command == "ofo")
         ofo(args);
+    else if (args.command == "predictprob")
+        predictProbabilities(args);
+
 
     return 0;
 }

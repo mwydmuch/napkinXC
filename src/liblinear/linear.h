@@ -47,6 +47,7 @@ struct parameter
 	double* weight;
 	double p;
 	double *init_sol;
+	int max_iter;
 };
 
 struct model

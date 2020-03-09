@@ -819,14 +819,13 @@ void Solver_MCSVM_CS::Solve(double *w)
 
 static void solve_l2r_l1l2_svc(
 	const problem *prob, double *w, double eps,
-	double Cp, double Cn, int solver_type)
+	double Cp, double Cn, int solver_type, int max_iter)
 {
 	int l = prob->l;
 	int w_size = prob->n;
 	int i, s, iter = 0;
 	double C, d, G;
 	double *QD = new double[l];
-	int max_iter = 1000;
 	int *index = new int[l];
 	double *alpha = new double[l];
 	schar *y = new schar[l];
@@ -1044,7 +1043,7 @@ static void solve_l2r_l1l2_svr(
 	int w_size = prob->n;
 	double eps = param->eps;
 	int i, s, iter = 0;
-	int max_iter = 1000;
+	int max_iter = param->max_iter;
 	int active_size = l;
 	int *index = new int[l];
 
@@ -1252,13 +1251,12 @@ static void solve_l2r_l1l2_svr(
 #define GETI(i) (i)
 // To support weights for instances, use GETI(i) (i)
 
-void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, double Cn)
+void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, double Cn, int max_iter)
 {
 	int l = prob->l;
 	int w_size = prob->n;
 	int i, s, iter = 0;
 	double *xTx = new double[l];
-	int max_iter = 1000;
 	int *index = new int[l];
 	double *alpha = new double[2*l]; // store alpha and C - alpha
 	schar *y = new schar[l];
@@ -1415,12 +1413,11 @@ void solve_l2r_lr_dual(const problem *prob, double *w, double eps, double Cp, do
 
 static void solve_l1r_l2_svc(
 	problem *prob_col, double *w, double eps,
-	double Cp, double Cn)
+	double Cp, double Cn, int max_iter)
 {
 	int l = prob_col->l;
 	int w_size = prob_col->n;
 	int j, s, iter = 0;
-	int max_iter = 1000;
 	int active_size = w_size;
 	int max_num_linesearch = 20;
 
@@ -1701,13 +1698,12 @@ static void solve_l1r_l2_svc(
 
 static void solve_l1r_lr(
 	const problem *prob_col, double *w, double eps,
-	double Cp, double Cn)
+	double Cp, double Cn, int max_iter)
 {
 	int l = prob_col->l;
 	int w_size = prob_col->n;
 	int j, s, newton_iter=0, iter=0;
 	int max_newton_iter = 100;
-	int max_iter = 1000;
 	int max_num_linesearch = 20;
 	int active_size;
 	int QP_active_size;
@@ -2203,6 +2199,7 @@ static void train_one(const problem *prob, const parameter *param, double *w, do
 	//inner and outer tolerances for TRON
 	double eps = param->eps;
 	double eps_cg = 0.1;
+	int max_iter = param->max_iter;
 	if(param->init_sol != NULL)
 		eps_cg = 0.5;
 
@@ -2254,17 +2251,17 @@ static void train_one(const problem *prob, const parameter *param, double *w, do
 			break;
 		}
 		case L2R_L2LOSS_SVC_DUAL:
-			solve_l2r_l1l2_svc(prob, w, eps, Cp, Cn, L2R_L2LOSS_SVC_DUAL);
+			solve_l2r_l1l2_svc(prob, w, eps, Cp, Cn, L2R_L2LOSS_SVC_DUAL, max_iter);
 			break;
 		case L2R_L1LOSS_SVC_DUAL:
-			solve_l2r_l1l2_svc(prob, w, eps, Cp, Cn, L2R_L1LOSS_SVC_DUAL);
+			solve_l2r_l1l2_svc(prob, w, eps, Cp, Cn, L2R_L1LOSS_SVC_DUAL, max_iter);
 			break;
 		case L1R_L2LOSS_SVC:
 		{
 			problem prob_col;
 			feature_node *x_space = NULL;
 			transpose(prob, &x_space ,&prob_col);
-			solve_l1r_l2_svc(&prob_col, w, primal_solver_tol, Cp, Cn);
+			solve_l1r_l2_svc(&prob_col, w, primal_solver_tol, Cp, Cn, max_iter);
 			delete [] prob_col.y;
 			delete [] prob_col.x;
 			delete [] prob_col.W;
@@ -2276,7 +2273,7 @@ static void train_one(const problem *prob, const parameter *param, double *w, do
 			problem prob_col;
 			feature_node *x_space = NULL;
 			transpose(prob, &x_space ,&prob_col);
-			solve_l1r_lr(&prob_col, w, primal_solver_tol, Cp, Cn);
+			solve_l1r_lr(&prob_col, w, primal_solver_tol, Cp, Cn, max_iter);
 			delete [] prob_col.y;
 			delete [] prob_col.x;
 			delete [] prob_col.W;
@@ -2284,7 +2281,7 @@ static void train_one(const problem *prob, const parameter *param, double *w, do
 			break;
 		}
 		case L2R_LR_DUAL:
-			solve_l2r_lr_dual(prob, w, eps, Cp, Cn);
+			solve_l2r_lr_dual(prob, w, eps, Cp, Cn, max_iter);
 			break;
 		case L2R_L2LOSS_SVR:
 		{

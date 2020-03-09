@@ -35,8 +35,9 @@ Args::Args() {
     // Training options
     threads = getCpuCount();
     memLimit = getSystemMemory();
-    eps = 0.001;
-    cost = 10.0;
+    eps = 0.01;
+    cost = 16.0;
+    maxIter = 1000;
 
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
@@ -225,6 +226,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost")
                 cost = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--maxIter")
+                maxIter = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--inbalanceLabelsWeighting")
                 inbalanceLabelsWeighting = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--pickOneLabelWeighting")
@@ -389,7 +392,7 @@ void Args::printArgs() {
         if (command == "train") {
             std::cerr << "\n  Base models optimizer: " << optimizerName;
             if (optimizerType == liblinear)
-                std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost;
+                std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
             else
                 std::cerr << "\n    Eta: " << eta << ", epochs: " << epochs;
             if (optimizerType == adagrad) std::cerr << ", AdaGrad eps " << adagradEps;

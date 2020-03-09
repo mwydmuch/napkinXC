@@ -75,6 +75,7 @@ public:
     OptimizerType optimizerType;
     double eps;
     double cost;
+    int maxIter;
     double weightsThreshold;
     int ensemble;
     bool onTheTrotPrediction;

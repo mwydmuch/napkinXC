@@ -259,7 +259,7 @@ double Base::predictProbability(Feature* features) {
     double val = predictValue(features);
     if (hingeLoss)
         //val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
-        val = -std::exp(std::pow(std::max(0.0, 1.0 - val), 2)); // Parabel probability for squared Hinge loss solver
+        val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2)); // Parabel probability for squared Hinge loss solver
     else
         val = 1.0 / (1.0 + std::exp(-val)); // Probability
     return val;

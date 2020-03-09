@@ -118,8 +118,8 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
                    .weight_label = labels,
                    .weight = labelsWeights,
                    .p = 0,
-                   .max_iter = args.maxIter,
-                   .init_sol = NULL};
+                   .init_sol = NULL,
+                   .max_iter = args.maxIter};
 
     auto output = check_parameter(&P, &C);
     assert(output == NULL);

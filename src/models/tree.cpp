@@ -13,7 +13,6 @@
 #include <list>
 #include <random>
 #include <sstream>
-#include <unordered_set>
 #include <vector>
 
 #include "data_reader.h"
@@ -483,7 +482,7 @@ void Tree::printTree(TreeNode* rootNode) {
     std::cerr << "Tree:";
     if (rootNode == nullptr) rootNode = root;
 
-    std::unordered_set<TreeNode*> nSet;
+    UnorderedSet<TreeNode*> nSet;
     std::queue<TreeNode*> nQueue;
     nQueue.push(rootNode);
     nSet.insert(rootNode);

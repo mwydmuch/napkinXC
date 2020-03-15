@@ -13,7 +13,7 @@ UBOPHSM::UBOPHSM() {
 }
 
 void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    std::priority_queue<TreeNodeValue> nQueue;
+    TopKQueue<TreeNodeValue> nQueue(0);
 
     double value = bases[tree->root->index]->predictProbability(features);
     assert(value == 1);

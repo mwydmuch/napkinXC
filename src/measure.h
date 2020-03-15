@@ -107,7 +107,7 @@ public:
     double value() override;
 
 protected:
-    std::unordered_set<int> seen;
+    UnorderedSet<int> seen;
     int m;
 };
 
@@ -119,7 +119,7 @@ public:
     double value() override;
 
 protected:
-    std::unordered_set<int> seen;
+    UnorderedSet<int> seen;
     int m;
 };
 

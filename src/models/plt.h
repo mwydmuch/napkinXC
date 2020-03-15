@@ -34,28 +34,28 @@ protected:
                                   std::vector<std::vector<Feature*>>& binFeatures,
                                   std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
                                   SRMatrix<Feature>& features, Args& args);
-    void getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
     void addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                     std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                     UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                      Feature* features);
 
     // Helper methods for prediction
-    virtual Prediction predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
+    virtual Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features,
                                         double threshold);
-    virtual Prediction predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
+    virtual Prediction predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features,
                                                       std::vector<float>& thresholds);
 
     virtual inline double predictForNode(TreeNode* node, Feature* features){
         return bases[node->index]->predictProbability(features);
     }
 
-    inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value,
+    inline static void addToQueue(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value,
                                   double threshold) {
         if (value >= threshold) nQueue.push({node, value});
     }
 
-    inline static void addToQueue(std::priority_queue<TreeNodeValue>& nQueue, TreeNode* node, double value,
+    inline static void addToQueue(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value,
                                   std::vector<float>& thresholds) {
         float minThreshold = 1.0;
         for (const auto& l : node->labels) minThreshold = std::min(minThreshold, thresholds[l]);

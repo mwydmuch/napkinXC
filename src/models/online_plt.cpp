@@ -29,8 +29,8 @@ void OnlinePLT::init(int labelCount, Args& args) {
 
 void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize,
                        Args& args) {
-    std::unordered_set<TreeNode*> nPositive;
-    std::unordered_set<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> nPositive;
+    UnorderedSet<TreeNode*> nNegative;
     std::unordered_map<TreeNode*, double> weights;
 
     if (tree->isOnline()) { // Check if example contains a new label

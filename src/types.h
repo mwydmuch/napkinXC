@@ -11,13 +11,16 @@
 #include <cstring>
 #include <fstream>
 #include <vector>
+#include <queue>
 
 #include "linear.h"
 #include "robin_hood.h"
 
 typedef float Weight;
 typedef std::pair<int, Weight> SparseWeight;
-#define UnorderedMap robin_hood::unordered_map
+#define Queue std::priority_queue;
+#define UnorderedMap robin_hood::unordered_flat_map
+#define UnorderedSet robin_hood::unordered_flat_set
 
 typedef int Label;
 typedef int Example;
@@ -44,6 +47,43 @@ struct Prediction {
     double value; // labels's value/probability/loss
 
     bool operator<(const Prediction& r) const { return value < r.value; }
+};
+
+template <typename T> class TopKQueue {
+public:
+    TopKQueue() = default;
+    explicit TopKQueue(size_t k): k(k){}
+    ~TopKQueue() = default;
+
+    inline void pop(){
+        mainQueue.pop();
+    }
+
+    inline T top(){
+        return mainQueue.top();
+    }
+
+    inline void push(T x, bool final = false){
+        if(final && k > 0){
+            if(finalQueue.size() < k){
+                finalQueue.push(x);
+                mainQueue.push(x);
+            } else if(finalQueue.top() > x){
+                finalQueue.pop();
+                finalQueue.push(x);
+                mainQueue.push(x);
+            }
+        } else mainQueue.push(x);
+    }
+
+    inline bool empty(){
+        return mainQueue.empty();
+    }
+
+private:
+    std::priority_queue<T> mainQueue;
+    std::priority_queue<T, std::vector<T>, std::greater<>> finalQueue;
+    size_t k;
 };
 
 // Simple dense vector

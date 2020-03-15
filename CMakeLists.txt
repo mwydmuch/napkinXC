@@ -7,12 +7,12 @@ project(napkinXC)
 # Project version
 set(napkinXC_VERSION_MAJOR 0)
 set(napkinXC_VERSION_MINOR 3)
-set(napkinXC_PATCH_VERSION 4)
+set(napkinXC_PATCH_VERSION 5)
 
 # Building options
 option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 # Set the release mode if not specified
 if(NOT CMAKE_BUILD_TYPE)

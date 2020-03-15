@@ -57,8 +57,8 @@ double ExtremeText::update(double lr, Feature* features, Label* labels, int rSiz
     divVector(hidden, valuesSum);
 
     // Gather nodes to update
-    std::unordered_set<TreeNode*> nPositive;
-    std::unordered_set<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> nPositive;
+    UnorderedSet<TreeNode*> nNegative;
 
     getNodesToUpdate(nPositive, nNegative, labels, rSize);
 

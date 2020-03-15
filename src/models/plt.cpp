@@ -9,7 +9,6 @@
 #include <climits>
 #include <cmath>
 #include <list>
-#include <unordered_set>
 #include <vector>
 
 #include "plt.h"
@@ -38,8 +37,8 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     std::cerr << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
-    std::unordered_set<TreeNode*> nPositive;
-    std::unordered_set<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> nPositive;
+    UnorderedSet<TreeNode*> nNegative;
 
     // Gather examples for each node
     int rows = features.rows();
@@ -69,7 +68,7 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     }
 }
 
-void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                            const int* rLabels, const int rSize) {
     for (int i = 0; i < rSize; ++i) {
         TreeNode* n = tree->leaves[rLabels[i]];
@@ -102,7 +101,7 @@ void PLT::getNodesToUpdate(std::unordered_set<TreeNode*>& nPositive, std::unorde
 }
 
 void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                      std::unordered_set<TreeNode*>& nPositive, std::unordered_set<TreeNode*>& nNegative,
+                      UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                       Feature* features) {
     for (const auto& n : nPositive) {
         binLabels[n->index].push_back(1.0);
@@ -116,7 +115,8 @@ void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<s
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    std::priority_queue<TreeNodeValue> nQueue;
+    TopKQueue<TreeNodeValue> nQueue(args.topK);
+    //TopKQueue<TreeNodeValue> nQueue(0);
 
     nQueue.push({tree->root, predictForNode(tree->root, features)});
     ++nodeEvaluationCount;
@@ -129,7 +129,7 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
     }
 }
 
-Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Feature* features, double threshold) {
+Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold) {
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
@@ -147,7 +147,7 @@ Prediction PLT::predictNextLabel(std::priority_queue<TreeNodeValue>& nQueue, Fea
 
 void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
                                 Args& args) {
-    std::priority_queue<TreeNodeValue> nQueue;
+    TopKQueue<TreeNodeValue> nQueue(args.topK);
 
     nQueue.push({tree->root, predictForNode(tree->root, features)});
     ++nodeEvaluationCount;
@@ -160,7 +160,7 @@ void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* fe
     }
 }
 
-Prediction PLT::predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue>& nQueue, Feature* features,
+Prediction PLT::predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features,
                                                std::vector<float>& thresholds) {
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
@@ -178,7 +178,9 @@ Prediction PLT::predictNextLabelWithThresholds(std::priority_queue<TreeNodeValue
 }
 
 double PLT::predictForLabel(Label label, Feature* features, Args& args) {
-    TreeNode* n = tree->leaves[label];
+    auto fn = tree->leaves.find(label);
+    if(fn == tree->leaves.end()) return 0;
+    TreeNode* n = fn->second;
     double value = bases[n->index]->predictProbability(features);
     while (n->parent) {
         n = n->parent;

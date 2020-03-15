@@ -159,7 +159,7 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
 
     auto labelsProb = computeLabelsPriors(labels);
 
-    std::priority_queue<TreeNodeValue> probQueue;
+    std::priority_queue<TreeNodeValue, std::vector<TreeNodeValue>, std::greater<>> probQueue;
     for (int i = 0; i < k; i++) {
         TreeNode* n = createTreeNode(nullptr, i);
         probQueue.push({n, labelsProb[i].value});

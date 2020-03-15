@@ -39,6 +39,7 @@ struct TreeNodeValue {
     double value; // Node's value/probability/loss
 
     bool operator<(const TreeNodeValue& r) const { return value < r.value; }
+    bool operator>(const TreeNodeValue& r) const { return value > r.value; }
 };
 
 // For K-Means based trees

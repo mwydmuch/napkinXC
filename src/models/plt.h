@@ -52,14 +52,14 @@ protected:
 
     inline static void addToQueue(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value,
                                   double threshold) {
-        if (value >= threshold) nQueue.push({node, value});
+        if (value >= threshold) nQueue.push({node, value}, node->label > -1);
     }
 
     inline static void addToQueue(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value,
                                   std::vector<float>& thresholds) {
         float minThreshold = 1.0;
         for (const auto& l : node->labels) minThreshold = std::min(minThreshold, thresholds[l]);
-        if (value >= minThreshold) nQueue.push({node, value});
+        if (value >= minThreshold) nQueue.push({node, value}, node->label > -1);
     }
 
     // Additional statistics

@@ -35,9 +35,9 @@ Args::Args() {
     // Training options
     threads = getCpuCount();
     memLimit = getSystemMemory();
-    eps = 0.01;
+    eps = 0.1;
     cost = 16.0;
-    maxIter = 1000;
+    maxIter = 100;
 
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";

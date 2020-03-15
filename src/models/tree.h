@@ -35,6 +35,8 @@ struct TreeNode {
 
 // For prediction in tree based models / Huffman trees building
 struct TreeNodeValue {
+    TreeNodeValue(TreeNode* node, double value): node(node), value(value) {};
+
     TreeNode* node;
     double value; // Node's value/probability/loss
 

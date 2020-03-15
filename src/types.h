@@ -18,7 +18,6 @@
 
 typedef float Weight;
 typedef std::pair<int, Weight> SparseWeight;
-#define Queue std::priority_queue;
 #define UnorderedMap robin_hood::unordered_flat_map
 #define UnorderedSet robin_hood::unordered_flat_set
 
@@ -49,10 +48,12 @@ struct Prediction {
     bool operator<(const Prediction& r) const { return value < r.value; }
 };
 
-template <typename T> class TopKQueue {
+template <typename T> class TopKQueue{
 public:
-    TopKQueue() = default;
-    explicit TopKQueue(size_t k): k(k){}
+    TopKQueue(){
+        k = 0;
+    }
+    TopKQueue(size_t k): k(k){};
     ~TopKQueue() = default;
 
     inline void pop(){
@@ -64,15 +65,18 @@ public:
     }
 
     inline void push(T x, bool final = false){
-        if(final && k > 0){
-            if(finalQueue.size() < k){
-                finalQueue.push(x);
-                mainQueue.push(x);
-            } else if(finalQueue.top() > x){
-                finalQueue.pop();
-                finalQueue.push(x);
-                mainQueue.push(x);
+        if(k > 0){
+            if(final){
+                if(finalQueue.size() < k){
+                    finalQueue.push(x);
+                    mainQueue.push(x);
+                } else if(finalQueue.top() < x){
+                    finalQueue.pop();
+                    finalQueue.push(x);
+                    mainQueue.push(x);
+                }
             }
+            else if(finalQueue.size() < k || finalQueue.top() < x) mainQueue.push(x);
         } else mainQueue.push(x);
     }
 

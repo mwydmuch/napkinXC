@@ -22,13 +22,15 @@ public:
 
     virtual void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) = 0;
     virtual void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) = 0;
-    virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features,
-                                       std::vector<float>& thresholds, Args& args);
-    virtual std::vector<float> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
     virtual double predictForLabel(Label label, Feature* features, Args& args) = 0;
     virtual std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args);
-    virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features,
-                                                                            std::vector<float>& thresholds, Args& args);
+
+    // Prediction with thresholds and ofo
+    virtual void setThresholds(std::vector<float> th);
+    virtual void updateThresholds(UnorderedMap<int, float> thToUpdate);
+    virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) = 0;
+    virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args);
+    virtual std::vector<float> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
 
@@ -39,6 +41,7 @@ protected:
     ModelType type;
     std::string name;
     int m; // Output size/number of labels
+    std::vector<float> thresholds; // For prediction with thresholds
 
     // Base utils
     static Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
@@ -49,8 +52,6 @@ protected:
                                  std::vector<std::vector<Feature*>>& baseFeatures,
                                  std::vector<std::vector<double>*>* instancesWeights,
                                  Args& args, int threadId, int threads);
-
-    static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results);
 
     static void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                            std::vector<std::vector<Feature*>>& baseFeatures,
@@ -74,19 +75,18 @@ protected:
                                            std::vector<Feature*>& baseFeatures,
                                            std::vector<double>* instancesWeights, Args& args);
 
+    static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results);
+
     static std::vector<Base*> loadBases(std::string infile);
 
 private:
     static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                    SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
 
-    static void predictBatchWithThresholdsThread(int threadId, Model* model,
-                                                 std::vector<std::vector<Prediction>>& predictions,
-                                                 SRMatrix<Feature>& features, std::vector<float>& thresholds,
-                                                 Args& args, const int startRow, const int stopRow);
+    static void predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
+                                                 SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
 
-    static void ofoThread(int threadId, Model* model, std::vector<float>& thresholds,
-                          std::vector<float>& as, std::vector<float>& bs,
+    static void ofoThread(int threadId, Model* model, std::vector<float>& as, std::vector<float>& bs,
                           SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
                           const int startRow, const int stopRow);
 };

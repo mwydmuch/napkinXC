@@ -29,6 +29,8 @@ public:
     double predictForLabel(Label label, Feature* features, Args& args) override;
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
 
+    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+
     void load(Args& args, std::string infile) override;
 
     void printInfo() override;
@@ -167,3 +169,8 @@ template <typename T> void Ensemble<T>::load(Args& args, std::string infile) {
 }
 
 template <typename T> void Ensemble<T>::printInfo() {}
+
+
+template <typename T> void Ensemble<T>::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args){
+    std::cerr << "  Threshold prediction is not avialable for ensemble";
+}

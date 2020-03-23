@@ -145,30 +145,64 @@ Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
     return {-1, 0};
 }
 
-void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
-                                Args& args) {
+void PLT::setThresholds(std::vector<float> th){
+    thresholds = th;
+
+    for(auto& n : tree->nodes){
+        for(auto& l : n->labels) {
+            if(thresholds[l] < n->th){
+                n->th = thresholds[l];
+                n->thLabel = l;
+            }
+        }
+    }
+}
+
+void PLT::updateThresholds(UnorderedMap<int, float> thToUpdate){
+    for(auto& th : thToUpdate)
+        thresholds[th.first] = th.second;
+
+    for(auto& th : thToUpdate){
+        TreeNode* n = tree->leaves[th.first];
+        while(n != nullptr){
+            if(th.second < n->th){
+                n->th = th.second;
+                n->thLabel = th.first;
+            } else if (th.first == n->thLabel && th.second > n->th){
+                for(auto& l : n->labels) {
+                    if(thresholds[l] < n->th){
+                        n->th = thresholds[l];
+                        n->thLabel = l;
+                    }
+                }
+            }
+            n = n->parent;
+        }
+    }
+}
+
+void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     TopKQueue<TreeNodeValue> nQueue(args.topK);
 
     nQueue.push({tree->root, predictForNode(tree->root, features)});
     ++nodeEvaluationCount;
     ++dataPointCount;
 
-    Prediction p = predictNextLabelWithThresholds(nQueue, features, thresholds);
+    Prediction p = predictNextLabelWithThresholds(nQueue, features);
     while (p.label != -1) {
         prediction.push_back(p);
-        p = predictNextLabelWithThresholds(nQueue, features, thresholds);
+        p = predictNextLabelWithThresholds(nQueue, features);
     }
 }
 
-Prediction PLT::predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features,
-                                               std::vector<float>& thresholds) {
+Prediction PLT::predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features) {
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
         if (!nVal.node->children.empty()) {
             for (const auto& child : nVal.node->children)
-                addToQueue(nQueue, child, nVal.value * predictForNode(child, features), thresholds);
+                addToQueueThresholds(nQueue, child, nVal.value * predictForNode(child, features));
             nodeEvaluationCount += nVal.node->children.size();
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};

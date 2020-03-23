@@ -31,6 +31,9 @@ struct TreeNode {
     int nextToExpand;
     int subtreeDepth;
     std::vector<int> labels;
+
+    float th;
+    int thLabel;
 };
 
 // For prediction in tree based models / Huffman trees building

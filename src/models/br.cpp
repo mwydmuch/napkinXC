@@ -87,12 +87,10 @@ std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {
     return prediction;
 }
 
-void BR::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
-                               Args& args) {
+void BR::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::vector<Prediction> tmpPrediction = predictForAllLabels(features, args);
-    for (auto& p : tmpPrediction) {
+    for (auto& p : tmpPrediction)
         if (p.value >= thresholds[p.label]) prediction.push_back(p);
-    }
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args& args) {

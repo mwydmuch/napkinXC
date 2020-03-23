@@ -91,7 +91,8 @@ void test(Args& args) {
     std::vector<std::vector<Prediction>> predictions;
     if (!args.thresholds.empty()) { // Using thresholds if provided
         std::vector<float> thresholds = loadThresholds(args.thresholds);
-        predictions = model->predictBatchWithThresholds(features, thresholds, args);
+        model->setThresholds(thresholds);
+        predictions = model->predictBatchWithThresholds(features, args);
     } else
         predictions = model->predictBatch(features, args);
 
@@ -156,7 +157,8 @@ void predict(Args& args) {
         std::vector<std::vector<Prediction>> predictions;
         if (!args.thresholds.empty()) { // Using thresholds if provided
             std::vector<float> thresholds = loadThresholds(args.thresholds);
-            predictions = model->predictBatchWithThresholds(features, thresholds, args);
+            model->setThresholds(thresholds);
+            predictions = model->predictBatchWithThresholds(features, args);
         } else
             predictions = model->predictBatch(features, args);
 

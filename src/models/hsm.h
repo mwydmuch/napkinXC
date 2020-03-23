@@ -29,10 +29,8 @@ protected:
     void assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                           std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
                           SRMatrix<Feature>& features, Args& args) override;
-    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
-                          const int rLabel);
-    Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features,
-                                double threshold) override;
+    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const int rLabel);
+    Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold) override;
 
     int pathLength;   // Length of the path
 };

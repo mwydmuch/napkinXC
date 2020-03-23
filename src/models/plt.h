@@ -18,9 +18,11 @@ public:
     ~PLT() override;
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
-    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, std::vector<float>& thresholds,
-                               Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
+
+    void setThresholds(std::vector<float> th) override;
+    void updateThresholds(UnorderedMap<int, float> thToUpdate) override;
+    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
 
@@ -29,6 +31,7 @@ public:
 protected:
     Tree* tree;
     std::vector<Base*> bases;
+    std::vector<int> thMin;
 
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,
@@ -41,10 +44,8 @@ protected:
                      Feature* features);
 
     // Helper methods for prediction
-    virtual Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features,
-                                        double threshold);
-    virtual Prediction predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features,
-                                                      std::vector<float>& thresholds);
+    virtual Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold);
+    virtual Prediction predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features);
 
     virtual inline double predictForNode(TreeNode* node, Feature* features){
         return bases[node->index]->predictProbability(features);
@@ -55,11 +56,8 @@ protected:
         if (value >= threshold) nQueue.push({node, value}, node->label > -1);
     }
 
-    inline static void addToQueue(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value,
-                                  std::vector<float>& thresholds) {
-        float minThreshold = 1.0;
-        for (const auto& l : node->labels) minThreshold = std::min(minThreshold, thresholds[l]);
-        if (value >= minThreshold) nQueue.push({node, value}, node->label > -1);
+    inline static void addToQueueThresholds(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value) {
+        if (value >= node->th) nQueue.push({node, value}, node->label > -1);
     }
 
     // Additional statistics

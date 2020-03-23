@@ -256,7 +256,7 @@ public:
     inline const T* operator[](const int index) const { return r[index]; }
 
     // Returns rows' sizes
-    inline std::vector<int>& allSizes() { return s; }
+    inline std::vector<size_t>& allSizes() { return s; }
 
     // Returns single row size
     inline int size(const int index) const { return s[index]; }

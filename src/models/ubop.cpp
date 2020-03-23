@@ -21,9 +21,8 @@ UBOP::UBOP() {
 
 void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::vector<Prediction> allPredictions;
-
-    args.topK = -1;
-    OVR::predict(allPredictions, features, args);
+    allPredictions = OVR::predictForAllLabels(features, args);
+    sort(allPredictions.rbegin(), allPredictions.rend());
 
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
@@ -38,6 +37,5 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args&
             break;
     }
 
-    // std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum <<
-    // "\n"; exit(0);
+    //std::cerr << "  UBOP: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
 }

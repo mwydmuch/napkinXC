@@ -56,9 +56,6 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     int size = lCols;
     out.write((char*)&size, sizeof(size));
 
-    // TODO: Calculate required memory
-    unsigned long long reqMem = lCols * (rows * sizeof(double) + sizeof(void*)) + labels.mem() + features.mem();
-
     int parts = calculateNumberOfParts(labels, features, args);
     int range = lCols / parts + 1;
 
@@ -75,7 +72,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         int rStart = p * range;
         int rStop = (p + 1) * range;
 
-        for (int r = 0; r < rows; ++r) {
+        for (int r = 0; r < rows - 1; ++r) {
             printProgress(r, rows);
 
             int rSize = labels.size(r);
@@ -89,7 +86,8 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
             }
         }
 
-        assert(binLabels[0].size() == binWeights->size());
+        if(args.pickOneLabelWeighting)
+            assert(binLabels[0].size() == binWeights->size());
 
         trainBasesWithSameFeatures(out, features.cols(), binLabels, binFeatures, binWeights, args);
         for (auto& l : binLabels) l.clear();

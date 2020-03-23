@@ -31,7 +31,6 @@ public:
 protected:
     Tree* tree;
     std::vector<Base*> bases;
-    std::vector<int> thMin;
 
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,

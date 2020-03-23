@@ -148,14 +148,20 @@ Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
 void PLT::setThresholds(std::vector<float> th){
     thresholds = th;
 
-    for(auto& n : tree->nodes){
-        for(auto& l : n->labels) {
-            if(thresholds[l] < n->th){
+    //std::cerr << "Setting thresholds for PLT ...\n";
+    for(auto& n : tree->nodes) {
+        n->th = 1;
+        for (auto &l : n->labels) {
+            if (thresholds[l] < n->th) {
                 n->th = thresholds[l];
                 n->thLabel = l;
             }
         }
+        //std::cerr << "  Node " << n->index << ", labels: " << n->labels.size() << ", min: " << n->th << std::endl;
     }
+
+    tree->root->th = 0;
+    tree->root->thLabel = 0;
 }
 
 void PLT::updateThresholds(UnorderedMap<int, float> thToUpdate){
@@ -164,7 +170,7 @@ void PLT::updateThresholds(UnorderedMap<int, float> thToUpdate){
 
     for(auto& th : thToUpdate){
         TreeNode* n = tree->leaves[th.first];
-        while(n != nullptr){
+        while(n != tree->root){
             if(th.second < n->th){
                 n->th = th.second;
                 n->thLabel = th.first;

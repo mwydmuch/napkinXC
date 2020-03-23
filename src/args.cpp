@@ -382,50 +382,54 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 }
 
 void Args::printArgs() {
-    if (command == "train" || command == "test") {
-        std::cerr << "napkinXC " << VERSION << " - " << command << "\n  Input: " << input
-                  << "\n    Data format: " << dataFormatName << "\n    Header: " << header << ", bias: " << bias
-                  << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
-                  << "\n  Model: " << output << "\n    Type: " << modelName;
-        if (ensemble > 1) std::cerr << ", ensemble: " << ensemble;
+    std::cerr << "napkinXC " << VERSION << " - " << command
+              << "\n  Input: " << input << "\n    Data format: " << dataFormatName
+              << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
+              << "\n  Model: " << output << "\n    Type: " << modelName;
 
-        if (command == "train") {
-            std::cerr << "\n  Base models optimizer: " << optimizerName;
-            if (optimizerType == liblinear)
-                std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
-            else
-                std::cerr << "\n    Eta: " << eta << ", epochs: " << epochs;
-            if (optimizerType == adagrad) std::cerr << ", AdaGrad eps " << adagradEps;
-            if (optimizerType == fobos) std::cerr << ", Fobos penalty: " << fobosPenalty;
-            std::cerr << ", weights threshold: " << weightsThreshold;
+    if (ensemble > 1) std::cerr << ", ensemble: " << ensemble;
 
-            if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
-                if (treeStructure.empty()) {
-                    std::cerr << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
-                    if (treeType == hierarchicalKMeans)
-                        std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced
-                                  << ", weighted features: " << kMeansWeightedFeatures;
-                    if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
-                        std::cerr << ", max leaves: " << maxLeaves;
-                } else {
-                    std::cerr << "\n    Tree: " << treeStructure;
-                }
+    if (command == "train") {
+        std::cerr << "\n  Base models optimizer: " << optimizerName;
+        if (optimizerType == liblinear)
+            std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
+        else
+            std::cerr << "\n    Eta: " << eta << ", epochs: " << epochs;
+        if (optimizerType == adagrad) std::cerr << ", AdaGrad eps " << adagradEps;
+        if (optimizerType == fobos) std::cerr << ", Fobos penalty: " << fobosPenalty;
+        std::cerr << ", weights threshold: " << weightsThreshold;
+
+        if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
+            if (treeStructure.empty()) {
+                std::cerr << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
+                if (treeType == hierarchicalKMeans)
+                    std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced
+                              << ", weighted features: " << kMeansWeightedFeatures;
+                if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
+                    std::cerr << ", max leaves: " << maxLeaves;
+            } else {
+                std::cerr << "\n    Tree: " << treeStructure;
             }
         }
-
-        if (command == "test") {
-            std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
-
-            if (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips) {
-                std::cerr << "\n  Set utility: " << setUtilityName;
-                if (setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
-                if (setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
-                if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
-            }
-        }
-        std::cerr << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
-                  << "\n  Seed: " << seed << std::endl;
     }
+
+    if (command == "test") {
+        if(thresholds.empty()) std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
+        else std::cerr << "\n  Thresholds: " << thresholds;
+
+        if (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips) {
+            std::cerr << "\n  Set utility: " << setUtilityName;
+            if (setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
+            if (setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
+            if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
+        }
+    }
+
+    if (command == "ofo")
+        std::cerr << "\n  Epochs: " << epochs << ", a: " << ofoA << ", b: " << ofoB;
+
+    std::cerr << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
+              << "\n  Seed: " << seed << std::endl;
 }
 
 void Args::printHelp() {

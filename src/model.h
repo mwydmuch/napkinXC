@@ -28,7 +28,7 @@ public:
     // Prediction with thresholds and ofo
     virtual void setThresholds(std::vector<float> th);
     virtual void updateThresholds(UnorderedMap<int, float> thToUpdate);
-    virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) = 0;
+    virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args);
     virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args);
     virtual std::vector<float> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 

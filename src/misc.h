@@ -250,6 +250,8 @@ std::vector<std::string> split(std::string text, char d = ',');
 // String to lower
 std::string toLower(std::string text);
 
+std::string formatMem(size_t mem);
+
 // Files utils
 class FileHelper {
 public:

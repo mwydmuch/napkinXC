@@ -59,7 +59,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     // TODO: Calculate required memory
     unsigned long long reqMem = lCols * (rows * sizeof(double) + sizeof(void*)) + labels.mem() + features.mem();
 
-    int parts = 1;
+    int parts = calculateNumberOfParts(labels, features, args);
     int range = lCols / parts + 1;
 
     assert(lCols < range * parts);

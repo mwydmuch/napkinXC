@@ -33,10 +33,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     int size = lCols;
     out.write((char*)&size, sizeof(size));
 
-    // TODO: Calculate required memory
-    unsigned long long reqMem = lCols * (rows * sizeof(double) + sizeof(void*)) + labels.mem() + features.mem();
-
-    int parts = 1;
+    int parts = calculateNumberOfParts(labels, features, args);
     int range = lCols / parts + 1;
 
     assert(lCols < range * parts);
@@ -111,4 +108,20 @@ void BR::load(Args& args, std::string infile) {
 void BR::printInfo() {
     std::cerr << name << " additional stats:"
               << "\n  Mean # estimators per data point: " << bases.size() << "\n";
+}
+
+size_t BR::calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+    int rows = features.rows();
+    int lCols = labels.cols();
+
+    // Calculate required memory
+    // Size of required data
+    unsigned long long dataMem = labels.mem() + features.mem();
+    unsigned long long tmpDataMem = lCols * (rows * sizeof(double) + sizeof(void*));
+    unsigned long long baseMem = args.threads * 3 * features.cols() * sizeof(double);
+    unsigned long long reqMem = tmpDataMem + dataMem + baseMem;
+    std::cerr << "Required memory to train: " << formatMem(reqMem) << ", available memory: " << formatMem(args.memLimit) << std::endl;
+
+    size_t parts = tmpDataMem / (args.memLimit - dataMem - baseMem) + 1;
+    return parts;
 }

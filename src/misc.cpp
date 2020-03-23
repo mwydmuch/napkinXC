@@ -125,6 +125,20 @@ std::string toLower(std::string text) {
     return lower;
 }
 
+std::string formatMem(size_t mem){
+    // kilo, mega, giga, tera, peta, exa
+    char units[7] = {' ', 'K', 'M', 'G', 'T', 'P', 'E'};
+    double fMem = mem;
+    int i = 0;
+    while(fMem > 1024){
+        fMem /= 1024;
+        ++i;
+    }
+    mem = std::ceil(fMem);
+
+    return "~" + std::to_string(mem) + units[i];
+}
+
 // Files utils
 void FileHelper::saveToFile(std::string outfile) {
     std::ofstream out(outfile);

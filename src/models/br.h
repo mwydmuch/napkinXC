@@ -28,4 +28,5 @@ protected:
     std::vector<Base*> bases;
 
     virtual std::vector<Prediction> predictForAllLabels(Feature* features, Args& args);
+    static size_t calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 };

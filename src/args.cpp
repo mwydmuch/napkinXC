@@ -423,8 +423,7 @@ void Args::printArgs() {
                 if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
             }
         }
-        std::cerr << "\n  Threads: " << threads
-                  << ", memory limit: " << static_cast<double>(memLimit) / 1024 / 1024 / 1024 << "G"
+        std::cerr << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
                   << "\n  Seed: " << seed << std::endl;
     }
 }

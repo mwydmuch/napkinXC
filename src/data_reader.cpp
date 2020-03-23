@@ -123,7 +123,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
 
     // Print info about loaded data
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2
-              << ", labels: " << labels.cols() << std::endl;
+              << ", labels: " << labels.cols() << "\n  Data size: " << formatMem(labels.mem() + features.mem()) << std::endl;
 }
 
 void DataReader::save(std::ostream& out) {}

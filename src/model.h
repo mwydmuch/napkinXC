@@ -44,14 +44,13 @@ protected:
     static Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
                            std::vector<double>* instancesWeights, Args& args);
 
-    static void trainBatchThread(int n, std::vector<Base *>& results,
+    static void trainBatchThread(int n, std::vector<std::promise<Base *>>& results,
                                  std::vector<std::vector<double>>& baseLabels,
                                  std::vector<std::vector<Feature*>>& baseFeatures,
-                                 std::vector<std::vector<double>*>* instancesWeights, Args& args, int threadId, int threads);
+                                 std::vector<std::vector<double>*>* instancesWeights,
+                                 Args& args, int threadId, int threads);
 
     static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results);
-
-    static void saveResults(std::ofstream& out, std::vector<Base*>& results);
 
     static void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                            std::vector<std::vector<Feature*>>& baseFeatures,
@@ -61,10 +60,11 @@ protected:
                            std::vector<std::vector<Feature*>>& baseFeatures,
                            std::vector<std::vector<double>*>* instancesWeights, Args& args);
 
-    static void trainBatchWithSameFeaturesThread(int n, std::vector<Base *>& results,
-                                 std::vector<std::vector<double>>& baseLabels,
-                                 std::vector<Feature*>& baseFeatures,
-                                 std::vector<double>* instancesWeights, Args& args, int threadId, int threads);
+    static void trainBatchWithSameFeaturesThread(int n, std::vector<std::promise<Base *>>& results,
+                                                 std::vector<std::vector<double>>& baseLabels,
+                                                 std::vector<Feature*>& baseFeatures,
+                                                 std::vector<double>* instancesWeights,
+                                                 Args& args, int threadId, int threads);
 
     static void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
                                            std::vector<Feature*>& baseFeatures,

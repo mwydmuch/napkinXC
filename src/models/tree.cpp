@@ -314,7 +314,7 @@ void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features,
                 } else if (args.treeType == onlineRandom) { // Random policy
                     std::default_random_engine rng(args.getSeed());
                     std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
-                    while (toExpand->children.size() >= args.arity) toExpand = toExpand->children[dist(rng)];
+                    while (toExpand->children.size() == args.arity) toExpand = toExpand->children[dist(rng)];
                 }
 
                 // Expand selected node

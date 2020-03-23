@@ -26,11 +26,13 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     int lCols = labels.cols();
     assert(rows == labels.rows());
 
-    if (args.pickOneLabelWeighting)
+    std::vector<double>* binWeights = nullptr;
+    if (args.pickOneLabelWeighting) {
         bRows = labels.cells();
+        binWeights = new std::vector<double>();
+        binWeights->reserve(bRows);
+    }
 
-    auto binWeights = new std::vector<double>();
-    binWeights->reserve(bRows);
     std::vector<Feature*> binFeatures;
     binFeatures.reserve(bRows);
 
@@ -43,13 +45,12 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
             continue;
         }
 
-        for (int i = 0; i < rSize; ++i) {
+        for (int i = 0; i < rSize; ++i)
             binFeatures.push_back(features[r]);
-            binWeights->push_back(1.0 / rSize);
-        }
+        if(args.pickOneLabelWeighting)
+            for (int i = 0; i < rSize; ++i)
+                binWeights->push_back(1.0 / rSize);
     }
-
-    assert(binFeatures.size() == binWeights->size());
 
     std::ofstream out(joinPath(output, "weights.bin"));
     int size = lCols;

@@ -80,7 +80,8 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
                 distances[i].index = i;
                 for (int j = 0; j < centroids; ++j) {
                     distances[i].values[j].index = j;
-                    distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);}
+                    distances[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
+                }
 
                 std::sort(distances[i].values.begin(), distances[i].values.end());
 

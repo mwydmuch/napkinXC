@@ -66,6 +66,9 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         nodeUpdateCount += nPositive.size() + nNegative.size();
         ++dataPointCount;
     }
+
+    unsigned long long usedMem = nodeUpdateCount * (sizeof(double) + sizeof(Feature*)) + binLabels.size() * (sizeof(binLabels) + sizeof(binFeatures));
+    std::cerr << "  Temporary data size: " << formatMem(usedMem) << std::endl;
 }
 
 void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
@@ -289,7 +292,7 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
 
     trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
     if (type == hsm && args.pickOneLabelWeighting) {
-        for (auto& p : *binWeights) delete p;
+        for (auto& w : *binWeights) delete w;
         delete binWeights;
     }
 }

@@ -214,12 +214,12 @@ Base* Model::trainBase(int n, std::vector<double>& baseLabels, std::vector<Featu
 
 void Model::trainBatchThread(int n, std::vector<std::promise<Base *>>& results, std::vector<std::vector<double>>& baseLabels,
                              std::vector<std::vector<Feature*>>& baseFeatures,
-                             std::vector<std::vector<double>*>* instancesWeights, Args& args, int threadId, int threads){
+                             std::vector<std::vector<double>*>* instancesWeights, Args& args, int threadId, int threads) {
 
     size_t size = baseLabels.size();
-    for(int i = threadId; i < size; i += threads)
+    for (int i = threadId; i < size; i += threads)
         results[i].set_value(trainBase(n, baseLabels[i], baseFeatures[i],
-                               (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
+                                   (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
 }
 
 void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results) {
@@ -251,9 +251,9 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
 
     size_t size = baseLabels.size(); // This "batch" size
     std::cerr << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
+    std::cerr << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << std::endl;
 
     // Run learning in parallel
-
     if(args.threads > 1) {
         // Thread set solution
         ThreadSet tSet;
@@ -261,7 +261,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
         std::vector<std::future<Base *>> results(size);
         for(int i = 0; i < size; ++i) results[i] = resultsPromise[i].get_future();
         for (int t = 0; t < args.threads; ++t)
-            tSet.add(trainBatchThread, n, std::ref(resultsPromise), baseLabels, baseFeatures, instancesWeights, args, t, args.threads);
+            tSet.add(trainBatchThread, n, std::ref(resultsPromise), std::ref(baseLabels), std::ref(baseFeatures), instancesWeights, args, t, args.threads);
 
         // Thread pool solution is slower
         /*
@@ -269,7 +269,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
         std::vector<std::future<Base *>> results;
         results.reserve(size);
         for (int i = 0; i < size; ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures[i],
+            results.emplace_back(tPool.enqueue(trainBase, n, std::ref(baseLabels[i]), std::ref(baseFeatures[i]),
                                                (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
         */
 
@@ -281,7 +281,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
             Base* base = new Base();
             base->train(n, baseLabels[i], baseFeatures[i], (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args);
             base->save(out);
-            delete base;
+            //delete base;
         }
     }
 }
@@ -320,7 +320,7 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
         std::vector<std::future<Base *>> results(size);
         for(int i = 0; i < size; ++i) results[i] = resultsPromise[i].get_future();
         for (int t = 0; t < args.threads; ++t)
-            tSet.add(trainBatchWithSameFeaturesThread, n, std::ref(resultsPromise), baseLabels, baseFeatures, instancesWeights, args, t, args.threads);
+            tSet.add(trainBatchWithSameFeaturesThread, n, std::ref(resultsPromise), std::ref(baseLabels), std::ref(baseFeatures), instancesWeights, args, t, args.threads);
 
         // Thread pool solution is slower
         /*
@@ -329,7 +329,7 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
         results.reserve(size);
 
         for (int i = 0; i < size; ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, baseLabels[i], baseFeatures, instancesWeights, args));
+            results.emplace_back(tPool.enqueue(trainBase, n, std::ref(baseLabels[i]), std::ref(baseFeatures), instancesWeights, args));
         */
 
         // Saving in the main thread

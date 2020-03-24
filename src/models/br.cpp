@@ -60,6 +60,9 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
                 if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart].back() = 1.0;
         }
 
+        unsigned long long usedMem = range * (rows * sizeof(double) + sizeof(void*));
+        std::cerr << "  Temporary data size: " << formatMem(usedMem) << std::endl;
+
         trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), nullptr, args);
         for (auto& l : binLabels) l.clear();
     }
@@ -116,7 +119,7 @@ size_t BR::calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& fe
     // Size of required data
     unsigned long long dataMem = labels.mem() + features.mem();
     unsigned long long tmpDataMem = lCols * (rows * sizeof(double) + sizeof(void*));
-    unsigned long long baseMem = args.threads * 3 * features.cols() * sizeof(double);
+    unsigned long long baseMem = args.threads * args.threads * features.cols() * sizeof(double);
     unsigned long long reqMem = tmpDataMem + dataMem + baseMem;
     std::cerr << "Required memory to train: " << formatMem(reqMem) << ", available memory: " << formatMem(args.memLimit) << std::endl;
 

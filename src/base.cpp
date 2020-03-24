@@ -109,7 +109,12 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
         deleteInstanceWeights = true;
     }
 
-    problem P = {.l = l, .n = n, .y = y, .x = x, .bias = (args.bias > 0 ? 1.0 : -1.0), .W = instancesWeights->data()};
+    problem P = {.l = l,
+                 .n = n,
+                 .y = y,
+                 .x = x,
+                 .bias = -1,
+                 .W = instancesWeights->data()};
 
     parameter C = {.solver_type = args.solverType,
                    .eps = args.eps,
@@ -124,20 +129,10 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
     auto output = check_parameter(&P, &C);
     assert(output == NULL);
 
-    // Optimize C for small datasets
-    if (args.cost < 0 && binLabels.size() > 100 && binLabels.size() < 1000) {
-        double bestC = -1;
-        double bestP = -1;
-        double bestScore = -1;
-        find_parameters(&P, &C, 1, 4.0, -1, &bestC, &bestP, &bestScore);
-        C.C = bestC;
-    } else if (args.cost < 0)
-        C.C = 8.0;
-
     model* M = train_liblinear(&P, &C);
 
     assert(M->nr_class <= 2);
-    assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
+    assert(M->nr_feature == n);
 
     // Set base's attributes
     wSize = n + 1;
@@ -295,6 +290,7 @@ void Base::clear() {
     mapG = nullptr;
 
     delete[] sparseW;
+    sparseW = nullptr;
 }
 
 void Base::toMap() {
@@ -373,8 +369,7 @@ void Base::save(std::ostream& out) {
 
     if (classCount > 1) {
         // Decide on optimal file coding
-        // bool saveSparse = sparseSize() < denseSize();
-        bool saveSparse = true;
+        bool saveSparse = sparseSize() < denseSize();
 
         out.write((char*)&hingeLoss, sizeof(hingeLoss));
         out.write((char*)&wSize, sizeof(wSize));

@@ -31,17 +31,17 @@ using namespace similarity;
 
 class MIPSIndex {
 public:
-    MIPSIndex(size_t dim, Args& args);
+    MIPSIndex(int dim, Args& args);
     ~MIPSIndex();
 
     void addPoint(double* pointData, int size, int label);
     void addPoint(UnorderedMap<int, Weight>* pointData, int label);
     void createIndex(Args& args);
     inline size_t getSize() { return data.size(); }
-    std::priority_queue<Prediction> predict(Feature* data, size_t k);
+    std::priority_queue<Prediction> predict(Feature* data, int k);
 
 protected:
-    size_t dim;
+    int dim;
     std::string methodType;
     std::string spaceType;
     Space<DATA_T>* space;

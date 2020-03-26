@@ -58,7 +58,7 @@ public:
     TopKQueue(){
         k = 0;
     }
-    explicit TopKQueue(size_t k): k(k){};
+    explicit TopKQueue(int k): k(k){};
     ~TopKQueue() = default;
 
     inline bool empty(){
@@ -92,7 +92,7 @@ public:
 private:
     std::priority_queue<T> mainQueue;
     std::priority_queue<T, std::vector<T>, std::greater<>> finalQueue;
-    size_t k;
+    int k;
 };
 
 // Simple dense vector
@@ -256,7 +256,7 @@ public:
     inline const T* operator[](const int index) const { return r[index]; }
 
     // Returns rows' sizes
-    inline std::vector<size_t>& allSizes() { return s; }
+    inline std::vector<int>& allSizes() { return s; }
 
     // Returns single row size
     inline int size(const int index) const { return s[index]; }
@@ -267,18 +267,18 @@ public:
     inline int cells() const { return c; }
 
     // Number of cells + -1 cells * size of type + size of vectors
-    inline unsigned long long mem() { return (c + n) * sizeof(T) + m * (sizeof(size_t) + sizeof(T*)); }
+    inline unsigned long long mem() { return (c + n) * sizeof(T) + m * (sizeof(int) + sizeof(T*)); }
 
     void clear();
     void save(std::ostream& out);
     void load(std::istream& in);
 
 private:
-    int m;                  // Row count
-    int n;                  // Col count
-    int c;                  // Non zero cells count
-    std::vector<size_t> s;  // Rows' sizes
-    std::vector<T*> r;      // Rows
+    int m;              // Row count
+    int n;              // Col count
+    int c;              // Non zero cells count
+    std::vector<int> s; // Rows' sizes
+    std::vector<T*> r;  // Rows
 
     inline T* createNewRow(const T* row, const int size);
     inline void updateN(const T* row, const int size);

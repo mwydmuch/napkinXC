@@ -74,6 +74,7 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
                                     args.kMeansWeightedFeatures);
         // labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
         buildKMeansTree(labelsFeatures, args);
+        exit(0);
     } else if (args.treeType == onlineBalanced || args.treeType == onlineComplete || args.treeType == onlineRandom) {
         buildOnlineTree(labels, features, args);
     } else if (args.treeType != custom) {

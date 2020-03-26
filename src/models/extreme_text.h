@@ -25,7 +25,7 @@ public:
 protected:
     Matrix<XTWeight> inputW;  // Input vectors (word vectors)
     Matrix<XTWeight> outputW; // Tree node vectors
-    size_t dims;
+    int dims;
 
     double update(double lr, Feature* features, Label* labels, int rSize, Args& args);
     double updateNode(TreeNode* node, double label, Vector<XTWeight>& hidden, Vector<XTWeight>& gradient, double lr, double l2);

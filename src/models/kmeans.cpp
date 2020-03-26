@@ -69,7 +69,9 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
             std::sort(distances.begin(), distances.end());
 
             for (int i = 0; i < points; ++i) {
-                int cIndex = (i < (maxPartitionSize + maxWithOneMore)) ? 0 : 1;
+                int cIndex;
+                if(balanced) cIndex = (i < (maxPartitionSize + maxWithOneMore)) ? 0 : 1;
+                else cIndex = (distances[i].differences[0].value <= 0) ? 0 : 1;
                 (*partition)[distances[i].index].value = cIndex;
                 newCos += distances[i].values[cIndex].value;
             }
@@ -112,12 +114,8 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
         newCos /= points;
 
         // Update centroids
-        for (int i = 0; i < centroids; ++i)
-            std::fill(centroidsFeatures[i].begin(), centroidsFeatures[i].end(), 0);
-        for (int i = 0; i < points; ++i)
-            addVector(pointsFeatures[(*partition)[i].index], centroidsFeatures[(*partition)[i].value]);
-
-        // Norm new centroids
-        for (int i = 0; i < centroids; ++i) unitNorm(centroidsFeatures[i]);
+        for (auto& c : centroidsFeatures) std::fill(c.begin(), c.end(), 0);
+        for (auto& p : (*partition)) addVector(pointsFeatures[p.index], centroidsFeatures[p.value]);
+        for (auto& c : centroidsFeatures) unitNorm(c);
     }
 }

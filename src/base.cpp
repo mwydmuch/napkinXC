@@ -186,7 +186,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         return;
     }
 
-    assert(binLabels.size() == binFeatures.size());
+    //assert(binLabels.size() == binFeatures.size());
     if (instancesWeights != nullptr) assert(instancesWeights->size() == binLabels.size());
 
     if (args.optimizerType == liblinear)

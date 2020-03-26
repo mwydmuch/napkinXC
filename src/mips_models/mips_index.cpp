@@ -7,7 +7,7 @@
 
 using namespace similarity;
 
-MIPSIndex::MIPSIndex(size_t dim, Args& args) : dim(dim) {
+MIPSIndex::MIPSIndex(int dim, Args& args) : dim(dim) {
     int seed = 0;
 
     // Init library, specify a log file
@@ -70,7 +70,7 @@ void MIPSIndex::createIndex(Args& args) {
     */
 }
 
-std::priority_queue<Prediction> MIPSIndex::predict(Feature* data, size_t k) {
+std::priority_queue<Prediction> MIPSIndex::predict(Feature* data, int k) {
     // std::cerr << "Quering index\n";
 
     std::priority_queue<Prediction> result;

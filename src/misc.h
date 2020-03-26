@@ -19,10 +19,10 @@
 // Data utils
 std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels);
 
-void computeLabelsFeaturesMatrixThread(std::vector<UnorderedMap<int, double>>& tmpLabelsFeatures,
+void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labelsFeatures,
+                                       std::vector<std::vector<int>>& labelsExamples,
                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
-                                       bool weightedFeatures, int threadId, int threads,
-                                       std::vector<std::mutex>& mutexes);
+                                       bool norm, bool weightedFeatures, int threadId, int threads);
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads = 1, bool norm = false,
@@ -107,6 +107,7 @@ template <typename T> inline void setVector(Feature* vector1, std::vector<T>& ve
     setVector(vector1, vector2.data(), vector2.size());
 }
 
+
 // Zeros selected values of a dense vactor
 template <typename T> inline void setVectorToZeros(Feature* vector1, T* vector2, const size_t size) {
     for(Feature* f = vector1; f->index != -1 && f->index < size; ++f) vector2[f->index] = 0;
@@ -122,15 +123,6 @@ template <typename T> inline void setVectorToZeros(Feature* vector1, T& vector2)
     setVectorToZeros(vector1, vector2.data());
 }
 
-// Add values of vector 1 to vector 2
-template <typename T> inline void addVector(T* vector1, T* vector2, const size_t size) {
-    for(int i = 0; i < size; ++i) vector2[i] += vector1[i];
-}
-
-template <typename T> inline void addVector(T& vector1, T& vector2) {
-    assert(vector1.size() == vector2.size());
-    addVector(vector1.data(), vector2.data(), vector2.size());
-}
 
 // Add values of vector 1 to vector 2 multiplied by scalar
 template <typename T> inline void addVector(T* vector1, double scalar, T* vector2, const size_t size) {
@@ -141,18 +133,34 @@ template <typename T> inline void addVector(T& vector1, double scalar, T& vector
     addVector(vector1.data(), scalar, vector2.data(), vector2.size());
 }
 
-// Add values of sparse vector 1 to vector 2
-template <typename T> inline void addVector(Feature* vector1, T* vector2, const size_t size) {
-    Feature* f = vector1;
+template <typename T> inline void addVector(T& vector1, T& vector2) {
+    addVector(vector1.data(), 1.0, vector2.data(), vector2.size());
+}
+
+template <typename T> inline void addVector(const Feature* vector1, double scalar, T* vector2, const size_t size) {
+    Feature* f = (Feature*)vector1;
     while (f->index != -1 && f->index < size) {
-        vector2[f->index] += f->value;
+        vector2[f->index] += f->value * scalar;
         ++f;
     }
 }
 
-template <typename T> inline void addVector(Feature* vector1, T& vector2) {
-    addVector(vector1, vector2.data(), vector2.size());
+template <typename T> inline void addVector(const Feature* vector1, double scalar, UnorderedMap<int, T>& vector2) {
+    Feature* f = (Feature*)vector1;
+    while (f->index != -1) {
+        vector2[f->index] += f->value * scalar;
+        ++f;
+    }
 }
+
+template <typename T> inline void addVector(const Feature* vector1, double scalar, T& vector2) {
+    addVector(vector1, scalar, vector2.data(), vector2.size());
+}
+
+template <typename T> inline void addVector(const Feature* vector1, T& vector2) {
+    addVector(vector1, 1.0, vector2.data(), vector2.size());
+}
+
 
 // Multiply vector by scalar
 template <typename T> inline void mulVector(T* vector, double scalar, const size_t size) {

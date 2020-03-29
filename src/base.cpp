@@ -422,6 +422,8 @@ void Base::load(std::istream& in) {
             in.read((char*)W, wSize * sizeof(Weight));
         }
     }
+
+    //toDense();
 }
 
 size_t Base::size() {

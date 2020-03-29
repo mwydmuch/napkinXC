@@ -34,7 +34,6 @@ public:
     void finalizeOnlineTraining(Args& args);
 
     double predictValue(Feature* features);
-    double predictLoss(Feature* features);
     double predictProbability(Feature* features);
 
     inline Weight* getW() { return W; }

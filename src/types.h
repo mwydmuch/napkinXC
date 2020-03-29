@@ -270,6 +270,7 @@ public:
     inline unsigned long long mem() { return (c + n) * sizeof(T) + m * (sizeof(int) + sizeof(T*)); }
 
     void clear();
+    void dump(std::string outfile);
     void save(std::ostream& out);
     void load(std::istream& in);
 
@@ -358,12 +359,25 @@ template <typename T> void SRMatrix<T>::clear() {
     c = 0;
 }
 
-template <typename T> void SRMatrix<T>::save(std::ostream& out) {
+template <typename T> void SRMatrix<T>::dump(std::string outfile) {
+    std::ofstream out(outfile);
+
     out << m << " " << n << "\n";
     for (int i = 0; i < m; ++i) {
-        out << s[i];
-        for (int j = 0; j < s[i]; ++j) out << " " << r[i][j];
+        for (int j = 0; j < s[i]; ++j) out << r[i][j] << " ";
         out << "\n";
+    }
+
+    out.close();
+}
+
+template <typename T> void SRMatrix<T>::save(std::ostream& out) {
+    out.write((char*)&m, sizeof(m));
+    out.write((char*)&n, sizeof(n));
+
+    for (int i = 0; i < m; ++i) {
+        out.write((char*)&s[i], sizeof(s[i]));
+        for (int j = 0; j <= s[i]; ++j) out.write((char*)&r[i][j], sizeof(T));
     }
 }
 

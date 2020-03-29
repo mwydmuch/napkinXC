@@ -44,14 +44,17 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labels
         if (threadId == 0) printProgress(l, size);
         UnorderedMap<int, double> lFeatures;
 
-        if(weightedFeatures)
-            for (const auto& e : labelsExamples[l]) addVector(features[e], 1.0 / features.size(e), lFeatures);
-        else
-            for (const auto& e : labelsExamples[l]) addVector(features[e], 1.0, lFeatures);
+        for (const auto& e : labelsExamples[l]){
+            Feature* f = (Feature*)features[e];
+            if(f->index == 1) ++f; // Skip bias feature
+            if(weightedFeatures) addVector(f, 1.0 / features.size(e), lFeatures);
+            else addVector(f, 1.0, lFeatures);
+        }
 
         for(auto& f : lFeatures)
             labelsFeatures[l].push_back({f.first, f.second});
 
+        std::sort(labelsFeatures[l].begin(), labelsFeatures[l].end());
         if(norm) unitNorm(labelsFeatures[l]);
         else divVector(labelsFeatures[l], labelsExamples[l].size());
     }

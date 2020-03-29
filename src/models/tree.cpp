@@ -72,9 +72,8 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
         SRMatrix<Feature> labelsFeatures;
         computeLabelsFeaturesMatrix(labelsFeatures, labels, features, args.threads, args.norm,
                                     args.kMeansWeightedFeatures);
-        // labelsFeatures.save(joinPath(args.model, "lf_mat.bin"));
+        //labelsFeatures.dump(joinPath(args.output, "lf_mat.txt"));
         buildKMeansTree(labelsFeatures, args);
-        exit(0);
     } else if (args.treeType == onlineBalanced || args.treeType == onlineComplete || args.treeType == onlineRandom) {
         buildOnlineTree(labels, features, args);
     } else if (args.treeType != custom) {

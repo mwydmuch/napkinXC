@@ -45,6 +45,9 @@ elif [[ -e "${DATASET_FILE}_train.txt" ]]; then
 elif [[ -e "${DATASET_FILE}.train" ]]; then
     TRAIN_FILE="${DATASET_FILE}.train"
     TEST_FILE="${DATASET_FILE}.test"
+elif [[ -e "${DATASET_FILE}_train.svm" ]]; then
+    TRAIN_FILE="${DATASET_FILE}_train.svm"
+    TEST_FILE="${DATASET_FILE}_test.svm"
 fi
 
 # Build nxc
@@ -63,7 +66,7 @@ if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
     (time ./nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
     echo
     echo "Train date: $(date)" | tee -a $TRAIN_RESULT_FILE
-    rm -rf $TRAIN_LOCK_FILE
+    rm -f $TRAIN_LOCK_FILE
 fi
 
 ## Test model

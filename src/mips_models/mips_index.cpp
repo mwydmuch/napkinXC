@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -52,22 +52,21 @@ void MIPSIndex::createIndex(Args& args) {
 
     AnyParams indexParams({
         "post=2",
+        "efConstruction=" + std::to_string(args.mipsEfConstruction),
         "indexThreadQty=" + std::to_string(args.threads),
     });
 
     index = MethodFactoryRegistry<DATA_T>::Instance().CreateMethod(true, methodType, spaceType, *space, data);
     index->CreateIndex(indexParams);
 
-    /*
-    AnyParams QueryTimeParams(
-        {
-            //"efSearch=50",
-        }
-    );
+    setEfSearch(args.mipsEfSearch);
+}
+
+void MIPSIndex::setEfSearch(int ef){
+    AnyParams QueryTimeParams({"efSearch=" + std::to_string(ef),});
 
     // Setting query-time parameters
     index->SetQueryTimeParams(QueryTimeParams);
-    */
 }
 
 std::priority_queue<Prediction> MIPSIndex::predict(Feature* data, int k) {
@@ -80,7 +79,7 @@ std::priority_queue<Prediction> MIPSIndex::predict(Feature* data, int k) {
 
     Feature* f = data;
     while (f->index != -1) {
-        output.push_back(SparseVectElem<DATA_T>(f->index - 1, f->value));
+        output.push_back(SparseVectElem<DATA_T>(f->index, f->value));
         ++f;
     }
     std::sort(output.begin(), output.end());

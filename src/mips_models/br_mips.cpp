@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -39,12 +39,14 @@ void BRMIPS::load(Args& args, std::string infile) {
     mipsIndex = new MIPSIndex(dim, args);
     for (int i = 0; i < m; ++i) {
         printProgress(i, m);
-        bases[i]->toMap();
-        if (!bases[i]->getFirstClass()) bases[i]->invertWeights();
-        mipsIndex->addPoint(bases[i]->getMapW(), i);
+        if(!bases[i]->isDummy()) {
+            bases[i]->toMap();
+            if (!bases[i]->getFirstClass()) bases[i]->invertWeights();
+            mipsIndex->addPoint(bases[i]->getMapW(), i);
 
-        // bases[i]->toDense();
-        // mipsIndex->addPoint(bases[i]->getW(), bases[i]->size(), i);
+            // bases[i]->toDense();
+            // mipsIndex->addPoint(bases[i]->getW(), bases[i]->size(), i);
+        }
     }
 
     mipsIndex->createIndex(args);

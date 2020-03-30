@@ -119,7 +119,14 @@ public:
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
+    // Mips options
+    int mipsEfConstruction;
+    int mipsEfSearch;
+
     // Set utility options
+    double ubopMipsK;
+    double ubopMipsSample;
+
     SetUtilityType setUtilityType;
     double alfa;
     double beta;

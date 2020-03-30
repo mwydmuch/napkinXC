@@ -77,8 +77,16 @@ Args::Args() {
     threshold = 0.0;
     thresholds = "";
 
+    // Mips options
+    mipsEfConstruction = 100;
+    mipsEfSearch = 100;
+
     // Set utility options
-    setUtilityType = uAlfaBeta;
+    ubopMipsK = 0.05;
+    ubopMipsSample = 0.05;
+
+
+    setUtilityType = uP;
     alfa = 0.0;
     beta = 0.0;
     epsilon = 0.0;
@@ -165,16 +173,20 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else if (args.at(ai + 1) == "ubopMips")
                     modelType = ubopMips;
 #else
-                else if (args.at(ai + 1) == "brMips" || args.at(ai + 1) == "ubopMips") {
-                    std::cerr << args.at(ai + 1) << " model requires MIPS extension";
-                    exit(EXIT_FAILURE);
-                }
+                    else if (args.at(ai + 1) == "brMips" || args.at(ai + 1) == "ubopMips") {
+                        std::cerr << args.at(ai + 1) << " model requires MIPS extension";
+                        exit(EXIT_FAILURE);
+                    }
 #endif
                 else {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            } else if (args[ai] == "--setUtility") {
+            } else if (args[ai] == "--mipsEfConstruction")
+                mipsEfConstruction = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--mipsEfSearch")
+                mipsEfSearch = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--setUtility") {
                 setUtilityName = args.at(ai + 1);
                 if (args.at(ai + 1) == "uP")
                     setUtilityType = uP;

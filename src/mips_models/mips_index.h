@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -37,8 +37,11 @@ public:
     void addPoint(double* pointData, int size, int label);
     void addPoint(UnorderedMap<int, Weight>* pointData, int label);
     void createIndex(Args& args);
-    inline size_t getSize() { return data.size(); }
+
+    void setEfSearch(int ef);
     std::priority_queue<Prediction> predict(Feature* data, int k);
+
+    inline size_t getSize() { return data.size(); }
 
 protected:
     int dim;

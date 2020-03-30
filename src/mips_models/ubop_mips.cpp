@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -22,38 +22,35 @@ UBOPMIPS::UBOPMIPS() {
 void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
 
     int k;
-    if (args.setUtilityType == uP)
-        k = 2;
-    else
-        k = std::ceil(static_cast<double>(bases.size()) / 10);
+    if(args.ubopMipsK < 1) k = std::ceil(static_cast<double>(bases.size()) * args.ubopMipsK);
+    else k = args.ubopMipsK;
+
+    int sample;
+    if(args.ubopMipsSample < 1) sample = std::ceil(static_cast<double>(bases.size()) * args.ubopMipsSample);
+    else sample = args.ubopMipsSample;
 
     std::vector<Prediction> allPredictions;
     UnorderedSet<int> seenLabels;
     double sum = 0;
-
     std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, k);
     while (!mipsPrediction.empty()) {
         auto p = mipsPrediction.top();
-        p.value = exp(p.value);
         mipsPrediction.pop();
-        allPredictions.push_back(p);
+
+        p.value = exp(p.value);
         sum += p.value;
+        allPredictions.push_back(p);
         seenLabels.insert(p.label);
     }
 
     double tmpSum = 0;
-    int sample = (bases.size() - k) / 10;
     std::default_random_engine rng(args.seed);
     std::uniform_int_distribution<int> labelsRandomizer(0, bases.size());
     for (int i = 0; i < sample; ++i) {
         int r = labelsRandomizer(rng);
         double value = exp(bases[r]->predictValue(features));
         tmpSum += value;
-
-        if (!seenLabels.count(r))
-            seenLabels.insert(r);
-        else
-            --i;
+        if (seenLabels.count(r)) --i;
     }
 
     sum += tmpSum * static_cast<double>(bases.size() - k) / sample;
@@ -77,20 +74,19 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
         if (i + 1 == allPredictions.size()) {
             k *= 2;
             std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, k);
-            int j = 0;
             while (!mipsPrediction.empty()) {
                 auto p = mipsPrediction.top();
                 mipsPrediction.pop();
-                if (j > i) {
-                    p.value = exp(p.value) / sum;
-                    allPredictions.push_back(p);
+                if (!seenLabels.count(p.label)){
+                    allPredictions.push_back({p.label, exp(p.value) / sum});
+                    seenLabels.insert(p.label);
                 }
             }
         }
     }
 
-    // for(auto& p : allPredictions)
-    //    std::cerr << p.label << " " << p.value << "\n";
-    // std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum <<
-    // "\n"; exit(0);
+//     for(auto& p : allPredictions)
+//        std::cerr << p.label << " " << p.value << "\n";
+//     std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum <<
+//     "\n"; exit(0);
 }

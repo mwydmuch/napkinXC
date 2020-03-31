@@ -20,8 +20,8 @@ public:
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
 
-    void setThresholds(std::vector<float> th) override;
-    void updateThresholds(UnorderedMap<int, float> thToUpdate) override;
+    void setThresholds(std::vector<double> th) override;
+    void updateThresholds(UnorderedMap<int, double> thToUpdate) override;
     void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;

@@ -32,7 +32,7 @@ struct TreeNode {
     int subtreeDepth;
     std::vector<int> labels;
 
-    float th;
+    double th;
     int thLabel;
 };
 

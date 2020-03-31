@@ -303,9 +303,9 @@ void MicroF::accumulate(Label* labels, const std::vector<Prediction>& prediction
 
 MacroF::MacroF(int outputSize) : m(outputSize) {
     name = "MacroF";
-    labelsTP.resize(m);
-    labelsFP.resize(m);
-    labelsFN.resize(m);
+    labelsTP.resize(m, 0);
+    labelsFP.resize(m, 0);
+    labelsFN.resize(m, 0);
 }
 
 void MacroF::accumulate(Label* labels, const std::vector<Prediction>& prediction){
@@ -341,7 +341,10 @@ double MacroF::value(){
     double sum = 0;
     for(int i = 0; i < m; ++i){
         double denominator = 2 * labelsTP[i] + labelsFP[i] + labelsFN[i];
-        if(denominator > 0) sum += 2 * labelsTP[i] / denominator;
+        denominator = (denominator > 0) ? 2 * labelsTP[i] / denominator : 1.0;
+        //sum += (denominator > 0) ? 2 * labelsTP[i] / denominator : 1.0;
+        sum += denominator;
+        //std::cout << "Label: " << i << ", F1: " << denominator << "\n";
     }
     return sum / m;
 }

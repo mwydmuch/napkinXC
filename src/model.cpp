@@ -101,11 +101,11 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
     return predictions;
 }
 
-void Model::setThresholds(std::vector<float> th){
+void Model::setThresholds(std::vector<double> th){
     thresholds = th;
 }
 
-void Model::updateThresholds(UnorderedMap<int, float> thToUpdate){
+void Model::updateThresholds(UnorderedMap<int, double> thToUpdate){
     for(auto& th : thToUpdate)
         thresholds[th.first] = th.second;
 }
@@ -137,9 +137,8 @@ std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<
     return predictions;
 }
 
-void Model::ofoThread(int threadId, Model* model, std::vector<float>& as, std::vector<float>& bs,
-                      SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
-                      const int startRow, const int stopRow) {
+void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
+                      SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args, const int startRow, const int stopRow) {
 
     const int rowsRange = stopRow - startRow;
     const int examples = rowsRange * args.epochs;
@@ -173,7 +172,7 @@ void Model::ofoThread(int threadId, Model* model, std::vector<float>& as, std::v
 
         // Update thresholds, only those that may have changed due to update of as or bs,
         // For simplicity I compute some of them twice because it does not really matter
-        UnorderedMap<int, float> thToUpdate;
+        UnorderedMap<int, double> thToUpdate;
         for (const auto& p : prediction)
             thToUpdate[p.label] = as[p.label] / bs[p.label];
         l = -1;
@@ -184,16 +183,16 @@ void Model::ofoThread(int threadId, Model* model, std::vector<float>& as, std::v
     }
 }
 
-std::vector<float> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
+std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
     std::cerr << "Optimizing thresholds with OFO for " << args.epochs << " epochs using " << args.threads << " thread ...\n";
 
     // Initialize thresholds with zeros
-    thresholds = std::vector<float>(m, args.ofoA/args.ofoB);
+    thresholds = std::vector<double>(m, args.ofoA/args.ofoB);
     setThresholds(thresholds);
 
     // Variables required for OFO
-    std::vector<float> as(m, args.ofoA);
-    std::vector<float> bs(m, args.ofoB);
+    std::vector<double> as(m, args.ofoA);
+    std::vector<double> bs(m, args.ofoB);
 
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
@@ -281,7 +280,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
             Base* base = new Base();
             base->train(n, baseLabels[i], baseFeatures[i], (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args);
             base->save(out);
-            //delete base;
+            delete base;
         }
     }
 }
@@ -348,18 +347,29 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
 std::vector<Base*> Model::loadBases(std::string infile) {
     std::cerr << "Loading base estimators ...\n";
 
-    std::vector<Base*> bases;
+    double nonZeroSum = 0;
+    unsigned long long memSize = 0;
+    int sparse = 0;
 
+    std::vector<Base*> bases;
     std::ifstream in(infile);
     int size;
     in.read((char*)&size, sizeof(size));
     bases.reserve(size);
     for (int i = 0; i < size; ++i) {
         printProgress(i, size);
-        bases.emplace_back(new Base());
-        bases.back()->load(in);
+        auto b = new Base();
+        b->load(in);
+        nonZeroSum += b->getNonZeroW();
+        memSize += b->size();
+        if(b->getMapW() != nullptr) ++sparse;
+        bases.push_back(b);
     }
     in.close();
+
+    std::cerr << "  Loaded bases: " << size
+              << "\n  Bases size: " << formatMem(memSize) << "\n  Non zero weights / bases: " << nonZeroSum / size
+              << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << std::endl;
 
     return bases;
 }

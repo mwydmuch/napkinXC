@@ -13,10 +13,10 @@
 #include "resources.h"
 #include "types.h"
 
-std::vector<float> loadThresholds(std::string infile){
-    std::vector<float> thresholds;
+std::vector<double> loadThresholds(std::string infile){
+    std::vector<double> thresholds;
     std::ifstream thresholdsIn(infile);
-    float t;
+    double t;
     while (thresholdsIn >> t) thresholds.push_back(t);
     return thresholds;
 }
@@ -77,7 +77,9 @@ void test(Args& args) {
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
     std::cout << "Test data statistics:"
-              << "\n  Test data points: " << features.rows() << "\n";
+              << "\n  Test data points: " << features.rows()
+              << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
+              << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
 
     auto resAfterData = getResources();
 
@@ -90,7 +92,7 @@ void test(Args& args) {
     // Predict for test set
     std::vector<std::vector<Prediction>> predictions;
     if (!args.thresholds.empty()) { // Using thresholds if provided
-        std::vector<float> thresholds = loadThresholds(args.thresholds);
+        std::vector<double> thresholds = loadThresholds(args.thresholds);
         model->setThresholds(thresholds);
         predictions = model->predictBatchWithThresholds(features, args);
     } else
@@ -108,12 +110,17 @@ void test(Args& args) {
     model->printInfo();
 
     // Print resources
+    auto loadRealTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            resAfterModel.timePoint - resAfterData.timePoint)
+            .count()) / 1000;
     auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             resAfterPrediction.timePoint - resAfterModel.timePoint)
-                                            .count()) /
-                    1000;
+                                            .count()) / 1000;
+    auto loadCpuTime = resAfterModel.cpuTime - resAfterData.cpuTime;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
     std::cout << "Resources during test:"
+              << "\n  Loading real time (s): " << loadRealTime
+              << "\n  Loading CPU time (s): " << loadCpuTime
               << "\n  Test real time (s): " << realTime << "\n  Test CPU time (s): " << cpuTime
               << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
@@ -156,7 +163,7 @@ void predict(Args& args) {
 
         std::vector<std::vector<Prediction>> predictions;
         if (!args.thresholds.empty()) { // Using thresholds if provided
-            std::vector<float> thresholds = loadThresholds(args.thresholds);
+            std::vector<double> thresholds = loadThresholds(args.thresholds);
             model->setThresholds(thresholds);
             predictions = model->predictBatchWithThresholds(features, args);
         } else
@@ -189,7 +196,7 @@ void ofo(Args& args) {
     SRMatrix<Feature> features;
     reader->readData(labels, features, args);
 
-    std::vector<float> thresholds = model->ofo(features, labels, args);
+    std::vector<double> thresholds = model->ofo(features, labels, args);
 
     std::ofstream out(args.thresholds);
     for(auto t : thresholds)

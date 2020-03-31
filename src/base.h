@@ -40,6 +40,7 @@ public:
     inline UnorderedMap<int, Weight>* getMapW() { return mapW; }
     inline SparseWeight* getSparseW() { return sparseW; }
 
+    inline int getNonZeroW() { return nonZeroW; }
     inline size_t denseSize() { return wSize * sizeof(Weight); }
     inline size_t mapSize() { return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(Weight)); }
     inline size_t sparseSize() { return nonZeroW * (sizeof(int) + sizeof(double)); }
@@ -58,6 +59,8 @@ public:
 
     Base* copy();
     Base* copyInverted();
+
+    bool isDummy() { return (classCount < 2); }
 
     // Used for debug
     void printWeights();

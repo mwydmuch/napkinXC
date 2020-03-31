@@ -369,7 +369,7 @@ void Base::save(std::ostream& out) {
 
     if (classCount > 1) {
         // Decide on optimal file coding
-        bool saveSparse = sparseSize() < denseSize();
+        bool saveSparse = sparseSize() < denseSize() || W == nullptr;
 
         out.write((char*)&hingeLoss, sizeof(hingeLoss));
         out.write((char*)&wSize, sizeof(wSize));
@@ -405,16 +405,23 @@ void Base::load(std::istream& in) {
         in.read((char*)&loadSparse, sizeof(loadSparse));
 
         if (loadSparse) {
-            mapW = new UnorderedMap<int, Weight>();
+            bool loadAsMap = mapSize() < denseSize() && wSize > 10000;
+
+            if(loadAsMap) mapW = new UnorderedMap<int, Weight>();
+            else{
+                W = new Weight[wSize];
+                std::memset(W, 0, wSize * sizeof(Weight));
+            }
 
             int index;
             Weight w;
-
             for (int i = 0; i < nonZeroW; ++i) {
                 in.read((char*)&index, sizeof(index));
                 in.read((char*)&w, sizeof(Weight));
+
                 if (sparseW != nullptr) sparseW[i] = {index, w};
                 if (mapW != nullptr) mapW->insert({index, w});
+                if (W != nullptr) W[index] = w;
             }
         } else {
             W = new Weight[wSize];
@@ -422,15 +429,14 @@ void Base::load(std::istream& in) {
             in.read((char*)W, wSize * sizeof(Weight));
         }
     }
-
-    //toDense();
 }
 
 size_t Base::size() {
-    if (W) return denseSize();
-    if (mapW) return mapSize();
-    if (sparseW) return sparseSize();
-    return 0;
+    size_t size = sizeof(Base);
+    if (W) size += denseSize();
+    if (mapW) size += mapSize();
+    if (sparseW) size += sparseSize();
+    return size;
 }
 
 void Base::printWeights() {

@@ -405,7 +405,7 @@ void Base::load(std::istream& in) {
         in.read((char*)&loadSparse, sizeof(loadSparse));
 
         if (loadSparse) {
-            bool loadAsMap = mapSize() < denseSize() && wSize > 10000;
+            bool loadAsMap = mapSize() < denseSize() && wSize > 50000;
 
             if(loadAsMap) mapW = new UnorderedMap<int, Weight>();
             else{

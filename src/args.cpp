@@ -85,9 +85,8 @@ Args::Args() {
     ubopMipsK = 0.05;
     ubopMipsSample = 0.05;
 
-
     setUtilityType = uP;
-    alfa = 0.0;
+    alpha = 0.0;
     beta = 0.0;
     epsilon = 0.0;
     delta = 1.6;
@@ -186,22 +185,26 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 mipsEfConstruction = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--mipsEfSearch")
                 mipsEfSearch = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--ubopMipsK")
+                ubopMipsK = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--ubopMipsSample")
+                ubopMipsSample = std::stof(args.at(ai + 1));
             else if (args[ai] == "--setUtility") {
                 setUtilityName = args.at(ai + 1);
                 if (args.at(ai + 1) == "uP")
                     setUtilityType = uP;
                 else if (args.at(ai + 1) == "uF1")
                     setUtilityType = uF1;
-                else if (args.at(ai + 1) == "uAlfaBeta")
-                    setUtilityType = uAlfaBeta;
+                else if (args.at(ai + 1) == "uAlphaBeta")
+                    setUtilityType = uAlphaBeta;
                 else if (args.at(ai + 1) == "uDeltaGamma")
                     setUtilityType = uDeltaGamma;
                 else {
                     std::cerr << "Unknown set utility type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            } else if (args[ai] == "--alfa")
-                alfa = std::stof(args.at(ai + 1));
+            } else if (args[ai] == "--alpha")
+                alpha = std::stof(args.at(ai + 1));
             else if (args[ai] == "--beta")
                 beta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epsilon")
@@ -431,8 +434,8 @@ void Args::printArgs() {
 
         if (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips) {
             std::cerr << "\n  Set utility: " << setUtilityName;
-            if (setUtilityType == uAlfa || setUtilityType == uAlfaBeta) std::cerr << ", alfa: " << alfa;
-            if (setUtilityType == uAlfaBeta) std::cerr << ", beta: " << beta;
+            if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) std::cerr << ", alpha: " << alpha;
+            if (setUtilityType == uAlphaBeta) std::cerr << ", beta: " << beta;
             if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
         }
     }
@@ -515,11 +518,11 @@ Args:
     --topK              Predict top k elements (default = 5)
     --threshold         Probability threshold (default = 0)
     --setUtility        Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
-                        Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
+                        Set-utility functions: uP, uF1, uAlpha, uAlphaBeta, uDeltaGamma
                         See: https://arxiv.org/abs/1906.08129
 
     Set-Utility:
-    --alfa
+    --alpha
     --beta
     --delta
     --gamma

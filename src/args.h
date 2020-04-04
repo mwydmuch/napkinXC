@@ -45,7 +45,7 @@ enum OptimizerType { liblinear, sgd, adagrad, fobos };
 
 enum DataFormatType { libsvm, vw };
 
-enum SetUtilityType { uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma };
+enum SetUtilityType { uP, uF1, uAlpha, uAlphaBeta, uDeltaGamma };
 
 class Args : public FileHelper {
 public:
@@ -128,7 +128,7 @@ public:
     double ubopMipsSample;
 
     SetUtilityType setUtilityType;
-    double alfa;
+    double alpha;
     double beta;
     double epsilon;
     double delta;

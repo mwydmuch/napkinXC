@@ -66,12 +66,12 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionUtility>()));
             else if (m == "uf1")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1Utility>()));
-            else if (m == "ualfa")
+            else if (m == "ualpha")
                 measures.push_back(
-                    std::static_pointer_cast<Measure>(std::make_shared<UtilityAlfa>(args.alfa, outputSize)));
-            else if (m == "ualfabeta")
+                    std::static_pointer_cast<Measure>(std::make_shared<UtilityAlpha>(args.alpha, outputSize)));
+            else if (m == "ualphabeta")
                 measures.push_back(std::static_pointer_cast<Measure>(
-                    std::make_shared<UtilityAlfaBeta>(args.alfa, args.beta, outputSize)));
+                    std::make_shared<UtilityAlphaBeta>(args.alpha, args.beta, outputSize)));
             else if (m == "udeltagamma")
                 measures.push_back(
                     std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args.delta, args.gamma)));

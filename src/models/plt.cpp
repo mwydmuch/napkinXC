@@ -269,7 +269,7 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
 
     // Check data
     assert(features.rows() == labels.rows());
-    assert(tree->k >= labels.cols());
+    //assert(tree->k >= labels.cols());
 
     // Examples selected for each node
     std::vector<std::vector<double>> binLabels(tree->t);

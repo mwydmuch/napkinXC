@@ -37,27 +37,27 @@ public:
     double g(int pSize) override;
 };
 
-class UtilityAlfa : public SetUtility {
+class UtilityAlpha : public SetUtility {
 public:
-    UtilityAlfa(double alfa, int outputSize);
+    UtilityAlpha(double alpha, int outputSize);
 
     double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
 
 protected:
-    double alfa;
+    double alpha;
     int m;
 };
 
-class UtilityAlfaBeta : public SetUtility {
+class UtilityAlphaBeta : public SetUtility {
 public:
-    UtilityAlfaBeta(double alfa, double beta, int outputSize);
+    UtilityAlphaBeta(double alpha, double beta, int outputSize);
 
     double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
 
 protected:
-    double alfa;
+    double alpha;
     double beta;
     int m;
 };

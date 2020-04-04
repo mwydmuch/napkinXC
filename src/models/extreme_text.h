@@ -53,5 +53,4 @@ protected:
         else if (x > 8) return 1.0;
         else return 1.0 / (1.0 + std::exp(-x));
     }
-
 };

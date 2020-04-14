@@ -34,7 +34,7 @@ public:
     MIPSIndex(int dim, Args& args);
     ~MIPSIndex();
 
-    void addPoint(double* pointData, int size, int label);
+    void addPoint(float* pointData, int size, int label);
     void addPoint(UnorderedMap<int, Weight>* pointData, int label);
     void createIndex(Args& args);
 

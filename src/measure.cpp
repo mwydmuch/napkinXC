@@ -36,12 +36,8 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
         } else {
             if (m == "p")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Precision>()));
-//            else if (m == "microp")
-//                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroPrecision>()));
             else if (m == "r")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Recall>()));
-//            else if (m == "micror")
-//                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroRecall>()));
             else if (m == "f1")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1>()));
             else if (m == "microf")
@@ -62,19 +58,8 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalsePositives>()));
             else if (m == "fn")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalseNegatives>()));
-            else if (m == "up")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionUtility>()));
-            else if (m == "uf1")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1Utility>()));
-            else if (m == "ualpha")
-                measures.push_back(
-                    std::static_pointer_cast<Measure>(std::make_shared<UtilityAlpha>(args.alpha, outputSize)));
-            else if (m == "ualphabeta")
-                measures.push_back(std::static_pointer_cast<Measure>(
-                    std::make_shared<UtilityAlphaBeta>(args.alpha, args.beta, outputSize)));
-            else if (m == "udeltagamma")
-                measures.push_back(
-                    std::static_pointer_cast<Measure>(std::make_shared<UtilityDeltaGamma>(args.delta, args.gamma)));
+            else if (m == "u")
+                measures.push_back(std::static_pointer_cast<Measure>(SetUtility::factory(args, outputSize)));
             else
                 throw std::invalid_argument("Unknown measure type!");
         }

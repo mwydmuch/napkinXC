@@ -40,6 +40,7 @@ public:
     inline UnorderedMap<int, Weight>* getMapW() { return mapW; }
     inline SparseWeight* getSparseW() { return sparseW; }
 
+    inline int getWSize() { return wSize; }
     inline int getNonZeroW() { return nonZeroW; }
     inline size_t denseSize() { return wSize * sizeof(Weight); }
     inline size_t mapSize() { return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(Weight)); }

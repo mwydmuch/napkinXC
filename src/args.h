@@ -18,7 +18,6 @@ enum ModelType {
     hsm,
     plt,
     ubop,
-    rbop,
     ubopHsm,
     oplt,
     extremeText,
@@ -45,7 +44,17 @@ enum OptimizerType { liblinear, sgd, adagrad, fobos };
 
 enum DataFormatType { libsvm, vw };
 
-enum SetUtilityType { uP, uF1, uAlpha, uAlphaBeta, uDeltaGamma };
+enum SetUtilityType {
+    uP,
+    uR,
+    uF1,
+    uFBeta,
+    uExp,
+    uLog,
+    uDeltaGamma,
+    uAlpha,
+    uAlphaBeta
+};
 
 class Args : public FileHelper {
 public:
@@ -120,8 +129,9 @@ public:
     void load(std::istream& in) override;
 
     // Mips options
-    int mipsEfConstruction;
-    int mipsEfSearch;
+    int hnswM;
+    int hnswEfConstruction;
+    int hnswEfSearch;
 
     // Set utility options
     double ubopMipsK;
@@ -130,7 +140,6 @@ public:
     SetUtilityType setUtilityType;
     double alpha;
     double beta;
-    double epsilon;
     double delta;
     double gamma;
 

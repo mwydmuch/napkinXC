@@ -17,59 +17,63 @@ public:
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 
-    virtual double u(double c, const std::vector<Prediction>& prediction) = 0;
+    virtual double u(double c, const std::vector<Prediction>& prediction);
     virtual double g(int pSize) = 0;
 };
 
 class PrecisionUtility : public SetUtility {
 public:
     PrecisionUtility();
-
-    double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
 };
 
-class F1Utility : public SetUtility {
+class RecallUtility : public SetUtility {
 public:
-    F1Utility();
-
-    double u(double c, const std::vector<Prediction>& prediction) override;
+    RecallUtility();
     double g(int pSize) override;
 };
 
-class UtilityAlpha : public SetUtility {
+class FBetaUtility : public SetUtility {
 public:
-    UtilityAlpha(double alpha, int outputSize);
-
-    double u(double c, const std::vector<Prediction>& prediction) override;
+    FBetaUtility(double beta);
     double g(int pSize) override;
 
 protected:
-    double alpha;
-    int m;
+    double beta;
+};
+
+class ExpUtility : public SetUtility {
+public:
+    ExpUtility(double gamma);
+    double g(int pSize) override;
+
+protected:
+    double gamma;
+};
+
+class LogUtility : public SetUtility {
+public:
+    LogUtility();
+    double g(int pSize) override;
+};
+
+class UtilityDeltaGamma : public SetUtility {
+public:
+    UtilityDeltaGamma(double delta, double gamma);
+    double g(int pSize) override;
+
+protected:
+    double delta;
+    double gamma;
 };
 
 class UtilityAlphaBeta : public SetUtility {
 public:
     UtilityAlphaBeta(double alpha, double beta, int outputSize);
-
-    double u(double c, const std::vector<Prediction>& prediction) override;
     double g(int pSize) override;
 
 protected:
     double alpha;
     double beta;
     int m;
-};
-
-class UtilityDeltaGamma : public SetUtility {
-public:
-    UtilityDeltaGamma(double delta, double gamma);
-
-    double u(double c, const std::vector<Prediction>& prediction) override;
-    double g(int pSize) override;
-
-protected:
-    double delta;
-    double gamma;
 };

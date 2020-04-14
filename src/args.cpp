@@ -78,8 +78,9 @@ Args::Args() {
     thresholds = "";
 
     // Mips options
-    mipsEfConstruction = 100;
-    mipsEfSearch = 100;
+    hnswM = 20;
+    hnswEfConstruction = 100;
+    hnswEfSearch = 100;
 
     // Set utility options
     ubopMipsK = 0.05;
@@ -87,8 +88,7 @@ Args::Args() {
 
     setUtilityType = uP;
     alpha = 0.0;
-    beta = 0.0;
-    epsilon = 0.0;
+    beta = 1.0;
     delta = 1.6;
     gamma = 0.6;
 
@@ -157,8 +157,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     modelType = plt;
                 else if (args.at(ai + 1) == "ubop")
                     modelType = ubop;
-                else if (args.at(ai + 1) == "rbop")
-                    modelType = rbop;
                 else if (args.at(ai + 1) == "ubopHsm")
                     modelType = ubopHsm;
                 else if (args.at(ai + 1) == "oplt")
@@ -181,10 +179,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            } else if (args[ai] == "--mipsEfConstruction")
-                mipsEfConstruction = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--mipsEfSearch")
-                mipsEfSearch = std::stoi(args.at(ai + 1));
+            } else if (args[ai] == "--hnswEfConstruction")
+                hnswEfConstruction = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--hnswEfSearch")
+                hnswEfSearch = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--ubopMipsK")
                 ubopMipsK = std::stof(args.at(ai + 1));
             else if (args[ai] == "--ubopMipsSample")
@@ -193,12 +191,22 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 setUtilityName = args.at(ai + 1);
                 if (args.at(ai + 1) == "uP")
                     setUtilityType = uP;
+                else if (args.at(ai + 1) == "uR")
+                    setUtilityType = uP;
                 else if (args.at(ai + 1) == "uF1")
                     setUtilityType = uF1;
-                else if (args.at(ai + 1) == "uAlphaBeta")
-                    setUtilityType = uAlphaBeta;
+                else if (args.at(ai + 1) == "uFBeta")
+                    setUtilityType = uFBeta;
+                else if (args.at(ai + 1) == "uExp")
+                    setUtilityType = uExp;
+                else if (args.at(ai + 1) == "uLog")
+                    setUtilityType = uLog;
                 else if (args.at(ai + 1) == "uDeltaGamma")
                     setUtilityType = uDeltaGamma;
+                else if (args.at(ai + 1) == "uAlpha")
+                    setUtilityType = uAlpha;
+                else if (args.at(ai + 1) == "uAlphaBeta")
+                    setUtilityType = uAlphaBeta;
                 else {
                     std::cerr << "Unknown set utility type: " << args.at(ai + 1) << "!\n";
                     printHelp();
@@ -207,8 +215,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 alpha = std::stof(args.at(ai + 1));
             else if (args[ai] == "--beta")
                 beta = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--epsilon")
-                epsilon = std::stof(args.at(ai + 1));
             else if (args[ai] == "--delta")
                 delta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--gamma")
@@ -431,8 +437,11 @@ void Args::printArgs() {
     if (command == "test") {
         if(thresholds.empty()) std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
         else std::cerr << "\n  Thresholds: " << thresholds;
-
-        if (modelType == ubop || modelType == rbop || modelType == ubopHsm || modelType == ubopMips) {
+        if (modelType == ubopMips || modelType == brMips) {
+            std::cerr << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
+            if(modelType == ubopMips) std::cerr << ", k: " << ubopMipsK << ", sample: " << ubopMipsSample;
+        }
+        if (modelType == ubop || modelType == ubopHsm || modelType == ubopMips) {
             std::cerr << "\n  Set utility: " << setUtilityName;
             if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) std::cerr << ", alpha: " << alpha;
             if (setUtilityType == uAlphaBeta) std::cerr << ", beta: " << beta;
@@ -460,8 +469,7 @@ Args:
     -i, --input         Input dataset
     -o, --output        Output (model) dir
     -m, --model         Model type (default = plt):
-                        Models: ovr, br, hsm, plt, oplt, ubop, rbop,
-                                ubopHsm, brMips, ubopMips
+                        Models: ovr, br, hsm, plt, oplt, ubop, ubopHsm, brMips, ubopMips
     --ensemble          Ensemble of models (default = 0)
     -d, --dataFormat    Type of data format (default = libsvm):
                         Supported data formats: libsvm
@@ -517,7 +525,7 @@ Args:
     Prediction:
     --topK              Predict top k elements (default = 5)
     --threshold         Probability threshold (default = 0)
-    --setUtility        Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
+    --setUtility        Type of set-utility function for prediction using ubop, ubopHsm, ubopMips models.
                         Set-utility functions: uP, uF1, uAlpha, uAlphaBeta, uDeltaGamma
                         See: https://arxiv.org/abs/1906.08129
 

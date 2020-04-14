@@ -147,12 +147,13 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-
     std::cout << std::setprecision(5);
 
     // Predict data from cin and output to cout
     if (args.input == "-") {
-        // TODO
+        for (std::string line; std::getline(std::cin, line); ) {
+            // TODO
+        }
     }
 
     // Read data from file and output prediction to cout
@@ -161,17 +162,35 @@ void predict(Args& args) {
         SRMatrix<Feature> features;
         reader->readData(labels, features, args);
 
-        std::vector<std::vector<Prediction>> predictions;
         if (!args.thresholds.empty()) { // Using thresholds if provided
             std::vector<double> thresholds = loadThresholds(args.thresholds);
             model->setThresholds(thresholds);
-            predictions = model->predictBatchWithThresholds(features, args);
-        } else
-            predictions = model->predictBatch(features, args);
+        }
 
-        for(const auto& p : predictions){
-            for (const auto& l : p) std::cout << l.label << ":" << l.value << " ";
-            std::cout << std::endl;
+        if(args.threads > 1) {
+            std::vector<std::vector<Prediction>> predictions;
+            if (!args.thresholds.empty())
+                predictions = model->predictBatchWithThresholds(features, args);
+            else
+                predictions = model->predictBatch(features, args);
+
+            for (const auto &p : predictions) {
+                for (const auto &l : p) std::cout << l.label << ":" << l.value << " ";
+                std::cout << std::endl;
+            }
+        } else { // For 1 thread predict and immediately save to file
+            for(int r = 0; r < features.rows(); ++r){
+                printProgress(r, features.rows());
+                std::vector<Prediction> prediction;
+
+                if (!args.thresholds.empty())
+                    model->predictWithThresholds(prediction, features[r], args);
+                else
+                    model->predict(prediction, features[r], args);
+
+                for (const auto &l : prediction) std::cout << l.label << ":" << l.value << " ";
+                std::cout << std::endl;
+            }
         }
     }
 }

@@ -30,7 +30,7 @@ MIPSIndex::~MIPSIndex() {
     delete index;
 }
 
-void MIPSIndex::addPoint(double* pointData, int size, int label) {
+void MIPSIndex::addPoint(float* pointData, int size, int label) {
     assert(dim == size);
     std::vector<DATA_T> output(pointData, pointData + size);
     auto denseSpace = reinterpret_cast<VectorSpace<DATA_T>*>(space);
@@ -52,14 +52,16 @@ void MIPSIndex::createIndex(Args& args) {
 
     AnyParams indexParams({
         "post=2",
-        "efConstruction=" + std::to_string(args.mipsEfConstruction),
+        "delaunay_type=2",
+        "M=" + std::to_string(args.hnswM),
+        "efConstruction=" + std::to_string(args.hnswEfConstruction),
         "indexThreadQty=" + std::to_string(args.threads),
     });
 
     index = MethodFactoryRegistry<DATA_T>::Instance().CreateMethod(true, methodType, spaceType, *space, data);
     index->CreateIndex(indexParams);
 
-    setEfSearch(args.mipsEfSearch);
+    setEfSearch(args.hnswEfSearch);
 }
 
 void MIPSIndex::setEfSearch(int ef){

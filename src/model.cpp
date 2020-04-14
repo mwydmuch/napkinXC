@@ -19,7 +19,6 @@
 #include "online_plt.h"
 #include "ovr.h"
 #include "plt.h"
-#include "rbop.h"
 #include "ubop.h"
 #include "ubop_hsm.h"
 #include "version.h"
@@ -47,7 +46,6 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<HSM>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>()); break;
         case ubop: model = std::static_pointer_cast<Model>(std::make_shared<UBOP>()); break;
-        case rbop: model = std::static_pointer_cast<Model>(std::make_shared<RBOP>()); break;
         case ubopHsm: model = std::static_pointer_cast<Model>(std::make_shared<UBOPHSM>()); break;
         case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
         case extremeText: model = std::static_pointer_cast<Model>(std::make_shared<ExtremeText>()); break;
@@ -186,7 +184,7 @@ void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::
 std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
     std::cerr << "Optimizing thresholds with OFO for " << args.epochs << " epochs using " << args.threads << " thread ...\n";
 
-    // Initialize thresholds with zeros
+    // Initialize thresholds
     thresholds = std::vector<double>(m, args.ofoA/args.ofoB);
     setThresholds(thresholds);
 

@@ -198,7 +198,7 @@ void predict(Args& args) {
     }
 }
 
-void optimizeThresholds(Args& args) {
+void fo(Args& args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -215,13 +215,27 @@ void optimizeThresholds(Args& args) {
     SRMatrix<Feature> features;
     reader->readData(labels, features, args);
 
+    auto resAfterData = getResources();
+
     std::vector<double> thresholds;
     if(args.command == "ofo")
         thresholds = model->ofo(features, labels, args);
-    else if (args.command == "macrof")
-        thresholds = model->macroFSearch(features, labels, args);
+    else if (args.command == "fo")
+        thresholds = model->fo(features, labels, args);
 
     saveThresholds(thresholds, args.thresholds);
+
+    auto resAfterFo = getResources();
+
+    // Print resources
+    auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            resAfterFo.timePoint - resAfterData.timePoint)
+            .count()) /
+                    1000;
+    auto cpuTime = resAfterFo.cpuTime - resAfterData.cpuTime;
+    std::cout << "Resources during F-measure optimization:"
+              << "\n  Optimization real time (s): " << realTime
+              << "\n  Optimization CPU time (s): " << cpuTime << "\n";
 }
 
 int main(int argc, char** argv) {
@@ -237,8 +251,8 @@ int main(int argc, char** argv) {
         test(args);
     else if (args.command == "predict")
         predict(args);
-    else if (args.command == "ofo" || args.command == "macrof")
-        optimizeThresholds(args);
+    else if (args.command == "fo" || args.command == "ofo")
+        fo(args);
 
     return 0;
 }

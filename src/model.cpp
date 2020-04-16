@@ -207,7 +207,7 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
         }
 
         for (int i = 0; i < m; ++i) {
-            if(bs[i] > args.ofoBootstrapMin) {
+            if(bs[i] >= args.ofoBootstrapMin) {
                 as[i] = as[i] / bs[i] * args.ofoBootstrapScale;
                 bs[i] = args.ofoBootstrapScale;
                 thresholds[i] = as[i] / bs[i];
@@ -223,7 +223,7 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
         thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
     }
 
-    std::cerr << "Optimizing thresholds with OFO for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
+    std::cerr << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
 
     // Set initial thresholds
     setThresholds(thresholds);
@@ -242,7 +242,7 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
     return thresholds;
 }
 
-void Model::macroFSearchThread(Model* model, std::vector<std::vector<int>>& buckets, std::vector<std::vector<double>>& trueP,
+void Model::foThread(Model* model, std::vector<std::vector<int>>& buckets, std::vector<std::vector<double>>& trueP,
                         SRMatrix<Feature>& features, Args& args, int threadId, int threads){
 
     const int rows = features.rows();
@@ -263,8 +263,8 @@ void Model::macroFSearchThread(Model* model, std::vector<std::vector<int>>& buck
     }
 }
 
-std::vector<double> Model::macroFSearch(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
-    std::cerr << "Optimizing thresholds using " << args.threads << " thread ...\n";
+std::vector<double> Model::fo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
+    std::cerr << "Optimizing Macro F measure using " << args.threads << " thread ...\n";
 
     double thresholdEps = 0.00001;
 
@@ -280,10 +280,10 @@ std::vector<double> Model::macroFSearch(SRMatrix<Feature>& features, SRMatrix<La
     }
 
     std::vector<Feature> storedThresholds;
-    thresholds = std::vector<double>(m, 0);
+    thresholds = std::vector<double>(m, 1.0);
     std::vector<std::vector<int>> buckets(m);
     for(int i = 0; i < m; ++i){
-        if(trueP[i].size() > args.ofoBootstrapMin) {
+        if(trueP[i].size() >= args.ofoBootstrapMin) {
             std::sort(trueP[i].begin(), trueP[i].end());
             trueP[i].push_back(1.0);
             buckets[i].resize(trueP[i].size() - 1, 0);
@@ -299,7 +299,7 @@ std::vector<double> Model::macroFSearch(SRMatrix<Feature>& features, SRMatrix<La
     setThresholds(thresholds);
     ThreadSet tSet;
     for (int t = 0; t < args.threads; ++t)
-        tSet.add(macroFSearchThread, this, std::ref(buckets), std::ref(trueP), std::ref(features), std::ref(args), t, args.threads);
+        tSet.add(foThread, this, std::ref(buckets), std::ref(trueP), std::ref(features), std::ref(args), t, args.threads);
     tSet.joinAll();
 
     std::cerr << "  Calculating optimal thresholds ...\n";

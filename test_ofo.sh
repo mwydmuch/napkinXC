@@ -8,7 +8,7 @@ MODEL_DIR=models
 RESULTS_DIR=results
 
 # If there are exactly 3 arguments that starts with nxc parameter (-)
-if [[ $# -gt 3 ]] && [[ $2 == -* ]] && [[ $3 == -* ]]; then
+if [[ $# -gt 3 ]] && [[ $2 == -* ]] && [[ $3 == * ]]; then
     TRAIN_ARGS=$2
     OFO_ARGS=$3
     TEST_ARGS=$4
@@ -39,14 +39,13 @@ if [[ ! -e $DATASET_DIR ]]; then
 fi
 
 # Find train / test file
-if [[ -e "${DATASET_FILE}.train.remapped" ]]; then
-    TRAIN_FILE="${DATASET_FILE}.train.remapped"
-    TEST_FILE="${DATASET_FILE}.test.remapped"
-elif [[ -e "${DATASET_FILE}_train.txt" ]]; then
+if [[ -e "${DATASET_FILE}_train.txt" ]]; then
     TRAIN_FILE="${DATASET_FILE}_train.txt"
+    VALID_FILE="${DATASET_FILE}_valid.txt"
     TEST_FILE="${DATASET_FILE}_test.txt"
 elif [[ -e "${DATASET_FILE}.train" ]]; then
     TRAIN_FILE="${DATASET_FILE}.train"
+    VALID_FILE="${DATASET_FILE}.valid"
     TEST_FILE="${DATASET_FILE}.test"
 fi
 
@@ -70,17 +69,20 @@ if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
 fi
 
 # Optimized thresholds
-THRESHOLDS_FILE=${MODEL}/ofo_tresholds_$(echo "${OFO_ARGS}" | tr " /" "__")
-OFO_LOCK_FILE=${MODEL}/.ofo_lock_${OFO_CONFIG}
+THRESHOLDS_FILE=${MODEL}/tresholds_$(echo "${OFO_ARGS}" | tr " /" "__")
+OFO_LOCK_FILE=${MODEL}/.lock_${OFO_CONFIG}
+rm -f $THRESHOLDS_FILE
 if [[ ! -e $THRESHOLDS_FILE ]] || [[ -e $OFO_LOCK_FILE ]]; then
     touch $OFO_LOCK_FILE
-    (time ./nxc ofo $OFO_ARGS -i $TEST_FILE -o $MODEL --thresholds $THRESHOLDS_FILE)
+    (time ./nxc $OFO_ARGS -i $VALID_FILE -o $MODEL --thresholds $THRESHOLDS_FILE)
+    #(time ./nxc $OFO_ARGS -i $TEST_FILE -o $MODEL --thresholds $THRESHOLDS_FILE)
     rm $OFO_LOCK_FILE
 fi
 
 ## Test model
 TEST_RESULT_FILE=${RESULTS_DIR}/ofo_${TEST_CONFIG}
 TEST_LOCK_FILE=${RESULTS_DIR}/.ofo_test_lock_${TEST_CONFIG}
+rm -f $TEST_RESULT_FILE
 if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     mkdir -p $RESULTS_DIR
     touch $TEST_LOCK_FILE
@@ -88,7 +90,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
 
-    (time ./nxc test $TEST_ARGS -i $TEST_FILE -o $MODEL --thresholds $THRESHOLDS_FILE --measures hl,microf,macrof | tee -a $TEST_RESULT_FILE)
+    (time ./nxc test $TEST_ARGS -i $TEST_FILE -o $MODEL --thresholds $THRESHOLDS_FILE --measures p@1,hl,microf,macrof,s | tee -a $TEST_RESULT_FILE)
 
     echo
     echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TEST_RESULT_FILE

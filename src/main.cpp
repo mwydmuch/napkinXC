@@ -21,6 +21,13 @@ std::vector<double> loadThresholds(std::string infile){
     return thresholds;
 }
 
+void saveThresholds(std::vector<double>& thresholds, std::string outfile){
+    std::ofstream out(outfile);
+    for(auto t : thresholds)
+        out << t <<std::endl;
+    out.close();
+}
+
 void train(Args& args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
@@ -60,8 +67,6 @@ void train(Args& args) {
               << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
               << "\n  Peak of real memory during training (MB): " << resAfterTraining.peakRealMem / 1024
               << "\n  Peak of virtual memory during training (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
-
-    std::cerr << "All done!\n";
 }
 
 void test(Args& args) {
@@ -130,8 +135,6 @@ void test(Args& args) {
               << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
               << "\n  Peak of real memory during testing (MB): " << resAfterPrediction.peakRealMem / 1024
               << "\n  Peak of virtual memory during testing (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
-
-    std::cerr << "All done!\n";
 }
 
 void predict(Args& args) {
@@ -195,7 +198,7 @@ void predict(Args& args) {
     }
 }
 
-void ofo(Args& args) {
+void optimizeThresholds(Args& args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -208,21 +211,18 @@ void ofo(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    std::cout << std::setprecision(5);
-
-    // Read data from file and output prediction to cout
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
     reader->readData(labels, features, args);
 
-    std::vector<double> thresholds = model->ofo(features, labels, args);
+    std::vector<double> thresholds;
+    if(args.command == "ofo")
+        thresholds = model->ofo(features, labels, args);
+    else if (args.command == "macrof")
+        thresholds = model->macroFSearch(features, labels, args);
 
-    std::ofstream out(args.thresholds);
-    for(auto t : thresholds)
-        out << t <<std::endl;
-    out.close();
+    saveThresholds(thresholds, args.thresholds);
 }
-
 
 int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);
@@ -237,8 +237,8 @@ int main(int argc, char** argv) {
         test(args);
     else if (args.command == "predict")
         predict(args);
-    else if (args.command == "ofo")
-        ofo(args);
+    else if (args.command == "ofo" || args.command == "macrof")
+        optimizeThresholds(args);
 
     return 0;
 }

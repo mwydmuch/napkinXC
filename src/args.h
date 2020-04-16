@@ -144,6 +144,9 @@ public:
     double gamma;
 
     // OFO options
+    bool ofoBootstrap;
+    double ofoBootstrapScale;
+    int ofoBootstrapMin;
     double ofoA = 10;
     double ofoB = 20;
 

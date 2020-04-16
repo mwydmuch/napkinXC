@@ -30,7 +30,8 @@ public:
     virtual void updateThresholds(UnorderedMap<int, double> thToUpdate);
     virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args);
     virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args);
-    virtual std::vector<double> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
+    std::vector<double> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
+    std::vector<double> macroFSearch(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
 
@@ -89,4 +90,7 @@ private:
     static void ofoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
                           SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
                           const int startRow, const int stopRow);
+
+    static void macroFSearchThread(Model* model, std::vector<std::vector<int>>& buckets, std::vector<std::vector<double>>& trueP,
+                                   SRMatrix<Feature>& features, Args& args, int threadId, int threads);
 };

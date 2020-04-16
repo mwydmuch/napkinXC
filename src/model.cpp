@@ -170,27 +170,63 @@ void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::
 
         // Update thresholds, only those that may have changed due to update of as or bs,
         // For simplicity I compute some of them twice because it does not really matter
-        UnorderedMap<int, double> thToUpdate;
+        UnorderedMap<int, double> thresholdsToUpdate;
         for (const auto& p : prediction)
-            thToUpdate[p.label] = as[p.label] / bs[p.label];
+            thresholdsToUpdate[p.label] = as[p.label] / bs[p.label];
         l = -1;
         while (labels[r][++l] > -1)
-            thToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
+            thresholdsToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
 
-        model->updateThresholds(thToUpdate);
+        model->updateThresholds(thresholdsToUpdate);
     }
 }
 
 std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
-    std::cerr << "Optimizing thresholds with OFO for " << args.epochs << " epochs using " << args.threads << " thread ...\n";
 
-    // Initialize thresholds
-    thresholds = std::vector<double>(m, args.ofoA/args.ofoB);
-    setThresholds(thresholds);
+    double thresholdEps = 0.00001;
 
     // Variables required for OFO
-    std::vector<double> as(m, args.ofoA);
-    std::vector<double> bs(m, args.ofoB);
+    std::vector<double> as(m, 0);
+    std::vector<double> bs(m, 0);
+    thresholds = std::vector<double>(m, 1.0);
+
+    std::vector<Feature> storedThresholds;
+
+    // OFO Bootstrap
+    if(args.ofoBootstrap) {
+        std::cerr << "Bootstrapping OFO ...\n";
+        const int rows = features.rows();
+        for (int r = 0; r < rows; ++r) {
+            printProgress(r, rows);
+
+            int l = -1;
+            while (labels[r][++l] > -1) {
+                as[labels[r][l]] += predictForLabel(labels[r][l], features[r], args);
+                ++bs[labels[r][l]];
+            }
+        }
+
+        for (int i = 0; i < m; ++i) {
+            if(bs[i] > args.ofoBootstrapMin) {
+                as[i] = as[i] / bs[i] * args.ofoBootstrapScale;
+                bs[i] = args.ofoBootstrapScale;
+                thresholds[i] = as[i] / bs[i];
+            } else {
+                if(args.ofoBootstrapMin == 1 && bs[i] == 1) storedThresholds.push_back({i, as[i] - thresholdEps});
+                else storedThresholds.push_back({i, 0.5});
+            }
+        }
+
+    } else {
+        as = std::vector<double>(m, args.ofoA);
+        bs = std::vector<double>(m, args.ofoB);
+        thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
+    }
+
+    std::cerr << "Optimizing thresholds with OFO for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
+
+    // Set initial thresholds
+    setThresholds(thresholds);
 
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
@@ -198,6 +234,93 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
         tSet.add(ofoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels), std::ref(args),
                  t * tRows, std::min((t + 1) * tRows, features.rows()));
     tSet.joinAll();
+
+    // Apply stored thresholds
+    for(auto& st : storedThresholds)
+        thresholds[st.index] = st.value;
+
+    return thresholds;
+}
+
+void Model::macroFSearchThread(Model* model, std::vector<std::vector<int>>& buckets, std::vector<std::vector<double>>& trueP,
+                        SRMatrix<Feature>& features, Args& args, int threadId, int threads){
+
+    const int rows = features.rows();
+    for (int r = threadId; r < rows; r += threads){
+        if (!threadId) printProgress(r, rows);
+
+        std::vector<Prediction> prediction;
+        model->predictWithThresholds(prediction, features[r], args);
+
+        for (const auto& p : prediction) {
+            for(int b = 0; b < buckets.size(); ++b){
+                if(p.value < trueP[p.label][b + 1]){
+                    ++buckets[p.label][b];
+                    break;
+                }
+            }
+        }
+    }
+}
+
+std::vector<double> Model::macroFSearch(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
+    std::cerr << "Optimizing thresholds using " << args.threads << " thread ...\n";
+
+    double thresholdEps = 0.00001;
+
+    std::cerr << "  Getting predictions for true labels ...\n";
+    std::vector<std::vector<double>> trueP(m);
+    const int rows = features.rows();
+    for (int r = 0; r < rows; ++r) {
+        printProgress(r, rows);
+
+        int l = -1;
+        while (labels[r][++l] > -1)
+            trueP[labels[r][l]].push_back(predictForLabel(labels[r][l], features[r], args));
+    }
+
+    std::vector<Feature> storedThresholds;
+    thresholds = std::vector<double>(m, 0);
+    std::vector<std::vector<int>> buckets(m);
+    for(int i = 0; i < m; ++i){
+        if(trueP[i].size() > args.ofoBootstrapMin) {
+            std::sort(trueP[i].begin(), trueP[i].end());
+            trueP[i].push_back(1.0);
+            buckets[i].resize(trueP[i].size() - 1, 0);
+            thresholds[i] = trueP[i][0];
+        } else {
+            if(args.ofoBootstrapMin == 1 && trueP[i].size() == 1)
+                storedThresholds.push_back({i, trueP[i][0] - thresholdEps});
+            else storedThresholds.push_back({i, 0.5});
+        }
+    }
+
+    std::cerr << "  Predicting in " << args.threads << " threads ...\n";
+    setThresholds(thresholds);
+    ThreadSet tSet;
+    for (int t = 0; t < args.threads; ++t)
+        tSet.add(macroFSearchThread, this, std::ref(buckets), std::ref(trueP), std::ref(features), std::ref(args), t, args.threads);
+    tSet.joinAll();
+
+    std::cerr << "  Calculating optimal thresholds ...\n";
+    for(int i = 0; i < m; ++i){
+        printProgress(i, rows);
+        double bestF1 = 0;
+        double bestThr = 0;
+        for(int j = 0; j < trueP[i].size() - 1; ++j){
+            double tp = trueP[i].size() - j;
+            double f = std::accumulate(buckets[i].begin() + j, buckets[i].end(), 0) - tp;
+            double F1 = 2 * tp / (2 * tp + f);
+            if(F1 > bestF1){
+                bestF1 = F1;
+                bestThr = trueP[i][j] - thresholdEps;
+            } else break;
+        }
+        thresholds[i] = bestThr;
+    }
+
+    for(auto& st : storedThresholds)
+        thresholds[st.index] = st.value;
 
     return thresholds;
 }

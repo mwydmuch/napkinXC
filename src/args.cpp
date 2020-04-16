@@ -93,8 +93,11 @@ Args::Args() {
     gamma = 0.6;
 
     // OFO options
-    ofoA = 100;
-    ofoB = 200;
+    ofoBootstrap = true;
+    ofoBootstrapScale = 10;
+    ofoBootstrapMin = 3;
+    ofoA = 10;
+    ofoB = 20;
 
     // Measures
     measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
@@ -109,14 +112,14 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
     }
 
-    if (command != "train" && command != "test" && command != "predict" && command != "ofo") {
+    if (command != "train" && command != "test" && command != "predict" && command != "ofo" && command != "macrof") {
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
 
     for (int ai = 2; ai < args.size(); ai += 2) {
         if (args[ai][0] != '-') {
-            std::cerr << "Provided argument without a dash!\n";
+            std::cerr << "Provided argument without a dash: " << args[ai] << "!\n";
             printHelp();
         }
 
@@ -346,6 +349,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
 
             // OFO options
+            else if (args[ai] == "--ofoBootstrap")
+                ofoBootstrap = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--ofoBootstrapScale")
+                ofoBootstrapScale = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--ofoBootstrapMin")
+                ofoBootstrapMin = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--ofoA")
                 ofoA = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--ofoB")

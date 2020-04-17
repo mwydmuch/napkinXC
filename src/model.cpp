@@ -208,13 +208,14 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
 
         for (int i = 0; i < m; ++i) {
             if(bs[i] >= args.ofoBootstrapMin) {
-                as[i] = as[i] / bs[i] * args.ofoBootstrapScale;
-                bs[i] = args.ofoBootstrapScale;
-                thresholds[i] = as[i] / bs[i];
-            } else {
-                if(args.ofoBootstrapMin == 1 && bs[i] == 1) storedThresholds.push_back({i, as[i] - thresholdEps});
-                else storedThresholds.push_back({i, 0.5});
-            }
+                if(args.ofoBootstrapMin == 1 && bs[i] == 1)
+                    storedThresholds.push_back({i, as[i] - thresholdEps});
+                else {
+                    as[i] = as[i] / bs[i] * args.ofoBootstrapScale;
+                    bs[i] = args.ofoBootstrapScale;
+                    thresholds[i] = as[i] / bs[i];
+                }
+            } else storedThresholds.push_back({i, 0.5});
         }
 
     } else {
@@ -284,15 +285,15 @@ std::vector<double> Model::fo(SRMatrix<Feature>& features, SRMatrix<Label>& labe
     std::vector<std::vector<int>> buckets(m);
     for(int i = 0; i < m; ++i){
         if(trueP[i].size() >= args.ofoBootstrapMin) {
-            std::sort(trueP[i].begin(), trueP[i].end());
-            trueP[i].push_back(1.0);
-            buckets[i].resize(trueP[i].size() - 1, 0);
-            thresholds[i] = trueP[i][0];
-        } else {
-            if(args.ofoBootstrapMin == 1 && trueP[i].size() == 1)
+            if (args.ofoBootstrapMin == 1 && trueP[i].size() == 1)
                 storedThresholds.push_back({i, trueP[i][0] - thresholdEps});
-            else storedThresholds.push_back({i, 0.5});
-        }
+            else {
+                std::sort(trueP[i].begin(), trueP[i].end());
+                trueP[i].push_back(1.0);
+                buckets[i].resize(trueP[i].size() - 1, 0);
+                thresholds[i] = trueP[i][0];
+            }
+        } else storedThresholds.push_back({i, 0.5});
     }
 
     std::cerr << "  Predicting in " << args.threads << " threads ...\n";

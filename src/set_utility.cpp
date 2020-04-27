@@ -33,8 +33,7 @@ std::shared_ptr<SetUtility> SetUtility::factory(Args& args, int outputSize) {
 SetUtility::SetUtility() {}
 
 void SetUtility::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
-    sum += u(labels[0], prediction);
-    ++count;
+    addValue(u(labels[0], prediction));
 }
 
 double SetUtility::u(double c, const std::vector<Prediction>& prediction){
@@ -72,6 +71,7 @@ double LogUtility::g(int pSize) { return std::log(1 + 1/pSize); }
 
 UtilityAlphaBeta::UtilityAlphaBeta(double alpha, double beta, int outputSize) : alpha(alpha), beta(beta), m(outputSize) {
     if (alpha <= 0) this->alpha = static_cast<double>(m - 1) / m;
+    if (beta <= 0) this->beta = std::log(static_cast<double>(m) / 2) / std::log(1.0 / (m - 1)) + 1;
     name = "Alpha beta utility (" + std::to_string(this->alpha) + ", " + std::to_string(beta) + ")";
 }
 

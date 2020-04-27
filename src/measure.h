@@ -21,11 +21,19 @@ public:
     void accumulate(SRMatrix<Label>& labels, std::vector<std::vector<Prediction>>& predictions);
     virtual double value();
 
+    inline bool isMeanMeasure(){ return meanMeasure; };
+    inline double mean(){ return value(); };
+    double stdDev();
+
     inline std::string getName() { return name; }
 
 protected:
+    void addValue(double value);
+
+    bool meanMeasure;
     std::string name;
     double sum;
+    double sumSq;
     int count;
 };
 

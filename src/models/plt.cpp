@@ -87,17 +87,9 @@ void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
         return;
     }
 
-    std::queue<TreeNode*> nQueue; // Nodes queue
-    nQueue.push(tree->root);      // Push root
-
-    while (!nQueue.empty()) {
-        TreeNode* n = nQueue.front(); // Current node
-        nQueue.pop();
-
-        for (const auto& child : n->children) {
-            if (nPositive.count(child))
-                nQueue.push(child);
-            else
+    for(auto& n : nPositive) {
+        for (const auto &child : n->children) {
+            if (!nPositive.count(child))
                 nNegative.insert(child);
         }
     }

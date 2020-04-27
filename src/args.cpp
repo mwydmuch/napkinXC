@@ -78,6 +78,7 @@ Args::Args() {
     thresholds = "";
 
     // Mips options
+    mipsDense = false;
     hnswM = 20;
     hnswEfConstruction = 100;
     hnswEfSearch = 100;
@@ -93,6 +94,7 @@ Args::Args() {
     gamma = 0.6;
 
     // OFO options
+    ofoType = microF;
     ofoBootstrap = true;
     ofoBootstrapScale = 10;
     ofoBootstrapMin = 3;
@@ -182,7 +184,11 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     std::cerr << "Unknown model type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            } else if (args[ai] == "--hnswEfConstruction")
+            } else if (args[ai] == "--mipsDense")
+                mipsDense = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--hnswM")
+                hnswM = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--hnswEfConstruction")
                 hnswEfConstruction = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--hnswEfSearch")
                 hnswEfSearch = std::stoi(args.at(ai + 1));

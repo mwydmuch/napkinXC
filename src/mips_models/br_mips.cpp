@@ -34,18 +34,25 @@ void BRMIPS::load(Args& args, std::string infile) {
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();
 
-    std::cerr << "Adding points to MIPSIndex ...\n";
-    size_t dim = bases[0]->getWSize();
-    mipsIndex = new MIPSIndex(dim, args);
+    size_t dim = 0;
+    bool sparse = false;
+    for (int i = 0; i < m; ++i) {
+        if(bases[i]->getWSize() > dim)
+            dim = bases[i]->getWSize();
+        if(bases[i]->getMapW() != nullptr){
+            sparse = true;
+            break;
+        }
+    }
+
+    mipsIndex = new MIPSIndex(dim, !args.mipsDense, args);
+    std::cerr << "Adding " << m << " points with " << dim << " dims to MIPSIndex ...\n";
     for (int i = 0; i < m; ++i) {
         printProgress(i, m);
         if(!bases[i]->isDummy()) {
-            bases[i]->toMap();
             if (!bases[i]->getFirstClass()) bases[i]->invertWeights();
-            mipsIndex->addPoint(bases[i]->getMapW(), i);
-
-            //bases[i]->toDense();
-            //mipsIndex->addPoint(bases[i]->getW(), dim, i);
+            if(bases[i]->getMapW() != nullptr) mipsIndex->addPoint(bases[i]->getMapW(), i);
+            else mipsIndex->addPoint(bases[i]->getW(), dim, i);
         }
     }
 

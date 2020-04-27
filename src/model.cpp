@@ -183,62 +183,104 @@ void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::
 
 std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
 
-    double thresholdEps = 0.00001;
+    if(args.ofoType == macroF) {
+        double thresholdEps = 0.00001;
 
-    // Variables required for OFO
-    std::vector<double> as(m, 0);
-    std::vector<double> bs(m, 0);
-    thresholds = std::vector<double>(m, 1.0);
+        // Variables required for OFO
+        std::vector<double> as(m, 0);
+        std::vector<double> bs(m, 0);
+        thresholds = std::vector<double>(m, 1.0);
 
-    std::vector<Feature> storedThresholds;
+        std::vector<Feature> storedThresholds;
 
-    // OFO Bootstrap
-    if(args.ofoBootstrap) {
-        std::cerr << "Bootstrapping OFO ...\n";
-        const int rows = features.rows();
-        for (int r = 0; r < rows; ++r) {
-            printProgress(r, rows);
+        // OFO Bootstrap
+        if (args.ofoBootstrap) {
+            std::cerr << "Bootstrapping OFO ...\n";
+            const int rows = features.rows();
+            for (int r = 0; r < rows; ++r) {
+                printProgress(r, rows);
 
-            int l = -1;
-            while (labels[r][++l] > -1) {
-                as[labels[r][l]] += predictForLabel(labels[r][l], features[r], args);
-                ++bs[labels[r][l]];
-            }
-        }
-
-        for (int i = 0; i < m; ++i) {
-            if(bs[i] >= args.ofoBootstrapMin) {
-                if(args.ofoBootstrapMin == 1 && bs[i] == 1)
-                    storedThresholds.push_back({i, as[i] - thresholdEps});
-                else {
-                    as[i] = as[i] / bs[i] * args.ofoBootstrapScale;
-                    bs[i] = args.ofoBootstrapScale;
-                    thresholds[i] = as[i] / bs[i];
+                int l = -1;
+                while (labels[r][++l] > -1) {
+                    as[labels[r][l]] += predictForLabel(labels[r][l], features[r], args);
+                    ++bs[labels[r][l]];
                 }
-            } else storedThresholds.push_back({i, 0.5});
+            }
+
+            for (int i = 0; i < m; ++i) {
+                if (bs[i] >= args.ofoBootstrapMin) {
+                    if (args.ofoBootstrapMin == 1 && bs[i] == 1)
+                        storedThresholds.push_back({i, as[i] - thresholdEps});
+                    else {
+                        as[i] = as[i] / bs[i] * args.ofoBootstrapScale;
+                        bs[i] = args.ofoBootstrapScale;
+                        thresholds[i] = as[i] / bs[i];
+                    }
+                } else storedThresholds.push_back({i, 0.5});
+            }
+
+        } else {
+            as = std::vector<double>(m, args.ofoA);
+            bs = std::vector<double>(m, args.ofoB);
+            thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
         }
 
+        std::cerr << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads
+                  << " threads ...\n";
+
+        // Set initial thresholds
+        setThresholds(thresholds);
+
+        ThreadSet tSet;
+        int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
+        for (int t = 0; t < args.threads; ++t)
+            tSet.add(ofoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels),
+                     std::ref(args),
+                     t * tRows, std::min((t + 1) * tRows, features.rows()));
+        tSet.joinAll();
+
+        // Apply stored thresholds
+        for (auto &st : storedThresholds)
+            thresholds[st.index] = st.value;
     } else {
-        as = std::vector<double>(m, args.ofoA);
-        bs = std::vector<double>(m, args.ofoB);
-        thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
+        double a = args.ofoA;
+        double b = args.ofoB;
+
+        std::cerr << "Optimizing Micro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
+
+        const int examples = features.rows() * args.epochs;
+
+        for (int i = 0; i < examples; ++i) {
+            printProgress(i, examples);
+            int r = i % features.rows();
+
+            // Predict with current thresholds
+            std::vector<Prediction> prediction;
+            args.threshold = a / b;
+            predict(prediction, features[r], args);
+
+            // Update a and b counters
+            for (const auto &p : prediction) {
+                // b[j] =  sum_{i = 1}^{t} \hat y_j + ..
+                b++;
+
+                // a[j] = sum_{i = 1}^{t} y_j \hat y_j
+                int l = -1;
+                while (labels[r][++l] > -1)
+                    if (p.label == labels[r][l]) {
+                        a++;
+                        break;
+                    }
+            }
+
+            // b[j] =  .. + sum_{i = 1}^{t} y_j
+            int l = -1;
+            while (labels[r][++l] > -1)
+                b++;
+        }
+
+        thresholds = std::vector<double>(m, a / b);
     }
-
-    std::cerr << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
-
-    // Set initial thresholds
-    setThresholds(thresholds);
-
-    ThreadSet tSet;
-    int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
-    for (int t = 0; t < args.threads; ++t)
-        tSet.add(ofoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels), std::ref(args),
-                 t * tRows, std::min((t + 1) * tRows, features.rows()));
-    tSet.joinAll();
-
-    // Apply stored thresholds
-    for(auto& st : storedThresholds)
-        thresholds[st.index] = st.value;
 
     return thresholds;
 }

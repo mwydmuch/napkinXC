@@ -111,7 +111,11 @@ void test(Args& args) {
 
     // Print results
     std::cout << std::setprecision(5) << "Results:\n";
-    for (auto& m : measures) std::cout << "  " << m->getName() << ": " << m->value() << std::endl;
+    for (auto& m : measures){
+        std::cout << "  " << m->getName() << ": " << m->value();
+        //if(m->isMeanMeasure()) std::cout << " ± " << m->stdDev();
+        std::cout << std::endl;
+    }
     model->printInfo();
 
     // Print resources

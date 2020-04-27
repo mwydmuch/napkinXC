@@ -56,6 +56,11 @@ enum SetUtilityType {
     uAlphaBeta
 };
 
+enum OFOType {
+    microF,
+    macroF
+};
+
 class Args : public FileHelper {
 public:
     Args();
@@ -129,6 +134,7 @@ public:
     void load(std::istream& in) override;
 
     // Mips options
+    bool mipsDense;
     int hnswM;
     int hnswEfConstruction;
     int hnswEfSearch;
@@ -144,6 +150,7 @@ public:
     double gamma;
 
     // OFO options
+    OFOType ofoType;
     bool ofoBootstrap;
     double ofoBootstrapScale;
     int ofoBootstrapMin;

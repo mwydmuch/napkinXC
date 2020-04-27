@@ -31,10 +31,10 @@ using namespace similarity;
 
 class MIPSIndex {
 public:
-    MIPSIndex(int dim, Args& args);
+    MIPSIndex(int dim, bool sparse, Args& args);
     ~MIPSIndex();
 
-    void addPoint(float* pointData, int size, int label);
+    void addPoint(Weight* pointData, int size, int label);
     void addPoint(UnorderedMap<int, Weight>* pointData, int label);
     void createIndex(Args& args);
 
@@ -44,10 +44,13 @@ public:
     inline size_t getSize() { return data.size(); }
 
 protected:
+    bool sparse;
     int dim;
     std::string methodType;
     std::string spaceType;
     Space<DATA_T>* space;
     Index<DATA_T>* index;
     ObjectVector data;
+
+    int efSearch;
 };

@@ -94,10 +94,9 @@ Args::Args() {
     gamma = 0.6;
 
     // OFO options
-    ofoType = microF;
-    ofoBootstrap = true;
-    ofoBootstrapScale = 10;
-    ofoBootstrapMin = 3;
+    ofoType = micro;
+    ofoTypeName = "micro";
+    ofoTopLabels = 1000;
     ofoA = 10;
     ofoB = 20;
 
@@ -114,7 +113,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
     }
 
-    if (command != "train" && command != "test" && command != "predict" && command != "ofo" && command != "fo") {
+    if (command != "train" && command != "test" && command != "predict" && command != "ofo") {
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
@@ -355,12 +354,20 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             }
 
             // OFO options
-            else if (args[ai] == "--ofoBootstrap")
-                ofoBootstrap = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--ofoBootstrapScale")
-                ofoBootstrapScale = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--ofoBootstrapMin")
-                ofoBootstrapMin = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--ofoType") {
+                ofoTypeName = args.at(ai + 1);
+                if (args.at(ai + 1) == "micro")
+                    ofoType = micro;
+                else if (args.at(ai + 1) == "macro")
+                    ofoType = macro;
+                else if (args.at(ai + 1) == "mixed")
+                    ofoType = mixed;
+                else {
+                    std::cerr << "Unknown ofo type: " << args.at(ai + 1) << "!\n";
+                    printHelp();
+                }
+            } else if (args[ai] == "--ofoTopLabels")
+                ofoTopLabels = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--ofoA")
                 ofoA = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--ofoB")

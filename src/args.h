@@ -57,8 +57,9 @@ enum SetUtilityType {
 };
 
 enum OFOType {
-    microF,
-    macroF
+    micro,
+    macro,
+    mixed
 };
 
 class Args : public FileHelper {
@@ -151,11 +152,10 @@ public:
 
     // OFO options
     OFOType ofoType;
-    bool ofoBootstrap;
-    double ofoBootstrapScale;
-    int ofoBootstrapMin;
-    double ofoA = 10;
-    double ofoB = 20;
+    std::string ofoTypeName;
+    double ofoTopLabels;
+    double ofoA;
+    double ofoB;
 
     // Measures
     std::string measures;

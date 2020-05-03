@@ -202,7 +202,7 @@ void predict(Args& args) {
     }
 }
 
-void fo(Args& args) {
+void ofo(Args& args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -221,12 +221,7 @@ void fo(Args& args) {
 
     auto resAfterData = getResources();
 
-    std::vector<double> thresholds;
-    if(args.command == "ofo")
-        thresholds = model->ofo(features, labels, args);
-    else if (args.command == "fo")
-        thresholds = model->fo(features, labels, args);
-
+    std::vector<double> thresholds = model->ofo(features, labels, args);
     saveThresholds(thresholds, args.thresholds);
 
     auto resAfterFo = getResources();
@@ -255,8 +250,8 @@ int main(int argc, char** argv) {
         test(args);
     else if (args.command == "predict")
         predict(args);
-    else if (args.command == "fo" || args.command == "ofo")
-        fo(args);
+    else if (args.command == "ofo")
+        ofo(args);
 
     return 0;
 }

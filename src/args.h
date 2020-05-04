@@ -157,6 +157,9 @@ public:
     double ofoA;
     double ofoB;
 
+    int batchSize;
+    int batches;
+
     // Measures
     std::string measures;
 

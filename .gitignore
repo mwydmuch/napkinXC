@@ -7,8 +7,8 @@
 /src/version.h
 /nxc
 /data
-/models
-/results
+/models*
+/results*
 /nmslib
 
 .idea

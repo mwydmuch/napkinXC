@@ -23,32 +23,32 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
         std::vector<std::string> mAt = split(m, '@');
         if (mAt.size() > 1) {
             int k = std::stoi(mAt[1]);
-            if (mAt[0] == "p")
+            if (mAt[0] == "p" || mAt[0] == "precision")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionAtK>(k)));
-            else if (mAt[0] == "r")
+            else if (mAt[0] == "r" || mAt[0] == "recall")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<RecallAtK>(k)));
-            else if (mAt[0] == "c")
+            else if (mAt[0] == "c" || mAt[0] == "coverage")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<CoverageAtK>(outputSize, k)));
             else if (mAt[0] == "tp")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<TruePositivesAtK>(k)));
             else
-                throw std::invalid_argument("Unknown measure type!");
+                throw std::invalid_argument("Unknown measure type: " + mAt[0] + "!");
         } else {
-            if (m == "p")
+            if (m == "p" || m =="precision")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Precision>()));
-            else if (m == "r")
+            else if (m == "r" || m =="recall")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Recall>()));
-            else if (m == "f1")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<F1>()));
-            else if (m == "microf")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroF>()));
-            else if (m == "macrof")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MacroF>(outputSize)));
-            else if (m == "c")
+            else if (m == "samplef1")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<SampleF1>()));
+            else if (m == "microf1")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroF1>()));
+            else if (m == "macrof1")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MacroF1>(outputSize)));
+            else if (m == "c" || m == "coverage")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Coverage>(outputSize)));
-            else if (m == "acc")
+            else if (m == "acc" || m == "accuracy")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Accuracy>()));
-            else if (m == "s")
+            else if (m == "s" || m == "size")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PredictionSize>()));
             else if (m == "hl")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<HammingLoss>()));
@@ -61,7 +61,7 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
             else if (m == "u")
                 measures.push_back(std::static_pointer_cast<Measure>(SetUtility::factory(args, outputSize)));
             else
-                throw std::invalid_argument("Unknown measure type!");
+                throw std::invalid_argument("Unknown measure type: " + m + "!");
         }
     }
 
@@ -298,12 +298,12 @@ void HammingLoss::accumulate(Label* labels, const std::vector<Prediction>& predi
     addValue(FalsePositives::calculate(labels, prediction) + FalseNegatives::calculate(labels, prediction));
 }
 
-F1::F1() {
-    name = "F1";
+SampleF1::SampleF1() {
+    name = "Sample-F1";
     meanMeasure = true;
 }
 
-void F1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void SampleF1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositives::calculate(labels, prediction);
     int l = -1;
     while (labels[++l] > -1)
@@ -316,26 +316,26 @@ void F1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     }
 }
 
-MicroF::MicroF() {
-    name = "MicroF";
+MicroF1::MicroF1() {
+    name = "Micro-F1";
     meanMeasure = false;
 }
 
-void MicroF::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void MicroF1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositives::calculate(labels, prediction);
     sum += 2 * tp;
     count += 2 * tp + FalsePositives::calculate(labels, prediction) + FalseNegatives::calculate(labels, prediction);
 }
 
-MacroF::MacroF(int outputSize) : m(outputSize) {
-    name = "MacroF";
+MacroF1::MacroF1(int outputSize) : m(outputSize), zeroDivisionDenominator(1) {
+    name = "Macro-F1";
     meanMeasure = false;
     labelsTP.resize(m, 0);
     labelsFP.resize(m, 0);
     labelsFN.resize(m, 0);
 }
 
-void MacroF::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+void MacroF1::accumulate(Label* labels, const std::vector<Prediction>& prediction){
 
     for (const auto& p : prediction) {
         int l = -1;
@@ -363,15 +363,12 @@ void MacroF::accumulate(Label* labels, const std::vector<Prediction>& prediction
     }
 }
 
-double MacroF::value(){
-    // TODO jaka jest wartosc miary f jesli nie ma zadnych pozytywow potrzebnych? 0 czy 1?
+double MacroF1::value(){
     double sum = 0;
     for(int i = 0; i < m; ++i){
         double denominator = 2 * labelsTP[i] + labelsFP[i] + labelsFN[i];
-        denominator = (denominator > 0) ? 2 * labelsTP[i] / denominator : 1.0;
-        //sum += (denominator > 0) ? 2 * labelsTP[i] / denominator : 1.0;
+        denominator = (denominator > 0) ? 2 * labelsTP[i] / denominator : zeroDivisionDenominator;
         sum += denominator;
-        //std::cout << "Label: " << i << ", F1: " << denominator << "\n";
     }
     return sum / m;
 }

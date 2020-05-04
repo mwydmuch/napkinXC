@@ -152,23 +152,23 @@ public:
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class F1 : public Measure {
+class SampleF1 : public Measure {
 public:
-    F1();
+    SampleF1();
 
     void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
 };
 
-class MicroF : public Measure {
+class MicroF1 : public Measure {
 public:
-    MicroF();
+    MicroF1();
 
     void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
 };
 
-class MacroF : public Measure {
+class MacroF1 : public Measure {
 public:
-    MacroF(int outputSize);
+    MacroF1(int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;
@@ -178,6 +178,7 @@ protected:
     std::vector<double> labelsFP;
     std::vector<double> labelsFN;
     int m;
+    int zeroDivisionDenominator;
 };
 
 

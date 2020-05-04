@@ -100,6 +100,9 @@ Args::Args() {
     ofoA = 10;
     ofoB = 20;
 
+    batchSize = 100;
+    batches = 10;
+
     // Measures
     measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
 }
@@ -113,7 +116,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
     }
 
-    if (command != "train" && command != "test" && command != "predict" && command != "ofo") {
+    if (command != "train" && command != "test" && command != "predict" && command != "ofo" && command != "testBatches") {
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
@@ -380,6 +383,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--thresholds")
                 thresholds = std::string(args.at(ai + 1));
+
+            else if (args[ai] == "--batchSize")
+                batchSize = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--batches")
+                batches = std::stoi(args.at(ai + 1));
+
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));
             else {

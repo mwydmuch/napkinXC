@@ -237,6 +237,55 @@ void ofo(Args& args) {
               << "\n  Optimization CPU time (s): " << cpuTime << "\n";
 }
 
+void testBatches(Args& args) {
+    // Load model args
+    args.loadFromFile(joinPath(args.output, "args.bin"));
+    args.printArgs();
+
+    // Create data reader
+    std::shared_ptr<DataReader> reader = DataReader::factory(args);
+    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
+
+    // Load model
+    std::shared_ptr<Model> model = Model::factory(args);
+    model->load(args, args.output);
+
+    SRMatrix<Label> labels;
+    SRMatrix<Feature> features;
+    reader->readData(labels, features, args);
+
+    double time = 0;
+    double timeSq = 0;
+    double timePerPoint = 0;
+    double timePerPointSq = 0;
+    for (int i = 0; i < args.batches; ++i) {
+        int start = (i * args.batchSize) % features.rows();
+
+        double startTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+        for(int j = 0; j < args.batchSize; ++j){
+            int r = (start + j) % features.rows();
+            std::vector<Prediction> prediction;
+            model->predict(prediction, features[r], args);
+        }
+
+        double stopTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+        double timeDiff = stopTime - startTime;
+        time += timeDiff;
+        timeSq += timeDiff * timeDiff;
+        timeDiff = timeDiff * 1000 / args.batchSize;
+        timePerPoint += timeDiff;
+        timePerPointSq += timeDiff * timeDiff;
+    }
+
+    double meanTime = time / args.batches;
+    double meanTimePerPoint = timePerPoint / args.batches;
+    std::cout << "Results:"
+        << "\n  Test CPU time / batch (s): " << meanTime
+        << "\n  Test CPU time / batch std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
+        << "\n  Test CPU time / data points (ms): " << meanTimePerPoint
+        << "\n  Test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint) << "\n";
+}
+
 int main(int argc, char** argv) {
     std::vector<std::string> arg(argv, argv + argc);
     Args args = Args();
@@ -252,6 +301,8 @@ int main(int argc, char** argv) {
         predict(args);
     else if (args.command == "ofo")
         ofo(args);
+    else if (args.command == "testBatches")
+        testBatches(args);
 
     return 0;
 }

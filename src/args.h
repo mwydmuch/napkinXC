@@ -96,6 +96,8 @@ public:
     bool onTheTrotPrediction;
     bool inbalanceLabelsWeighting;
     bool pickOneLabelWeighting;
+    bool autoCLin;
+    bool autoCLog;
 
     // For online training
     double eta;
@@ -125,6 +127,7 @@ public:
     int topK;
     double threshold;
     std::string thresholds;
+    bool ensMissingScores;
 
     inline int getSeed() { return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);
@@ -142,7 +145,6 @@ public:
 
     // Set utility options
     double ubopMipsK;
-    double ubopMipsSample;
 
     SetUtilityType setUtilityType;
     double alpha;

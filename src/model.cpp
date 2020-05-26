@@ -168,8 +168,8 @@ double Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Arg
 
 std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
     // Variables required for OFO
-    std::vector<double> as(m, 0);
-    std::vector<double> bs(m, 0);
+    std::vector<double> as(m, args.ofoA);
+    std::vector<double> bs(m, args.ofoB);
     thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
 
     std::cerr << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads
@@ -242,8 +242,9 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
     else if(args.ofoType == OFOType::micro)
         thresholds = std::vector<double>(m, microOfo(features, labels, args));
     else {
-        double microThr = microOfo(features, labels, args);
         std::vector<double> macroThr = macroOfo(features, labels, args);
+        args.epochs = 1;
+        double microThr = microOfo(features, labels, args);
 
         std::cerr << "Mixing thresholds for top " << args.ofoTopLabels << " labels ...\n";
         std::vector<Prediction> priors = computeLabelsPriors(labels);
@@ -257,20 +258,20 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
     return thresholds;
 }
 
-Base* Model::trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
+Base* Model::trainBase(int n, int r, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
                        std::vector<double>* instancesWeights, Args& args) {
     Base* base = new Base();
-    base->train(n, baseLabels, baseFeatures, instancesWeights, args);
+    base->train(n, r, baseLabels, baseFeatures, instancesWeights, args);
     return base;
 }
 
-void Model::trainBatchThread(int n, std::vector<std::promise<Base *>>& results, std::vector<std::vector<double>>& baseLabels,
+void Model::trainBatchThread(int n, int r, std::vector<std::promise<Base *>>& results, std::vector<std::vector<double>>& baseLabels,
                              std::vector<std::vector<Feature*>>& baseFeatures,
                              std::vector<std::vector<double>*>* instancesWeights, Args& args, int threadId, int threads) {
 
     size_t size = baseLabels.size();
     for (int i = threadId; i < size; i += threads)
-        results[i].set_value(trainBase(n, baseLabels[i], baseFeatures[i],
+        results[i].set_value(trainBase(n, r, baseLabels[i], baseFeatures[i],
                                    (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
 }
 
@@ -313,7 +314,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
         std::vector<std::future<Base *>> results(size);
         for(int i = 0; i < size; ++i) results[i] = resultsPromise[i].get_future();
         for (int t = 0; t < args.threads; ++t)
-            tSet.add(trainBatchThread, n, std::ref(resultsPromise), std::ref(baseLabels), std::ref(baseFeatures), instancesWeights, args, t, args.threads);
+            tSet.add(trainBatchThread, n, baseFeatures[0].size(), std::ref(resultsPromise), std::ref(baseLabels), std::ref(baseFeatures), instancesWeights, args, t, args.threads);
 
         // Thread pool solution is slower
         /*
@@ -331,7 +332,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
     } else {
         for (int i = 0; i < size; ++i){
             Base* base = new Base();
-            base->train(n, baseLabels[i], baseFeatures[i], (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args);
+            base->train(n, baseFeatures[0].size(), baseLabels[i], baseFeatures[i], (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args);
             base->save(out);
             delete base;
         }
@@ -344,7 +345,7 @@ void Model::trainBatchWithSameFeaturesThread(int n, std::vector<std::promise<Bas
                                              std::vector<double>* instancesWeights, Args& args, int threadId, int threads){
     size_t size = baseLabels.size();
     for(int i = threadId; i < size; i += threads)
-        results[i].set_value(trainBase(n, baseLabels[i], baseFeatures, instancesWeights, args));
+        results[i].set_value(trainBase(n, 0, baseLabels[i], baseFeatures, instancesWeights, args));
 }
 
 void Model::trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
@@ -390,7 +391,7 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
     } else {
         for (int i = 0; i < size; ++i){
             Base* base = new Base();
-            base->train(n, baseLabels[i], baseFeatures, instancesWeights, args);
+            base->train(n, 0, baseLabels[i], baseFeatures, instancesWeights, args);
             base->save(out);
             delete base;
         }

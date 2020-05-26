@@ -73,7 +73,7 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     }
 }
 
-void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+void Base::trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                           std::vector<double>* instancesWeights, int positiveLabels, Args& args) {
 
     int labelsCount = 0;
@@ -98,6 +98,12 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
         }
     }
 
+    double cost = args.cost;
+    if(args.autoCLog)
+        cost *= 1.0 + log(static_cast<double>(r) / binFeatures.size());
+    if (args.autoCLin)
+        cost *= static_cast<double>(r) / binFeatures.size();
+
     auto y = binLabels.data();
     auto x = binFeatures.data();
     int l = static_cast<int>(binLabels.size());
@@ -118,7 +124,7 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
 
     parameter C = {.solver_type = args.solverType,
                    .eps = args.eps,
-                   .C = args.cost,
+                   .C = cost,
                    .nr_weight = labelsCount,
                    .weight_label = labels,
                    .weight = labelsWeights,
@@ -167,7 +173,7 @@ void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Featur
     finalizeOnlineTraining(args);
 }
 
-void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+void Base::train(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                  std::vector<double>* instancesWeights, Args& args) {
 
     if(instancesWeights != nullptr && args.optimizerType != liblinear)
@@ -190,7 +196,7 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
     if (instancesWeights != nullptr) assert(instancesWeights->size() == binLabels.size());
 
     if (args.optimizerType == liblinear)
-        trainLiblinear(n, binLabels, binFeatures, instancesWeights, positiveLabels, args);
+        trainLiblinear(n, r, binLabels, binFeatures, instancesWeights, positiveLabels, args);
     else
         trainOnline(n, binLabels, binFeatures, args);
 
@@ -229,7 +235,7 @@ void Base::finalizeOnlineTraining(Args& args) {
 }
 
 double Base::predictValue(Feature* features) {
-    if (classCount < 2) return static_cast<double>(firstClass * 100);
+    if (classCount < 2) return static_cast<double>(firstClass * 10);
     double val = 0;
 
     if (mapW) { // Sparse features dot sparse weights in hash map

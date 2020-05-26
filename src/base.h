@@ -23,9 +23,9 @@ public:
 
     void update(double label, Feature* features, Args& args);
     void unsafeUpdate(double label, Feature* features, Args& args);
-    void train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+    void train(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                std::vector<double>* instancesWeights, Args& args);
-    void trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+    void trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                         std::vector<double>* instancesWeights, int positiveLabel, Args& args);
     void trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args);
 

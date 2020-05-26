@@ -46,10 +46,10 @@ protected:
     std::vector<double> thresholds; // For prediction with thresholds
 
     // Base utils
-    static Base* trainBase(int n, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
+    static Base* trainBase(int n, int r, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
                            std::vector<double>* instancesWeights, Args& args);
 
-    static void trainBatchThread(int n, std::vector<std::promise<Base *>>& results,
+    static void trainBatchThread(int n, int r, std::vector<std::promise<Base *>>& results,
                                  std::vector<std::vector<double>>& baseLabels,
                                  std::vector<std::vector<Feature*>>& baseFeatures,
                                  std::vector<std::vector<double>*>* instancesWeights,

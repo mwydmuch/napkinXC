@@ -38,6 +38,8 @@ Args::Args() {
     eps = 0.1;
     cost = 16.0;
     maxIter = 100;
+    autoCLin = false;
+    autoCLog = false;
 
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
@@ -76,6 +78,7 @@ Args::Args() {
     topK = 5;
     threshold = 0.0;
     thresholds = "";
+    ensMissingScores = true;
 
     // Mips options
     mipsDense = false;
@@ -85,13 +88,12 @@ Args::Args() {
 
     // Set utility options
     ubopMipsK = 0.05;
-    ubopMipsSample = 0.05;
 
     setUtilityType = uP;
     alpha = 0.0;
     beta = 1.0;
-    delta = 1.6;
-    gamma = 0.6;
+    delta = 2.2;
+    gamma = 1.2;
 
     // OFO options
     ofoType = micro;
@@ -196,8 +198,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hnswEfSearch = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--ubopMipsK")
                 ubopMipsK = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--ubopMipsSample")
-                ubopMipsSample = std::stof(args.at(ai + 1));
             else if (args[ai] == "--setUtility") {
                 setUtilityName = args.at(ai + 1);
                 if (args.at(ai + 1) == "uP")
@@ -383,6 +383,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--thresholds")
                 thresholds = std::string(args.at(ai + 1));
+            else if (args[ai] == "--ensMissingScores")
+                ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
 
             else if (args[ai] == "--batchSize")
                 batchSize = std::stoi(args.at(ai + 1));
@@ -391,6 +393,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));
+            else if (args[ai] == "--autoCLin")
+                autoCLin = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--autoCLog")
+                autoCLog = std::stoi(args.at(ai + 1)) != 0;
             else {
                 std::cerr << "Unknown argument: " << args[ai] << std::endl;
                 printHelp();
@@ -470,7 +476,7 @@ void Args::printArgs() {
         else std::cerr << "\n  Thresholds: " << thresholds;
         if (modelType == ubopMips || modelType == brMips) {
             std::cerr << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
-            if(modelType == ubopMips) std::cerr << ", k: " << ubopMipsK << ", sample: " << ubopMipsSample;
+            if(modelType == ubopMips) std::cerr << ", k: " << ubopMipsK;
         }
         if (modelType == ubop || modelType == ubopHsm || modelType == ubopMips) {
             std::cerr << "\n  Set utility: " << setUtilityName;

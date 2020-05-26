@@ -272,6 +272,7 @@ void testBatches(Args& args) {
         double timeDiff = stopTime - startTime;
         time += timeDiff;
         timeSq += timeDiff * timeDiff;
+
         timeDiff = timeDiff * 1000 / args.batchSize;
         timePerPoint += timeDiff;
         timePerPointSq += timeDiff * timeDiff;

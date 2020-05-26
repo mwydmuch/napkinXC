@@ -87,9 +87,11 @@ template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& predict
 
     prediction.clear();
     for (auto& p : ensemblePredictions) {
-        for (size_t i = 0; i < members.size(); ++i) {
-            if (!std::count(p.second.members.begin(), p.second.members.end(), i))
-                p.second.value += members[i]->predictForLabel(p.second.label, features, args);
+        if(args.ensMissingScores) {
+            for (size_t i = 0; i < members.size(); ++i) {
+                if (!std::count(p.second.members.begin(), p.second.members.end(), i))
+                    p.second.value += members[i]->predictForLabel(p.second.label, features, args);
+            }
         }
         prediction.push_back({p.second.label, p.second.value / members.size()});
     }
@@ -122,18 +124,20 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix<Feature>
     }
 
     // Predict missing predictions for specific labels
-    for (int memberNo = 0; memberNo < args.ensemble; ++memberNo) {
-        T* member = loadMember(args, args.output, memberNo);
+    if(args.ensMissingScores) {
+        for (int memberNo = 0; memberNo < args.ensemble; ++memberNo) {
+            T *member = loadMember(args, args.output, memberNo);
 
-        for (int i = 0; i < rows; ++i) {
-            printProgress(i, rows);
-            for (auto& p : ensemblePredictions[i]) {
-                if (!std::count(p.second.members.begin(), p.second.members.end(), memberNo))
-                    p.second.value += member->predictForLabel(p.second.label, features[i], args);
+            for (int i = 0; i < rows; ++i) {
+                printProgress(i, rows);
+                for (auto &p : ensemblePredictions[i]) {
+                    if (!std::count(p.second.members.begin(), p.second.members.end(), memberNo))
+                        p.second.value += member->predictForLabel(p.second.label, features[i], args);
+                }
             }
-        }
 
-        delete member;
+            delete member;
+        }
     }
 
     // Create final predictions
@@ -172,5 +176,5 @@ template <typename T> void Ensemble<T>::printInfo() {}
 
 
 template <typename T> void Ensemble<T>::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args){
-    std::cerr << "  Threshold prediction is not avialable for ensemble";
+    std::cerr << "  Threshold prediction is not available for ensemble";
 }

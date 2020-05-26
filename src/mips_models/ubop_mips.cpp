@@ -25,38 +25,16 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
     if(args.ubopMipsK < 1) k = std::ceil(static_cast<double>(bases.size()) * args.ubopMipsK);
     else k = args.ubopMipsK;
 
-    int sample;
-    if(args.ubopMipsSample < 1) sample = std::ceil(static_cast<double>(bases.size()) * args.ubopMipsSample);
-    else sample = args.ubopMipsSample;
-
     std::vector<Prediction> allPredictions;
     UnorderedSet<int> seenLabels;
-    double sum = 0;
     std::priority_queue<Prediction> mipsPrediction = mipsIndex->predict(features, k);
     while (!mipsPrediction.empty()) {
         auto p = mipsPrediction.top();
         mipsPrediction.pop();
-
         p.value = exp(p.value);
-        sum += p.value;
         allPredictions.push_back(p);
         seenLabels.insert(p.label);
     }
-
-    double tmpSum = 0;
-    std::default_random_engine rng(args.seed);
-    std::uniform_int_distribution<int> labelsRandomizer(0, bases.size());
-    for (int i = 0; i < sample; ++i) {
-        int r = labelsRandomizer(rng);
-        double value = exp(bases[r]->predictValue(features));
-        tmpSum += value;
-        if (seenLabels.count(r)) --i;
-    }
-
-    sum += tmpSum * static_cast<double>(bases.size() - k) / sample;
-
-    // Normalize
-    for (auto& p : allPredictions) p.value /= sum;
 
     // BOP part
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
@@ -77,16 +55,13 @@ void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, A
             while (!mipsPrediction.empty()) {
                 auto p = mipsPrediction.top();
                 mipsPrediction.pop();
+
                 if (!seenLabels.count(p.label)){
-                    allPredictions.push_back({p.label, exp(p.value) / sum});
+                    p.value = exp(p.value);
+                    allPredictions.push_back(p);
                     seenLabels.insert(p.label);
                 }
             }
         }
     }
-
-//     for(auto& p : allPredictions)
-//        std::cerr << p.label << " " << p.value << "\n";
-//     std::cerr << "pred size: " << prediction.size() << " P: " << P << " best U: " << bestU << " sum " <<  sum <<
-//     "\n"; exit(0);
 }

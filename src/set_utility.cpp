@@ -81,4 +81,4 @@ UtilityDeltaGamma::UtilityDeltaGamma(double delta, double gamma) : delta(delta),
     name = "Delta gamma utility (" + std::to_string(delta) + ", " + std::to_string(gamma) + ")";
 }
 
-double UtilityDeltaGamma::g(int pSize) { return 1.0; }
+double UtilityDeltaGamma::g(int pSize) { return delta / pSize - gamma / (pSize * pSize); }

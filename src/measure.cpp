@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -27,6 +27,10 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionAtK>(k)));
             else if (mAt[0] == "r" || mAt[0] == "recall")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<RecallAtK>(k)));
+            else if (mAt[0] == "dcg")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<DCGAtK>(k)));
+            else if (mAt[0] == "ndcg")
+                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<NDCGAtK>(k)));
             else if (mAt[0] == "c" || mAt[0] == "coverage")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<CoverageAtK>(outputSize, k)));
             else if (mAt[0] == "tp")
@@ -233,15 +237,57 @@ void PrecisionAtK::accumulate(Label* labels, const std::vector<Prediction>& pred
     addValue(TruePositivesAtK::calculate(labels, prediction, k) / k);
 }
 
+DCGAtK::DCGAtK(int k) : MeasureAtK(k) {
+    name = "DCG@" + std::to_string(k);
+    meanMeasure = true;
+}
+
+void DCGAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+    addValue(calculate(labels, prediction, k));
+}
+
+double DCGAtK::calculate(Label* labels, const std::vector<Prediction>& prediction, int k){
+    double score = 0;
+    for (int i = 0; i < std::min(k, static_cast<int>(prediction.size())); ++i) {
+        int l = -1;
+        while (labels[++l] > -1)
+            if (prediction[i].label == labels[l]) {
+                score += 1.0 / std::log2(i + 2);
+                break;
+            }
+    }
+
+    return score;
+}
+
+
+NDCGAtK::NDCGAtK(int k) : MeasureAtK(k) {
+    name = "nDCG@" + std::to_string(k);
+    meanMeasure = true;
+}
+
+void NDCGAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+    double nDenominator = 0;
+
+    int l = 0;
+    while (labels[l] > -1 && l < k) {
+        nDenominator += 1.0 / std::log2(l + 2);
+        ++l;
+    }
+
+    if (l > 0) addValue(DCGAtK::calculate(labels, prediction, k) / nDenominator);
+    else addValue(0);
+
+}
+
 Coverage::Coverage(int outputSize) : m(outputSize) {
     name = "Coverage";
     meanMeasure = false;
 }
 
 void Coverage::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
-    int l;
     for (const auto& p : prediction) {
-        l = -1;
+        int l = -1;
         while (labels[++l] > -1)
             if (p.label == labels[l]) {
                 seen.insert(p.label);

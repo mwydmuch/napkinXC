@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -39,7 +39,7 @@ protected:
 
 class MeasureAtK : public Measure {
 public:
-    MeasureAtK(int k);
+    explicit MeasureAtK(int k);
 
 protected:
     int k;
@@ -47,7 +47,7 @@ protected:
 
 class TruePositivesAtK : public MeasureAtK {
 public:
-    TruePositivesAtK(int k);
+    explicit TruePositivesAtK(int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     static double calculate(Label* labels, const std::vector<Prediction>& prediction, int k);
@@ -77,7 +77,7 @@ public:
     static double calculate(Label* labels, const std::vector<Prediction>& prediction);
 };
 
-class Recall : public Measure { // (Macro)
+class Recall : public Measure {
 public:
     Recall();
 
@@ -86,12 +86,12 @@ public:
 
 class RecallAtK : public MeasureAtK {
 public:
-    RecallAtK(int k);
+    explicit RecallAtK(int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
-class Precision : public Measure { // (Macro)
+class Precision : public Measure {
 public:
     Precision();
 
@@ -100,16 +100,29 @@ public:
 
 class PrecisionAtK : public MeasureAtK {
 public:
-    PrecisionAtK(int k);
+    explicit PrecisionAtK(int k);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
 };
 
+class DCGAtK : public MeasureAtK {
+public:
+    explicit DCGAtK(int k);
 
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(Label* labels, const std::vector<Prediction>& prediction, int k);
+};
+
+class NDCGAtK : public MeasureAtK{
+public:
+    explicit NDCGAtK(int k);
+
+    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+};
 
 class Coverage : public Measure {
 public:
-    Coverage(int outputSize);
+    explicit Coverage(int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;
@@ -168,7 +181,7 @@ public:
 
 class MacroF1 : public Measure {
 public:
-    MacroF1(int outputSize);
+    explicit MacroF1(int outputSize);
 
     void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
     double value() override;
@@ -180,20 +193,3 @@ protected:
     int m;
     int zeroDivisionDenominator;
 };
-
-
-/*
-class MicroRecall : public Measure {
-public:
-    MicroRecall();
-
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-};
-
-class MicroPrecision : public Measure {
-public:
-    MicroPrecision();
-
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-};
- */

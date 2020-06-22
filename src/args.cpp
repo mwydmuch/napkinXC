@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 by Marek Wydmuch
+ * Copyright (c) 2018-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -95,18 +95,20 @@ Args::Args() {
     delta = 2.2;
     gamma = 1.2;
 
-    // OFO options
+
+    // Measures for test command
+    measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
+
+    // Args for OFO command
     ofoType = micro;
     ofoTypeName = "micro";
     ofoTopLabels = 1000;
     ofoA = 10;
     ofoB = 20;
 
-    batchSize = 100;
+    // Args for testPredictionTime command
+    batchSizes = "100,1000,10000";
     batches = 10;
-
-    // Measures
-    measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
 }
 
 // Parse args
@@ -118,7 +120,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 
     }
 
-    if (command != "train" && command != "test" && command != "predict" && command != "ofo" && command != "testBatches") {
+    if (command != "train" && command != "test" && command != "predict" && command != "ofo" && command != "testPredictionTime") {
         std::cerr << "Unknown command type: " << command << "!\n";
         printHelp();
     }
@@ -386,8 +388,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--ensMissingScores")
                 ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
 
-            else if (args[ai] == "--batchSize")
-                batchSize = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--batchSizes")
+                batchSizes = args.at(ai + 1);
             else if (args[ai] == "--batches")
                 batches = std::stoi(args.at(ai + 1));
 
@@ -500,6 +502,8 @@ Commands:
     train
     test
     predict
+    ofo
+    testPredictionTime
 
 Args:
     General:

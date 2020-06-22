@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 by Marek Wydmuch
+ * Copyright (c) 2018-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -152,18 +152,20 @@ public:
     double delta;
     double gamma;
 
-    // OFO options
+
+    // Measures for test command
+    std::string measures;
+
+    // Args for OFO command
     OFOType ofoType;
     std::string ofoTypeName;
     double ofoTopLabels;
     double ofoA;
     double ofoB;
 
-    int batchSize;
+    // Args for testPredictionTime command
+    std::string batchSizes;
     int batches;
-
-    // Measures
-    std::string measures;
 
 private:
     std::default_random_engine rngSeeder;

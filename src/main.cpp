@@ -1,6 +1,12 @@
 /**
- * Copyright (c) 2018 by Marek Wydmuch
+ * Copyright (c) 2018-2020 by Marek Wydmuch,
  * All rights reserved.
+ */
+
+/**
+ * This is main file for napkinXC command line tool,
+ * it should contain all commands implementations.
+ * Only this file and printInfo methods can use std:cout.
  */
 
 #include <iomanip>
@@ -9,10 +15,13 @@
 #include "args.h"
 #include "data_reader.h"
 #include "measure.h"
+#include "misc.h"
 #include "model.h"
 #include "resources.h"
 #include "types.h"
 
+
+// TODO: refactor this as load/save vector
 std::vector<double> loadThresholds(std::string infile){
     std::vector<double> thresholds;
     std::ifstream thresholdsIn(infile);
@@ -24,7 +33,7 @@ std::vector<double> loadThresholds(std::string infile){
 void saveThresholds(std::vector<double>& thresholds, std::string outfile){
     std::ofstream out(outfile);
     for(auto t : thresholds)
-        out << t <<std::endl;
+        out << t << std::endl;
     out.close();
 }
 
@@ -113,7 +122,7 @@ void test(Args& args) {
     std::cout << std::setprecision(5) << "Results:\n";
     for (auto& m : measures){
         std::cout << "  " << m->getName() << ": " << m->value();
-        //if(m->isMeanMeasure()) std::cout << " ± " << m->stdDev();
+        //if(m->isMeanMeasure()) std::cout << " ± " << m->stdDev(); // Print std
         std::cout << std::endl;
     }
     model->printInfo();
@@ -237,7 +246,9 @@ void ofo(Args& args) {
               << "\n  Optimization CPU time (s): " << cpuTime << "\n";
 }
 
-void testBatches(Args& args) {
+void testPredictionTime(Args& args) {
+    // Method for testing performance on different batch (test dataset) sizes
+
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -254,37 +265,58 @@ void testBatches(Args& args) {
     SRMatrix<Feature> features;
     reader->readData(labels, features, args);
 
-    double time = 0;
-    double timeSq = 0;
-    double timePerPoint = 0;
-    double timePerPointSq = 0;
-    for (int i = 0; i < args.batches; ++i) {
-        int start = (i * args.batchSize) % features.rows();
+    // Read batch sizes
+    std::vector<int> batchSizes;
+    for(const auto& s : split(args.batchSizes))
+        batchSizes.push_back(std::stoi(s));
 
-        double startTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
-        for(int j = 0; j < args.batchSize; ++j){
-            int r = (start + j) % features.rows();
-            std::vector<Prediction> prediction;
-            model->predict(prediction, features[r], args);
+    // Prepare rng for selecting batches
+    std::default_random_engine rng(args.seed);
+    std::uniform_int_distribution<int> dist(0, features.rows() - 1);
+
+    std::cout << "Results:";
+    for(const auto& batchSize : batchSizes) {
+        long double time = 0;
+        long double timeSq = 0;
+        long double timePerPoint = 0;
+        long double timePerPointSq = 0;
+
+        for (int i = 0; i < args.batches; ++i) {
+            // Generate batch
+            std::vector<Feature*> batch;
+            batch.reserve(batchSize);
+            for (int j = 0; j < batchSize; ++j)
+                batch.push_back(features[dist(rng)]);
+
+            assert(batch.size() == batchSize);
+
+            // Test batch
+            double startTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+            for (const auto& r : batch) {
+                std::vector<Prediction> prediction;
+                model->predict(prediction, r, args);
+            }
+
+            // Accumulate time measurements
+            double stopTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
+            double timeDiff = stopTime - startTime;
+            time += timeDiff;
+            timeSq += timeDiff * timeDiff;
+
+            timeDiff = timeDiff * 1000 / batchSize;
+            timePerPoint += timeDiff;
+            timePerPointSq += timeDiff * timeDiff;
         }
 
-        double stopTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
-        double timeDiff = stopTime - startTime;
-        time += timeDiff;
-        timeSq += timeDiff * timeDiff;
+        long double meanTime = time / args.batches;
+        long double meanTimePerPoint = timePerPoint / args.batches;
+        std::cout << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
+                  << "\n  Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
+                  << "\n  Batch " << batchSize << " test CPU time / data points (ms): " << meanTimePerPoint
+                  << "\n  Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint);
 
-        timeDiff = timeDiff * 1000 / args.batchSize;
-        timePerPoint += timeDiff;
-        timePerPointSq += timeDiff * timeDiff;
     }
-
-    double meanTime = time / args.batches;
-    double meanTimePerPoint = timePerPoint / args.batches;
-    std::cout << "Results:"
-        << "\n  Test CPU time / batch (s): " << meanTime
-        << "\n  Test CPU time / batch std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
-        << "\n  Test CPU time / data points (ms): " << meanTimePerPoint
-        << "\n  Test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint) << "\n";
+    std::cout << "\n";
 }
 
 int main(int argc, char** argv) {
@@ -302,8 +334,8 @@ int main(int argc, char** argv) {
         predict(args);
     else if (args.command == "ofo")
         ofo(args);
-    else if (args.command == "testBatches")
-        testBatches(args);
+    else if (args.command == "testPredictionTime")
+        testPredictionTime(args);
 
     return 0;
 }

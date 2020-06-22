@@ -78,7 +78,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     if [ -e $TRAIN_RESULT_FILE ]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
-    (time ./nxc testBatches -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
+    (time ./nxc testPredictionTime -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
 
     echo
     echo "Test date: $(date)" | tee -a $TEST_RESULT_FILE

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch, Kalina Jasinska-Kobus
  * All rights reserved.
  */
 

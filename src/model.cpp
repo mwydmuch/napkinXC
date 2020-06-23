@@ -1,6 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
- * Copyright (c) 2020 by Marek Wydmuch, Kalina Kobus
+ * Copyright (c) 2019-2020 by Marek Wydmuch, Kalina Jasinska-Kobus
  * All rights reserved.
  */
 
@@ -37,7 +36,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         switch (args.modelType) {
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<HSM>>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<BatchPLT>>()); break;
-        default: throw std::invalid_argument("Ensemble is not supported for this model type!");
+        default: throw std::invalid_argument("Ensemble is not supported for this model type");
         }
     } else {
         switch (args.modelType) {
@@ -54,7 +53,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case brMips: model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>()); break;
         case ubopMips: model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>()); break;
 #endif
-        default: throw std::invalid_argument("Unknown model type!");
+        default: throw std::invalid_argument("Unknown model type");
         }
     }
 

@@ -1,6 +1,5 @@
 /**
- * Copyright (c) 2018 by Marek Wydmuch, Kalina Jasinska, Robert Istvan Busa-Fekete
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2018-2020 by Marek Wydmuch, Kalina Jasinska-Kobus, Robert Istvan Busa-Fekete
  * All rights reserved.
  */
 
@@ -55,7 +54,7 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         for (int i = 0; i < rSize; ++i) {
             auto ni = tree->leaves.find(rLabels[i]);
             if (ni == tree->leaves.end()) {
-                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree!\n";
+                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree\n";
                 continue;
             }
         }

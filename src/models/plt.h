@@ -1,6 +1,5 @@
 /**
- * Copyright (c) 2018 by Marek Wydmuch, Kalina Jasińska, Robert Istvan Busa-Fekete
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2018-2020 by Marek Wydmuch, Kalina Jasinska-Kobus, Robert Istvan Busa-Fekete
  * All rights reserved.
  */
 

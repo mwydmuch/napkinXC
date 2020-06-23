@@ -36,7 +36,7 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
             else if (mAt[0] == "tp")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<TruePositivesAtK>(k)));
             else
-                throw std::invalid_argument("Unknown measure type: " + mAt[0] + "!");
+                throw std::invalid_argument("Unknown measure type: " + mAt[0]);
         } else {
             if (m == "p" || m =="precision")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Precision>()));

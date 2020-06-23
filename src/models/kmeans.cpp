@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018 by Marek Wydmuch
+ * Copyright (c) 2018-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -88,7 +88,7 @@ void kMeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
                 std::sort(distances[i].values.begin(), distances[i].values.end());
 
                 for (int j = 0; j < centroids - 1; ++j)
-                    distances[i].differences[j].value = distances[i].values[j].value - distances[i].values[j + 1].value;
+                    distances[i].differences[j].value = distances[i].values[j].value;
             }
 
             // Assign points to centroids and calculate new loss

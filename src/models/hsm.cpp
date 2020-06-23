@@ -44,14 +44,14 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         // Check row
         if (!args.pickOneLabelWeighting && rSize != 1) {
             std::cerr << "Row " << r << ": encountered example with " << rSize
-                      << " labels! HSM is multi-class classifier, use PLT instead!\n";
+                      << " labels HSM is multi-class classifier, use PLT instead\n";
             continue;
         }
 
         for (int i = 0; i < rSize; ++i) {
             auto ni = tree->leaves.find(rLabels[i]);
             if (ni == tree->leaves.end()) {
-                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree!\n";
+                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree\n";
                 continue;
             }
 

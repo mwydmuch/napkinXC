@@ -1,6 +1,5 @@
 /**
- * Copyright (c) 2018 by Marek Wydmuch, Kalina Jasinska, Robert Istvan Busa-Fekete
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2018-2020 by Marek Wydmuch, Kalina Jasinska-Kobus, Robert Istvan Busa-Fekete
  * All rights reserved.
  */
 
@@ -20,8 +19,7 @@
 #include "tree.h"
 
 Tree::Tree() {
-    online = false;
-    nextToExpand = 0;
+
 }
 
 Tree::~Tree() {
@@ -40,15 +38,10 @@ void Tree::buildTreeStructure(int labelCount, Args& args) {
         buildBalancedTree(labelCount, false, args);
     else if (args.treeType == balancedRandom)
         buildBalancedTree(labelCount, true, args);
-    else if (args.treeType == huffman || args.treeType == hierarchicalKMeans)
-        std::cerr << "This tree type is not supported for this model type\n";
-    else if (args.treeType == onlineBalanced || args.treeType == onlineComplete || args.treeType == onlineRandom ||
-             args.treeType == onlineBottomUp) {
-        online = true;
-    } else if (args.treeType != custom) {
-        std::cerr << "Unknown tree type\n";
-        exit(1);
-    }
+    else if (args.treeType < custom)
+        throw std::invalid_argument("This tree type is not supported for this model type");
+    else if (args.treeType > custom)
+        throw std::invalid_argument("Unknown tree type");
 }
 
 void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
@@ -74,11 +67,13 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
                                     args.kMeansWeightedFeatures);
         //labelsFeatures.dump(joinPath(args.output, "lf_mat.txt"));
         buildKMeansTree(labelsFeatures, args);
-    } else if (args.treeType == onlineBalanced || args.treeType == onlineComplete || args.treeType == onlineRandom) {
+    } else if (args.treeType == onlineKAryComplete || args.treeType == onlineKAryRandom)
         buildOnlineTree(labels, features, args);
-    } else if (args.treeType != custom) {
-        throw std::invalid_argument("buildTreeStructure: Unknown tree type");
-    }
+    else if (args.treeType < custom)
+        buildOnlineTree(labels, features, args);
+    else if (args.treeType != custom)
+        throw std::invalid_argument("Unknown tree type");
+
 
     // Check tree
     assert(k == leaves.size());
@@ -149,6 +144,28 @@ void Tree::buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
     t = nodes.size();
     assert(k == leaves.size());
     std::cerr << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+}
+
+void Tree::squashTree(){
+    std::queue<TreeNode*> nQueue;
+    nQueue.push(root);
+
+    while(!nQueue.empty()){
+        auto n = nQueue.front();
+        nQueue.pop();
+        std::vector<TreeNode*> newChildren;
+        for (auto& child : n->children) {
+            if (child->label >= 0)
+                newChildren.push_back(child);
+            for (auto& grandchild : child->children)
+                newChildren.push_back(grandchild);
+        }
+        n->children = newChildren;
+        for (auto& newChild : newChildren){
+            newChild->parent = n;
+            nQueue.push(newChild);
+        }
+    }
 }
 
 void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
@@ -282,6 +299,8 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
 void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
     std::cerr << "Building online tree ...\n";
 
+    int nextToExpand = 0;
+
     int rows = features.rows();
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
@@ -297,25 +316,21 @@ void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features,
 
                 if (nodes.empty()) { // Empty tree
                     root = createTreeNode(nullptr, newLabel);
-                    nextSubtree = root;
                     continue;
                 }
 
                 TreeNode* toExpand = root;
 
                 // Select node based on policy
-                if (args.treeType == onlineBalanced) { // Balanced policy
-                    while (toExpand->children.size() >= args.arity) {
-                        toExpand = toExpand->children[toExpand->nextToExpand++ % toExpand->children.size()];
-                    }
-                } else if (args.treeType == onlineComplete) { // Complete
+                if (args.treeType == onlineKAryComplete) { // Complete policy
                     if (nodes[nextToExpand]->children.size() >= args.arity) ++nextToExpand;
                     toExpand = nodes[nextToExpand];
-                } else if (args.treeType == onlineRandom) { // Random policy
+                } else if (args.treeType == onlineKAryRandom) { // Random policy
                     std::default_random_engine rng(args.getSeed());
                     std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
                     while (toExpand->children.size() == args.arity) toExpand = toExpand->children[dist(rng)];
-                }
+                } else
+                    throw std::invalid_argument("Unknown tree type");
 
                 // Expand selected node
                 if (toExpand->children.empty()) TreeNode* parentLabelNode = createTreeNode(toExpand, toExpand->label);
@@ -334,12 +349,12 @@ void Tree::loadTreeStructure(std::string file) {
     std::ifstream in(file);
     in >> k >> t;
 
-    if (k >= t) throw std::invalid_argument("Specified number of labels is higher then specified number of nodes!");
+    if (k >= t) throw std::invalid_argument("The specified number of labels = " + std::to_string(k) + " is higher than the specified number of nodes = " + std::to_string(t));
 
     root = createTreeNode();
     for (int i = 1; i < t; ++i) createTreeNode();
 
-    std::cerr << "  Header: nodes: " << t << ", leaves: " << k << "\n";
+    std::cerr << "  Header: nodes: " << t << ", labels: " << k << "\n";
 
     std::string line;
     while (std::getline(in, line)) {
@@ -352,9 +367,9 @@ void Tree::loadTreeStructure(std::string file) {
         lineISS >> parent >> child >> sLabel;
         if (sLabel.size()) label = std::stoi(sLabel);
 
-        if (child >= t) throw std::invalid_argument("Node index is higher then specified number of nodes!");
-        if (parent >= t) throw std::invalid_argument("Parent index is higher then specified number of nodes!");
-        if (label >= k) throw std::invalid_argument("Label index is higher then specified number of labels!");
+        if (child >= t) throw std::invalid_argument("The node index = " + std::to_string(child) + " is higher than the specified number of nodes = " + std::to_string(t));
+        if (parent >= t) throw std::invalid_argument("The parent index = " + std::to_string(parent) + " is higher than the specified number of nodes = " + std::to_string(t));
+        if (label >= k) throw std::invalid_argument("The label index = " + std::to_string(label) + " is higher than specified number of labels = " + std::to_string(k));
 
         if (parent == -1) {
             root = nodes[child];
@@ -378,14 +393,14 @@ void Tree::loadTreeStructure(std::string file) {
     // Additional validation of a tree
     for (const auto& n : nodes) {
         if (n->parent == nullptr && n != root)
-            throw std::invalid_argument("A node without parent, that is not a tree root exists!");
+            throw std::invalid_argument("A node without a parent that is not a tree root exists");
         if (n->children.size() == 0 && n->label < 0)
-            throw std::invalid_argument("An internal node without children exists!");
+            throw std::invalid_argument("An internal node without children exists");
     }
 
     assert(nodes.size() == t);
     assert(leaves.size() == k);
-    std::cerr << "  Loaded: nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+    std::cerr << "  Loaded: nodes: " << nodes.size() << ", labels: " << leaves.size() << "\n";
 }
 
 void Tree::saveTreeStructure(std::string file) {
@@ -412,8 +427,6 @@ TreeNode* Tree::createTreeNode(TreeNode* parent, int label) {
     nodes.push_back(n);
     setLabel(n, label);
     setParent(n, parent);
-    n->nextToExpand = 0;
-    n->subtreeDepth = 1;
     return n;
 }
 
@@ -575,94 +588,6 @@ void Tree::moveSubtree(TreeNode* oldParent, TreeNode* newParent) {
         setLabel(newParent, oldParent->label);
 
     setParent(newParent, oldParent);
-}
-
-void Tree::expandTopDown(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args) {
-
-    TreeNode* toExpand = root;
-
-    // Select node based on policy
-    if (args.treeType == onlineBalanced) { // Balanced policy
-        while (toExpand->children.size() >= args.arity) {
-            toExpand = toExpand->children[toExpand->nextToExpand++ % toExpand->children.size()];
-        }
-    } else if (args.treeType == onlineComplete) { // Complete
-        if (nodes[nextToExpand]->children.size() >= args.arity) ++nextToExpand;
-        toExpand = nodes[nextToExpand];
-    } else if (args.treeType == onlineRandom) { // Random policy
-        std::default_random_engine rng(args.getSeed());
-        std::uniform_int_distribution<uint32_t> dist(0, args.arity - 1);
-        while (toExpand->children.size() >= args.arity) toExpand = toExpand->children[dist(rng)];
-    }
-
-    // Expand selected node
-    if (toExpand->children.size() == 0) {
-        TreeNode* parentLabelNode = createTreeNode(toExpand, toExpand->label);
-        bases.push_back(bases[toExpand->index]->copyInverted());
-        tmpBases.push_back(tmpBases[toExpand->index]->copy());
-    }
-
-    TreeNode* newLabelNode = createTreeNode(toExpand, newLabel);
-    bases.push_back(tmpBases[toExpand->index]->copyInverted());
-    tmpBases.push_back(new Base());
-
-    // Remove temporary classifier
-    if (toExpand->children.size() == args.arity - 1) {
-        delete tmpBases[toExpand->index];
-        tmpBases[toExpand->index] = nullptr;
-    }
-}
-
-void Tree::expandBottomUp(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args) {
-    if (nextSubtree->children.size() < args.arity) {
-        // Adding new child
-
-        if (nextSubtree->label != -1) {
-            TreeNode* labelChild = createTreeNode(nextSubtree, nextSubtree->label);
-            bases.push_back(tmpBases[nextSubtree->index]->copyInverted());
-            tmpBases.push_back(new Base());
-            ++nextSubtree->subtreeDepth;
-        }
-
-        TreeNode* newChild = createTreeNode(nextSubtree, newLabel);
-        bases.push_back(tmpBases[nextSubtree->index]->copy());
-        tmpBases.push_back(new Base());
-
-        if (nextSubtree->parent && nextSubtree->children.size() == args.arity - 1 &&
-            nextSubtree->parent->subtreeDepth == nextSubtree->subtreeDepth + 1) {
-            delete tmpBases[nextSubtree->index];
-            tmpBases[nextSubtree->index] = nullptr;
-        }
-
-        if (nextSubtree->subtreeDepth > 2) nextSubtree = newChild;
-    } else if (nextSubtree->parent && nextSubtree->parent->subtreeDepth == nextSubtree->subtreeDepth + 1) {
-        // Moving up
-        nextSubtree = nextSubtree->parent;
-        expandBottomUp(newLabel, bases, tmpBases, args);
-    } else {
-        // Expanding subtree
-        TreeNode* parentOfOldTree = createTreeNode();
-        bases.push_back(tmpBases[nextSubtree->index]->copy());
-        tmpBases.push_back(new Base());
-
-        parentOfOldTree->subtreeDepth = nextSubtree->subtreeDepth;
-        moveSubtree(nextSubtree, parentOfOldTree);
-        ++nextSubtree->subtreeDepth;
-
-        expandBottomUp(newLabel, bases, tmpBases, args);
-    }
-}
-
-void Tree::expandTree(Label newLabel, std::vector<Base*>& bases, std::vector<Base*>& tmpBases, Args& args) {
-    if (nodes.size() == 0) { // Empty tree
-        root = createTreeNode(nullptr, newLabel);
-        bases.emplace_back(new Base());
-        tmpBases.emplace_back(new Base());
-        nextSubtree = root;
-    } else if (args.treeType == onlineBottomUp)
-        expandBottomUp(newLabel, bases, tmpBases, args);
-    else
-        expandTopDown(newLabel, bases, tmpBases, args);
 }
 
 void Tree::populateNodeLabels() {

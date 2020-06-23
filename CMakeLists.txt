@@ -6,8 +6,8 @@ project(napkinXC)
 
 # Project version
 set(napkinXC_VERSION_MAJOR 0)
-set(napkinXC_VERSION_MINOR 3)
-set(napkinXC_PATCH_VERSION 7)
+set(napkinXC_VERSION_MINOR 4)
+set(napkinXC_PATCH_VERSION 0)
 
 # Building options
 option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)

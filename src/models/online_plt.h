@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2019 by Marek Wydmuch
+ * Copyright (c) 2019-2020 by Marek Wydmuch
  * All rights reserved.
  */
 
@@ -7,6 +7,9 @@
 
 #include "online_model.h"
 #include "plt.h"
+
+#include <mutex>
+#include <shared_mutex>
 
 
 class OnlinePLT : public OnlineModel, public PLT {
@@ -20,6 +23,11 @@ public:
     void save(Args& args, std::string output) override;
 
 protected:
+    bool onlineTree;
+
     std::vector<Base*> tmpBases;
-    std::mutex treeMtx;
+    std::shared_timed_mutex treeMtx;
+
+    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1, Base* base = nullptr, Base* tmpBase = nullptr);
+    void expandTree(const std::vector<Label>& newLabels, Feature* features, Args& args);
 };

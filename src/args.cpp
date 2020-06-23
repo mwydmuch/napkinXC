@@ -74,6 +74,9 @@ Args::Args() {
     kMeansBalanced = true;
     kMeansWeightedFeatures = false;
 
+    // Online PLT options
+    onlineTreeAlpha = 0.5;
+
     // Prediction options
     topK = 5;
     threshold = 0.0;
@@ -343,20 +346,21 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     treeType = hierarchicalKMeans;
                 else if (args.at(ai + 1) == "huffman")
                     treeType = huffman;
-                else if (args.at(ai + 1) == "onlineBalanced")
-                    treeType = onlineBalanced;
-                else if (args.at(ai + 1) == "onlineComplete")
-                    treeType = onlineComplete;
+                else if (args.at(ai + 1) == "onlineKAryComplete")
+                    treeType = onlineKAryComplete;
+                else if (args.at(ai + 1) == "onlineKAryRandom")
+                    treeType = onlineKAryRandom;
                 else if (args.at(ai + 1) == "onlineRandom")
                     treeType = onlineRandom;
-                else if (args.at(ai + 1) == "onlineBottomUp")
-                    treeType = onlineBottomUp;
+                else if (args.at(ai + 1) == "onlineBestScore")
+                    treeType = onlineBestScore;
 
                 else {
                     std::cerr << "Unknown tree type: " << args.at(ai + 1) << "!\n";
                     printHelp();
                 }
-            }
+            } else if (args[ai] == "--onlineTreeAlpha")
+                onlineTreeAlpha = std::stof(args.at(ai + 1));
 
             // OFO options
             else if (args[ai] == "--ofoType") {
@@ -427,7 +431,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         if (count(args.begin(), args.end(), "treeType"))
             std::cerr << "Online PLT does not support " << treeTypeName
                       << " tree type! Changing to complete in order tree.\n";
-        treeType = completeInOrder;
+        treeType = onlineBestScore;
+        treeTypeName = "onlineBestScore";
     }
 
     // If only threshold used set topK to 0, otherwise display warning

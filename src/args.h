@@ -33,11 +33,11 @@ enum TreeType {
     completeRandom,
     balancedInOrder,
     balancedRandom,
-    onlineBalanced,
-    onlineComplete,
+    onlineKAryComplete,
+    onlineKAryRandom,
     onlineRandom,
-    onlineBottomUp,
-    custom
+    onlineBestScore,
+    custom // custom tree has to be the last one
 };
 
 enum OptimizerType { liblinear, sgd, adagrad, fobos };
@@ -122,6 +122,9 @@ public:
     double kMeansEps;
     bool kMeansBalanced;
     bool kMeansWeightedFeatures;
+
+    // Online tree options
+    double onlineTreeAlpha;
 
     // Prediction options
     int topK;

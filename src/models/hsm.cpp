@@ -43,20 +43,14 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
 
         // Check row
         if (!args.pickOneLabelWeighting && rSize != 1) {
-            std::cerr << "Row " << r << ": encountered example with " << rSize
+            std::cerr << "Encountered example with " << rSize
                       << " labels HSM is multi-class classifier, use PLT instead\n";
             continue;
         }
 
         for (int i = 0; i < rSize; ++i) {
-            auto ni = tree->leaves.find(rLabels[i]);
-            if (ni == tree->leaves.end()) {
-                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree\n";
-                continue;
-            }
-
             getNodesToUpdate(nPositive, nNegative, rLabels[i]);
-            addFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
+            addNodesLabelsAndFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
             if (args.pickOneLabelWeighting) {
                 double w = 1.0 / rSize;
                 for (const auto& n : nPositive) (*binWeights)[n->index]->push_back(w);
@@ -74,7 +68,12 @@ void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
 
     std::vector<TreeNode*> path;
 
-    TreeNode* n = tree->leaves[rLabel];
+    auto ni = tree->leaves.find(rLabel);
+    if (ni == tree->leaves.end()) {
+        std::cerr << "Encountered example with label " << rLabel << " that does not exists in the tree\n";
+        return;
+    }
+    TreeNode* n = ni->second;
     path.push_back(n);
     while (n->parent) {
         n = n->parent;

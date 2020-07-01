@@ -27,6 +27,9 @@ public:
 
     void printInfo() override;
 
+    // For Python PLT Framework
+    std::vector<std::vector<std::pair<int, int>>> assignDataPoints(SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+
 protected:
     Tree* tree;
     std::vector<Base*> bases;
@@ -37,9 +40,11 @@ protected:
                                   SRMatrix<Feature>& features, Args& args);
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
-    void addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                     UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
-                     Feature* features);
+
+    static void addNodesLabelsAndFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                                   UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, Feature* features);
+    static void addNodesDataPoints(std::vector<std::vector<std::pair<int, int>>>& nodesDataPoints, int row,
+                                   UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative);
 
     // Helper methods for prediction
     virtual Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold);

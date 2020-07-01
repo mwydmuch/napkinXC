@@ -47,20 +47,8 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         nPositive.clear();
         nNegative.clear();
 
-        auto rSize = labels.size(r);
-        auto rLabels = labels[r];
-
-        // Check row
-        for (int i = 0; i < rSize; ++i) {
-            auto ni = tree->leaves.find(rLabels[i]);
-            if (ni == tree->leaves.end()) {
-                std::cerr << "Row: " << r << ", encountered example with label that does not exists in the tree\n";
-                continue;
-            }
-        }
-
-        getNodesToUpdate(nPositive, nNegative, rLabels, rSize);
-        addFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
+        getNodesToUpdate(nPositive, nNegative, labels[r], labels.size(r));
+        addNodesLabelsAndFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
 
         nodeUpdateCount += nPositive.size() + nNegative.size();
         ++dataPointCount;
@@ -70,10 +58,37 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     std::cerr << "  Temporary data size: " << formatMem(usedMem) << std::endl;
 }
 
+std::vector<std::vector<std::pair<int, int>>> PLT::assignDataPoints(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+    std::vector<std::vector<std::pair<int, int>>> nodesDataPoints;
+
+    // Positive and negative nodes
+    UnorderedSet<TreeNode*> nPositive;
+    UnorderedSet<TreeNode*> nNegative;
+
+    // Gather examples for each node
+    int rows = features.rows();
+    for (int r = 0; r < rows; ++r) {
+        printProgress(r, rows);
+
+        nPositive.clear();
+        nNegative.clear();
+
+        getNodesToUpdate(nPositive, nNegative, labels[r], labels.size(r));
+        addNodesDataPoints(nodesDataPoints, r, nPositive, nNegative);
+    }
+
+    return nodesDataPoints;
+}
+
 void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                            const int* rLabels, const int rSize) {
     for (int i = 0; i < rSize; ++i) {
-        TreeNode* n = tree->leaves[rLabels[i]];
+        auto ni = tree->leaves.find(rLabels[i]);
+        if (ni == tree->leaves.end()) {
+            std::cerr << "Encountered example with label " << rLabels[i] << " that does not exists in the tree\n";
+            continue;
+        }
+        TreeNode* n = ni->second;
         nPositive.insert(n);
         while (n->parent) {
             n = n->parent;
@@ -94,7 +109,7 @@ void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
     }
 }
 
-void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+void PLT::addNodesLabelsAndFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                       UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                       Feature* features) {
     for (const auto& n : nPositive) {
@@ -106,6 +121,15 @@ void PLT::addFeatures(std::vector<std::vector<double>>& binLabels, std::vector<s
         binLabels[n->index].push_back(0.0);
         binFeatures[n->index].push_back(features);
     }
+}
+
+void PLT::addNodesDataPoints(std::vector<std::vector<std::pair<int, int>>>& nodesDataPoints, int row,
+                             UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative) {
+    for (const auto& n : nPositive)
+        nodesDataPoints[n->index].push_back({row, 1.0});
+
+    for (const auto& n : nNegative)
+        nodesDataPoints[n->index].push_back({row, 1.0});
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
@@ -266,6 +290,7 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     std::vector<std::vector<double>> binLabels(tree->t);
     std::vector<std::vector<Feature*>> binFeatures(tree->t);
     std::vector<std::vector<double>*>* binWeights = nullptr;
+
     if (type == hsm && args.pickOneLabelWeighting) {
         binWeights = new std::vector<std::vector<double>*>(tree->t);
         for (auto& p : *binWeights) p = new std::vector<double>();
@@ -282,6 +307,7 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     tree = nullptr;
 
     trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
+
     if (type == hsm && args.pickOneLabelWeighting) {
         for (auto& w : *binWeights) delete w;
         delete binWeights;

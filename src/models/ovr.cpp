@@ -40,7 +40,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         int rSize = labels.size(r);
 
         if (rSize != 1 && !args.pickOneLabelWeighting) {
-            std::cerr << "Row " << r << ": encountered example with " << rSize
+            std::cerr << "Encountered example with " << rSize
                       << " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!\n";
             continue;
         }

@@ -10,15 +10,15 @@
 
 #include "types.h"
 
-// (Heuristic) Balanced K-Means clustering
+// K-Means clustering with balanced option
 typedef IntFeature Assignation;
 
-struct Distances {
+struct Similarities {
     int index;
     std::vector<Feature> values;
-    std::vector<Feature> differences;
+    double sortby;
 
-    bool operator<(const Distances& r) const { return differences[0].value < r.differences[0].value; }
+    bool operator<(const Similarities& r) const { return sortby < r.sortby; }
 };
 
 // Partition is returned via reference, calculated for cosine distance

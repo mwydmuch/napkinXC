@@ -13,9 +13,6 @@ compiler:
   - gcc
   - clang
 
-before_script:
-  - uname -a
-  - cmake .
-
 script:
+  - cmake .
   - make

@@ -10,6 +10,7 @@ set(napkinXC_VERSION_MINOR 4)
 set(napkinXC_PATCH_VERSION 0)
 
 # Building options
+option(PYTHON "Build Python binding" ON)
 option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
 set(CMAKE_CXX_STANDARD 14)
@@ -69,13 +70,17 @@ if (WITH_MIPS_EXT)
     list(APPEND LIBRARIES NonMetricSpaceLib)
 endif ()
 
+if (PYTHON)
+    add_subdirectory(python)
+endif ()
+
 add_executable(nxc ${SOURCES})
 target_include_directories(nxc PUBLIC ${INCLUDES})
 target_link_libraries(nxc PUBLIC ${LIBRARIES})
 
 add_custom_command(TARGET nxc
-        PRE_BUILD
-        COMMAND )
+    PRE_BUILD
+    COMMAND )
 
 set_target_properties(nxc
     PROPERTIES

@@ -65,8 +65,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
         lLabels.clear();
         lFeatures.clear();
 
-        // Add bias feature (bias feature has index 1)
-        if (args.bias) lFeatures.push_back({1, 0.0});
+        prepareFeaturesVector(lFeatures, args.bias);
 
         try {
             readLine(line, lLabels, lFeatures);
@@ -75,25 +74,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
             exit(1);
         }
 
-        // Hash features
-        if (args.hash) {
-            UnorderedMap<int, double> lHashed;
-            for (auto& f : lFeatures) lHashed[hash(f.index) % args.hash] += f.value;
-
-            lFeatures.clear();
-            for (const auto& f : lHashed) lFeatures.push_back({f.first + 2, f.second});
-        }
-
-        // Norm row
-        if (args.norm) unitNorm(lFeatures);
-
-        if (args.bias) lFeatures[0].value = args.biasValue;
-
-        // Apply features threshold
-        if (args.featuresThreshold > 0) threshold(lFeatures, args.featuresThreshold);
-
-        // Check if it requires sorting
-        if (!std::is_sorted(lFeatures.begin(), lFeatures.end())) sort(lFeatures.begin(), lFeatures.end());
+        processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
@@ -124,6 +105,27 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     // Print info about loaded data
     std::cerr << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2
               << ", labels: " << labels.cols() << "\n  Data size: " << formatMem(labels.mem() + features.mem()) << std::endl;
+}
+
+void DataReader::processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashSize, double featuresThreshold) {
+    // Hash features
+    if (hashSize) {
+        UnorderedMap<int, double> lHashed;
+        for (int j = 1; j < lFeatures.size(); ++j)
+            lHashed[hash(lFeatures[j].index) % hashSize] += lFeatures[j].value;
+
+        lFeatures.erase (lFeatures.begin() + 1, lFeatures.end()); // Keep bias feature
+        for (const auto& f : lHashed) lFeatures.push_back({f.first + 2, f.second});
+    }
+
+    // Norm row
+    if (norm) unitNorm(lFeatures);
+
+    // Apply features threshold
+    if (featuresThreshold > 0) threshold(lFeatures, featuresThreshold);
+
+    // Check if it requires sorting
+    if (!std::is_sorted(lFeatures.begin(), lFeatures.end())) sort(lFeatures.begin(), lFeatures.end());
 }
 
 void DataReader::save(std::ostream& out) {}

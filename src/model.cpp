@@ -60,7 +60,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
     return model;
 }
 
-Model::Model() {}
+Model::Model():loaded(false), m(0) {}
 
 Model::~Model() {}
 

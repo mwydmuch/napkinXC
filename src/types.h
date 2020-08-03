@@ -45,6 +45,9 @@ struct Prediction {
     int label;
     double value; // labels's value/probability/loss
 
+    Prediction() = default;
+    Prediction(int label, double value): label(label), value(value) {};
+
     bool operator<(const Prediction& r) const { return value < r.value; }
 
     friend std::ostream& operator<<(std::ostream& os, const Prediction& p) {
@@ -52,6 +55,8 @@ struct Prediction {
         return os;
     }
 };
+
+//typedef std::pair<int, double> Prediction;
 
 template <typename T> class TopKQueue{
 public:
@@ -255,6 +260,21 @@ public:
     inline T* operator[](const int index) { return r[index]; }
     inline const T* operator[](const int index) const { return r[index]; }
 
+    // Compare matrices with == operator
+    inline bool operator==(const SRMatrix<T>& rm){
+        if(m != rm.m || n != rm.n || c != rm.c)
+            return false;
+
+        for(int i = 0; i < m; ++i){
+            if(s[i] != rm.s[i])
+                return false;
+            //else if(std::equal(r[i], r[i] + s[i], rm.r[i]))
+            else if(memcmp (r[i], rm.r[i], sizeof(T) * s[i]))
+                return false;
+        }
+        return true;
+    }
+
     // Returns rows' sizes
     inline std::vector<int>& allSizes() { return s; }
 
@@ -273,6 +293,8 @@ public:
     void dump(std::string outfile);
     void save(std::ostream& out);
     void load(std::istream& in);
+
+
 
 private:
     int m;              // Row count

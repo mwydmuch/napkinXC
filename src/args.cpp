@@ -20,15 +20,14 @@ Args::Args() {
 
     // Input/output options
     input = "";
-    output = "";
+    output = ".";
     dataFormatName = "libsvm";
     dataFormatType = libsvm;
     modelName = "plt";
     modelType = plt;
     header = true;
     hash = 0;
-    bias = true;
-    biasValue = 1.0;
+    bias = 1.0;
     norm = true;
     featuresThreshold = 0.0;
 
@@ -43,6 +42,8 @@ Args::Args() {
 
     solverType = L2R_LR_DUAL;
     solverName = "L2R_LR_DUAL";
+    lossType = logistic;
+    lossName = "logistic";
     inbalanceLabelsWeighting = false;
     pickOneLabelWeighting = false;
     optimizerName = "liblinear";
@@ -58,7 +59,6 @@ Args::Args() {
     epochs = 1;
     tmax = -1;
     l2Penalty = 0;
-    fobosPenalty = 0.00001;
     adagradEps = 0.001;
     dims = 100;
 
@@ -239,7 +239,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--header")
                 header = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--bias")
-                bias = std::stoi(args.at(ai + 1)) != 0;
+                bias = std::stof(args.at(ai + 1));
             else if (args[ai] == "--norm")
                 norm = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--hash")
@@ -269,6 +269,17 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 inbalanceLabelsWeighting = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--pickOneLabelWeighting")
                 pickOneLabelWeighting = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--loss") {
+                lossName = args.at(ai + 1);
+                if (args.at(ai + 1) == "logistic" || args.at(ai + 1) == "log")
+                    lossType = logistic;
+                else if (args.at(ai + 1) == "squeredHinge" || args.at(ai + 1) == "l2")
+                    lossType = squeredHinge;
+                else {
+                    std::cerr << "Unknown solver type: " << args.at(ai + 1) << "!\n";
+                    printHelp();
+                }
+            }
             else if (args[ai] == "--solver") {
                 solverName = args.at(ai + 1);
                 if (args.at(ai + 1) == "L2R_LR_DUAL")
@@ -297,8 +308,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     optimizerType = sgd;
                 else if (args.at(ai + 1) == "adagrad")
                     optimizerType = adagrad;
-                else if (args.at(ai + 1) == "fobos")
-                    optimizerType = fobos;
                 else {
                     std::cerr << "Unknown optimizer type: " << args.at(ai + 1) << "!\n";
                     printHelp();
@@ -311,8 +320,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 tmax = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--adagradEps")
                 adagradEps = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--fobosPenalty")
-                fobosPenalty = std::stof(args.at(ai + 1));
             else if (args[ai] == "--l2Penalty")
                 l2Penalty = std::stof(args.at(ai + 1));
             else if (args[ai] == "--dims")
@@ -459,9 +466,8 @@ void Args::printArgs() {
         if (optimizerType == liblinear)
             std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
         else
-            std::cerr << "\n    Eta: " << eta << ", epochs: " << epochs;
+            std::cerr << "\n    Loss: " << lossName << ", eta: " << eta << ", epochs: " << epochs;
         if (optimizerType == adagrad) std::cerr << ", AdaGrad eps " << adagradEps;
-        if (optimizerType == fobos) std::cerr << ", Fobos penalty: " << fobosPenalty;
         std::cerr << ", weights threshold: " << weightsThreshold;
 
         if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {

@@ -27,10 +27,10 @@ enum InputDataType {
 //
 //};
 
-class PyModel {
+class CXXModel {
 public:
     //ModelWrapper(py::object args){
-    PyModel(){
+    CXXModel(){
         model = Model::factory(args);
     }
 
@@ -42,11 +42,38 @@ public:
 
     }
 
-    void trainFromFile(std::string path){
+    void testLoad(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType, std::string path){
+        SRMatrix<Label> labels;
+        SRMatrix<Feature> features;
+        readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
+        readLabelsMatrix(labels, inputLabels, (InputDataType)labelsDataType);
 
+        args.input = path;
+        args.header = false;
+
+        SRMatrix<Label> labels2;
+        SRMatrix<Feature> features2;
+        std::shared_ptr<DataReader> reader = DataReader::factory(args);
+        reader->readData(labels2, features2, args);
+
+        std::cout << "Labels equal: " << (labels == labels2) << "\n";
+        std::cout << "Features equal: " << (features == features2) << "\n";
     }
 
-    void train(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
+    void fitOnFile(std::string path){
+        args.input = path;
+        args.header = false;
+
+        SRMatrix<Label> labels;
+        SRMatrix<Feature> features;
+        std::shared_ptr<DataReader> reader = DataReader::factory(args);
+        reader->readData(labels, features, args);
+        //reader->saveToFile(joinPath(args.output, "data_reader.bin"));
+
+        fitHelper(labels, features);
+    }
+
+    void fit(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
         //SRMatrix<Label> labels = readFeatureMatrix(inputFeatures, featuresDataType);
         //SRMatrix<Feature> features = readLabelsMatrix(inputLabels, labelsDataType);
 
@@ -55,21 +82,28 @@ public:
         readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
         readLabelsMatrix(labels, inputLabels, (InputDataType)labelsDataType);
 
-        args.printArgs();
-        makeDir(args.output);
-        args.saveToFile(joinPath(args.output, "args.bin"));
-
-        // Create and train model (train function also saves model)
-        model->train(labels, features, args, args.output);
+        fitHelper(labels, features);
     }
 
-//    py::object predictForFile(std::string path){
-//
-//    }
+    std::vector<std::vector<std::pair<int, double>>> predict(py::object inputFeatures, int featuresDataType){
+        SRMatrix<Feature> features;
+        std::cout << "Reading features...\n";
+        readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
 
-//    py::object predict(py::object inputFeatures){
-//
-//    }
+        return predictHelper(features);
+    }
+
+    std::vector<std::vector<std::pair<int, double>>> predictForFile(std::string path) {
+        args.input = path;
+        args.header = false;
+
+        SRMatrix<Label> labels;
+        SRMatrix<Feature> features;
+        std::shared_ptr<DataReader> reader = DataReader::factory(args);
+        reader->readData(labels, features, args);
+
+        return predictHelper(features);
+    }
 
 private:
     Args args;
@@ -81,10 +115,9 @@ private:
         return pyList;
     }
 
-    template<class T> std::vector<T> pyListToVector(py::list const &pyList){
-        size_t pyListLength = py::len(pyList);
-        std::vector<T> vector = std::vector<T>(pyListLength);
-        for (size_t i = 0; i < pyListLength; ++i) vector[i] = py::cast<T>(pyList[i]);
+    template<typename T> std::vector<T> pyListToVector(py::list const &pyList){
+        std::vector<T> vector = std::vector<T>(pyList.size());
+        for (size_t i = 0; i < pyList.size(); ++i) vector[i] = py::cast<T>(pyList[i]);
         return vector;
     }
 
@@ -111,17 +144,21 @@ private:
         }
     }
 
-    void readLabelsMatrix(SRMatrix<Label>& output, py::object input, InputDataType dataType) {
+    // Reads multiple items from a python object and inserts onto a SRMatrix<Label>
+    void readLabelsMatrix(SRMatrix<Label>& output, py::object& input, InputDataType dataType) {
         if (py::isinstance<py::list>(input)) {
             py::list rows(input);
             for (size_t r = 0; r < rows.size(); ++r) {
                 std::vector<Label> rLabels;
-                if (py::isinstance<py::list>(rows[r])) {
+
+                // Multi-label data
+                if (py::isinstance<py::list>(rows[r]) || py::isinstance<py::tuple>(rows[r])) {
                     py::list row(rows[r]);
-                    rLabels = pyListToVector<Label>(row);
+                    std::vector<double> _rLabels = pyListToVector<double>(row);
+                    rLabels = std::vector<Label>(_rLabels.begin(), _rLabels.end());
                 }
-                else
-                    rLabels.push_back(py::cast<int>(rows[r]));
+                else //if (py::isinstance<py::float_>(rows[r]) || py::isinstance<py::int_>(rows[r]))
+                    rLabels.push_back(static_cast<Label>(py::cast<double>(rows[r])));
 
                 output.appendRow(rLabels);
             }
@@ -129,11 +166,10 @@ private:
             throw std::invalid_argument("Unknown data type");
     }
 
-    // reads multiple items from a python object and inserts onto a similarity::ObjectVector
-    // returns the number of elements inserted
+    // Reads multiple items from a python object and inserts onto a SRMatrix<Feature>
     //SRMatrix<Feature> readFeatureMatrix(py::object input, InputDataType dataType) {
         //SRMatrix<Feature> output;
-    void readFeatureMatrix(SRMatrix<Feature>& output, py::object input, InputDataType dataType) {
+    void readFeatureMatrix(SRMatrix<Feature>& output, py::object& input, InputDataType dataType) {
         if (py::isinstance<py::list>(input)) {
             py::list items(input);
             for (size_t i = 0; i < items.size(); ++i) {
@@ -163,37 +199,63 @@ private:
             //    throw py::value_error("expect CSR matrix here");
             //}
 
-            // Try to intrepret input data as a CSR matrix
+            // Try to interpret input data as a CSR matrix
             py::array_t<int> indptr(input.attr("indptr"));
             py::array_t<int> indices(input.attr("indices"));
             py::array_t<double> data(input.attr("data"));
 
             // Read each row from the sparse matrix, and insert
             std::vector<Feature> rFeatures;
+
             for (int rId = 0; rId < indptr.size() - 1; ++rId) {
                 rFeatures.clear();
+                DataReader::prepareFeaturesVector(rFeatures, args.bias);
 
                 for (int i = indptr.at(rId); i < indptr.at(rId + 1); ++i) {
-                    rFeatures.push_back({indices.at(i), data.at(i)});
+                    rFeatures.push_back({indices.at(i) + 2, data.at(i)});
                 }
-                std::sort(rFeatures.begin(), rFeatures.end());
+
+                DataReader::processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
                 output.appendRow(rFeatures);
             }
         } else
             throw std::invalid_argument("Unknown data type");
     }
+
+    inline void fitHelper(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+        args.printArgs();
+        makeDir(args.output);
+        args.saveToFile(joinPath(args.output, "args.bin"));
+
+        // Create and train model (train function also saves model)
+        model->train(labels, features, args, args.output);
+    }
+
+    inline std::vector<std::vector<std::pair<int, double>>> predictHelper(SRMatrix<Feature>& features){
+        if(model == nullptr)
+            throw std::runtime_error("Model does not exist!");
+        if(!model->isLoaded())
+            model->load(args, args.output);
+        std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+
+        return reinterpret_cast<std::vector<std::vector<std::pair<int, double>>>&>(predictions);
+    }
 };
 
 
 PYBIND11_MODULE(pynxc, n) {
-    n.doc() = "Python Bindings for napkinXC";
+    n.doc() = "Python Bindings for napkinXC C++ core";
     n.attr("__version__") = py::str(VERSION);
 
 //    py::Py_Initialize();
 //    py::PyEval_InitThreads();
 //    py::init_numpy();
 
-    py::class_<PyModel>(n, "Model")
+    py::class_<CXXModel>(n, "CXXModel")
     .def(py::init<>())
-    .def("train", &PyModel::train);
+    .def("testLoad", &CXXModel::testLoad)
+    .def("fit", &CXXModel::fit)
+    .def("fitFromFile", &CXXModel::fitOnFile)
+    .def("predict", &CXXModel::predict)
+    .def("predictForFile", &CXXModel::predictForFile);
 }

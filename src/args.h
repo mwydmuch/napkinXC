@@ -40,7 +40,7 @@ enum TreeType {
     custom // custom tree has to be the last one
 };
 
-enum OptimizerType { liblinear, sgd, adagrad, fobos };
+enum OptimizerType { liblinear, sgd, adagrad };
 
 enum DataFormatType { libsvm, vw };
 
@@ -54,6 +54,11 @@ enum SetUtilityType {
     uDeltaGamma,
     uAlpha,
     uAlphaBeta
+};
+
+enum LossType {
+    squeredHinge,
+    logistic
 };
 
 enum OFOType {
@@ -75,8 +80,7 @@ public:
     DataFormatType dataFormatType;
     ModelType modelType;
     bool header;
-    bool bias;
-    double biasValue;
+    double bias;
     bool norm;
     int hash;
     double featuresThreshold;
@@ -88,6 +92,7 @@ public:
     // Training options
     int solverType;
     OptimizerType optimizerType;
+    LossType lossType;
     double eps;
     double cost;
     int maxIter;
@@ -103,7 +108,6 @@ public:
     double eta;
     int epochs;
     double l2Penalty;
-    double fobosPenalty;
     int tmax;
     double adagradEps;
 
@@ -174,6 +178,7 @@ private:
     std::default_random_engine rngSeeder;
 
     std::string solverName;
+    std::string lossName;
     std::string treeTypeName;
     std::string optimizerName;
     std::string modelName;

@@ -35,6 +35,7 @@ public:
     std::vector<double> macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
+    bool isLoaded() { return loaded; };
 
     virtual void printInfo() {}
     inline int outputSize() { return m; };
@@ -43,6 +44,7 @@ protected:
     ModelType type;
     std::string name;
     int m; // Output size/number of labels
+    bool loaded;
     std::vector<double> thresholds; // For prediction with thresholds
 
     // Base utils

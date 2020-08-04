@@ -30,16 +30,10 @@ enum InputDataType {
 class CXXModel {
 public:
     //ModelWrapper(py::object args){
-    CXXModel(){
-        model = Model::factory(args);
-    }
+    CXXModel(){}
 
-    void save(std::string path){
-
-    }
-
-    void load(std::string path){
-
+    void setArgs(const std::vector<std::string>& arg){
+        args.parseArgs(arg);
     }
 
     void testLoad(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType, std::string path){
@@ -228,6 +222,7 @@ private:
         args.saveToFile(joinPath(args.output, "args.bin"));
 
         // Create and train model (train function also saves model)
+        model = Model::factory(args);
         model->train(labels, features, args, args.output);
     }
 
@@ -238,14 +233,15 @@ private:
             model->load(args, args.output);
         std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
 
+        // This is only safe because it's struct with two fields casted to pair, don't do this with tuples!
         return reinterpret_cast<std::vector<std::vector<std::pair<int, double>>>&>(predictions);
     }
 };
 
 
-PYBIND11_MODULE(pynxc, n) {
+PYBIND11_MODULE(_napkinxc, n) {
     n.doc() = "Python Bindings for napkinXC C++ core";
-    n.attr("__version__") = py::str(VERSION);
+    n.attr("__version__") = VERSION;
 
 //    py::Py_Initialize();
 //    py::PyEval_InitThreads();
@@ -253,9 +249,10 @@ PYBIND11_MODULE(pynxc, n) {
 
     py::class_<CXXModel>(n, "CXXModel")
     .def(py::init<>())
-    .def("testLoad", &CXXModel::testLoad)
+    .def("test_load", &CXXModel::testLoad)
+    .def("set_args", &CXXModel::setArgs)
     .def("fit", &CXXModel::fit)
-    .def("fitFromFile", &CXXModel::fitOnFile)
+    .def("fit_from_file", &CXXModel::fitOnFile)
     .def("predict", &CXXModel::predict)
-    .def("predictForFile", &CXXModel::predictForFile);
+    .def("predict_for_file", &CXXModel::predictForFile);
 }

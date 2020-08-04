@@ -45,9 +45,6 @@ struct Prediction {
     int label;
     double value; // labels's value/probability/loss
 
-    Prediction() = default;
-    Prediction(int label, double value): label(label), value(value) {};
-
     bool operator<(const Prediction& r) const { return value < r.value; }
 
     friend std::ostream& operator<<(std::ostream& os, const Prediction& p) {
@@ -56,7 +53,6 @@ struct Prediction {
     }
 };
 
-//typedef std::pair<int, double> Prediction;
 
 template <typename T> class TopKQueue{
 public:

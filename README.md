@@ -11,14 +11,36 @@ Right now it implements:
 - extremeText (XT),
 - Ensembles of tree based models,
 - Top-k and set-valued prediction,
-- LibLinear and SGD solvers for base classifiers,
+- LibLinear, SGD and AdaGrad solvers for base classifiers,
 - Online prediction,
 - Huffman, complete and balanced tree structures,
-- Hierarchical balanced k-means clustering for tree building,
+- Hierarchical k-means clustering for tree building,
 - Loading custom tree structures.
 
 Please note that this library is still under development and serves as a base for experiments.
 Features may change or break and some of the options may not be listed below.
+
+This library implements methods flow following papers:
+
+```
+@article{DBLP:journals/corr/abs-1906-08129,
+  author    = {Thomas Mortier and
+               Marek Wydmuch and
+               Eyke H{\"{u}}llermeier and
+               Krzysztof Dembczynski and
+               Willem Waegeman},
+  title     = {Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification},
+  journal   = {CoRR},
+  volume    = {abs/1906.08129},
+  year      = {2019},
+  url       = {http://arxiv.org/abs/1906.08129},
+  archivePrefix = {arXiv},
+  eprint    = {1906.08129},
+  timestamp = {Mon, 24 Jun 2019 17:28:45 +0200},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-1906-08129.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+```
 
 This repository contains code for this [arXiv paper](https://arxiv.org/abs/1906.08129) about set-valued prediction in multi-class classification.
 
@@ -90,16 +112,15 @@ Args:
                         See: https://github.com/cjlin1/liblinear
     -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
                         Like in support vector machines, smaller values specify stronger
-                        regularization. (default = 10.0)
+                        regularization. (default = 1.0)
                         Note: -1 to automatically find best value for each node.
     -e, --eps           Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
 
-    SGD/AdaGrad/Fobos:
-    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad/Fobos (default = 1.0)
-    --epochs            Number of epochs of SGD/AdaGrad/Fobos (default = 10)
-    --adagradEps        AdaGrad epsilon (default = 0.00001)
-    --fobosPenalty      Regularization strength of Fobos algorithm (default = 0.00001)
+    SGD/AdaGrad:
+    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad (default = 1.0)
+    --epochs            Number of epochs of SGD/AdaGrad (default = 3)
+    --adagradEps        AdaGrad epsilon (default = 0.001)
 
     Tree:
     -a, --arity         Arity of a tree (default = 2)

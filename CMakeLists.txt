@@ -1,31 +1,30 @@
 # napkinXC
 # Authors: Marek Wydmuch
 
-cmake_minimum_required(VERSION 2.8.9)
-project(napkinXC)
-
-# Project version
-set(napkinXC_VERSION_MAJOR 0)
-set(napkinXC_VERSION_MINOR 4)
-set(napkinXC_PATCH_VERSION 0)
+cmake_minimum_required(VERSION 3.12)
+project(napkinXC
+    VERSION 0.4.0
+    DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
+    HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
+    LANGUAGES C CXX)
 
 # Building options
-option(PYTHON "Build Python binding" ON)
+option(EXE "Build executable" ON)
+option(PYTHON "Build Python binding" OFF)
 option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 # Set the release mode if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Add pthread for Linux
-if(UNIX AND NOT APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-endif()
+# Add threads
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
 
-# Add more aggressive optimization for Release build
+# Add more aggressive optimization for Release build TODO: improve this
 if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
 endif(CMAKE_BUILD_TYPE MATCHES Release)
@@ -37,6 +36,7 @@ configure_file(
     ${SRC_DIR}/version.in
     ${SRC_DIR}/version.h
 )
+
 # Gather napkinXC source files
 file(GLOB SOURCES
     ${SRC_DIR}/*.cpp
@@ -74,15 +74,17 @@ if (PYTHON)
     add_subdirectory(python)
 endif ()
 
-add_executable(nxc ${SOURCES})
-target_include_directories(nxc PUBLIC ${INCLUDES})
-target_link_libraries(nxc PUBLIC ${LIBRARIES})
+if (EXE)
+    add_executable(nxc ${SOURCES})
+    target_include_directories(nxc PUBLIC ${INCLUDES})
+    target_link_libraries(nxc PUBLIC ${LIBRARIES} PRIVATE Threads::Threads)
 
-add_custom_command(TARGET nxc
-    PRE_BUILD
-    COMMAND )
+    add_custom_command(TARGET nxc
+        PRE_BUILD
+        COMMAND )
 
-set_target_properties(nxc
-    PROPERTIES
-    OUTPUT_NAME nxc
-    PROJECT_LABEL "napkinXC")
+    set_target_properties(nxc
+        PROPERTIES
+        OUTPUT_NAME nxc
+        PROJECT_LABEL "napkinXC")
+endif ()

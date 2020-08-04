@@ -554,11 +554,10 @@ Args:
     -e, --eps           Stopping criteria (default = 0.1)
                         See: https://github.com/cjlin1/liblinear
 
-    SGD/AdaGrad/Fobos:
-    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad/Fobos (default = 1.0)
-    --epochs            Number of epochs of SGD/AdaGrad/Fobos (default = 5)
+    SGD/AdaGrad:
+    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad (default = 1.0)
+    --epochs            Number of epochs of SGD/AdaGrad (default = 5)
     --adagradEps        AdaGrad epsilon (default = 0.001)
-    --fobosPenalty      Regularization strength of Fobos algorithm (default = 0.00001)
 
     Tree:
     -a, --arity         Arity of a tree (default = 2)

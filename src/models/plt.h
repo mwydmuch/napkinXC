@@ -47,6 +47,8 @@ protected:
                                    UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative);
 
     // Helper methods for prediction
+    void ucSearch(std::vector<Prediction>& prediction, Feature* features, Args& args);
+    void beamSearch(std::vector<Prediction>& prediction, Feature* features, Args& args);
     virtual Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold);
     virtual Prediction predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features);
 

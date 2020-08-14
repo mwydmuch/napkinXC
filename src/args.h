@@ -131,6 +131,8 @@ public:
     double threshold;
     std::string thresholds;
     bool ensMissingScores;
+    bool beamSearch;
+    int beam;
 
     inline int getSeed() { return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);

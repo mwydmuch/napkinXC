@@ -78,7 +78,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     if [ -e $TRAIN_RESULT_FILE ]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
-    (time ./nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
+    (time ./nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS --beamSearch 1 --beam 10 -t 12 | tee -a $TEST_RESULT_FILE)
 
     echo
     echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TEST_RESULT_FILE

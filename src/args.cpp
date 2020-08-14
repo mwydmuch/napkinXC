@@ -82,6 +82,8 @@ Args::Args() {
     threshold = 0.0;
     thresholds = "";
     ensMissingScores = true;
+    beamSearch = false;
+    beam = 10;
 
     // Mips options
     mipsDense = false;
@@ -391,6 +393,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 thresholds = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensMissingScores")
                 ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--beamSearch")
+                beamSearch = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--beam")
+                beam = std::stoi(args.at(ai + 1));
 
             else if (args[ai] == "--batchSizes")
                 batchSizes = args.at(ai + 1);
@@ -479,7 +485,8 @@ void Args::printArgs() {
     }
 
     if (command == "test") {
-        if(thresholds.empty()) std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
+        if(thresholds.empty() && ! beamSearch) std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
+        else if(thresholds.empty() && beamSearch) std::cerr << "\n  Top k: " << topK << ", beamSearch: " << beamSearch << ", beam: " << beam ;
         else std::cerr << "\n  Thresholds: " << thresholds;
         if (modelType == ubopMips || modelType == brMips) {
             std::cerr << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;

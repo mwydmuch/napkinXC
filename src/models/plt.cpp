@@ -133,6 +133,13 @@ void PLT::addNodesDataPoints(std::vector<std::vector<std::pair<int, int>>>& node
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+    if (args.beamSearch)
+        beamSearch(prediction, features, args);
+    else
+        ucSearch(prediction, features, args);
+}
+
+void PLT::ucSearch(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     TopKQueue<TreeNodeValue> nQueue(args.topK);
     //TopKQueue<TreeNodeValue> nQueue(0);
 
@@ -162,6 +169,41 @@ Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
 
     return {-1, 0};
 }
+
+void PLT::beamSearch(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+    TopKQueue<TreeNodeValue> nQueue(args.beam);
+    std::priority_queue<TreeNodeValue> predictedQueue;
+
+    nQueue.push({tree->root, predictForNode(tree->root, features)});
+    ++nodeEvaluationCount;
+    ++dataPointCount;
+
+
+    while(!nQueue.empty()){
+        TopKQueue<TreeNodeValue> nQueueNext(args.beam);
+        while(!nQueue.empty()){
+            TreeNodeValue nVal = nQueue.top();
+            nQueue.pop();
+
+            for (const auto& child : nVal.node->children) {
+                if (!child->children.empty()) {
+                    nQueueNext.push({child, nVal.value * predictForNode(child, features)}, true);
+                }
+                else{
+                    predictedQueue.push({child, nVal.value * predictForNode(child, features)});
+                }
+            }
+            nodeEvaluationCount += nVal.node->children.size();
+        }
+        nQueue = nQueueNext;
+    }
+    while((prediction.size() < args.topK || args.topK == 0) && !predictedQueue.empty()){
+        TreeNodeValue nVal = predictedQueue.top();
+        predictedQueue.pop();
+        prediction.push_back({nVal.node->label, nVal.value});
+    }
+}
+
 
 void PLT::setThresholds(std::vector<double> th){
     thresholds = th;

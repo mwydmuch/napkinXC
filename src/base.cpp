@@ -29,7 +29,6 @@ Base::Base() {
     mapW = nullptr;
     mapG = nullptr;
     sparseW = nullptr;
-    pi = 1.0;
 }
 
 Base::~Base() { clear(); }
@@ -47,23 +46,22 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     if (label == firstClass) ++firstClassCount;
 
     double pred = predictValue(features);
-    double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
+    double grad;
+    if(args.lossType == logistic)
+        grad = logisticGrad(label, pred);
+    else
+        grad = squaredHingeGrad(label, pred);
 
     if (args.optimizerType == sgd) {
         if (mapW != nullptr)
-            updateSGD((*mapW), features, grad, args.eta);
+            updateSGD((*mapW), (*mapG), features, grad, t, args);
         else if (W != nullptr)
-            updateSGD(W, features, grad, args.eta);
+            updateSGD(W, G, features, grad, t, args);
     } else if (args.optimizerType == adagrad) {
         if (mapW != nullptr)
-            updateAdaGrad((*mapW), (*mapG), features, grad, args.eta, args.adagradEps);
+            updateAdaGrad((*mapW), (*mapG), features, grad, t, args);
         else if (W != nullptr)
-            updateAdaGrad(W, G, features, grad, args.eta, args.adagradEps);
-    } else if (args.optimizerType == fobos) {
-        if (mapW != nullptr)
-            updateFobos((*mapW), features, grad, args.eta, args.fobosPenalty);
-        else if (W != nullptr)
-            updateFobos(W, features, grad, args.eta, args.fobosPenalty);
+            updateAdaGrad(W, G, features, grad, t, args);
     }
 
     // Check if we should change sparse W to dense W
@@ -162,13 +160,43 @@ void Base::trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vec
 }
 
 void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args) {
-    setupOnlineTraining(args, n);
+    setupOnlineTraining(args, n, true);
 
-    const int examples = binFeatures.size() * args.epochs;
-    for (int i = 0; i < examples; ++i) {
-        int r = i % binFeatures.size();
-        unsafeUpdate(binLabels[r], binFeatures[r], args);
-    }
+    // Set loss function
+    double (*gradFunc)(double, double);
+    if (args.lossType == logistic)
+        gradFunc = &logisticGrad;
+    else if (args.lossType == squeredHinge)
+        gradFunc = &squaredHingeGrad;
+    else
+        throw std::invalid_argument("Unknown loss function type");
+
+    // Set update function
+    void (*updateFunc)(Weight*&, Weight*&, Feature*, double, int, Args&);
+    if(args.optimizerType == sgd)
+        updateFunc = &updateSGD<Weight*>;
+    else if (args.optimizerType == adagrad)
+        updateFunc = &updateAdaGrad<Weight*>;
+    else
+        throw std::invalid_argument("Unknown online update function type");
+
+    const int examples = binFeatures.size();
+    for (int e = 0; e < args.epochs; ++e)
+        for (int r = 0; r < examples; ++r) {
+
+            double label = binLabels[r];
+            Feature* features = binFeatures[r];
+
+            if (args.tmax != -1 && args.tmax < t) break;
+
+            ++t;
+            if (binLabels[r] == firstClass) ++firstClassCount;
+
+            //double pred = predictValue(binFeatures[r]);
+            double pred = dotVectors(features, W, wSize);
+            double grad = gradFunc(label, pred);
+            updateFunc(W, G, features, grad, t, args);
+        }
 
     finalizeOnlineTraining(args);
 }
@@ -224,8 +252,6 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
-    if (pi != 1) forEachW([&](Weight& w) { w /= pi; });
-
     if (firstClassCount == t || firstClassCount == 0) {
         classCount = 1;
         if (firstClassCount == 0) firstClass = 1 - firstClass;
@@ -251,7 +277,6 @@ double Base::predictValue(Feature* features) {
         throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
 
     if (firstClass == 0) val *= -1;
-    val /= pi; // Fobos
 
     return val;
 }
@@ -260,7 +285,7 @@ double Base::predictProbability(Feature* features) {
     double val = predictValue(features);
     if (hingeLoss)
         //val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
-        val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2)); // Parabel probability for squared Hinge loss solver
+        val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2));
     else
         val = 1.0 / (1.0 + std::exp(-val)); // Probability
     return val;
@@ -413,7 +438,10 @@ void Base::load(std::istream& in) {
         if (loadSparse) {
             bool loadAsMap = mapSize() < denseSize() && wSize > 50000;
 
-            if(loadAsMap) mapW = new UnorderedMap<int, Weight>();
+            if(loadAsMap){
+                mapW = new UnorderedMap<int, Weight>();
+                mapW->reserve(nonZeroW);
+            }
             else{
                 W = new Weight[wSize];
                 std::memset(W, 0, wSize * sizeof(Weight));

@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cmath>
 
 #include "args.h"
 #include "types.h"
@@ -43,8 +44,8 @@ public:
     inline int getWSize() { return wSize; }
     inline int getNonZeroW() { return nonZeroW; }
     inline size_t denseSize() { return wSize * sizeof(Weight); }
-    inline size_t mapSize() { return nonZeroW * (sizeof(void*) + sizeof(int) + sizeof(Weight)); }
-    inline size_t sparseSize() { return nonZeroW * (sizeof(int) + sizeof(double)); }
+    inline size_t mapSize() { return nonZeroW * (sizeof(int) + sizeof(int) + sizeof(Weight)); }
+    inline size_t sparseSize() { return nonZeroW * (sizeof(int) + sizeof(Weight)); }
     size_t size();
     inline int getFirstClass() { return firstClass; }
 
@@ -76,7 +77,6 @@ private:
     int firstClass;
     int firstClassCount;
     int t;
-    double pi; // For FOBOS
 
     // Weights
     Weight* W;
@@ -85,17 +85,29 @@ private:
     UnorderedMap<int, Weight>* mapG;
     SparseWeight* sparseW;
 
-    template <typename T> void updateSGD(T& W, Feature* features, double grad, double eta);
+    template <typename T> static void updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args);
+    template <typename T> static void updateAdaGrad(T& W, T& G, Feature* features, double grad, int t, Args& args);
 
-    template <typename T> void updateAdaGrad(T& W, T& G, Feature* features, double grad, double eta, double eps);
+    static double logisticGrad(double label, double pred){
+        return (1.0 / (1.0 + std::exp(-pred))) - label;
+    }
 
-    template <typename T> void updateFobos(T& W, Feature* features, double grad, double eta, double penalty);
+    static double squaredHingeGrad(double label, double pred){
+        double _label = 2 * label - 1;
+        double v = _label * pred;
+        // return v > 1 ? 0.0 : -_label; // hinge grad
+        if(v > 1.0)
+            return 0.0;
+        else
+            return -2 * std::max(1.0 - v, 0.0) * _label;
+    }
 
     void forEachW(const std::function<void(Weight&)>& f);
     void forEachIW(const std::function<void(const int&, Weight&)>& f);
 };
 
-template <typename T> void Base::updateSGD(T& W, Feature* features, double grad, double eta) {
+template <typename T> void Base::updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args) {
+    double eta = args.eta;
     double lr = eta * sqrt(1.0 / t);
     Feature* f = features;
     while (f->index != -1) {
@@ -104,23 +116,17 @@ template <typename T> void Base::updateSGD(T& W, Feature* features, double grad,
     }
 }
 
-template <typename T> void Base::updateAdaGrad(T& W, T& G, Feature* features, double grad, double eta, double eps) {
+template <typename T> void Base::updateAdaGrad(T& W, T& G, Feature* features, double grad, int t, Args& args) {
+    double eta = args.eta;
+    double eps = args.adagradEps;
     Feature* f = features;
     while (f->index != -1) {
         G[f->index] += f->value * f->value * grad * grad;
         double lr = eta * std::sqrt(1.0 / (eps + G[f->index]));
         W[f->index] -= lr * (grad * f->value);
         ++f;
-    }
-}
-
-template <typename T> void Base::updateFobos(T& W, Feature* features, double grad, double eta, double penalty) {
-    double lr = eta / (1 + eta * t * penalty);
-    pi *= (1 + penalty * lr);
-
-    Feature* f = features;
-    while (f->index != -1) {
-        W[f->index] -= pi * lr * grad * f->value;
-        ++f;
+        // TODO: add correct regularization
+        //double reg = l2 * W[f->index];
+        //W[f->index] -= lr * (grad * f->value + reg);
     }
 }

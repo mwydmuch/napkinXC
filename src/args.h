@@ -139,7 +139,6 @@ public:
     inline int getSeed() { return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);
     void printArgs();
-    void printHelp();
 
     void save(std::ostream& out) override;
     void load(std::istream& in) override;

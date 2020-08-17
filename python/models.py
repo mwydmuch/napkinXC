@@ -38,7 +38,7 @@ class Model():
         self._params.update(params)
         params_list = []
         for k,v in params.items():
-            params_list.extend([str(k), str(v)])
+            params_list.extend(["--" if len(str(k)) > 1 else "-" + str(k), str(v)])
         self._model.set_args(params_list)
 
 
@@ -84,8 +84,8 @@ class PLT(Model):
         :param kmeans_eps:
         :param kmeans_balanced:
         :param tree_structure:
-        :param hash:
-        :param features_threshold:
+        :param hash: hash features to a space of given size, 0 to disable hashing (default = 0)
+        :param features_threshold: prune features belowe given threshold (default = 0)
         :param norm:
         :param bias:
         :param optimizer:

@@ -19,6 +19,7 @@
 #include "model.h"
 #include "resources.h"
 #include "types.h"
+#include "version.h"
 
 
 // TODO: refactor this as load/save vector
@@ -319,23 +320,129 @@ void testPredictionTime(Args& args) {
     std::cout << "\n";
 }
 
+void printHelp() {
+    std::cout << R"HELP(Usage: nxc [command] [args ...]
+
+Commands:
+    train
+    test
+    predict
+    ofo
+    testPredictionTime
+    version
+    help
+
+Args:
+    General:
+    -i, --input         Input dataset
+    -o, --output        Output (model) dir
+    -m, --model         Model type (default = plt):
+                        Models: ovr, br, hsm, plt, oplt, ubop, ubopHsm, brMips, ubopMips
+    --ensemble          Ensemble of models (default = 0)
+    -d, --dataFormat    Type of data format (default = libsvm):
+                        Supported data formats: libsvm
+    -t, --threads       Number of threads used for training and testing (default = 0)
+                        Note: -1 to use system #cpus - 1, 0 to use system #cpus
+    --memLimit          Amount of memory in GB used for training OVR and BR models (default = 0)
+                        Note: 0 to use system memory
+    --header            Input contains header (default = 1)
+                        Header format for libsvm: #lines #features #labels
+    --hash              Size of features space (default = 0)
+                        Note: 0 to disable hashing
+    --featuresThreshold Prune features belowe given threshold (default = 0.0)
+    --seed              Seed
+
+    Base classifiers:
+    --optimizer         Use LibLiner or online optimizers (default = libliner)
+                        Optimizers: liblinear, sgd, adagrad, fobos
+    --bias              Add bias term (default = 1)
+    --weightsThreshold  Prune weights below given threshold (default = 0.1)
+    --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 0)
+
+    LibLinear:
+    -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
+                        Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
+                                           L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+                        See: https://github.com/cjlin1/liblinear
+    -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
+                        Smaller values specify stronger regularization. (default = 10.0)
+                        Note: -1 to automatically find best value for each node.
+    -e, --eps           Stopping criteria (default = 0.1)
+                        See: https://github.com/cjlin1/liblinear
+
+    SGD/AdaGrad:
+    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad (default = 1.0)
+    --epochs            Number of epochs of SGD/AdaGrad (default = 5)
+    --adagradEps        AdaGrad epsilon (default = 0.001)
+
+    Tree:
+    -a, --arity         Arity of a tree (default = 2)
+    --maxLeaves         Maximum number of leaves (labels) in one internal node.
+                        Supported by k-means and balanced trees. (default = 100)
+    --tree              File with tree structure
+    --treeType          Type of a tree to build if file with structure is not provided
+                        Tree types: hierarchicalKMeans, huffman, completeInOrder, completeRandom,
+                                    balancedInOrder, balancedRandom, onlineComplete, onlineBalanced,
+                                    onlineRandom
+
+    K-means tree:
+    --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
+    --kMeansBalanced    Use balanced K-Means clustering (default = 1)
+
+    Prediction:
+    --topK              Predict top k elements (default = 5)
+    --threshold         Probability threshold (default = 0)
+    --setUtility        Type of set-utility function for prediction using ubop, ubopHsm, ubopMips models.
+                        Set-utility functions: uP, uF1, uAlpha, uAlphaBeta, uDeltaGamma
+                        See: https://arxiv.org/abs/1906.08129
+
+    Set-Utility:
+    --alpha
+    --beta
+    --delta
+    --gamma
+
+    Test:
+    --measures          Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")
+                        Measures: acc (accuracy), p (precision), r (recall), c (coverage),
+                                  p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
+
+    )HELP";
+}
+
 int main(int argc, char** argv) {
-    std::vector<std::string> arg(argv, argv + argc);
+    std::string command(argv[1]);
+    std::vector<std::string> arg(argv + 2, argv + argc);
     Args args = Args();
 
     // Parse args
-    args.parseArgs(arg);
+    try {
+        args.parseArgs(arg);
+    } catch (std::invalid_argument& e) {
+        std::cout << e.what() << "\n";
+        printHelp();
+        exit(EXIT_FAILURE);
+    }
 
-    if (args.command == "train")
+    if (command == "-h" || command == "--help" || command == "help")
+        printHelp();
+    else if (command == "-v" || command == "--version" || command == "version")
+        std::cout << "napkinXC " << VERSION << "\n";
+    else if (command == "train")
         train(args);
-    else if (args.command == "test")
+    else if (command == "test")
         test(args);
-    else if (args.command == "predict")
+    else if (command == "predict")
         predict(args);
-    else if (args.command == "ofo")
+    else if (command == "ofo")
         ofo(args);
-    else if (args.command == "testPredictionTime")
+    else if (command == "testPredictionTime")
         testPredictionTime(args);
+    else {
+        std::cout << "Unknown command type: " << command << "\n";
+        printHelp();
+        exit(EXIT_FAILURE);
+    }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

@@ -8,10 +8,12 @@ project(napkinXC
     HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
     LANGUAGES C CXX)
 
+include(GitUtils.cmake)
+
 # Building options
 option(EXE "Build executable" ON)
 option(PYTHON "Build Python binding" OFF)
-option(WITH_MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
+option(MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -33,7 +35,7 @@ endif(CMAKE_BUILD_TYPE MATCHES Release)
 set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
 
 configure_file(
-    ${SRC_DIR}/version.in
+    ${SRC_DIR}/version.h.in
     ${SRC_DIR}/version.h
 )
 
@@ -54,20 +56,30 @@ set(INCLUDES
     ${SRC_DIR}/liblinear
     ${SRC_DIR}/models)
 
-set(LIBRARIES)
+set(LIBRARIES PRIVATE Threads::Threads)
+
+set(DEPENDENCIES)
 
 # MIPS extension files
-if (WITH_MIPS_EXT)
-    link_directories(${CMAKE_SOURCE_DIR}/nmslib/similarity_search/release)
+if (MIPS_EXT)
+    git_clone(PROJECT_NAME nmslib
+            GIT_URL https://github.com/nmslib/nmslib.git
+            GIT_BRANCH master
+            DIRECTORY ${SRC_DIR})
+
+    add_subdirectory(${SRC_DIR}/nmslib/similarity_search)
+
+    link_directories(${SRC_DIR}/nmslib/similarity_search/release)
 
     file(GLOB MIPS_EXT_SOURCES ${SRC_DIR}/mips_models/*.cpp)
     set(MIPS_EXT_INCLUDES
         ${SRC_DIR}/mips_models
-        ${CMAKE_SOURCE_DIR}/nmslib/similarity_search/include)
+        ${SRC_DIR}/nmslib/similarity_search/include)
 
     list(APPEND SOURCES ${MIPS_EXT_SOURCES})
     list(APPEND INCLUDES ${MIPS_EXT_INCLUDES})
     list(APPEND LIBRARIES NonMetricSpaceLib)
+    list(APPEND DEPENDENCIES NonMetricSpaceLib)
 endif ()
 
 if (PYTHON)
@@ -77,14 +89,14 @@ endif ()
 if (EXE)
     add_executable(nxc ${SOURCES})
     target_include_directories(nxc PUBLIC ${INCLUDES})
-    target_link_libraries(nxc PUBLIC ${LIBRARIES} PRIVATE Threads::Threads)
-
-    add_custom_command(TARGET nxc
-        PRE_BUILD
-        COMMAND )
+    target_link_libraries(nxc PUBLIC ${LIBRARIES})
 
     set_target_properties(nxc
         PROPERTIES
         OUTPUT_NAME nxc
         PROJECT_LABEL "napkinXC")
+
+    if(NOT ${DEPENDENCIES} STREQUAL "")
+        add_dependencies(nxc ${DEPENDENCIES})
+    endif ()
 endif ()

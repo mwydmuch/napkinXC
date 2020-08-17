@@ -416,7 +416,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 }
 
 void Args::printArgs() {
-    std::cerr << "napkinXC " << VERSION << " - " << command
+    std::cerr << "napkinXC " << VERSION
               << "\n  Input: " << input << "\n    Data format: " << dataFormatName
               << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
               << "\n  Model: " << output << "\n    Type: " << modelName;

@@ -25,7 +25,16 @@ class Model():
     def fit_on_file(self, path):
         self._model.fitOnFile(path)
 
-    def predict(self, X):
+    def predict(self, X, top_k=5, threshold=0, thresholds=None):
+        """
+        Predict labels with probability estimates
+        :param X:
+        :param top_k: Predict top k elements (default = 5)
+        :param threshold:
+        :param thresholds:
+        :return:
+        """
+
         return self._model.predict(X, 1)
 
     def predict_for_file(self, path):

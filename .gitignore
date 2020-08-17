@@ -4,12 +4,13 @@
 **/cmake_install.cmake
 **/Makefile
 
+/python/pybind11/
 /src/version.h
 /nxc
 /data
 /models*
 /results*
-/nmslib
+/src/nmslib
 
 .idea
 .DS_Store

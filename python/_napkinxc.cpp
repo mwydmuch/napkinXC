@@ -27,10 +27,10 @@ enum InputDataType {
 //
 //};
 
-class CXXModel {
+class CPPModel {
 public:
     //ModelWrapper(py::object args){
-    CXXModel(){}
+    CPPModel(){}
 
     void setArgs(const std::vector<std::string>& arg){
         args.parseArgs(arg);
@@ -247,12 +247,12 @@ PYBIND11_MODULE(_napkinxc, n) {
 //    py::PyEval_InitThreads();
 //    py::init_numpy();
 
-    py::class_<CXXModel>(n, "CXXModel")
+    py::class_<CPPModel>(n, "CPPModel")
     .def(py::init<>())
-    .def("test_load", &CXXModel::testLoad)
-    .def("set_args", &CXXModel::setArgs)
-    .def("fit", &CXXModel::fit)
-    .def("fit_from_file", &CXXModel::fitOnFile)
-    .def("predict", &CXXModel::predict)
-    .def("predict_for_file", &CXXModel::predictForFile);
+    .def("test_load", &CPPModel::testLoad)
+    .def("set_args", &CPPModel::setArgs)
+    .def("fit", &CPPModel::fit)
+    .def("fit_from_file", &CPPModel::fitOnFile)
+    .def("predict", &CPPModel::predict)
+    .def("predict_for_file", &CPPModel::predictForFile);
 }

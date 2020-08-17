@@ -6,8 +6,4 @@
 #pragma once
 
 #define VERSION "@napkinXC_VERSION_MAJOR@.@napkinXC_VERSION_MINOR@.@napkinXC_VERSION_PATCH@"
-#define MIPS_EXT @WITH_MIPS_EXT@
-
-#if MIPS_EXT == OFF
-#undef MIPS_EXT
-#endif
+#cmakedefine MIPS_EXT

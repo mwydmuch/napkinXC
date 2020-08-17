@@ -180,5 +180,4 @@ napkinXC uses the following libraries:
 - LIBLINEAR: https://github.com/cjlin1/liblinear
 - ThreadPool: https://github.com/progschj/ThreadPool
 - Robin Hood Hashmap: https://github.com/martinus/robin-hood-hashing
-- Non-Metric Space Library: https://github.com/nmslib/nmslib.git
 

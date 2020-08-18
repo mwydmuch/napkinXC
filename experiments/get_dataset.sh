@@ -3,6 +3,10 @@
 set -e
 
 DATASET="$1"
+DATA_DIR="data"
+if [[ $# -gt 2 ]]; then
+    DATA_DIR="$2"
+fi
 
 case "$DATASET" in
     # Multi-label datasets from The Extreme Classification Repository (manikvarma.org/downloads/XC/XMLRepository.html)
@@ -52,9 +56,6 @@ case "$DATASET" in
 esac
 
 SCRIPT_DIR=$( dirname "${BASH_SOURCE[0]}" )
-
-
-DATA_DIR=data
 mkdir -p $DATA_DIR
 DATASET_PATH="${DATA_DIR}/${DATASET}"
 

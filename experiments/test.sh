@@ -3,6 +3,9 @@
 set -e
 set -o pipefail
 
+SCRIPT_DIR=$( dirname "${BASH_SOURCE[0]}" )
+ROOT_DIR=${SCRIPT_DIR}/..
+
 DATASET_NAME=$1
 MODEL_DIR=models
 RESULTS_DIR=results
@@ -32,7 +35,7 @@ DATASET_FILE=${DATASET_DIR}/${DATASET_NAME}
 
 # Download dataset
 if [[ ! -e $DATASET_DIR ]]; then
-    bash scripts/get_data.sh $DATASET_NAME
+    bash ${SCRIPT_DIR}/get_dataset.sh $DATASET_NAME
 fi
 
 # Find train / test file
@@ -51,19 +54,22 @@ elif [[ -e "${DATASET_FILE}_train.svm" ]]; then
 fi
 
 # Build nxc
-if [[ ! -e nxc ]]; then
+if [[ ! -e ${ROOT_DIR}/nxc ]]; then
+    cd ${ROOT_DIR}
     rm -f CMakeCache.txt
     cmake -DCMAKE_BUILD_TYPE=Release .
     make -j
+    cd ${ROOT_DIR}/experiments
 fi
 
 # Train model
+rm -rf $MODEL
 TRAIN_RESULT_FILE=${MODEL}/train_results
 TRAIN_LOCK_FILE=${MODEL}/.train_lock
 if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
     mkdir -p $MODEL
     touch $TRAIN_LOCK_FILE
-    (time ./nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
+    (time ${ROOT_DIR}/nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
     echo
     echo "Train date: $(date)" | tee -a $TRAIN_RESULT_FILE
     rm -f $TRAIN_LOCK_FILE
@@ -71,6 +77,7 @@ fi
 
 ## Test model
 TEST_RESULT_FILE=${RESULTS_DIR}/${TEST_CONFIG}
+rm -rf $TEST_RESULT_FILE
 TEST_LOCK_FILE=${RESULTS_DIR}/.test_lock_${TEST_CONFIG}
 if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     mkdir -p $RESULTS_DIR
@@ -78,10 +85,11 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     if [ -e $TRAIN_RESULT_FILE ]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
-    (time ./nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
+    (time ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
 
     echo
     echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TEST_RESULT_FILE
+    echo "Model file size (K): $(du -c ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+' -o)" | tee -a $TEST_RESULT_FILE
     echo "Test date: $(date)" | tee -a $TEST_RESULT_FILE
     rm -rf $TEST_LOCK_FILE
 else

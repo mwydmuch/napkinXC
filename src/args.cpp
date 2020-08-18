@@ -65,14 +65,14 @@ Args::Args() {
     // Tree options
     treeStructure = "";
     arity = 2;
-    treeType = hierarchicalKMeans;
-    treeTypeName = "hierarchicalKMeans";
+    treeType = hierarchicalKmeans;
+    treeTypeName = "hierarchicalKmeans";
     maxLeaves = 100;
 
     // K-Means tree options
-    kMeansEps = 0.0001;
-    kMeansBalanced = true;
-    kMeansWeightedFeatures = false;
+    kmeansEps = 0.0001;
+    kmeansBalanced = true;
+    kmeansWeightedFeatures = false;
 
     // Online PLT options
     onlineTreeAlpha = 0.5;
@@ -237,9 +237,9 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             } else if (args[ai] == "--memLimit") {
                 memLimit = static_cast<unsigned long long>(std::stof(args.at(ai + 1)) * 1024 * 1024 * 1024);
                 if (memLimit == 0) memLimit = getSystemMemory();
-            } else if (args[ai] == "-e" || args[ai] == "--eps")
+            } else if (args[ai] == "-e" || args[ai] == "--eps" || args[ai] == "--liblinearEps")
                 eps = std::stof(args.at(ai + 1));
-            else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost")
+            else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost" || args[ai] == "--liblinearC")
                 cost = std::stof(args.at(ai + 1));
             else if (args[ai] == "--maxIter")
                 maxIter = std::stoi(args.at(ai + 1));
@@ -251,8 +251,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 lossName = args.at(ai + 1);
                 if (args.at(ai + 1) == "logistic" || args.at(ai + 1) == "log")
                     lossType = logistic;
-                else if (args.at(ai + 1) == "squeredHinge" || args.at(ai + 1) == "l2")
-                    lossType = squeredHinge;
+                else if (args.at(ai + 1) == "squaredHinge" || args.at(ai + 1) == "l2")
+                    lossType = squaredHinge;
                 else
                     throw std::invalid_argument("Unknown loss type: " + args.at(ai + 1));
             }
@@ -302,12 +302,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--maxLeaves")
                 maxLeaves = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--kMeansEps")
-                kMeansEps = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--kMeansBalanced")
-                kMeansBalanced = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--kMeansWeightedFeatures")
-                kMeansWeightedFeatures = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--kmeansEps")
+                kmeansEps = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--kmeansBalanced")
+                kmeansBalanced = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--kmeansWeightedFeatures")
+                kmeansWeightedFeatures = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--treeStructure") {
                 treeStructure = std::string(args.at(ai + 1));
                 treeType = custom;
@@ -321,14 +321,14 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     treeType = balancedInOrder;
                 else if (args.at(ai + 1) == "balancedRandom")
                     treeType = balancedRandom;
-                else if (args.at(ai + 1) == "hierarchicalKMeans")
-                    treeType = hierarchicalKMeans;
+                else if (args.at(ai + 1) == "hierarchicalKmeans")
+                    treeType = hierarchicalKmeans;
                 else if (args.at(ai + 1) == "huffman")
                     treeType = huffman;
-                else if (args.at(ai + 1) == "onlineKAryComplete")
-                    treeType = onlineKAryComplete;
-                else if (args.at(ai + 1) == "onlineKAryRandom")
-                    treeType = onlineKAryRandom;
+                else if (args.at(ai + 1) == "onlineKaryComplete")
+                    treeType = onlineKaryComplete;
+                else if (args.at(ai + 1) == "onlineKaryRandom")
+                    treeType = onlineKaryRandom;
                 else if (args.at(ai + 1) == "onlineRandom")
                     treeType = onlineRandom;
                 else if (args.at(ai + 1) == "onlineBestScore")
@@ -396,7 +396,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         optimizerName = "adagrad";
     }
 
-    if (modelType == oplt && (treeType == hierarchicalKMeans || treeType == huffman)) {
+    if (modelType == oplt && (treeType == hierarchicalKmeans || treeType == huffman)) {
         if (count(args.begin(), args.end(), "treeType"))
             std::cerr << "Online PLT does not support " << treeTypeName
                       << " tree type! Changing to complete in order tree.\n";
@@ -435,10 +435,10 @@ void Args::printArgs() {
         if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
             if (treeStructure.empty()) {
                 std::cerr << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
-                if (treeType == hierarchicalKMeans)
-                    std::cerr << ", k-means eps: " << kMeansEps << ", balanced: " << kMeansBalanced
-                              << ", weighted features: " << kMeansWeightedFeatures;
-                if (treeType == hierarchicalKMeans || treeType == balancedInOrder || treeType == balancedRandom)
+                if (treeType == hierarchicalKmeans)
+                    std::cerr << ", k-means eps: " << kmeansEps << ", balanced: " << kmeansBalanced
+                              << ", weighted features: " << kmeansWeightedFeatures;
+                if (treeType == hierarchicalKmeans || treeType == balancedInOrder || treeType == balancedRandom)
                     std::cerr << ", max leaves: " << maxLeaves;
             } else {
                 std::cerr << "\n    Tree: " << treeStructure;

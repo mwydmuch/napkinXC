@@ -381,13 +381,13 @@ Args:
                         Supported by k-means and balanced trees. (default = 100)
     --tree              File with tree structure
     --treeType          Type of a tree to build if file with structure is not provided
-                        Tree types: hierarchicalKMeans, huffman, completeInOrder, completeRandom,
+                        Tree types: hierarchicalKmeans, huffman, completeInOrder, completeRandom,
                                     balancedInOrder, balancedRandom, onlineComplete, onlineBalanced,
                                     onlineRandom
 
     K-means tree:
-    --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
-    --kMeansBalanced    Use balanced K-Means clustering (default = 1)
+    --kmeansEps         Stopping criteria for K-Means clustering (default = 0.001)
+    --kmeansBalanced    Use balanced K-Means clustering (default = 1)
 
     Prediction:
     --topK              Predict top k elements (default = 5)

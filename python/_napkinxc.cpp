@@ -18,18 +18,13 @@
 namespace py = pybind11;
 
 enum InputDataType {
-    denseData,
-    sparseData,
-    stringData,
+    list,
+    ndarray,
+    csr_matrix
 };
-
-//enum OutputDataType {
-//
-//};
 
 class CPPModel {
 public:
-    //ModelWrapper(py::object args){
     CPPModel(){}
 
     void setArgs(const std::vector<std::string>& arg){
@@ -103,44 +98,41 @@ private:
     Args args;
     std::shared_ptr<Model> model;
 
-    template<class T> py::list vectorToPyList(const std::vector<T>& vector){
-        py::list pyList;
-        for (auto& i : vector) pyList.append(py::cast(i));
-        return pyList;
-    }
-
-    template<typename T> std::vector<T> pyListToVector(py::list const &pyList){
-        std::vector<T> vector = std::vector<T>(pyList.size());
-        for (size_t i = 0; i < pyList.size(); ++i) vector[i] = py::cast<T>(pyList[i]);
+    template<typename T> std::vector<T> pyListToVector(py::list const &list){
+        std::vector<T> vector(list.size());
+        for (size_t i = 0; i < list.size(); ++i) vector[i] = py::cast<T>(list[i]);
         return vector;
     }
 
-    template<typename T> std::vector<T> pyDataToSparseVector(py::object input, InputDataType dataType) {
+    template<typename T> std::vector<T> pyDataToSparseVector(py::object input, InputDataType dataType, int shift = 0) {
         std::vector<T> output;
+        pyDataToSparseVector(output, input, dataType, shift);
+        return output;
+    }
+
+    template<typename T> void pyDataToSparseVector(std::vector<T>& output, py::object input, InputDataType dataType, int shift = 0) {
         switch (dataType) {
-            case denseData: {
+            case ndarray: {
                 py::array_t<double, py::array::c_style | py::array::forcecast> array(input);
                 for(int i = 0; i < array.size(); ++i)
-                    output.push_back({i, array.at(i)});
-                return output;
+                    output.push_back({i + shift, array.at(i)});
             }
-            case sparseData: {
+            case list: {
                 // Sparse vectors are expected to be list of (id, value) tuples
-                py::list pyList(input);
-                for (int i = 0; i < pyList.size(); ++i) {
-                    py::tuple pyTuple(pyList[i]);
-                    output.push_back({py::cast<int>(pyTuple[0]), py::cast<double>(pyTuple[1])});
+                py::list list(input);
+                for (int i = 0; i < list.size(); ++i) {
+                    py::tuple pyTuple(list[i]);
+                    output.push_back({py::cast<int>(pyTuple[0]) + shift, py::cast<double>(pyTuple[1])});
                 }
-                return output;
             }
             default:
-                throw std::invalid_argument("Unknown data type for pyDataToSparseVector");
+                throw py::value_error("Unsupported data type for pyDataToSparseVector");
         }
     }
 
     // Reads multiple items from a python object and inserts onto a SRMatrix<Label>
     void readLabelsMatrix(SRMatrix<Label>& output, py::object& input, InputDataType dataType) {
-        if (py::isinstance<py::list>(input)) {
+        if (dataType == list && py::isinstance<py::list>(input)) {
             py::list rows(input);
             for (size_t r = 0; r < rows.size(); ++r) {
                 std::vector<Label> rLabels;
@@ -157,50 +149,60 @@ private:
                 output.appendRow(rLabels);
             }
         } else
-            throw std::invalid_argument("Unknown data type");
+            throw py::value_error("Unsupported data type");
     }
 
     // Reads multiple items from a python object and inserts onto a SRMatrix<Feature>
     //SRMatrix<Feature> readFeatureMatrix(py::object input, InputDataType dataType) {
         //SRMatrix<Feature> output;
     void readFeatureMatrix(SRMatrix<Feature>& output, py::object& input, InputDataType dataType) {
-        if (py::isinstance<py::list>(input)) {
-            py::list items(input);
-            for (size_t i = 0; i < items.size(); ++i) {
-                std::vector<Feature> rFeatures = pyDataToSparseVector<Feature>(items[i], sparseData);
+        if (dataType == list && py::isinstance<py::list>(input)) {
+            py::list data(input);
+            std::vector<Feature> rFeatures;
+            for (size_t i = 0; i < data.size(); ++i) {
+                rFeatures.clear();
+                DataReader::prepareFeaturesVector(rFeatures, args.bias);
+
+                pyDataToSparseVector<Feature>(rFeatures, data[i], list, 2);
+
+                DataReader::processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
                 output.appendRow(rFeatures);
             }
-        } else if (dataType == denseData) {
-            // allow numpy arrays to be returned here too
-//            py::array_t<float, py::array::c_style | py::array::forcecast> items(input);
-//            auto buffer = items.request();
-//            if (buffer.ndim != 2) throw std::runtime_error("Data must be a 2d array");
-//
-//            size_t rows = buffer.shape[0], features = buffer.shape[1];
-//            std::vector<float> tempVec(features);
-//            for (size_t row = 0; row < rows; ++row) {
-//                int id = ids.size() ? ids.at(row) : row;
-//                const dist_t* elemVecStart = items.data(row);
-//                std::copy(elemVecStart, elemVecStart + features, tempVect.begin());
-//                output.push_back(vectSpacePtr->CreateObjFromVect(id, -1, tempVect));
-//                //this way it won't always work properly
-//                //output->push_back(new Object(id, -1, features * sizeof(dist_t), items.data(row)));
-//            }
-        } else if (dataType == sparseData) {
-            // the attr calls will fail with an attribute error, but this fixes the legacy
-            // unittest case
-            //if (!py::hasattr(input, "indptr")) {
-            //    throw py::value_error("expect CSR matrix here");
-            //}
+        } else if (dataType == ndarray) {
+            py::array_t<float, py::array::c_style | py::array::forcecast> data(input);
+            auto buffer = data.request();
+            if (buffer.ndim != 2) throw py::value_error("Data must be a 2d array");
 
-            // Try to interpret input data as a CSR matrix
+            size_t rows = buffer.shape[0];
+            size_t features = buffer.shape[1];
+
+            // Read each row from the sparse matrix, and insert
+            std::vector<Feature> rFeatures;
+            rFeatures.reserve(features);
+            for (size_t r = 0; r < rows; ++r) {
+                const float* rData = data.data(r);
+                rFeatures.clear();
+                DataReader::prepareFeaturesVector(rFeatures, args.bias);
+
+                for (int f = 0; f < features; ++f)
+                    rFeatures.push_back({f, rData[f]});
+
+                DataReader::processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
+                output.appendRow(rFeatures);
+            }
+        } else if (dataType == csr_matrix) {
+            // Check for attributes
+            if (!py::hasattr(input, "indptr")) {
+                throw py::value_error("Expect csr_matrix CSR matrix");
+            }
+
+            // Try to interpret input data as a csr_matrix CSR matrix
             py::array_t<int> indptr(input.attr("indptr"));
             py::array_t<int> indices(input.attr("indices"));
             py::array_t<double> data(input.attr("data"));
 
             // Read each row from the sparse matrix, and insert
             std::vector<Feature> rFeatures;
-
             for (int rId = 0; rId < indptr.size() - 1; ++rId) {
                 rFeatures.clear();
                 DataReader::prepareFeaturesVector(rFeatures, args.bias);
@@ -213,7 +215,7 @@ private:
                 output.appendRow(rFeatures);
             }
         } else
-            throw std::invalid_argument("Unknown data type");
+            throw py::value_error("Unsupported data type");
     }
 
     inline void fitHelper(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
@@ -245,7 +247,12 @@ PYBIND11_MODULE(_napkinxc, n) {
 
 //    py::Py_Initialize();
 //    py::PyEval_InitThreads();
-//    py::init_numpy();
+//    py::init_ndarray();
+
+    py::enum_<InputDataType>(n, "InputDataType")
+    .value("list", list)
+    .value("ndarray", ndarray)
+    .value("csr_matrix", csr_matrix);
 
     py::class_<CPPModel>(n, "CPPModel")
     .def(py::init<>())

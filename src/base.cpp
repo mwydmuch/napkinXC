@@ -166,7 +166,7 @@ void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Featur
     double (*gradFunc)(double, double);
     if (args.lossType == logistic)
         gradFunc = &logisticGrad;
-    else if (args.lossType == squeredHinge)
+    else if (args.lossType == squaredHinge)
         gradFunc = &squaredHingeGrad;
     else
         throw std::invalid_argument("Unknown loss function type");

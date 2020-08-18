@@ -67,7 +67,7 @@ public:
     void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 
     // Hierarchical K-Means
-    void buildKMeansTree(SRMatrix<Feature>& labelsFeatures, Args& args);
+    void buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args);
 
     // Huffman tree
     void buildHuffmanTree(SRMatrix<Label>& labels, Args& args);
@@ -110,7 +110,7 @@ public:
     void squashTree();
 
 private:
-    static TreeNodePartition buildKMeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures,
+    static TreeNodePartition buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures,
                                                    Args& args, int seed);
 
 };

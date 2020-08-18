@@ -27,14 +27,14 @@ enum ModelType {
 };
 
 enum TreeType {
-    hierarchicalKMeans,
+    hierarchicalKmeans,
     huffman,
     completeInOrder,
     completeRandom,
     balancedInOrder,
     balancedRandom,
-    onlineKAryComplete,
-    onlineKAryRandom,
+    onlineKaryComplete,
+    onlineKaryRandom,
     onlineRandom,
     onlineBestScore,
     custom // custom tree has to be the last one
@@ -57,8 +57,8 @@ enum SetUtilityType {
 };
 
 enum LossType {
-    squeredHinge,
-    logistic
+    logistic,
+    squaredHinge,
 };
 
 enum OFOType {
@@ -123,9 +123,9 @@ public:
     int maxLeaves;
 
     // K-Means tree options
-    double kMeansEps;
-    bool kMeansBalanced;
-    bool kMeansWeightedFeatures;
+    double kmeansEps;
+    bool kmeansBalanced;
+    bool kmeansWeightedFeatures;
 
     // Online tree options
     double onlineTreeAlpha;

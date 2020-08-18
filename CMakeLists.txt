@@ -10,9 +10,11 @@ project(napkinXC
 
 include(GitUtils.cmake)
 
+set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Building options
 option(EXE "Build executable" ON)
-option(PYTHON "Build Python binding" OFF)
+option(PYTHON "Build Python binding" ON)
 option(MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -32,7 +34,7 @@ if(CMAKE_BUILD_TYPE MATCHES Release)
 endif(CMAKE_BUILD_TYPE MATCHES Release)
 
 # Configure file
-set(SRC_DIR ${CMAKE_SOURCE_DIR}/src)
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 configure_file(
     ${SRC_DIR}/version.h.in
@@ -63,9 +65,9 @@ set(DEPENDENCIES)
 # MIPS extension files
 if (MIPS_EXT)
     git_clone(PROJECT_NAME nmslib
-            GIT_URL https://github.com/nmslib/nmslib.git
-            GIT_BRANCH master
-            DIRECTORY ${SRC_DIR})
+        GIT_URL https://github.com/nmslib/nmslib.git
+        GIT_BRANCH master
+        DIRECTORY ${SRC_DIR})
 
     add_subdirectory(${SRC_DIR}/nmslib/similarity_search)
 

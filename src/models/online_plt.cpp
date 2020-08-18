@@ -20,7 +20,7 @@ OnlinePLT::~OnlinePLT() {
 void OnlinePLT::init(int labelCount, Args& args) {
     tree = new Tree();
 
-    if (args.treeType == onlineKAryRandom || args.treeType == onlineKAryComplete
+    if (args.treeType == onlineKaryRandom || args.treeType == onlineKaryComplete
         || args.treeType == onlineRandom || args.treeType == onlineBestScore)
         onlineTree = true;
     else

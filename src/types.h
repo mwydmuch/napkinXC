@@ -13,6 +13,7 @@
 #include <vector>
 #include <queue>
 
+#include "log.h"
 #include "linear.h"
 #include "robin_hood.h"
 
@@ -126,8 +127,8 @@ public:
     inline unsigned long long mem() { return s * sizeof(T); }
 
     inline void print(){
-        for(int i = 0; i < s; ++i) std::cout << d[i] << " ";
-        std::cout << "\n";
+        for(int i = 0; i < s; ++i) LOG(COUT) << d[i] << " ";
+        LOG(COUT) << "\n";
     }
 
     void save(std::ostream& out) const;

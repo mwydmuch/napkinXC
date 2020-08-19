@@ -24,7 +24,7 @@ HSM::HSM() {
 void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                            std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
                            SRMatrix<Feature>& features, Args& args) {
-    std::cerr << "Assigning data points to nodes ...\n";
+    LOG(CERR) << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
     UnorderedSet<TreeNode*> nPositive;
@@ -43,7 +43,7 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
 
         // Check row
         if (!args.pickOneLabelWeighting && rSize != 1) {
-            std::cerr << "Encountered example with " << rSize
+            LOG(CERR) << "Encountered example with " << rSize
                       << " labels HSM is multi-class classifier, use PLT instead\n";
             continue;
         }
@@ -70,7 +70,7 @@ void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
 
     auto ni = tree->leaves.find(rLabel);
     if (ni == tree->leaves.end()) {
-        std::cerr << "Encountered example with label " << rLabel << " that does not exists in the tree\n";
+        LOG(CERR) << "Encountered example with label " << rLabel << " that does not exists in the tree\n";
         return;
     }
     TreeNode* n = ni->second;
@@ -167,5 +167,5 @@ double HSM::predictForLabel(Label label, Feature* features, Args& args) {
 void HSM::printInfo() {
     PLT::printInfo();
     if(pathLength > 0)
-        std::cout << "  Path length: " << static_cast<double>(pathLength) / dataPointCount << "\n";
+        LOG(COUT) << "  Path length: " << static_cast<double>(pathLength) / dataPointCount << "\n";
 }

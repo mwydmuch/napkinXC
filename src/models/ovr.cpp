@@ -40,7 +40,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         int rSize = labels.size(r);
 
         if (rSize != 1 && !args.pickOneLabelWeighting) {
-            std::cerr << "Encountered example with " << rSize
+            LOG(CERR) << "Encountered example with " << rSize
                       << " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!\n";
             continue;
         }
@@ -65,9 +65,9 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
 
     for (int p = 0; p < parts; ++p) {
         if (parts > 1)
-            std::cerr << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
+            LOG(CERR) << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
         else
-            std::cerr << "Assigning labels for base estimators ...\n";
+            LOG(CERR) << "Assigning labels for base estimators ...\n";
 
         int rStart = p * range;
         int rStop = (p + 1) * range;

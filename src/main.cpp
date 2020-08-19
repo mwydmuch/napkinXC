@@ -6,7 +6,7 @@
 /**
  * This is main file for napkinXC command line tool,
  * it should contain all commands implementations.
- * Only this file and printInfo methods can use std:cout.
+ * Only this file can use std:cout.
  */
 
 #include <iomanip>
@@ -14,6 +14,7 @@
 
 #include "args.h"
 #include "data_reader.h"
+#include "log.h"
 #include "measure.h"
 #include "misc.h"
 #include "model.h"
@@ -34,7 +35,7 @@ std::vector<double> loadThresholds(std::string infile){
 void saveThresholds(std::vector<double>& thresholds, std::string outfile){
     std::ofstream out(outfile);
     for(auto t : thresholds)
-        out << t << std::endl;
+        out << t << "\n";
     out.close();
 }
 
@@ -50,7 +51,7 @@ void train(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->readData(labels, features, args);
     reader->saveToFile(joinPath(args.output, "data_reader.bin"));
-    std::cout << "Train data statistics:"
+    LOG(COUT) << "Train data statistics:"
               << "\n  Train data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
               << "\n  Uniq labels: " << labels.cols()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
@@ -71,7 +72,7 @@ void train(Args& args) {
                                             .count()) /
                     1000;
     auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
-    std::cout << "Resources during training:"
+    LOG(COUT) << "Resources during training:"
               << "\n  Train real time (s): " << realTime << "\n  Train CPU time (s): " << cpuTime
               << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
@@ -91,7 +92,7 @@ void test(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
-    std::cout << "Test data statistics:"
+    LOG(COUT) << "Test data statistics:"
               << "\n  Test data points: " << features.rows()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
               << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
@@ -120,11 +121,11 @@ void test(Args& args) {
     for (auto& m : measures) m->accumulate(labels, predictions);
 
     // Print results
-    std::cout << std::setprecision(5) << "Results:\n";
+    LOG(COUT) << std::setprecision(5) << "Results:\n";
     for (auto& m : measures){
-        std::cout << "  " << m->getName() << ": " << m->value();
-        //if(m->isMeanMeasure()) std::cout << " ± " << m->stdDev(); // Print std
-        std::cout << std::endl;
+        LOG(COUT) << "  " << m->getName() << ": " << m->value();
+        //if(m->isMeanMeasure()) LOG(COUT) << " ± " << m->stdDev(); // Print std
+        LOG(COUT) << "\n";
     }
     model->printInfo();
 
@@ -137,7 +138,7 @@ void test(Args& args) {
                                             .count()) / 1000;
     auto loadCpuTime = resAfterModel.cpuTime - resAfterData.cpuTime;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
-    std::cout << "Resources during test:"
+    LOG(COUT) << "Resources during test:"
               << "\n  Loading real time (s): " << loadRealTime
               << "\n  Loading CPU time (s): " << loadCpuTime
               << "\n  Test real time (s): " << realTime << "\n  Test CPU time (s): " << cpuTime
@@ -164,7 +165,7 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    std::cout << std::setprecision(5);
+    LOG(COUT) << std::setprecision(5);
 
     // Predict data from cin and output to cout
     if (args.input == "-") {
@@ -192,8 +193,8 @@ void predict(Args& args) {
                 predictions = model->predictBatch(features, args);
 
             for (const auto &p : predictions) {
-                for (const auto &l : p) std::cout << l.label << ":" << l.value << " ";
-                std::cout << std::endl;
+                for (const auto &l : p) LOG(COUT) << l.label << ":" << l.value << " ";
+                LOG(COUT) << "\n";
             }
         } else { // For 1 thread predict and immediately save to file
             for(int r = 0; r < features.rows(); ++r){
@@ -205,8 +206,8 @@ void predict(Args& args) {
                 else
                     model->predict(prediction, features[r], args);
 
-                for (const auto &l : prediction) std::cout << l.label << ":" << l.value << " ";
-                std::cout << std::endl;
+                for (const auto &l : prediction) LOG(COUT) << l.label << ":" << l.value << " ";
+                LOG(COUT) << "\n";
             }
         }
     }
@@ -242,7 +243,7 @@ void ofo(Args& args) {
             .count()) /
                     1000;
     auto cpuTime = resAfterFo.cpuTime - resAfterData.cpuTime;
-    std::cout << "Resources during F-measure optimization:"
+    LOG(COUT) << "Resources during F-measure optimization:"
               << "\n  Optimization real time (s): " << realTime
               << "\n  Optimization CPU time (s): " << cpuTime << "\n";
 }
@@ -275,7 +276,7 @@ void testPredictionTime(Args& args) {
     std::default_random_engine rng(args.seed);
     std::uniform_int_distribution<int> dist(0, features.rows() - 1);
 
-    std::cout << "Results:";
+    LOG(COUT) << "Results:";
     for(const auto& batchSize : batchSizes) {
         long double time = 0;
         long double timeSq = 0;
@@ -311,13 +312,13 @@ void testPredictionTime(Args& args) {
 
         long double meanTime = time / args.batches;
         long double meanTimePerPoint = timePerPoint / args.batches;
-        std::cout << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
+        LOG(COUT) << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
                   << "\n  Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
                   << "\n  Batch " << batchSize << " test CPU time / data points (ms): " << meanTimePerPoint
                   << "\n  Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint);
 
     }
-    std::cout << "\n";
+    LOG(COUT) << "\n";
 }
 
 void printHelp() {
@@ -411,6 +412,8 @@ Args:
 }
 
 int main(int argc, char** argv) {
+    logLevel = CERR;
+
     std::string command(argv[1]);
     std::vector<std::string> arg(argv + 2, argv + argc);
     Args args = Args();
@@ -427,7 +430,7 @@ int main(int argc, char** argv) {
     if (command == "-h" || command == "--help" || command == "help")
         printHelp();
     else if (command == "-v" || command == "--version" || command == "version")
-        std::cout << "napkinXC " << VERSION << "\n";
+        LOG(COUT) << "napkinXC " << VERSION << "\n";
     else if (command == "train")
         train(args);
     else if (command == "test")

@@ -42,9 +42,9 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 
     for (int p = 0; p < parts; ++p) {
         if (parts > 1)
-            std::cerr << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
+            LOG(CERR) << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
         else
-            std::cerr << "Assigning labels for base estimators ...\n";
+            LOG(CERR) << "Assigning labels for base estimators ...\n";
 
         int rStart = p * range;
         int rStop = (p + 1) * range;
@@ -61,7 +61,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
         }
 
         unsigned long long usedMem = range * (rows * sizeof(double) + sizeof(void*));
-        std::cerr << "  Temporary data size: " << formatMem(usedMem) << std::endl;
+        LOG(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 
         trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), nullptr, args);
         for (auto& l : binLabels) l.clear();
@@ -101,13 +101,13 @@ double BR::predictForLabel(Label label, Feature* features, Args& args) {
 }
 
 void BR::load(Args& args, std::string infile) {
-    std::cerr << "Loading weights ...\n";
+    LOG(CERR) << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();
 }
 
 void BR::printInfo() {
-    std::cerr << name << " additional stats:"
+    LOG(CERR) << name << " additional stats:"
               << "\n  Mean # estimators per data point: " << bases.size() << "\n";
 }
 
@@ -121,7 +121,7 @@ size_t BR::calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& fe
     unsigned long long tmpDataMem = lCols * (rows * sizeof(double) + sizeof(void*));
     unsigned long long baseMem = args.threads * args.threads * features.cols() * sizeof(double);
     unsigned long long reqMem = tmpDataMem + dataMem + baseMem;
-    std::cerr << "Required memory to train: " << formatMem(reqMem) << ", available memory: " << formatMem(args.memLimit) << std::endl;
+    LOG(CERR) << "Required memory to train: " << formatMem(reqMem) << ", available memory: " << formatMem(args.memLimit) << "\n";
 
     size_t parts = tmpDataMem / (args.memLimit - dataMem - baseMem) + 1;
     return parts;

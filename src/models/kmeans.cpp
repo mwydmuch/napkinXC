@@ -19,9 +19,9 @@ void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
     int points = partition->size();
     int features = pointsFeatures.cols();
 
-    // if(balanced) std::cerr << "Balanced K-Means ...\n  Partition: " << partition->size() << ", centroids: " <<
+    // if(balanced) LOG(CERR) << "Balanced K-Means ...\n  Partition: " << partition->size() << ", centroids: " <<
     // centroids << "\n";
-    // else std::cerr << "K-Means ...\n  Partition: " << partition->size() << ", centroids: " << centroids << "\n";
+    // else LOG(CERR) << "K-Means ...\n  Partition: " << partition->size() << ", centroids: " << centroids << "\n";
 
     int maxPartitionSize = points - centroids, maxWithOneMore = 0;
     if (balanced) {
@@ -121,5 +121,5 @@ void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
         for (auto& c : centroidsFeatures) unitNorm(c);
     }
 
-    //std::cerr << Final similarity: << newCos << "\n";
+    //LOG(CERR) << Final similarity: << newCos << "\n";
 }

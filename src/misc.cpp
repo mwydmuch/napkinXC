@@ -13,10 +13,9 @@
 #include "misc.h"
 #include "threads.h"
 
-
 // Data utils
 std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
-    std::cerr << "Computing labels' prior probabilities ...\n";
+    LOG(CERR) << "Computing labels' prior probabilities ...\n";
 
     std::vector<Prediction> labelsProb;
 
@@ -64,7 +63,7 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
                                  const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures) {
 
     assert(features.rows() == labels.rows());
-    std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
+    LOG(CERR) << "Computing labels' features matrix in " << threads << " threads ...\n";
 
     // Labels matrix transposed dot features matrix
     std::vector<std::vector<int>> labelsExamples(labels.cols());

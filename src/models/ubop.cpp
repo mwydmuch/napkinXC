@@ -37,5 +37,5 @@ void UBOP::predict(std::vector<Prediction>& prediction, Feature* features, Args&
             break;
     }
 
-    //std::cerr << "  UBOP: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
+    //LOG(CERR) << "  UBOP: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
 }

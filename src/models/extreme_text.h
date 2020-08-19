@@ -41,7 +41,7 @@ protected:
 
     static void printProgress(int state, int max, double lr, double loss) {
         if (max > 100 && state % (max / 100) == 0)
-            std::cerr << "  Progress: " << state / (max / 100) << "%, lr: " << lr << ", loss: " << loss << "\r";
+            LOG(CERR) << "  Progress: " << state / (max / 100) << "%, lr: " << lr << ", loss: " << loss << "\r";
     }
 
     inline double log(double x) {

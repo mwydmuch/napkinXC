@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "args.h"
+#include "log.h"
 #include "resources.h"
 #include "version.h"
 
@@ -121,7 +122,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             throw std::invalid_argument("Provided argument without a dash: " + args[ai]);
 
         try {
-            if (args[ai] == "--seed") {
+            if (args[ai] == "--verbose")
+                logLevel = static_cast<LogLevel>(std::stoi(args.at(ai + 1)));
+
+            else if (args[ai] == "--seed") {
                 seed = std::stoi(args.at(ai + 1));
                 rngSeeder.seed(seed);
             }
@@ -391,14 +395,14 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     // Change default values for specific cases + parameters warnings
     if (modelType == oplt && optimizerType == liblinear) {
         if (count(args.begin(), args.end(), "optimizer"))
-            std::cerr << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
+            LOG(CERR) << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
         optimizerType = adagrad;
         optimizerName = "adagrad";
     }
 
     if (modelType == oplt && (treeType == hierarchicalKmeans || treeType == huffman)) {
         if (count(args.begin(), args.end(), "treeType"))
-            std::cerr << "Online PLT does not support " << treeTypeName
+            LOG(CERR) << "Online PLT does not support " << treeTypeName
                       << " tree type! Changing to complete in order tree.\n";
         treeType = onlineBestScore;
         treeTypeName = "onlineBestScore";
@@ -407,7 +411,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     // If only threshold used set topK to 0, otherwise display warning
     if (threshold > 0) {
         if (count(args.begin(), args.end(), "topK"))
-            std::cerr << "Warning: Top K and threshold prediction are used at the same time!\n";
+            LOG(CERR) << "Warning: Top K and threshold prediction are used at the same time!\n";
         else
             topK = 0;
     }
@@ -416,56 +420,56 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 }
 
 void Args::printArgs() {
-    std::cerr << "napkinXC " << VERSION
+    LOG(CERR) << "napkinXC " << VERSION
               << "\n  Input: " << input << "\n    Data format: " << dataFormatName
               << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
               << "\n  Model: " << output << "\n    Type: " << modelName;
 
-    if (ensemble > 1) std::cerr << ", ensemble: " << ensemble;
+    if (ensemble > 1) LOG(CERR) << ", ensemble: " << ensemble;
 
     if (command == "train") {
-        std::cerr << "\n  Base models optimizer: " << optimizerName;
+        LOG(CERR) << "\n  Base models optimizer: " << optimizerName;
         if (optimizerType == liblinear)
-            std::cerr << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
+            LOG(CERR) << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
         else
-            std::cerr << "\n    Loss: " << lossName << ", eta: " << eta << ", epochs: " << epochs;
-        if (optimizerType == adagrad) std::cerr << ", AdaGrad eps " << adagradEps;
-        std::cerr << ", weights threshold: " << weightsThreshold;
+            LOG(CERR) << "\n    Loss: " << lossName << ", eta: " << eta << ", epochs: " << epochs;
+        if (optimizerType == adagrad) LOG(CERR) << ", AdaGrad eps " << adagradEps;
+        LOG(CERR) << ", weights threshold: " << weightsThreshold;
 
         if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
             if (treeStructure.empty()) {
-                std::cerr << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
+                LOG(CERR) << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
                 if (treeType == hierarchicalKmeans)
-                    std::cerr << ", k-means eps: " << kmeansEps << ", balanced: " << kmeansBalanced
+                    LOG(CERR) << ", k-means eps: " << kmeansEps << ", balanced: " << kmeansBalanced
                               << ", weighted features: " << kmeansWeightedFeatures;
                 if (treeType == hierarchicalKmeans || treeType == balancedInOrder || treeType == balancedRandom)
-                    std::cerr << ", max leaves: " << maxLeaves;
+                    LOG(CERR) << ", max leaves: " << maxLeaves;
             } else {
-                std::cerr << "\n    Tree: " << treeStructure;
+                LOG(CERR) << "\n    Tree: " << treeStructure;
             }
         }
     }
 
     if (command == "test") {
-        if(thresholds.empty()) std::cerr << "\n  Top k: " << topK << ", threshold: " << threshold;
-        else std::cerr << "\n  Thresholds: " << thresholds;
+        if(thresholds.empty()) LOG(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
+        else LOG(CERR) << "\n  Thresholds: " << thresholds;
         if (modelType == ubopMips || modelType == brMips) {
-            std::cerr << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
-            if(modelType == ubopMips) std::cerr << ", k: " << ubopMipsK;
+            LOG(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
+            if(modelType == ubopMips) LOG(CERR) << ", k: " << ubopMipsK;
         }
         if (modelType == ubop || modelType == ubopHsm || modelType == ubopMips) {
-            std::cerr << "\n  Set utility: " << setUtilityName;
-            if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) std::cerr << ", alpha: " << alpha;
-            if (setUtilityType == uAlphaBeta) std::cerr << ", beta: " << beta;
-            if (setUtilityType == uDeltaGamma) std::cerr << ", delta: " << delta << ", gamma: " << gamma;
+            LOG(CERR) << "\n  Set utility: " << setUtilityName;
+            if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) LOG(CERR) << ", alpha: " << alpha;
+            if (setUtilityType == uAlphaBeta) LOG(CERR) << ", beta: " << beta;
+            if (setUtilityType == uDeltaGamma) LOG(CERR) << ", delta: " << delta << ", gamma: " << gamma;
         }
     }
 
     if (command == "ofo")
-        std::cerr << "\n  Epochs: " << epochs << ", a: " << ofoA << ", b: " << ofoB;
+        LOG(CERR) << "\n  Epochs: " << epochs << ", a: " << ofoA << ", b: " << ofoB;
 
-    std::cerr << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
-              << "\n  Seed: " << seed << std::endl;
+    LOG(CERR) << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
+              << "\n  Seed: " << seed << "\n";
 }
 
 void Args::save(std::ostream& out) {

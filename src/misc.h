@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "log.h"
 #include "types.h"
 
 // Data utils
@@ -240,15 +241,15 @@ template <typename T> inline uint32_t hash(T& v) {
 
 // Prints progress
 inline void printProgress(int state, int max) {
-    // std::cerr << "  " << state << " / " << max << "\r";
-    if (max > 100 && state % (max / 100) == 0) std::cerr << "  " << state / (max / 100) << "%\r";
+    // LOG(CERR) << "  " << state << " / " << max << "\r";
+    if (max > 100 && state % (max / 100) == 0) LOG(CERR) << "  " << state / (max / 100) << "%\r";
 }
 
 // Print vector
 template <typename T> void printVector(std::vector<T> vec) {
     for (size_t i = 0; i < vec.size(); ++i) {
-        if (i != 0) std::cerr << ", ";
-        std::cerr << vec[i];
+        if (i != 0) LOG(CERR) << ", ";
+        LOG(CERR) << vec[i];
     }
 }
 

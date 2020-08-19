@@ -69,7 +69,7 @@ void MIPSIndex::addPoint(UnorderedMap<int, Weight>* pointData, int label) {
 }
 
 void MIPSIndex::createIndex(Args& args) {
-    std::cerr << "Creating MIPS index in " << args.threads << " threads ...\n";
+    LOG(CERR) << "Creating MIPS index in " << args.threads << " threads ...\n";
 
     AnyParams indexParams({
         "post=2",

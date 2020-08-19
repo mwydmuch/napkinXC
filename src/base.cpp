@@ -10,6 +10,7 @@
 
 #include "base.h"
 #include "linear.h"
+#include "log.h"
 #include "misc.h"
 #include "threads.h"
 
@@ -418,7 +419,7 @@ void Base::save(std::ostream& out) {
             out.write((char*)W, wSize * sizeof(Weight));
     }
 
-    // std::cerr << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
+    // LOG(CERR) << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
     //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << size()/1024 << "/" <<
     //    denseSize()/1024 << "K\n";
 }
@@ -474,8 +475,8 @@ size_t Base::size() {
 }
 
 void Base::printWeights() {
-    forEachIW([&](const int& i, Weight& w) { std::cerr << i << ":" << w << " "; });
-    std::cerr << std::endl;
+    forEachIW([&](const int& i, Weight& w) { LOG(CERR) << i << ":" << w << " "; });
+    LOG(CERR) << "\n";
 }
 
 void Base::invertWeights() {

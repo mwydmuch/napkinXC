@@ -30,7 +30,7 @@ void BRMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Arg
 }
 
 void BRMIPS::load(Args& args, std::string infile) {
-    std::cerr << "Loading weights ...\n";
+    LOG(CERR) << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();
 
@@ -46,7 +46,7 @@ void BRMIPS::load(Args& args, std::string infile) {
     }
 
     mipsIndex = new MIPSIndex(dim, !args.mipsDense, args);
-    std::cerr << "Adding " << m << " points with " << dim << " dims to MIPSIndex ...\n";
+    LOG(CERR) << "Adding " << m << " points with " << dim << " dims to MIPSIndex ...\n";
     for (int i = 0; i < m; ++i) {
         printProgress(i, m);
         if(!bases[i]->isDummy()) {

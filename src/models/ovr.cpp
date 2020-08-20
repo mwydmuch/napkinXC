@@ -27,7 +27,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     assert(rows == labels.rows());
 
     std::vector<double>* binWeights = nullptr;
-    if (args.pickOneLabelWeighting) {
+    if (args.pickOneLabelWeighting || args.pickOneLabelWeightingNDCG) {
         bRows = labels.cells();
         binWeights = new std::vector<double>();
         binWeights->reserve(bRows);
@@ -39,7 +39,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     for (int r = 0; r < rows; ++r) {
         int rSize = labels.size(r);
 
-        if (rSize != 1 && !args.pickOneLabelWeighting) {
+        if (rSize != 1 && !(args.pickOneLabelWeighting || args.pickOneLabelWeightingNDCG)) {
             std::cerr << "Encountered example with " << rSize
                       << " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!\n";
             continue;
@@ -50,6 +50,9 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         if(args.pickOneLabelWeighting)
             for (int i = 0; i < rSize; ++i)
                 binWeights->push_back(1.0 / rSize);
+        if(args.pickOneLabelWeightingNDCG)
+            for (int i = 0; i < rSize; ++i)
+                binWeights->push_back(nk_weight(rSize)); //TODO
     }
 
     std::ofstream out(joinPath(output, "weights.bin"));
@@ -78,7 +81,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
             int rSize = labels.size(r);
             auto rLabels = labels.row(r);
 
-            if(rSize != 1 && !args.pickOneLabelWeighting) continue;
+            if(rSize != 1 && !(args.pickOneLabelWeighting || args.pickOneLabelWeightingNDCG)) continue;
 
             for (int i = 0; i < rSize; ++i){
                 for (auto &l : binLabels) l.push_back(0.0);
@@ -86,7 +89,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
             }
         }
 
-        if(args.pickOneLabelWeighting)
+        if(args.pickOneLabelWeighting || args.pickOneLabelWeightingNDCG)
             assert(binLabels[0].size() == binWeights->size());
 
         trainBasesWithSameFeatures(out, features.cols(), binLabels, binFeatures, binWeights, args);

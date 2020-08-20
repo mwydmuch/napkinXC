@@ -12,6 +12,7 @@
 #include "measure.h"
 #include "model.h"
 #include "threads.h"
+#include "math.h"
 
 #include "br.h"
 #include "hsm.h"
@@ -425,4 +426,14 @@ std::vector<Base*> Model::loadBases(std::string infile) {
               << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << std::endl;
 
     return bases;
+}
+
+float Model::nk_weight(int size){
+    if(size == 0)
+        return 1;
+
+    float sum_gains = 0;
+    for(int i = 1; i <= size; i++)
+        sum_gains += log(2)/log(i+1);
+    return 1/sum_gains;
 }

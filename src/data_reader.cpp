@@ -32,6 +32,9 @@ void DataReader::readHeader(std::string& line, int& hLabels, int& hFeatures, int
 
 // Reads train/test data to sparse matrix
 void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+    if (args.input.empty())
+        throw std::invalid_argument("Empty input path");
+
     LOG(CERR) << "Loading data from: " << args.input << "\n";
 
     std::ifstream in;

@@ -389,8 +389,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         }
     }
 
-    if (input.empty() || output.empty())
-        throw std::invalid_argument("Empty input or model path");
+//    if (input.empty() || output.empty())
+//        throw std::invalid_argument("Empty input or model path");
 
     // Change default values for specific cases + parameters warnings
     if (modelType == oplt && optimizerType == liblinear) {

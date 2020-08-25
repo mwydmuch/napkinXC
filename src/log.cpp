@@ -1,5 +1,5 @@
 #include "log.h"
 
-LogLevel logLevel = CERR;
+LogLevel logLevel = NONE;
 bool logTime = false;
 bool logLabel = false;

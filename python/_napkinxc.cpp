@@ -25,7 +25,7 @@ enum InputDataType {
 
 class CPPModel {
 public:
-    CPPModel(){}
+    CPPModel(){};
 
     void setArgs(const std::vector<std::string>& arg){
         args.parseArgs(arg);
@@ -74,15 +74,20 @@ public:
         fitHelper(labels, features);
     }
 
-    std::vector<std::vector<std::pair<int, double>>> predict(py::object inputFeatures, int featuresDataType){
+    std::vector<std::vector<int>> predict(py::object inputFeatures, int featuresDataType, int topK, double threshold){
         SRMatrix<Feature> features;
-        std::cout << "Reading features...\n";
         readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
-
-        return predictHelper(features);
+        auto predWithProba = predictHelper(features, topK, threshold);
+        return dropProbaHelper(predWithProba);
     }
 
-    std::vector<std::vector<std::pair<int, double>>> predictForFile(std::string path) {
+    std::vector<std::vector<std::pair<int, double>>> predictProba(py::object inputFeatures, int featuresDataType, int topK, double threshold){
+        SRMatrix<Feature> features;
+        readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
+        return predictHelper(features, topK, threshold);
+    }
+
+    std::vector<std::vector<int>> predictForFile(std::string path, int topK, double threshold) {
         args.input = path;
         args.header = false;
 
@@ -91,7 +96,20 @@ public:
         std::shared_ptr<DataReader> reader = DataReader::factory(args);
         reader->readData(labels, features, args);
 
-        return predictHelper(features);
+        return predictHelper(features, topK, threshold);
+    }
+
+    std::vector<std::vector<std::pair<int, double>>> predictProbaForFile(std::string path, int topK, double threshold) {
+        args.input = path;
+        args.header = false;
+
+        SRMatrix<Label> labels;
+        SRMatrix<Feature> features;
+        std::shared_ptr<DataReader> reader = DataReader::factory(args);
+        reader->readData(labels, features, args);
+
+        auto predWithProba = predictHelper(features, topK, threshold);
+        return dropProbaHelper(predWithProba);
     }
 
 private:
@@ -228,15 +246,32 @@ private:
         model->train(labels, features, args, args.output);
     }
 
-    inline std::vector<std::vector<std::pair<int, double>>> predictHelper(SRMatrix<Feature>& features){
+    inline std::vector<std::vector<std::pair<int, double>>> predictHelper(SRMatrix<Feature>& features, int topK, double threshold){
         if(model == nullptr)
-            throw std::runtime_error("Model does not exist!");
+            //throw std::runtime_error("Model does not exist!");
+            model = Model::factory(args);
+
         if(!model->isLoaded())
             model->load(args, args.output);
+
+        // TODO: refactor this
+        args.topK = topK;
+        args.threshold = threshold;
         std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
 
         // This is only safe because it's struct with two fields casted to pair, don't do this with tuples!
         return reinterpret_cast<std::vector<std::vector<std::pair<int, double>>>&>(predictions);
+    }
+
+    inline std::vector<std::vector<int>> dropProbaHelper(std::vector<std::vector<std::pair<int, double>>>& predWithProba){
+        std::vector<std::vector<int>> pred;
+        pred.reserve(predWithProba.size());
+        for(const auto& p : predWithProba){
+            pred.push_back(std::vector<int>());
+            pred.back().reserve(p.size());
+            for(const auto& pi : p) pred.back().push_back(pi.first);
+        }
+        return pred;
     }
 };
 
@@ -261,5 +296,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("fit", &CPPModel::fit)
     .def("fit_from_file", &CPPModel::fitOnFile)
     .def("predict", &CPPModel::predict)
-    .def("predict_for_file", &CPPModel::predictForFile);
+    .def("predict_for_file", &CPPModel::predictForFile)
+    .def("predict_proba", &CPPModel::predictProba)
+    .def("predict_proba_for_file", &CPPModel::predictProbaForFile);
+
 }

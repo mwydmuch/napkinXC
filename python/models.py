@@ -14,26 +14,37 @@ class Model():
         self._params = {}
         self.set_params(**self._params)
 
-    def fit(self, X, y):
-        self._model.fit(X, y, Model._get_data_type(X), Model._get_data_type(y))
+    def fit(self, X, Y):
+        self._model.fit(X, Y, Model._get_data_type(X), Model._get_data_type(Y))
 
     def fit_on_file(self, path):
         self._model.fitOnFile(path)
 
-    def predict(self, X, top_k=5, threshold=0, thresholds=None):
+    def predict(self, X, top_k=5, threshold=0):
+        """
+        Predict labels
+        :param X:
+        :param top_k: Predict top k elements (default = 5)
+        :param threshold:
+        :return:
+        """
+        return self._model.predict(X, Model._get_data_type(X), top_k, threshold)
+
+    def predict_proba(self, X, top_k=5, threshold=0):
         """
         Predict labels with probability estimates
         :param X:
         :param top_k: Predict top k elements (default = 5)
         :param threshold:
-        :param thresholds:
         :return:
         """
+        return self._model.predict(X, Model._get_data_type(X), top_k, threshold)
 
-        return self._model.predict(Model._get_data_type(X))
+    def predict_for_file(self, path, top_k=5, threshold=0):
+        return self._model.predict_for_file(path, top_k, threshold)
 
-    def predict_for_file(self, path):
-        return self._model.predictForFile(path)
+    def predict_proba_for_file(self, path, top_k=5, threshold=0):
+        return self._model.predict_proba_for_file(path, top_k, threshold)
 
     def get_params(self, deep=True): # deep argument for sklearn compatibility
         return self._params
@@ -86,6 +97,7 @@ class PLT(Model):
 
     def __init__(self,
                  # Tree params
+                 output='tmp-plt-model',
                  tree_type='k-means',
                  arity=2,
                  max_leaves=100,
@@ -113,11 +125,13 @@ class PLT(Model):
                  ensemble=1,
                  seed=None,
                  threads=0,
+                 verbose=0,
                  **kwargs):
         """
         Initialize Probabilistic Labels Trees
-        :param tree_type:
-        :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure (default = 2)
+        :param output:
+        :param tree_type: tree type to construct {'hierachicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, (default = 'hierachicalKmeans')
+        :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, (default = 2)
         :param max_leaves: maximum degree of pre-leaf nodes
         :param kmeans_eps: tolerance of termination criterion of the k-means clustering used in hierarchical k-means tree building procedure (default = 0.0001)
         :param kmeans_balanced: perform balanced k-means clustering (default = True)
@@ -134,9 +148,10 @@ class PLT(Model):
         :param eta:
         :param epochs: number of epochs taken for the solvers to converge
         :param adagrad_eps:
-        :param ensemble: number of trees in ensemble
-        :param seed:
+        :param ensemble: number of trees in ensemble (default = 1)
+        :param seed: set a seed, None selects seed based on current system time (default = None)
         :param threads:
+        :param verbose:
         :return: None
         """
 

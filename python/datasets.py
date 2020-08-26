@@ -5,7 +5,6 @@ import re
 from sys import stdout
 from os import makedirs, path, remove
 from sklearn.datasets import load_svmlight_file
-#from svmloader import load_svmfile, load_svmfiles
 
 
 # List of all available datasets
@@ -128,7 +127,25 @@ DATASETS['wikipedialarge'] = DATASETS['wikipedialarge-500k']
 
 
 # Main function for downloading and loading datasets
-def load_dataset(dataset, subset=None, format='tf-idf', dest='data'):
+def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbose=False):
+    """
+    Downloads the dataset from the internet and puts it in root directory.
+    If dataset is already downloaded, it is not downloaded again.
+    Then loads requested datasets into features matrix and labels.
+    :param dataset: name of the dataset to load, case insensitive
+        {'Eurlex-4K', 'AmazonCat-13K', 'AmazonCat-14K', 'Wiki10-31K', 'DeliciousLarge-200K', 'WikiLSHTC-325K',
+         'WikipediaLarge-500K', 'Amazon-670K', 'Amazon-3M'}
+    :type dataset: str
+    :param subset: subset of dataset to load into features matrix and labels {'train', 'test', 'all'}, defaults to 'train'
+    :type subset: str
+    :param format: format of dataset to load {'tf-idf'}, defaults to 'tf-idf'
+    :type format: str
+    :param root: location of datasets directory, defaults to ./data
+    :type root: str
+    :param verbose: if True print downloading and loading progress, defaults to False
+    :type verbose: bool
+    :return: (csr_matrix, list[list[int]]), features matrix and labels
+    """
     dataset = dataset.lower()
     dataset_meta = DATASETS.get(dataset, None)
 
@@ -141,32 +158,25 @@ def load_dataset(dataset, subset=None, format='tf-idf', dest='data'):
     if subset is not None and subset not in dataset_meta['subsets']:
         raise ValueError("Subset {} is not available for dataset {}".format(format, dataset))
 
-    dataset_dest = path.join(dest, dataset_meta['name'] + '_' + format + ".zip")
+    dataset_dest = path.join(root, dataset_meta['name'] + '_' + format + ".zip")
     format_meta = dataset_meta[format]
-    train_path = path.join(dest, format_meta['train'])
-    test_path = path.join(dest, format_meta['test'])
+    train_path = path.join(root, format_meta['train'])
+    test_path = path.join(root, format_meta['test'])
 
     if not path.exists(train_path) or not path.exists(test_path):
         if 'drive.google.com' in format_meta['url']:
-            re_match = re.search('id=([\w\d]+)', format_meta['url'])
-            google_drive_id = re_match.group(1)
-            GoogleDriveDownloader.download_file(google_drive_id, dataset_dest, unzip=True, overwrite=True, deletezip=True, showsize=True)
+            GoogleDriveDownloader.download_file(format_meta['url'], dataset_dest, unzip=True, overwrite=True, delete_zip=True, verbose=verbose)
 
     if subset == 'train':
         return _load_file(train_path, format_meta['file_format'], format_meta['load_params'])
     elif subset == 'test':
         return _load_file(test_path, format_meta['file_format'], format_meta['load_params'])
-    else:
-        X_train, Y_train = _load_file(train_path, format_meta['file_format'], format_meta['load_params'])
-        X_test, Y_test = _load_file(test_path, format_meta['file_format'], format_meta['load_params'])
-        return X_train, Y_train, X_test, Y_test
 
 
 # Helpers
 def _load_file(filepath, format, load_params):
     if format == 'libsvm':
         return load_svmlight_file(filepath, **load_params)
-        #return load_svmfile(filepath, **load_params)
 
 
 # Based on: https://stackoverflow.com/questions/25010369/wget-curl-large-file-from-google-drive/39225039#39225039
@@ -179,66 +189,59 @@ class GoogleDriveDownloader:
     DOWNLOAD_URL = 'https://drive.google.com/uc?export=download'
 
     @staticmethod
-    def download_file(file_id, dest_path, overwrite=False, unzip=False, showsize=False, deletezip=True):
+    def download_file(url, dest_path, overwrite=False, unzip=False, delete_zip=False, verbose=False):
         """
-        Downloads a shared file from google drive into a given folder.
-        Optionally unzips it.
-        Parameters
-        ----------
-        file_id: str
-            the file identifier.
-            You can obtain it from the sharable link.
-        dest_path: str
-            the destination where to save the downloaded file.
-            Must be a path (for example: './downloaded_file.txt')
-        overwrite: bool
-            optional, if True forces re-download and overwrite.
-        unzip: bool
-            optional, if True unzips a file.
-            If the file is not a zip file, ignores it.
-        showsize: bool
-            optional, if True print the current download size.
-        Returns
-        -------
-        None
+        Downloads a shared file from google drive into a given folder and optionally unzips it.
+        :param url: file url to download
+        :type url: str
+        :param dest_path: the destination where to save the downloaded file
+        :type dest_path: str
+        :param overwrite: if True force redownload and overwrite, defaults to False
+        :type overwrite: bool
+        :param unzip: if True unzip a file, optional, defaults to False
+        :type unzip: bool
+        :param delete_zip: if True and unzips is True delete archive file after unziping, defaults to False
+        :type delete_zip: bool
+        :param verbose: if True print downloading progress, defaults to False
+        :type verbose: bool
+        :return: None
         """
+
+        re_match = re.search('id=([\w\d]+)', url)
+        file_id = re_match.group(1)
 
         destination_directory = path.dirname(dest_path)
         if not path.exists(destination_directory):
             makedirs(destination_directory)
 
         if not path.exists(dest_path) or overwrite:
+            if verbose:
+                print('Downloading {} into {}... '.format(url, dest_path))
 
             session = requests.Session()
-
-            print('Downloading {} into {}... '.format(file_id, dest_path), end='')
-            stdout.flush()
-
             response = session.get(GoogleDriveDownloader.DOWNLOAD_URL, params={'id': file_id}, stream=True)
-
             token = GoogleDriveDownloader._get_confirm_token(response)
             if token:
                 params = {'id': file_id, 'confirm': token}
                 response = session.get(GoogleDriveDownloader.DOWNLOAD_URL, params=params, stream=True)
-
-            if showsize:
-                print()  # Skip to the next line
-
             current_download_size = [0]
-            GoogleDriveDownloader._save_response_content(response, dest_path, showsize, current_download_size)
-            print('Done.')
+            GoogleDriveDownloader._save_response_content(response, dest_path, verbose, current_download_size)
 
             if unzip:
                 try:
-                    print('Unzipping...', end='')
-                    stdout.flush()
+                    if verbose:
+                        print('Unzipping...')
+
                     with zipfile.ZipFile(dest_path, 'r') as z:
                         z.extractall(destination_directory)
-                    if deletezip:
+                    if delete_zip:
                         remove(dest_path)
-                    print('Done.')
+
                 except zipfile.BadZipfile:
                     warnings.warn('Ignoring `unzip` since "{}" does not look like a valid zip file'.format(file_id))
+
+            if verbose:
+                print('Done.')
 
     @staticmethod
     def _get_confirm_token(response):
@@ -248,19 +251,19 @@ class GoogleDriveDownloader:
         return None
 
     @staticmethod
-    def _save_response_content(response, destination, showsize, current_size):
+    def _save_response_content(response, destination, verbose, current_size):
         with open(destination, 'wb') as f:
             for chunk in response.iter_content(GoogleDriveDownloader.CHUNK_SIZE):
                 if chunk:  # filter out keep-alive new chunks
                     f.write(chunk)
-                    if showsize:
-                        print('\r' + GoogleDriveDownloader.sizeof_fmt(current_size[0]), end=' ')
+                    if verbose:
+                        print('\r' + GoogleDriveDownloader._sizeof_fmt(current_size[0]), end=' ')
                         stdout.flush()
                         current_size[0] += GoogleDriveDownloader.CHUNK_SIZE
 
     # From: https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
     @staticmethod
-    def sizeof_fmt(num, suffix='B'):
+    def _sizeof_fmt(num, suffix='B'):
         for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
             if abs(num) < 1024.0:
                 return '{:.1f} {}{}'.format(num, unit, suffix)

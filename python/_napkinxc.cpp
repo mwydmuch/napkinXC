@@ -96,7 +96,8 @@ public:
         std::shared_ptr<DataReader> reader = DataReader::factory(args);
         reader->readData(labels, features, args);
 
-        return predictHelper(features, topK, threshold);
+        auto predWithProba = predictHelper(features, topK, threshold);
+        return dropProbaHelper(predWithProba);
     }
 
     std::vector<std::vector<std::pair<int, double>>> predictProbaForFile(std::string path, int topK, double threshold) {
@@ -108,8 +109,7 @@ public:
         std::shared_ptr<DataReader> reader = DataReader::factory(args);
         reader->readData(labels, features, args);
 
-        auto predWithProba = predictHelper(features, topK, threshold);
-        return dropProbaHelper(predWithProba);
+        return predictHelper(features, topK, threshold);
     }
 
 private:

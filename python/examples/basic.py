@@ -4,7 +4,8 @@ from napkinxc.models import PLT
 from napkinxc.measures import precision_at_k
 from napkinxc.datasets import load_dataset
 
-X_train, Y_train, X_test, Y_test = load_dataset("eurlex-4k")
+X_train, Y_train = load_dataset("eurlex-4k", "train")
+X_test, Y_test = load_dataset("eurlex-4k", "test")
 plt = PLT(verbose=2)
 plt.fit(X_train, Y_train)
 Y_pred = plt.predict(X_test, top_k=1)

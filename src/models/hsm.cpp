@@ -56,11 +56,6 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
                 for (const auto& n : nPositive) (*binWeights)[n->index]->push_back(w);
                 for (const auto& n : nNegative) (*binWeights)[n->index]->push_back(w);
             }
-            if (args.pickOneLabelWeightingNDCG) {//TODO
-                double w = nk_weight(rSize);
-                for (const auto& n : nPositive) (*binWeights)[n->index]->push_back(w);
-                for (const auto& n : nNegative) (*binWeights)[n->index]->push_back(w);
-            }
 
             nodeUpdateCount += nPositive.size() + nNegative.size();
         }

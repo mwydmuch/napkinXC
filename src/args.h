@@ -96,7 +96,6 @@ public:
     bool onTheTrotPrediction;
     bool inbalanceLabelsWeighting;
     bool pickOneLabelWeighting;
-    bool pickOneLabelWeightingNDCG;
     bool autoCLin;
     bool autoCLog;
 

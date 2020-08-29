@@ -81,8 +81,6 @@ protected:
 
     static std::vector<Base*> loadBases(std::string infile);
 
-    static float nk_weight(int size);
-
 private:
     static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                    SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);

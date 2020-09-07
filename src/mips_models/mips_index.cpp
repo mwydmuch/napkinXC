@@ -1,13 +1,30 @@
-/**
- * Copyright (c) 2019 by Marek Wydmuch
- * All rights reserved.
+/*
+ Copyright (c) 2019-2020 by Marek Wydmuch
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
 #include "mips_index.h"
 
 using namespace similarity;
 
-MIPSIndex::MIPSIndex(size_t dim, Args& args) : dim(dim) {
+MIPSIndex::MIPSIndex(int dim, bool sparse, Args& args) : dim(dim), sparse(sparse) {
     int seed = 0;
 
     // Init library, specify a log file
@@ -17,9 +34,11 @@ MIPSIndex::MIPSIndex(size_t dim, Args& args) : dim(dim) {
     // Use STDERR
     if (LOG_OPTION == 3) initLibrary(seed, LIB_LOGSTDERR, NULL);
 
-    spaceType = "negdotprod_sparse_fast";
     methodType = "hnsw";
     AnyParams empty;
+    if(sparse) spaceType = "negdotprod_sparse_fast";
+    else spaceType = "negdotprod";
+
     space = SpaceFactoryRegistry<DATA_T>::Instance().CreateSpace(spaceType, empty);
 }
 
@@ -30,85 +49,105 @@ MIPSIndex::~MIPSIndex() {
     delete index;
 }
 
-void MIPSIndex::addPoint(double* pointData, int size, int label) {
+void MIPSIndex::addPoint(Weight* pointData, int size, int label) {
     assert(dim == size);
-    std::vector<DATA_T> output(pointData, pointData + size);
-    auto denseSpace = reinterpret_cast<VectorSpace<DATA_T>*>(space);
-    data.push_back(denseSpace->CreateObjFromVect(label, -1, output));
+    if(sparse){
+        std::vector<SparseVectElem < DATA_T>> input;
+        for (int i = 0; i < size; ++i)
+            if(pointData[i] != 0) input.push_back(SparseVectElem<DATA_T>(i, pointData[i]));
+        std::sort(input.begin(), input.end());
+
+        auto sparseSpace = reinterpret_cast<const SpaceSparseVector<DATA_T> *>(space);
+        data.push_back(sparseSpace->CreateObjFromVect(label, -1, input));
+    } else {
+        std::vector<DATA_T> input(dim, 0);
+        for (int i = 0; i < size; ++i) input[i] = pointData[i];
+        auto denseSpace = reinterpret_cast<const VectorSpace<DATA_T> *>(space);
+        data.push_back(denseSpace->CreateObjFromVect(label, -1, input));
+    }
 }
 
 void MIPSIndex::addPoint(UnorderedMap<int, Weight>* pointData, int label) {
-    std::vector<SparseVectElem<DATA_T>> output;
+    if(sparse) {
+        std::vector<SparseVectElem < DATA_T>> input;
+        for (const auto &d : *pointData) input.push_back(SparseVectElem<DATA_T>(d.first, d.second));
+        std::sort(input.begin(), input.end());
 
-    for (const auto& d : *pointData) output.push_back(SparseVectElem<DATA_T>(d.first, d.second));
+        auto sparseSpace = reinterpret_cast<const SpaceSparseVector<DATA_T> *>(space);
+        data.push_back(sparseSpace->CreateObjFromVect(label, -1, input));
+    } else {
+        std::vector<DATA_T> input(dim, 0);
+        for (const auto &d : *pointData)
+            if(d.first < dim) input[d.first] = d.second;
 
-    std::sort(output.begin(), output.end());
-    auto sparseSpace = reinterpret_cast<const SpaceSparseVector<DATA_T>*>(space);
-    data.push_back(sparseSpace->CreateObjFromVect(label, -1, output));
+        auto denseSpace = reinterpret_cast<const VectorSpace<DATA_T>*>(space);
+        data.push_back(denseSpace->CreateObjFromVect(label, -1, input));
+    }
 }
 
 void MIPSIndex::createIndex(Args& args) {
-    std::cerr << "Creating MIPS index in " << args.threads << " threads ...\n";
+    LOG(CERR) << "Creating MIPS index in " << args.threads << " threads ...\n";
 
     AnyParams indexParams({
         "post=2",
+        "delaunay_type=2",
+        "M=" + std::to_string(args.hnswM),
+        "efConstruction=" + std::to_string(args.hnswEfConstruction),
         "indexThreadQty=" + std::to_string(args.threads),
     });
 
     index = MethodFactoryRegistry<DATA_T>::Instance().CreateMethod(true, methodType, spaceType, *space, data);
     index->CreateIndex(indexParams);
 
-    /*
-    AnyParams QueryTimeParams(
-        {
-            //"efSearch=50",
-        }
-    );
+    setEfSearch(args.hnswEfSearch);
+}
+
+void MIPSIndex::setEfSearch(int ef){
+    AnyParams QueryTimeParams({"efSearch=" + std::to_string(ef),});
 
     // Setting query-time parameters
     index->SetQueryTimeParams(QueryTimeParams);
-    */
+    efSearch = ef;
 }
 
-std::priority_queue<Prediction> MIPSIndex::predict(Feature* data, size_t k) {
-    // std::cerr << "Quering index\n";
+std::priority_queue<Prediction> MIPSIndex::predict(Feature* data, int k) {
+    if(efSearch < k) setEfSearch(k);
 
     std::priority_queue<Prediction> result;
 
-    // Sparse query
-    std::vector<SparseVectElem<DATA_T>> output;
+    Object* query;
+    if(sparse) {
+        // Sparse query
+        std::vector<SparseVectElem < DATA_T>> input;
 
-    Feature* f = data;
-    while (f->index != -1) {
-        output.push_back(SparseVectElem<DATA_T>(f->index - 1, f->value));
-        ++f;
+        Feature *f = data;
+        while (f->index != -1) {
+            input.push_back(SparseVectElem<DATA_T>(f->index, f->value));
+            ++f;
+        }
+        //std::sort(output.begin(), output.end());
+
+        auto sparse = reinterpret_cast<const SpaceSparseVector<DATA_T>*>(space);
+        query = sparse->CreateObjFromVect(0, -1, input);
+    } else {
+        // Dense query
+        std::vector<DATA_T> input(dim, 0);
+
+        Feature *f = data;
+        while (f->index != -1) {
+            input[f->index] = f->value;
+            ++f;
+        }
+
+        auto dense = reinterpret_cast<VectorSpace<DATA_T>*>(space);
+        query = dense->CreateObjFromVect(0, -1, input);
     }
-    std::sort(output.begin(), output.end());
-    auto sparse = reinterpret_cast<const SpaceSparseVector<DATA_T>*>(space);
-    auto query = sparse->CreateObjFromVect(0, -1, output);
-
-    // Dense query
-    /*
-    std::vector<DATA_T> output;
-    output.resize(dim);
-    std::fill(output.begin(), output.end(), 0);
-
-    Feature *f = data;
-    while (f->index != -1) {
-        output[f->index - 1] = f->value;
-        ++f;
-    }
-
-    auto denseSpace = reinterpret_cast<VectorSpace<DATA_T>*>(space);
-    auto query = denseSpace->CreateObjFromVect(0, -1, output);
-     */
 
     KNNQuery<DATA_T> knn(*space, query, k);
     index->Search(&knn, -1);
     auto knnResult = knn.Result()->Clone();
     while (!knnResult->Empty()) {
         result.push({knnResult->TopObject()->id(), -knnResult->TopDistance()});
-        // result.push({knnResult->TopObject()->id(), 1.0 / (1.0 + std::exp(knnResult->TopDistance()))});
         knnResult->Pop();
     }
 

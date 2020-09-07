@@ -1,6 +1,23 @@
-/**
- * Copyright (c) 2018 by Marek Wydmuch
- * All rights reserved.
+/*
+ Copyright (c) 2018-2020 by Marek Wydmuch
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
 
@@ -13,25 +30,20 @@
 #include "misc.h"
 #include "threads.h"
 
-
 // Data utils
 std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
-    std::cerr << "Computing labels' prior probabilities ...\n";
+    LOG(CERR) << "Computing labels' prior probabilities ...\n";
 
     std::vector<Prediction> labelsProb;
 
     labelsProb.resize(labels.cols());
-    for (int i = 0; i < labelsProb.size(); ++i) {
-        labelsProb[i].label = i;
-        labelsProb[i].value = 0;
-    }
-    int rows = labels.rows();
+    for (int i = 0; i < labelsProb.size(); ++i) labelsProb[i] = {i, 0};
 
+    int rows = labels.rows();
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
-        int rSize = labels.size(r);
-        auto rLabels = labels[r];
-        for (int i = 0; i < rSize; ++i) ++labelsProb[rLabels[i]].value;
+        int rLabels = labels.size(r);
+        for (int i = 0; i < rLabels; ++i) ++labelsProb[labels[r][i]].value;
     }
 
     for (auto& p : labelsProb) p.value /= labels.rows();
@@ -39,70 +51,52 @@ std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
     return labelsProb;
 }
 
-void computeLabelsFeaturesMatrixThread(std::vector<UnorderedMap<int, double>>& tmpLabelsFeatures,
-                                       const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
-                                       bool weightedFeatures, int threadId, int threads,
-                                       std::vector<std::mutex>& mutexes) {
+void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labelsFeatures,
+                                        std::vector<std::vector<int>>& labelsExamples,
+                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
+                                        bool norm, bool weightedFeatures, int threadId, int threads){
+    int size = labelsExamples.size();
+    for (int l = threadId; l < size; l += threads) {
+        if (threadId == 0) printProgress(l, size);
+        UnorderedMap<int, double> lFeatures;
 
-    int rows = features.rows();
-    int part = (rows / threads) + 1;
-    int partStart = threadId * part;
-    int partEnd = std::min((threadId + 1) * part, rows);
-
-    for (int r = partStart; r < partEnd; ++r) {
-        if (threadId == 0) printProgress(r, partEnd);
-        int rFeaturesSize = features.size(r);
-        int rLabelsSize = labels.size(r);
-        auto rFeatures = features[r];
-        auto rLabels = labels[r];
-        for (int i = 0; i < rFeaturesSize; ++i) {
-            for (int j = 0; j < rLabelsSize; ++j) {
-                if (rFeatures[i].index == 1) continue; // Skip bias feature
-
-                std::mutex& m = mutexes[rLabels[j] % mutexes.size()];
-                m.lock();
-
-                auto v = rFeatures[i].value;
-                if (weightedFeatures) v /= rLabelsSize;
-                tmpLabelsFeatures[rLabels[j]][rFeatures[i].index] += v;
-
-                m.unlock();
-            }
+        for (const auto& e : labelsExamples[l]){
+            Feature* f = (Feature*)features[e];
+            if(f->index == 1) ++f; // Skip bias feature
+            if(weightedFeatures) addVector(f, 1.0 / features.size(e), lFeatures);
+            else addVector(f, 1.0, lFeatures);
         }
+
+        for(auto& f : lFeatures)
+            labelsFeatures[l].push_back({f.first, f.second});
+
+        std::sort(labelsFeatures[l].begin(), labelsFeatures[l].end());
+        if(norm) unitNorm(labelsFeatures[l]);
+        else divVector(labelsFeatures[l], labelsExamples[l].size());
     }
 }
 
 void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
                                  const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures) {
 
-    std::vector<UnorderedMap<int, double>> tmpLabelsFeatures(labels.cols());
     assert(features.rows() == labels.rows());
+    LOG(CERR) << "Computing labels' features matrix in " << threads << " threads ...\n";
 
-    std::cerr << "Computing labels' features matrix in " << threads << " threads ...\n";
+    // Labels matrix transposed dot features matrix
+    std::vector<std::vector<int>> labelsExamples(labels.cols());
+    for(int i = 0; i < labels.rows(); ++i)
+        for(int j = 0; j < labels.size(i); ++j)
+            labelsExamples[labels[i][j]].push_back(i);
 
-    std::vector<std::mutex> mutexes(1031); // First prime number larger then 1024
+    std::vector<std::vector<Feature>> tmpLabelsFeatures(labels.cols());
     ThreadSet tSet;
     for (int t = 0; t < threads; ++t)
-        tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labels), std::ref(features),
-                 weightedFeatures, t, threads, std::ref(mutexes));
+        tSet.add(computeLabelsFeaturesMatrixThread, std::ref(tmpLabelsFeatures), std::ref(labelsExamples),
+                 std::ref(labels), std::ref(features), norm, weightedFeatures, t, threads);
     tSet.joinAll();
 
-    std::vector<Prediction> labelsProb;
-    if (!norm) labelsProb = computeLabelsPriors(labels);
-
-    for (int l = 0; l < labels.cols(); ++l) {
-        std::vector<Feature> labelFeatures;
-        labelFeatures.reserve(tmpLabelsFeatures.size());
-        for (const auto& f : tmpLabelsFeatures[l]) labelFeatures.push_back({f.first, f.second});
-        std::sort(labelFeatures.begin(), labelFeatures.end());
-
-        if (norm)
-            unitNorm(labelFeatures);
-        else
-            divVector(labelFeatures, labelsProb[l].value * labels.rows());
-
-        labelsFeatures.appendRow(labelFeatures);
-    }
+    for(auto& v : tmpLabelsFeatures)
+        labelsFeatures.appendRow(v);
 }
 
 // Splits string
@@ -125,6 +119,20 @@ std::string toLower(std::string text) {
     std::string lower = text;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     return lower;
+}
+
+std::string formatMem(size_t mem){
+    // kilo, mega, giga, tera, peta, exa
+    char units[7] = {' ', 'K', 'M', 'G', 'T', 'P', 'E'};
+    double fMem = mem;
+    int i = 0;
+    while(fMem > 1024){
+        fMem /= 1024;
+        ++i;
+    }
+    mem = std::ceil(fMem);
+
+    return "~" + std::to_string(mem) + units[i];
 }
 
 // Files utils

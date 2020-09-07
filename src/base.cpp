@@ -1,7 +1,24 @@
-/**
- * Copyright (c) 2018 by Marek Wydmuch
- * Copyright (c) 2019 by Marek Wydmuch, Kalina Kobus
- * All rights reserved.
+/*
+ Copyright (c) 2018 by Marek Wydmuch
+ Copyright (c) 2019-2020 by Marek Wydmuch, Kalina Jasinska-Kobus
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
 #include <fstream>
@@ -10,6 +27,7 @@
 
 #include "base.h"
 #include "linear.h"
+#include "log.h"
 #include "misc.h"
 #include "threads.h"
 
@@ -29,7 +47,6 @@ Base::Base() {
     mapW = nullptr;
     mapG = nullptr;
     sparseW = nullptr;
-    pi = 1.0;
 }
 
 Base::~Base() { clear(); }
@@ -47,23 +64,22 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     if (label == firstClass) ++firstClassCount;
 
     double pred = predictValue(features);
-    double grad = (1.0 / (1.0 + std::exp(-pred))) - label;
+    double grad;
+    if(args.lossType == logistic)
+        grad = logisticGrad(label, pred);
+    else
+        grad = squaredHingeGrad(label, pred);
 
     if (args.optimizerType == sgd) {
         if (mapW != nullptr)
-            updateSGD((*mapW), features, grad, args.eta);
+            updateSGD((*mapW), (*mapG), features, grad, t, args);
         else if (W != nullptr)
-            updateSGD(W, features, grad, args.eta);
+            updateSGD(W, G, features, grad, t, args);
     } else if (args.optimizerType == adagrad) {
         if (mapW != nullptr)
-            updateAdaGrad((*mapW), (*mapG), features, grad, args.eta, args.adagradEps);
+            updateAdaGrad((*mapW), (*mapG), features, grad, t, args);
         else if (W != nullptr)
-            updateAdaGrad(W, G, features, grad, args.eta, args.adagradEps);
-    } else if (args.optimizerType == fobos) {
-        if (mapW != nullptr)
-            updateFobos((*mapW), features, grad, args.eta, args.fobosPenalty);
-        else if (W != nullptr)
-            updateFobos(W, features, grad, args.eta, args.fobosPenalty);
+            updateAdaGrad(W, G, features, grad, t, args);
     }
 
     // Check if we should change sparse W to dense W
@@ -73,10 +89,9 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     }
 }
 
-void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+void Base::trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                           std::vector<double>* instancesWeights, int positiveLabels, Args& args) {
 
-    model* M = nullptr;
     int labelsCount = 0;
     int* labels = NULL;
     double* labelsWeights = NULL;
@@ -99,78 +114,116 @@ void Base::trainLiblinear(int n, std::vector<double>& binLabels, std::vector<Fea
         }
     }
 
+    double cost = args.cost;
+    if(args.autoCLog)
+        cost *= 1.0 + log(static_cast<double>(r) / binFeatures.size());
+    if (args.autoCLin)
+        cost *= static_cast<double>(r) / binFeatures.size();
+
     auto y = binLabels.data();
     auto x = binFeatures.data();
     int l = static_cast<int>(binLabels.size());
 
+    bool deleteInstanceWeights = false;
     if (instancesWeights == nullptr) {
         instancesWeights = new std::vector<double>(l);
         std::fill(instancesWeights->begin(), instancesWeights->end(), 1.0);
+        deleteInstanceWeights = true;
     }
 
-    problem P = {.l = l, .n = n, .y = y, .x = x, .bias = (args.bias > 0 ? 1.0 : -1.0), .W = instancesWeights->data()};
+    problem P = {.l = l,
+                 .n = n,
+                 .y = y,
+                 .x = x,
+                 .bias = -1,
+                 .W = instancesWeights->data()};
 
     parameter C = {.solver_type = args.solverType,
                    .eps = args.eps,
-                   .C = args.cost,
+                   .C = cost,
                    .nr_weight = labelsCount,
                    .weight_label = labels,
                    .weight = labelsWeights,
                    .p = 0,
-                   .init_sol = NULL};
+                   .init_sol = NULL,
+                   .max_iter = args.maxIter};
 
     auto output = check_parameter(&P, &C);
     assert(output == NULL);
 
-    // Optimize C for small datasets
-    if (args.cost < 0 && binLabels.size() > 100 && binLabels.size() < 1000) {
-        double bestC = -1;
-        double bestP = -1;
-        double bestScore = -1;
-        find_parameters(&P, &C, 1, 4.0, -1, &bestC, &bestP, &bestScore);
-        C.C = bestC;
-    } else if (args.cost < 0)
-        C.C = 8.0;
-
-    M = train_liblinear(&P, &C);
+    model* M = train_liblinear(&P, &C);
 
     assert(M->nr_class <= 2);
-    assert(M->nr_feature + (args.bias > 0 ? 1 : 0) == n);
+    assert(M->nr_feature == n);
 
     // Set base's attributes
-    wSize = n;
+    wSize = n + 1;
     firstClass = M->label[0];
     classCount = M->nr_class;
 
     // Copy weights
-    W = new Weight[n];
+    W = new Weight[wSize];
+    W[0] = 0;
     for (int i = 0; i < n; ++i) W[i + 1] = M->w[i];
-    delete[] M->w;
 
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
                 args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
 
     // Delete LibLinear model
-    delete[] M->label;
+    free_model_content(M);
+    free(M);
     delete[] labels;
     delete[] labelsWeights;
-    delete M;
+    if(deleteInstanceWeights) delete instancesWeights;
 }
 
 void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args) {
-    setupOnlineTraining(args, n);
+    setupOnlineTraining(args, n, true);
 
-    const int examples = binFeatures.size() * args.epochs;
-    for (int i = 0; i < examples; ++i) {
-        int r = i % binFeatures.size();
-        unsafeUpdate(binLabels[r], binFeatures[r], args);
-    }
+    // Set loss function
+    double (*gradFunc)(double, double);
+    if (args.lossType == logistic)
+        gradFunc = &logisticGrad;
+    else if (args.lossType == squaredHinge)
+        gradFunc = &squaredHingeGrad;
+    else
+        throw std::invalid_argument("Unknown loss function type");
+
+    // Set update function
+    void (*updateFunc)(Weight*&, Weight*&, Feature*, double, int, Args&);
+    if(args.optimizerType == sgd)
+        updateFunc = &updateSGD<Weight*>;
+    else if (args.optimizerType == adagrad)
+        updateFunc = &updateAdaGrad<Weight*>;
+    else
+        throw std::invalid_argument("Unknown online update function type");
+
+    const int examples = binFeatures.size();
+    for (int e = 0; e < args.epochs; ++e)
+        for (int r = 0; r < examples; ++r) {
+
+            double label = binLabels[r];
+            Feature* features = binFeatures[r];
+
+            if (args.tmax != -1 && args.tmax < t) break;
+
+            ++t;
+            if (binLabels[r] == firstClass) ++firstClassCount;
+
+            //double pred = predictValue(binFeatures[r]);
+            double pred = dotVectors(features, W, wSize);
+            double grad = gradFunc(label, pred);
+            updateFunc(W, G, features, grad, t, args);
+        }
 
     finalizeOnlineTraining(args);
 }
 
-void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
+void Base::train(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
                  std::vector<double>* instancesWeights, Args& args) {
+
+    if(instancesWeights != nullptr && args.optimizerType != liblinear)
+        throw std::invalid_argument("train: optimizer type does not support training with weights");
 
     if (binLabels.empty()) {
         firstClass = 0;
@@ -185,11 +238,11 @@ void Base::train(int n, std::vector<double>& binLabels, std::vector<Feature*>& b
         return;
     }
 
-    assert(binLabels.size() == binFeatures.size());
+    //assert(binLabels.size() == binFeatures.size());
     if (instancesWeights != nullptr) assert(instancesWeights->size() == binLabels.size());
 
     if (args.optimizerType == liblinear)
-        trainLiblinear(n, binLabels, binFeatures, instancesWeights, positiveLabels, args);
+        trainLiblinear(n, r, binLabels, binFeatures, instancesWeights, positiveLabels, args);
     else
         trainOnline(n, binLabels, binFeatures, args);
 
@@ -217,8 +270,6 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
-    if (pi != 1) forEachW([&](Weight& w) { w /= pi; });
-
     if (firstClassCount == t || firstClassCount == 0) {
         classCount = 1;
         if (firstClassCount == 0) firstClass = 1 - firstClass;
@@ -228,6 +279,7 @@ void Base::finalizeOnlineTraining(Args& args) {
 }
 
 double Base::predictValue(Feature* features) {
+    if (classCount < 2) return static_cast<double>(firstClass * 10);
     double val = 0;
 
     if (mapW) { // Sparse features dot sparse weights in hash map
@@ -243,16 +295,15 @@ double Base::predictValue(Feature* features) {
         throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
 
     if (firstClass == 0) val *= -1;
-    val /= pi; // Fobos
 
     return val;
 }
 
 double Base::predictProbability(Feature* features) {
-    if (classCount < 2) return static_cast<double>(firstClass);
     double val = predictValue(features);
     if (hingeLoss)
-        val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
+        //val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
+        val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2));
     else
         val = 1.0 / (1.0 + std::exp(-val)); // Probability
     return val;
@@ -288,6 +339,7 @@ void Base::clear() {
     mapG = nullptr;
 
     delete[] sparseW;
+    sparseW = nullptr;
 }
 
 void Base::toMap() {
@@ -366,8 +418,7 @@ void Base::save(std::ostream& out) {
 
     if (classCount > 1) {
         // Decide on optimal file coding
-        // bool saveSparse = sparseSize() < denseSize();
-        bool saveSparse = true;
+        bool saveSparse = sparseSize() < denseSize() || W == nullptr;
 
         out.write((char*)&hingeLoss, sizeof(hingeLoss));
         out.write((char*)&wSize, sizeof(wSize));
@@ -385,7 +436,7 @@ void Base::save(std::ostream& out) {
             out.write((char*)W, wSize * sizeof(Weight));
     }
 
-    // std::cerr << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
+    // LOG(CERR) << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
     //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << size()/1024 << "/" <<
     //    denseSize()/1024 << "K\n";
 }
@@ -403,16 +454,26 @@ void Base::load(std::istream& in) {
         in.read((char*)&loadSparse, sizeof(loadSparse));
 
         if (loadSparse) {
-            mapW = new UnorderedMap<int, Weight>();
+            bool loadAsMap = mapSize() < denseSize() && wSize > 50000;
+
+            if(loadAsMap){
+                mapW = new UnorderedMap<int, Weight>();
+                mapW->reserve(nonZeroW);
+            }
+            else{
+                W = new Weight[wSize];
+                std::memset(W, 0, wSize * sizeof(Weight));
+            }
 
             int index;
             Weight w;
-
             for (int i = 0; i < nonZeroW; ++i) {
                 in.read((char*)&index, sizeof(index));
                 in.read((char*)&w, sizeof(Weight));
+
                 if (sparseW != nullptr) sparseW[i] = {index, w};
                 if (mapW != nullptr) mapW->insert({index, w});
+                if (W != nullptr) W[index] = w;
             }
         } else {
             W = new Weight[wSize];
@@ -423,15 +484,16 @@ void Base::load(std::istream& in) {
 }
 
 size_t Base::size() {
-    if (W) return denseSize();
-    if (mapW) return mapSize();
-    if (sparseW) return sparseSize();
-    return 0;
+    size_t size = sizeof(Base);
+    if (W) size += denseSize();
+    if (mapW) size += mapSize();
+    if (sparseW) size += sparseSize();
+    return size;
 }
 
 void Base::printWeights() {
-    forEachIW([&](const int& i, Weight& w) { std::cerr << i << ":" << w << " "; });
-    std::cerr << std::endl;
+    forEachIW([&](const int& i, Weight& w) { LOG(CERR) << i << ":" << w << " "; });
+    LOG(CERR) << "\n";
 }
 
 void Base::invertWeights() {

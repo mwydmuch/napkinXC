@@ -3,9 +3,15 @@
 set -e
 
 DATASET="$1"
+DATA_DIR="data"
+if [[ $# -gt 2 ]]; then
+    DATA_DIR="$2"
+fi
 
 case "$DATASET" in
     # Multi-label datasets from The Extreme Classification Repository (manikvarma.org/downloads/XC/XMLRepository.html)
+    "rcv1x") # RCV1X-2K
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdnEzRWZWQWJMRnc" ;;
     "amazonCat") # AmazonCat-13K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc" ;;
     "amazonCat-14K") # AmazonCat-14K
@@ -50,9 +56,7 @@ case "$DATASET" in
 esac
 
 SCRIPT_DIR=$( dirname "${BASH_SOURCE[0]}" )
-
-mkdir -p data
-DATA_DIR=${SCRIPT_DIR}/data
+mkdir -p $DATA_DIR
 DATASET_PATH="${DATA_DIR}/${DATASET}"
 
 if [ ! -e $DATASET_PATH ]; then
@@ -77,6 +81,4 @@ if [ ! -e $DATASET_PATH ]; then
         tar xjC $DATA_DIR -f ${DATASET_PATH}.tar.bz2
         rm ${DATASET_PATH}.tar.bz2
     fi
-
-
 fi

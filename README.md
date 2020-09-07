@@ -1,123 +1,142 @@
 # napkinXC [![Build Status](https://travis-ci.org/mwydmuch/napkinXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkinXC)
 
-Extremely simple and fast library for extreme multi-class and multi-label classification.
+napkinXC is an extremely simple and fast library for extreme multi-class and multi-label classification.
+It allows to train a classifier for very large datasets in few lines of code with minimal resources.
 
-Right now it implements:
+Right now, napkinXC implements the following features both in Python and C++:
+- Probabilistic Label Trees (PLT) and Online Probabilistic Label Trees (OPLT),
+- Hierarchical softmax (HSM),
 - Binary Relevance (BR),
 - One Versus Rest (OVR),
-- OVA and BR with inference using Maximum Inner Product Search (MIPS),
-- Hierarchical Softmax (HSM),
-- Probabilistic Label Tree (PLT),
-- Ensembles of tree based models,
-- Top-k and set-valued prediction,
-- LibLinear and SGD solvers for base classifiers,
-- Online prediction,
-- Huffman, complete and balanced tree structures,
-- Hierarchical balanced k-means clustering for tree building,
-- Loading custom tree structures.
+- fast online prediction of top-k labels or labels above the given threshold,
+- hierarchical k-means clustering for tree building and other tree building methods,
+- support for predefined hierarchies,
+- LIBLINEAR, SGD, and AdaGrad solvers for base classifiers,
+- efficient ensembles tree-based model,
+- helpers to download and load data from [XML Repository](http://manikvarma.org/downloads/XC/XMLRepository.html),
+- helpers to measure performance.
 
-Please note that this library is still under development and serves as a base for experiments.
-Features may change or break and some of the options may not be listed below.
+Please note that this library is still under development and also serves as a base for experiments. 
+Some of the experimental features may not be documented. 
 
-This repository contains code for this [arXiv paper](https://arxiv.org/abs/1906.08129) about set-valued prediction in multi-class classification.
+The napkinXC is distributed under MIT license. 
+All contributions to the project are welcome!
 
-Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, that implements approach described in this [NeurIPS paper](http://papers.nips.cc/paper/7872-a-no-regret-generalization-of-hierarchical-softmax-to-extreme-multi-label-classification).
 
-## Build
+## Roadmap
+
+Coming soon:
+- OPLT available in Python
+- Possibility to use any type of binary classifier from Python
+- Improved dataset loading from Python
+- More datasets from XML Repository
+
+
+## Python quick start
+
+Python version of napkinXC can be easly installed from PyPy repository:
 ```
-cmake -DCMAKE_BUILD_TYPE=Release .
+pip install napkinxc
+```
+
+Minimal example of usage:
+```
+from napkinxc.models import PLT
+from napkinxc.measures import precision_at_k
+from napkinxc.datasets import load_dataset
+
+X_train, Y_train = load_dataset("eurlex-4k", "train")
+X_test, Y_test = load_dataset("eurlex-4k", "test")
+plt = PLT("eurlex-model")
+plt.fit(X_train, Y_train)
+Y_pred = plt.predict(X_test, top_k=1)
+print(precision_at_k(Y_test, Y_pred, k=1))
+```
+
+More examples can be found under `python/examples` directory.
+
+
+## Building executable
+
+napkinXC can be also build as executable using:
+
+```
+cmake .
 make -j
 ```
 
-To build with MIPS-based models library requires [Non-Metric Space Library (NMSLIB)](https://github.com/nmslib/nmslib.git):
 
-To install NMSLIB:
-```
-git clone https://github.com/nmslib/nmslib.git
-cd nmsilb/similarity_search
-cmake -DCMAKE_BUILD_TYPE=Release .
-make -j
-make install
-```
-
-To build with MIPS extension:
-```
-cmake -DCMAKE_BUILD_TYPE=Release -DWITH_MIPS_EXT=1 .
-make -j
-```
-
-## Options
+## Command line options
 
 ```
 Usage: nxc <command> <args>
 
 Commands:
-    train
-    test
-    predict
+    train                   Train model on given input data
+    test                    Test model on given input data
+    predict                 Predict for given data
+    ofo                     Use online f-measure optimalization
+    version                 Print napkinXC version
+    help                    Print help
 
 Args:
     General:
-    -i, --input         Input dataset
-    -o, --output        Output (model) dir
-    -m, --model         Model type (default = plt):
-                        Models: ovr, br, hsm, plt, oplt, ubop, rbop,
-                                ubopHsm, brMips, ubopMips
-    --ensemble          Ensemble of models (default = 0)
-    -d, --dataFormat    Type of data format (default = libsvm):
-                        Supported data formats: libsvm
-    -t, --threads       Number of threads used for training and testing (default = 0)
-                        Note: -1 to use #cpus - 1, 0 to use #cpus
-    --header            Input contains header (default = 1)
-                        Header format for libsvm: #lines #features #labels
-    --hash              Size of features space (default = 0)
-                        Note: 0 to disable hashing
-    --featuresThreshold Prune features belowe given threshold (default = 0.0)
-    --seed              Seed
+    -i, --input             Input dataset
+    -o, --output            Output (model) dir
+    -m, --model             Model type (default = plt):
+                            Models: ovr, br, hsm, plt, oplt, ubop, ubopHsm, brMips, ubopMips
+    --ensemble              Number of models in ensemble (default = 1)
+    -d, --dataFormat        Type of data format (default = libsvm),
+                            Supported data formats: libsvm
+    -t, --threads           Number of threads to use (default = 0)
+                            Note: -1 to use #cpus - 1, 0 to use #cpus
+    --header                Input contains header (default = 1)
+                            Header format for libsvm: #lines #features #labels
+    --hash                  Size of features space (default = 0)
+                            Note: 0 to disable hashing
+    --featuresThreshold     Prune features below given threshold (default = 0.0)
+    --seed                  Seed (default = system time)
+    --verbose               Verbose level (default = 2)
 
     Base classifiers:
-    --optimizer         Use LibLiner or online optimizers (default = libliner)
-                        Optimizers: liblinear, sgd, adagrad, fobos
-    --bias              Add bias term (default = 1)
+    --optimizer             Optimizer used for training binary classifiers (default = libliner)
+                            Optimizers: liblinear, sgd, adagrad, fobos
+    --bias                  Value of the bias features (default = 1)
     --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 1)
-    --weightsThreshold  Prune weights belowe given threshold (default = 0.1)
+    --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
 
-    LibLinear:
-    -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
-                        Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
-                                           L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
-                        See: https://github.com/cjlin1/liblinear
-    -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
-                        Like in support vector machines, smaller values specify stronger
-                        regularization. (default = 10.0)
-                        Note: -1 to automatically find best value for each node.
-    -e, --eps           Stopping criteria (default = 0.1)
-                        See: https://github.com/cjlin1/liblinear
+    LIBLINEAR:              (more aobut LIBLINEAR: https://github.com/cjlin1/liblinear)
+    -s, --solver            LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
+                            Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
+                                               L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+    -c, --liblinearC        LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
+                            smaller values specify stronger regularization (default = 10.0)
+    --eps, --liblinearEps   LIBLINEAR tolerance of termination criterion (default = 0.1)
 
-    SGD/AdaGrad/Fobos:
-    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad/Fobos (default = 1.0)
-    --epochs            Number of epochs of SGD/AdaGrad/Fobos (default = 10)
-    --adagradEps        AdaGrad epsilon (default = 0.00001)
-    --fobosPenalty      Regularization strength of Fobos algorithm (default = 0.00001)
+    SGD/AdaGrad:
+    -l, --lr, --eta         Step size (learning rate) for online optimizers (default = 1.0)
+    --epochs                Number of training epochs for online optimizers (default = 1)
+    --adagradEps            Defines starting step size for AdaGrad (default = 0.001)
 
     Tree:
-    -a, --arity         Arity of a tree (default = 2)
-    --maxLeaves         Maximum number of leaves (labels) in one internal node. (default = 100)
-    --tree              File with tree structure
-    --treeType          Type of a tree to build if file with structure is not provided
-                        Tree types: hierarchicalKMeans, huffman, completeInOrder, completeRandom,
-                                    balancedInOrder, balancedRandom, onlineComplete, onlineBalanced,
-                                    onlineRandom
+    -a, --arity             Arity of tree nodes (default = 2)
+    --maxLeaves             Maximum degree of pre-leaf nodes. (default = 100)
+    --tree                  File with tree structure
+    --treeType              Type of a tree to build if file with structure is not provided
+                            tree types: hierarchicalKmeans, huffman, completeKaryInOrder, completeKaryRandom,
+                                        balancedInOrder, balancedRandom, onlineComplete
 
     K-Means tree:
-    --kMeansEps         Stopping criteria for K-Means clustering (default = 0.001)
-    --kMeansBalanced    Use balanced K-Means clustering (default = 1)
+    --kmeansEps             Tolerance of termination criterion of the k-means clustering 
+                            used in hierarchical k-means tree building procedure (default = 0.001)
+    --kmeansBalanced        Use balanced K-Means clustering (default = 1)
 
     Prediction:
-    --topK              Predict top k elements (default = 5)
-    --setUtility        Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
-                        Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
-                        See: https://arxiv.org/abs/1906.08129
+    --topK                  Predict top-k labels (default = 5)
+    --threshold             Predict labels with probability above the threshold, defaults to 0
+    --setUtility            Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
+                            Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
+                            See: https://arxiv.org/abs/1906.08129
 
     Set-Utility:
     --alfa
@@ -126,37 +145,19 @@ Args:
     --gamma
 
     Test:
-    --measures          Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")
-                        Measures: acc (accuracy), p (precision), r (recall), c (coverage),
-                                  p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
+    --measures              Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")
+                            Measures: acc (accuracy), p (precision), r (recall), c (coverage), hl (hamming loos)
+                                      p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
 ```
 
-## Test script
-```
-Usage test.sh <dataset> <optional nxml train args>
 
-Datasets:
-    Multi-label:
-        amazonCat
-        amazonCat-14K
-        amazon
-        amazon-3M
-        deliciousLarge
-        eurlex
-        wiki10
-        wikiLSHTC
-        WikipediaLarge-500K
-```
+## References and acknowledgments
 
-## TODO
-- Proper logging with verbose options
-- Python bindings with support for SciPy types
+This library implements methods from following papers:
 
-## Acknowledgments
-napkinXC uses the following libraries:
+- [Online Probabilistic Label Trees](https://arxiv.org/abs/1906.08129)
 
-- LIBLINEAR: https://github.com/cjlin1/liblinear
-- ThreadPool: https://github.com/progschj/ThreadPool
-- Robin Hood Hashmap: https://github.com/martinus/robin-hood-hashing
-- Non-Metric Space Library: https://github.com/nmslib/nmslib.git
+- [Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification](https://arxiv.org/abs/1906.08129)
 
+Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, 
+that implements approach described in this [NeurIPS paper](http://papers.nips.cc/paper/7872-a-no-regret-generalization-of-hierarchical-softmax-to-extreme-multi-label-classification).

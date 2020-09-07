@@ -1,6 +1,23 @@
-/**
- * Copyright (c) 2019 by Marek Wydmuch
- * All rights reserved.
+/*
+ Copyright (c) 2019-2020 by Marek Wydmuch
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
 #include <cmath>
@@ -12,10 +29,14 @@ std::shared_ptr<SetUtility> SetUtility::factory(Args& args, int outputSize) {
     std::shared_ptr<SetUtility> u = nullptr;
     switch (args.setUtilityType) {
     case uP: u = std::static_pointer_cast<SetUtility>(std::make_shared<PrecisionUtility>()); break;
-    case uF1: u = std::static_pointer_cast<SetUtility>(std::make_shared<F1Utility>()); break;
-    case uAlfa: u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfa>(args.alfa, outputSize)); break;
-    case uAlfaBeta:
-        u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlfaBeta>(args.alfa, args.beta, outputSize));
+    case uR: u = std::static_pointer_cast<SetUtility>(std::make_shared<RecallUtility>()); break;
+    case uF1: u = std::static_pointer_cast<SetUtility>(std::make_shared<FBetaUtility>(1)); break;
+    case uFBeta: u = std::static_pointer_cast<SetUtility>(std::make_shared<FBetaUtility>(args.beta)); break;
+    case uExp: u = std::static_pointer_cast<SetUtility>(std::make_shared<FBetaUtility>(args.beta)); break;
+    case uLog: u = std::static_pointer_cast<SetUtility>(std::make_shared<FBetaUtility>(args.beta)); break;
+    case uAlpha: u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlphaBeta>(args.alpha, 0, outputSize)); break;
+    case uAlphaBeta:
+        u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityAlphaBeta>(args.alpha, args.beta, outputSize));
         break;
     case uDeltaGamma:
         u = std::static_pointer_cast<SetUtility>(std::make_shared<UtilityDeltaGamma>(args.delta, args.gamma));
@@ -29,69 +50,52 @@ std::shared_ptr<SetUtility> SetUtility::factory(Args& args, int outputSize) {
 SetUtility::SetUtility() {}
 
 void SetUtility::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
-    sum += u(labels[0], prediction);
-    ++count;
+    addValue(u(labels[0], prediction));
 }
 
-PrecisionUtility::PrecisionUtility() { name = "U_P"; }
-
-double PrecisionUtility::u(double c, const std::vector<Prediction>& prediction) {
+double SetUtility::u(double c, const std::vector<Prediction>& prediction){
     for (const auto& p : prediction)
-        if (p.label == c) return 1.0 / prediction.size();
+        if (p.label == c) return g(prediction.size());
     return 0.0;
 }
+
+PrecisionUtility::PrecisionUtility() { name = "Precision utility"; }
 
 double PrecisionUtility::g(int pSize) { return 1.0 / pSize; }
 
-F1Utility::F1Utility() { name = "U_F1"; }
+RecallUtility::RecallUtility() { name = "Recall utility"; }
 
-double F1Utility::u(double c, const std::vector<Prediction>& prediction) {
-    for (const auto& p : prediction)
-        if (p.label == c) return 2.0 / (1 + prediction.size());
-    return 0.0;
-}
+double RecallUtility::g(int pSize) { return 1.0; }
 
-double F1Utility::g(int pSize) { return 2.0 / (1.0 + pSize); }
-
-UtilityAlfa::UtilityAlfa(double alfa, int outputSize) : alfa(alfa), m(outputSize) {
-    name = "U_alfa(" + std::to_string(alfa) + ")";
-}
-
-double UtilityAlfa::u(double c, const std::vector<Prediction>& prediction) {
-    for (const auto& p : prediction)
-        if (p.label == c) {
-            if (prediction.size() == 1)
-                return 1.0;
-            else
-                return 1 - alfa;
-        }
-    return 0.0;
-}
-
-double UtilityAlfa::g(int pSize) {
-    if (pSize == 1)
-        return 1.0;
+FBetaUtility::FBetaUtility(double beta) : beta(beta) {
+    if(std::round(beta) == beta)
+        name = "F" + std::to_string(static_cast<int>(beta)) + " utility";
     else
-        return 1.0 - alfa;
+        name = "F beta utility (" + std::to_string(beta) + ")";
 }
 
-UtilityAlfaBeta::UtilityAlfaBeta(double alfa, double beta, int outputSize) : alfa(alfa), beta(beta), m(outputSize) {
-    if (alfa <= 0) alfa = static_cast<double>(m - 1) / m;
-    name = "U_alfa_beta(" + std::to_string(alfa) + ", " + std::to_string(beta) + ")";
+double FBetaUtility::g(int pSize) { return (1.0 + beta * beta) / (pSize + beta * beta); }
+
+ExpUtility::ExpUtility(double gamma) : gamma(gamma) {
+    name = "Exp. utility (" + std::to_string(gamma) +")";
 }
 
-double UtilityAlfaBeta::u(double c, const std::vector<Prediction>& prediction) {
-    for (const auto& p : prediction)
-        if (p.label == c) return 1.0 - alfa * pow(static_cast<double>(prediction.size() - 1) / (m - 1), beta);
-    return 0.0;
+double ExpUtility::g(int pSize) { return std::log(1 + 1/pSize); }
+
+LogUtility::LogUtility() { name = "Log. utility"; }
+
+double LogUtility::g(int pSize) { return std::log(1 + 1/pSize); }
+
+UtilityAlphaBeta::UtilityAlphaBeta(double alpha, double beta, int outputSize) : alpha(alpha), beta(beta), m(outputSize) {
+    if (alpha <= 0) this->alpha = static_cast<double>(m - 1) / m;
+    if (beta <= 0) this->beta = std::log(static_cast<double>(m) / 2) / std::log(1.0 / (m - 1)) + 1;
+    name = "Alpha beta utility (" + std::to_string(this->alpha) + ", " + std::to_string(beta) + ")";
 }
 
-double UtilityAlfaBeta::g(int pSize) { return 1.0 - alfa * pow(static_cast<double>(pSize - 1) / (m - 1), beta); }
+double UtilityAlphaBeta::g(int pSize) { return 1.0 - alpha * pow(static_cast<double>(pSize - 1) / (m - 1), beta); }
 
 UtilityDeltaGamma::UtilityDeltaGamma(double delta, double gamma) : delta(delta), gamma(gamma) {
-    name = "U_delta_gamma(" + std::to_string(delta) + ", " + std::to_string(gamma) + ")";
+    name = "Delta gamma utility (" + std::to_string(delta) + ", " + std::to_string(gamma) + ")";
 }
 
-double UtilityDeltaGamma::u(double c, const std::vector<Prediction>& prediction) { return 0.0; }
-
-double UtilityDeltaGamma::g(int pSize) { return 1.0; }
+double UtilityDeltaGamma::g(int pSize) { return delta / pSize - gamma / (pSize * pSize); }

@@ -1,0 +1,8 @@
+recursive-include src *
+recursive-include python *
+include CMakeLists.txt
+include GitUtils.cmake
+include LICENSE.md
+include README.md
+include pyproject.toml
+recursive-exclude * .DS_Store

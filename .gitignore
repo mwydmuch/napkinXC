@@ -1,18 +1,24 @@
+# CMake
 **/CMakeCache.txt
 **/CMakeFiles
 **/CMakeScripts
 **/cmake_install.cmake
 **/Makefile
 
+# Python
+/dist
+/build
+/pybind11
 /src/version.h
-/nxml
-/nxc
-/data
-/models
-/outputs
-/results
-/nmslib
+/src/nmslib
+nxc
 
+# Experiments
+/data
+/models*
+/results*
+
+# Misc
 .idea
 .DS_Store
 *.cbp

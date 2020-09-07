@@ -6,8 +6,8 @@ endif()
 # Get pybind11
 git_clone(PROJECT_NAME pybind11
     GIT_URL https://github.com/pybind/pybind11.git
-    #GIT_BRANCH master
-    GIT_TAG v2.5.0
+    GIT_BRANCH master
+    #GIT_TAG v2.5.0
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
 )
 

@@ -140,7 +140,7 @@ void DataReader::processFeaturesVector(std::vector<Feature> &lFeatures, bool nor
     }
 
     // Norm row
-    if (norm) unitNorm(lFeatures);
+    if (norm) unitNorm(lFeatures.data() + 1, lFeatures.size() - 1);
 
     // Apply features threshold
     if (featuresThreshold > 0) threshold(lFeatures, featuresThreshold);

@@ -342,11 +342,10 @@ void printHelp() {
     std::cout << R"HELP(Usage: nxc [command] [args ...]
 
 Commands:
-    train
-    test
-    predict
+    train               Train model on given input data
+    test                Test model on given input data
+    predict             Predict for given data
     ofo
-    testPredictionTime
     version
     help
 
@@ -431,6 +430,12 @@ Args:
 int main(int argc, char** argv) {
     logLevel = CERR;
 
+    if(argc == 1) {
+        std::cout << "No command provided \n";
+        printHelp();
+        exit(EXIT_FAILURE);
+    }
+
     std::string command(argv[1]);
     std::vector<std::string> arg(argv + 2, argv + argc);
     Args args = Args();
@@ -447,7 +452,7 @@ int main(int argc, char** argv) {
     if (command == "-h" || command == "--help" || command == "help")
         printHelp();
     else if (command == "-v" || command == "--version" || command == "version")
-        LOG(COUT) << "napkinXC " << VERSION << "\n";
+        std::cout << "napkinXC " << VERSION << "\n";
     else if (command == "train")
         train(args);
     else if (command == "test")

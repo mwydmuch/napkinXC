@@ -6,6 +6,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
+#include <pybind11/functional.h>
 
 #include "args.h"
 #include "data_reader.h"
@@ -29,24 +30,6 @@ public:
 
     void setArgs(const std::vector<std::string>& arg){
         args.parseArgs(arg);
-    }
-
-    void testLoad(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType, std::string path){
-        SRMatrix<Label> labels;
-        SRMatrix<Feature> features;
-        readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
-        readLabelsMatrix(labels, inputLabels, (InputDataType)labelsDataType);
-
-        args.input = path;
-        args.header = false;
-
-        SRMatrix<Label> labels2;
-        SRMatrix<Feature> features2;
-        std::shared_ptr<DataReader> reader = DataReader::factory(args);
-        reader->readData(labels2, features2, args);
-
-        std::cout << "Labels equal: " << (labels == labels2) << "\n";
-        std::cout << "Features equal: " << (features == features2) << "\n";
     }
 
     void fitOnFile(std::string path){
@@ -110,6 +93,70 @@ public:
         reader->readData(labels, features, args);
 
         return predictHelper(features, topK, threshold);
+    }
+
+    std::vector<std::pair<std::string, double>> test(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType,
+                                                     int topK, double threshold, std::string measuresStr){
+        auto predictionPairs = predictProba(inputFeatures, featuresDataType, topK, threshold);
+        auto predictions = reinterpret_cast<std::vector<std::vector<Prediction>>&>(predictionPairs);
+
+        SRMatrix<Label> labels;
+        readLabelsMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+
+        args.measures = measuresStr;
+        auto measures = Measure::factory(args, model->outputSize());
+        for (auto& m : measures) m->accumulate(labels, predictions);
+
+        std::vector<std::pair<std::string, double>> results;
+        for (auto& m : measures)
+            results.push_back({m->getName(), m->value()});
+
+        return results;
+    }
+
+    double callPythonFunction(std::function<double(py::object)> pyFunc, py::object pyArg){
+        return pyFunc(pyArg);
+    }
+
+    double callPythonObjectMethod(py::object pyObject, py::object pyArg, std::string methodName){
+        return pyObject.attr(methodName.c_str())(pyArg).cast<double>();
+    }
+
+    bool testDataLoad(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType, std::string path, double eps){
+        SRMatrix<Label> labelsFromPython;
+        SRMatrix<Feature> featuresFromPython;
+        readFeatureMatrix(featuresFromPython, inputFeatures, (InputDataType)featuresDataType);
+        readLabelsMatrix(labelsFromPython, inputLabels, (InputDataType)labelsDataType);
+
+        args.input = path;
+        args.header = true;
+
+        SRMatrix<Label> labelsFromFile;
+        SRMatrix<Feature> featuresFromFile;
+        std::shared_ptr<DataReader> reader = DataReader::factory(args);
+        reader->readData(labelsFromFile, featuresFromFile, args);
+
+        // Labels can be check by comparison
+        if (labelsFromPython != labelsFromFile)
+            return false;
+
+        // Due to differences in precision features needs manual check
+        if(featuresFromFile.cells() != featuresFromPython.cells()
+            || featuresFromFile.cols() != featuresFromPython.cols()
+            || featuresFromFile.rows() != featuresFromPython.rows())
+            return false;
+
+        for(int r = 0; r < featuresFromFile.rows(); ++r){
+            for(int c = 0; c < featuresFromFile.size(r); ++c){
+                if(featuresFromFile[r][c].index != featuresFromPython[r][c].index)
+                    return false;
+
+                if(std::fabs(featuresFromFile[r][c].value - featuresFromPython[r][c].value) > eps)
+                    return false;
+            }
+        }
+
+        return true;
     }
 
 private:
@@ -291,13 +338,16 @@ PYBIND11_MODULE(_napkinxc, n) {
 
     py::class_<CPPModel>(n, "CPPModel")
     .def(py::init<>())
-    .def("test_load", &CPPModel::testLoad)
     .def("set_args", &CPPModel::setArgs)
     .def("fit", &CPPModel::fit)
     .def("fit_from_file", &CPPModel::fitOnFile)
     .def("predict", &CPPModel::predict)
     .def("predict_for_file", &CPPModel::predictForFile)
     .def("predict_proba", &CPPModel::predictProba)
-    .def("predict_proba_for_file", &CPPModel::predictProbaForFile);
+    .def("predict_proba_for_file", &CPPModel::predictProbaForFile)
+    .def("test", &CPPModel::test)
+    .def("call_python_function", &CPPModel::callPythonFunction)
+    .def("call_python_object_method", &CPPModel::callPythonObjectMethod)
+    .def("test_data_load", &CPPModel::testDataLoad);
 
 }

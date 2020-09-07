@@ -290,6 +290,10 @@ public:
         return true;
     }
 
+    inline bool operator!=(const SRMatrix<T>& rm){
+        return !operator==(rm);
+    }
+
     // Returns rows' sizes
     inline std::vector<int>& allSizes() { return s; }
 

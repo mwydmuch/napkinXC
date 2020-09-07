@@ -38,6 +38,7 @@ enum ModelType {
     ubopHsm,
     oplt,
     extremeText,
+    mach,
     // Mips extension models
     brMips,
     ubopMips,
@@ -132,6 +133,10 @@ public:
 
     // extremeText
     size_t dims;
+
+    // MACH
+    int machHashes;
+    int machBuckets;
 
     // Tree models
 

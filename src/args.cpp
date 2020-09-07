@@ -129,6 +129,9 @@ Args::Args() {
     // Args for testPredictionTime command
     batchSizes = "100,1000,10000";
     batches = 10;
+
+    machHashes = 10;
+    machBuckets = 100;
 }
 
 // Parse args
@@ -185,6 +188,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     modelType = oplt;
                 else if (args.at(ai + 1) == "extremeText")
                     modelType = extremeText;
+                else if (args.at(ai + 1) == "mach")
+                    modelType = mach;
 // Mips extension models
 #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips")
@@ -361,6 +366,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     throw std::invalid_argument("Unknown tree type: " + args.at(ai + 1));
             } else if (args[ai] == "--onlineTreeAlpha")
                 onlineTreeAlpha = std::stof(args.at(ai + 1));
+
+            // MACH options
+            else if (args[ai] == "--machHashes")
+                machHashes = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--machBuckets")
+                machBuckets = std::stoi(args.at(ai + 1)) != 0;
 
             // OFO options
             else if (args[ai] == "--ofoType") {

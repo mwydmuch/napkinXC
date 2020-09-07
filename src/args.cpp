@@ -32,7 +32,6 @@
 #include "version.h"
 
 Args::Args() {
-    command = "";
     seed = time(nullptr);
     rngSeeder.seed(seed);
 
@@ -281,7 +280,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 else
                     throw std::invalid_argument("Unknown loss type: " + args.at(ai + 1));
             }
-            else if (args[ai] == "--solver") {
+            else if (args[ai] == "--solver" || args[ai] == "--liblinearSolver") {
                 solverName = args.at(ai + 1);
                 if (args.at(ai + 1) == "L2R_LR_DUAL")
                     solverType = L2R_LR_DUAL;
@@ -440,12 +439,13 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     // Warnings about arguments overrides while testing / predicting
 }
 
-void Args::printArgs() {
-    LOG(CERR) << "napkinXC " << VERSION
-              << "\n  Input: " << input << "\n    Data format: " << dataFormatName
-              << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm << ", hash size: " << hash << ", features threshold: " << featuresThreshold
-              << "\n  Model: " << output << "\n    Type: " << modelName;
-
+void Args::printArgs(std::string command) {
+    LOG(CERR) << "napkinXC " << VERSION;
+    if (!input.empty())
+        LOG(CERR) << "\n  Input: " << input << "\n    Data format: " << dataFormatName
+                  << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm
+                  << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
+    LOG(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
     if (ensemble > 1) LOG(CERR) << ", ensemble: " << ensemble;
 
     if (command == "train") {
@@ -471,7 +471,7 @@ void Args::printArgs() {
         }
     }
 
-    if (command == "test") {
+    if (command == "test" || command == "predict") {
         if(thresholds.empty()) LOG(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
         else LOG(CERR) << "\n  Thresholds: " << thresholds;
         if (modelType == ubopMips || modelType == brMips) {

@@ -34,7 +34,7 @@ Coming soon:
 
 ## Python quick start
 
-Python version of napkinXC can be easly installed from PyPy repository:
+Python version of napkinXC can be easily installed from PyPy repository:
 ```
 pip install napkinxc
 ```
@@ -105,7 +105,7 @@ Args:
     --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 1)
     --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
 
-    LIBLINEAR:              (more aobut LIBLINEAR: https://github.com/cjlin1/liblinear)
+    LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
     -s, --solver            LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
                             Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
                                                L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
@@ -133,7 +133,8 @@ Args:
 
     Prediction:
     --topK                  Predict top-k labels (default = 5)
-    --threshold             Predict labels with probability above the threshold, defaults to 0
+    --threshold             Predict labels with probability above the threshold (default = 0)
+    --thresholds            Path to a file with threshold for each label
     --setUtility            Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
                             Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
                             See: https://arxiv.org/abs/1906.08129

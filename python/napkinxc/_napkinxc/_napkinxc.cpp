@@ -301,7 +301,7 @@ private:
     }
 
     inline void fitHelper(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
-        args.printArgs();
+        args.printArgs("train");
         makeDir(args.output);
         args.saveToFile(joinPath(args.output, "args.bin"));
 
@@ -311,6 +311,7 @@ private:
     }
 
     inline std::vector<std::vector<std::pair<int, double>>> predictHelper(SRMatrix<Feature>& features, int topK, double threshold){
+        args.printArgs("test");
         if(model == nullptr)
             //throw std::runtime_error("Model does not exist!");
             model = Model::factory(args);

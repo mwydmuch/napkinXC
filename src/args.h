@@ -88,8 +88,14 @@ class Args : public FileHelper {
 public:
     Args();
 
-    std::string command;
+    inline int getSeed() { return rngSeeder(); };
+    void parseArgs(const std::vector<std::string>& args);
+    void printArgs(std::string command = "");
+
+    // Threading, memory and seed options
     int seed;
+    int threads;
+    unsigned long long memLimit; // TODO: Implement this for some models
 
     // Input/output options
     std::string input;
@@ -101,10 +107,6 @@ public:
     bool norm;
     int hash;
     double featuresThreshold;
-
-    // Threading and memory options
-    int threads;
-    unsigned long long memLimit; // TODO: Implement this for some models
 
     // Training options
     int solverType;
@@ -153,10 +155,6 @@ public:
     std::string thresholds;
     bool ensMissingScores;
 
-    inline int getSeed() { return rngSeeder(); };
-    void parseArgs(const std::vector<std::string>& args);
-    void printArgs();
-
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
@@ -174,7 +172,6 @@ public:
     double beta;
     double delta;
     double gamma;
-
 
     // Measures for test command
     std::string measures;

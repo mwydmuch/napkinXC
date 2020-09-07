@@ -5,18 +5,18 @@
 **/cmake_install.cmake
 **/Makefile
 
-#
+# Python
 /dist
 /build
-/python/pybind11
+/pybind11
 /src/version.h
 /src/nmslib
 nxc
 
 # Experiments
-data
-models*
-results*
+/data
+/models*
+/results*
 
 # Misc
 .idea

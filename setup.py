@@ -36,8 +36,8 @@ setup(
     author="Marek Wydmuch",
     author_email="mwydmuch@cs.put.poznan.pl",
     description="napkinXC is an extremely simple and fast library for extreme multi-class and multi-label classification.",
-    long_description_content_type="text/markdown",
     long_description=get_long_description(),
+    long_description_content_type="text/markdown",
     url="https://github.com/mwydmuch/napkinXC",
     keywords=['machine learning', 'extreme classification', 'multi-class classification', 'multi-label classification', 'classification'],
     classifiers=[
@@ -56,12 +56,11 @@ setup(
     ],
     license="MIT License",
     platforms=["Linux", "MacOS"],
+    install_requires=['numpy', 'scipy', 'sklearn'],
     src_dir="python",
     packages=['napkinxc'],
-    #package_dir={'napkinxc': 'dist/napkinxc'},
-    #package_data={'napkinxc': ['*.py', '*.so', '*.pyd']},
-    #ext_module_dirs=['python'],
     ext_module_hint=r"pybind11_add_module",
     configure_opts=['-DPYTHON=ON', '-DEXE=OFF'],
+    include_package_data=True,
     #parallel=max(cpu_count(), 1) # Unknown distribution option: 'parallel'
 )

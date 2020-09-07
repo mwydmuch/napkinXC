@@ -1,12 +1,29 @@
-/**
- * Copyright (c) 2018-2020 by Marek Wydmuch,
- * All rights reserved.
+/*
+ Copyright (c) 2018-2020 by Marek Wydmuch
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
-/**
- * This is main file for napkinXC command line tool,
- * it should contain all commands implementations.
- * Only this file and printInfo methods can use std:cout.
+/*
+ This is main file for napkinXC command line tool,
+ it should contain all commands implementations.
+ Only this file should use std:cout.
  */
 
 #include <iomanip>
@@ -14,11 +31,13 @@
 
 #include "args.h"
 #include "data_reader.h"
+#include "log.h"
 #include "measure.h"
 #include "misc.h"
 #include "model.h"
 #include "resources.h"
 #include "types.h"
+#include "version.h"
 
 
 // TODO: refactor this as load/save vector
@@ -33,7 +52,7 @@ std::vector<double> loadThresholds(std::string infile){
 void saveThresholds(std::vector<double>& thresholds, std::string outfile){
     std::ofstream out(outfile);
     for(auto t : thresholds)
-        out << t << std::endl;
+        out << t << "\n";
     out.close();
 }
 
@@ -49,7 +68,7 @@ void train(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->readData(labels, features, args);
     reader->saveToFile(joinPath(args.output, "data_reader.bin"));
-    std::cout << "Train data statistics:"
+    LOG(COUT) << "Train data statistics:"
               << "\n  Train data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
               << "\n  Uniq labels: " << labels.cols()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
@@ -70,7 +89,7 @@ void train(Args& args) {
                                             .count()) /
                     1000;
     auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
-    std::cout << "Resources during training:"
+    LOG(COUT) << "Resources during training:"
               << "\n  Train real time (s): " << realTime << "\n  Train CPU time (s): " << cpuTime
               << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
@@ -90,7 +109,7 @@ void test(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
-    std::cout << "Test data statistics:"
+    LOG(COUT) << "Test data statistics:"
               << "\n  Test data points: " << features.rows()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
               << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
@@ -119,11 +138,11 @@ void test(Args& args) {
     for (auto& m : measures) m->accumulate(labels, predictions);
 
     // Print results
-    std::cout << std::setprecision(5) << "Results:\n";
+    LOG(COUT) << std::setprecision(5) << "Results:\n";
     for (auto& m : measures){
-        std::cout << "  " << m->getName() << ": " << m->value();
-        //if(m->isMeanMeasure()) std::cout << " ± " << m->stdDev(); // Print std
-        std::cout << std::endl;
+        LOG(COUT) << "  " << m->getName() << ": " << m->value();
+        //if(m->isMeanMeasure()) LOG(COUT) << " ± " << m->stdDev(); // Print std
+        LOG(COUT) << "\n";
     }
     model->printInfo();
 
@@ -136,7 +155,7 @@ void test(Args& args) {
                                             .count()) / 1000;
     auto loadCpuTime = resAfterModel.cpuTime - resAfterData.cpuTime;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
-    std::cout << "Resources during test:"
+    LOG(COUT) << "Resources during test:"
               << "\n  Loading real time (s): " << loadRealTime
               << "\n  Loading CPU time (s): " << loadCpuTime
               << "\n  Test real time (s): " << realTime << "\n  Test CPU time (s): " << cpuTime
@@ -163,7 +182,7 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    std::cout << std::setprecision(5);
+    LOG(COUT) << std::setprecision(5);
 
     // Predict data from cin and output to cout
     if (args.input == "-") {
@@ -191,8 +210,8 @@ void predict(Args& args) {
                 predictions = model->predictBatch(features, args);
 
             for (const auto &p : predictions) {
-                for (const auto &l : p) std::cout << l.label << ":" << l.value << " ";
-                std::cout << std::endl;
+                for (const auto &l : p) LOG(COUT) << l.label << ":" << l.value << " ";
+                LOG(COUT) << "\n";
             }
         } else { // For 1 thread predict and immediately save to file
             for(int r = 0; r < features.rows(); ++r){
@@ -204,8 +223,8 @@ void predict(Args& args) {
                 else
                     model->predict(prediction, features[r], args);
 
-                for (const auto &l : prediction) std::cout << l.label << ":" << l.value << " ";
-                std::cout << std::endl;
+                for (const auto &l : prediction) LOG(COUT) << l.label << ":" << l.value << " ";
+                LOG(COUT) << "\n";
             }
         }
     }
@@ -241,7 +260,7 @@ void ofo(Args& args) {
             .count()) /
                     1000;
     auto cpuTime = resAfterFo.cpuTime - resAfterData.cpuTime;
-    std::cout << "Resources during F-measure optimization:"
+    LOG(COUT) << "Resources during F-measure optimization:"
               << "\n  Optimization real time (s): " << realTime
               << "\n  Optimization CPU time (s): " << cpuTime << "\n";
 }
@@ -274,7 +293,7 @@ void testPredictionTime(Args& args) {
     std::default_random_engine rng(args.seed);
     std::uniform_int_distribution<int> dist(0, features.rows() - 1);
 
-    std::cout << "Results:";
+    LOG(COUT) << "Results:";
     for(const auto& batchSize : batchSizes) {
         long double time = 0;
         long double timeSq = 0;
@@ -310,32 +329,145 @@ void testPredictionTime(Args& args) {
 
         long double meanTime = time / args.batches;
         long double meanTimePerPoint = timePerPoint / args.batches;
-        std::cout << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
+        LOG(COUT) << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
                   << "\n  Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
                   << "\n  Batch " << batchSize << " test CPU time / data points (ms): " << meanTimePerPoint
                   << "\n  Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint);
 
     }
-    std::cout << "\n";
+    LOG(COUT) << "\n";
+}
+
+void printHelp() {
+    std::cout << R"HELP(Usage: nxc [command] [args ...]
+
+Commands:
+    train               Train model on given input data
+    test                Test model on given input data
+    predict             Predict for given data
+    ofo
+    version
+    help
+
+Args:
+    General:
+    -i, --input         Input dataset
+    -o, --output        Output (model) dir
+    -m, --model         Model type (default = plt):
+                        Models: ovr, br, hsm, plt, oplt, ubop, ubopHsm, brMips, ubopMips
+    --ensemble          Ensemble of models (default = 0)
+    -d, --dataFormat    Type of data format (default = libsvm):
+                        Supported data formats: libsvm
+    -t, --threads       Number of threads used for training and testing (default = 0)
+                        Note: -1 to use system #cpus - 1, 0 to use system #cpus
+    --memLimit          Amount of memory in GB used for training OVR and BR models (default = 0)
+                        Note: 0 to use system memory
+    --header            Input contains header (default = 1)
+                        Header format for libsvm: #lines #features #labels
+    --hash              Size of features space (default = 0)
+                        Note: 0 to disable hashing
+    --featuresThreshold Prune features belowe given threshold (default = 0.0)
+    --seed              Seed
+
+    Base classifiers:
+    --optimizer         Use LibLiner or online optimizers (default = libliner)
+                        Optimizers: liblinear, sgd, adagrad, fobos
+    --bias              Add bias term (default = 1)
+    --weightsThreshold  Prune weights below given threshold (default = 0.1)
+    --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 0)
+
+    LibLinear:
+    -s, --solver        LibLinear solver (default = L2R_LR_DUAL)
+                        Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
+                                           L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+                        See: https://github.com/cjlin1/liblinear
+    -c, -C, --cost      Inverse of regularization strength. Must be a positive float.
+                        Smaller values specify stronger regularization. (default = 10.0)
+                        Note: -1 to automatically find best value for each node.
+    -e, --eps           Stopping criteria (default = 0.1)
+                        See: https://github.com/cjlin1/liblinear
+
+    SGD/AdaGrad:
+    -l, --lr, --eta     Step size (learning rate) of SGD/AdaGrad (default = 1.0)
+    --epochs            Number of epochs of SGD/AdaGrad (default = 5)
+    --adagradEps        AdaGrad epsilon (default = 0.001)
+
+    Tree:
+    -a, --arity         Arity of a tree (default = 2)
+    --maxLeaves         Maximum number of leaves (labels) in one internal node.
+                        Supported by k-means and balanced trees. (default = 100)
+    --tree              File with tree structure
+    --treeType          Type of a tree to build if file with structure is not provided
+                        Tree types: hierarchicalKmeans, huffman, completeInOrder, completeRandom,
+                                    balancedInOrder, balancedRandom, onlineComplete, onlineBalanced,
+                                    onlineRandom
+
+    K-means tree:
+    --kmeansEps         Stopping criteria for K-Means clustering (default = 0.001)
+    --kmeansBalanced    Use balanced K-Means clustering (default = 1)
+
+    Prediction:
+    --topK              Predict top k elements (default = 5)
+    --threshold         Probability threshold (default = 0)
+    --setUtility        Type of set-utility function for prediction using ubop, ubopHsm, ubopMips models.
+                        Set-utility functions: uP, uF1, uAlpha, uAlphaBeta, uDeltaGamma
+                        See: https://arxiv.org/abs/1906.08129
+
+    Set-Utility:
+    --alpha
+    --beta
+    --delta
+    --gamma
+
+    Test:
+    --measures          Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")
+                        Measures: acc (accuracy), p (precision), r (recall), c (coverage),
+                                  p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
+
+    )HELP";
 }
 
 int main(int argc, char** argv) {
-    std::vector<std::string> arg(argv, argv + argc);
+    logLevel = CERR;
+
+    if(argc == 1) {
+        std::cout << "No command provided \n";
+        printHelp();
+        exit(EXIT_FAILURE);
+    }
+
+    std::string command(argv[1]);
+    std::vector<std::string> arg(argv + 2, argv + argc);
     Args args = Args();
 
     // Parse args
-    args.parseArgs(arg);
+    try {
+        args.parseArgs(arg);
+    } catch (std::invalid_argument& e) {
+        std::cout << e.what() << "\n";
+        printHelp();
+        exit(EXIT_FAILURE);
+    }
 
-    if (args.command == "train")
+    if (command == "-h" || command == "--help" || command == "help")
+        printHelp();
+    else if (command == "-v" || command == "--version" || command == "version")
+        std::cout << "napkinXC " << VERSION << "\n";
+    else if (command == "train")
         train(args);
-    else if (args.command == "test")
+    else if (command == "test")
         test(args);
-    else if (args.command == "predict")
+    else if (command == "predict")
         predict(args);
-    else if (args.command == "ofo")
+    else if (command == "ofo")
         ofo(args);
-    else if (args.command == "testPredictionTime")
+    else if (command == "testPredictionTime")
         testPredictionTime(args);
+    else {
+        std::cout << "Unknown command type: " << command << "\n";
+        printHelp();
+        exit(EXIT_FAILURE);
+    }
 
-    return 0;
+    return EXIT_SUCCESS;
 }

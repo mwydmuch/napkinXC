@@ -1,6 +1,23 @@
-/**
- * Copyright (c) 2018 by Marek Wydmuch
- * All rights reserved.
+/*
+ Copyright (c) 2018-2020 by Marek Wydmuch
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
 #pragma once
@@ -13,8 +30,10 @@
 #include <vector>
 #include <queue>
 
+#include "log.h"
 #include "linear.h"
 #include "robin_hood.h"
+
 
 typedef float Weight;
 typedef std::pair<int, Weight> SparseWeight;
@@ -52,6 +71,7 @@ struct Prediction {
         return os;
     }
 };
+
 
 template <typename T> class TopKQueue{
 public:
@@ -125,8 +145,8 @@ public:
     inline unsigned long long mem() { return s * sizeof(T); }
 
     inline void print(){
-        for(int i = 0; i < s; ++i) std::cout << d[i] << " ";
-        std::cout << "\n";
+        for(int i = 0; i < s; ++i) LOG(COUT) << d[i] << " ";
+        LOG(COUT) << "\n";
     }
 
     void save(std::ostream& out) const;
@@ -255,6 +275,25 @@ public:
     inline T* operator[](const int index) { return r[index]; }
     inline const T* operator[](const int index) const { return r[index]; }
 
+    // Compare matrices with == operator
+    inline bool operator==(const SRMatrix<T>& rm){
+        if(m != rm.m || n != rm.n || c != rm.c)
+            return false;
+
+        for(int i = 0; i < m; ++i){
+            if(s[i] != rm.s[i])
+                return false;
+            //else if(std::equal(r[i], r[i] + s[i], rm.r[i]))
+            else if(memcmp (r[i], rm.r[i], sizeof(T) * s[i]))
+                return false;
+        }
+        return true;
+    }
+
+    inline bool operator!=(const SRMatrix<T>& rm){
+        return !operator==(rm);
+    }
+
     // Returns rows' sizes
     inline std::vector<int>& allSizes() { return s; }
 
@@ -273,6 +312,8 @@ public:
     void dump(std::string outfile);
     void save(std::ostream& out);
     void load(std::istream& in);
+
+
 
 private:
     int m;              // Row count

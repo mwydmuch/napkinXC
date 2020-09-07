@@ -1,8 +1,12 @@
-/**
+/*
+ * ThreadPool:
  * Copyright (c) 2012 by Jakob Progsch, Vaclav Zeman
  * All rights reserved.
  * https://github.com/progschj/ThreadPool
- * Modified by Marek Wydmuch
+ *
+ * ThreadSet:
+ * Copyright (c) 2018 by Marek Wydmuch
+ * All rights reserved.
  */
 
 #pragma once

@@ -1,6 +1,23 @@
-/**
- * Copyright (c) 2019-2020 by Marek Wydmuch, Kalina Jasinska-Kobus
- * All rights reserved.
+/*
+ Copyright (c) 2019-2020 by Marek Wydmuch, Kalina Jasinska-Kobus
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
 #include <fstream>
@@ -9,6 +26,7 @@
 #include <string>
 
 #include "ensemble.h"
+#include "log.h"
 #include "measure.h"
 #include "model.h"
 #include "threads.h"
@@ -60,7 +78,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
     return model;
 }
 
-Model::Model() {}
+Model::Model():loaded(false), m(0) {}
 
 Model::~Model() {}
 
@@ -82,7 +100,7 @@ void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vect
 }
 
 std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& features, Args& args) {
-    std::cerr << "Starting prediction in " << args.threads << " threads ...\n";
+    LOG(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
 
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
@@ -118,7 +136,7 @@ void Model::predictBatchWithThresholdsThread(int threadId, Model* model, std::ve
 }
 
 std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args) {
-    std::cerr << "Starting prediction in " << args.threads << " threads ...\n";
+    LOG(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
 
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
@@ -138,7 +156,7 @@ double Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Arg
     double a = args.ofoA;
     double b = args.ofoB;
 
-    std::cerr << "Optimizing Micro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
+    LOG(CERR) << "Optimizing Micro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
 
     const int examples = features.rows() * args.epochs;
     for (int i = 0; i < examples; ++i) {
@@ -171,7 +189,7 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     std::vector<double> bs(m, args.ofoB);
     thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
 
-    std::cerr << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads
+    LOG(CERR) << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads
               << " threads ...\n";
 
     // Set initial thresholds
@@ -245,7 +263,7 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
         args.epochs = 1;
         double microThr = microOfo(features, labels, args);
 
-        std::cerr << "Mixing thresholds for top " << args.ofoTopLabels << " labels ...\n";
+        LOG(CERR) << "Mixing thresholds for top " << args.ofoTopLabels << " labels ...\n";
         std::vector<Prediction> priors = computeLabelsPriors(labels);
         std::sort(priors.rbegin(), priors.rend());
 
@@ -302,8 +320,8 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
     if (instancesWeights != nullptr) assert(baseLabels.size() == instancesWeights->size());
 
     size_t size = baseLabels.size(); // This "batch" size
-    std::cerr << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
-    std::cerr << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << std::endl;
+    LOG(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
+    LOG(CERR) << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << "\n";
 
     // Run learning in parallel
     if(args.threads > 1) {
@@ -362,7 +380,7 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
                                        std::vector<double>* instancesWeights, Args& args) {
 
     int size = baseLabels.size(); // This "batch" size
-    std::cerr << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
+    LOG(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
 
     // Run learning in parallel
     if(args.threads > 1) {
@@ -398,7 +416,7 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
 }
 
 std::vector<Base*> Model::loadBases(std::string infile) {
-    std::cerr << "Loading base estimators ...\n";
+    LOG(CERR) << "Loading base estimators ...\n";
 
     double nonZeroSum = 0;
     unsigned long long memSize = 0;
@@ -420,9 +438,9 @@ std::vector<Base*> Model::loadBases(std::string infile) {
     }
     in.close();
 
-    std::cerr << "  Loaded bases: " << size
+    LOG(CERR) << "  Loaded bases: " << size
               << "\n  Bases size: " << formatMem(memSize) << "\n  Non zero weights / bases: " << nonZeroSum / size
-              << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << std::endl;
+              << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << "\n";
 
     return bases;
 }

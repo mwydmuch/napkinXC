@@ -3,6 +3,9 @@
 set -e
 set -o pipefail
 
+SCRIPT_DIR=$( dirname "${BASH_SOURCE[0]}" )
+ROOT_DIR=${SCRIPT_DIR}/..
+
 DATASET_NAME=$1
 MODEL_DIR=models
 RESULTS_DIR=results
@@ -33,11 +36,6 @@ MODEL=${MODEL_DIR}/${TRAIN_CONFIG}
 DATASET_DIR=data/${DATASET_NAME}
 DATASET_FILE=${DATASET_DIR}/${DATASET_NAME}
 
-# Download dataset
-if [[ ! -e $DATASET_DIR ]]; then
-    bash scripts/get_data.sh $DATASET_NAME
-fi
-
 # Find train / test file
 if [[ -e "${DATASET_FILE}_train.txt" ]]; then
     TRAIN_FILE="${DATASET_FILE}_train.txt"
@@ -49,20 +47,13 @@ elif [[ -e "${DATASET_FILE}.train" ]]; then
     TEST_FILE="${DATASET_FILE}.test"
 fi
 
-# Build nxc
-if [[ ! -e nxc ]]; then
-    rm -f CMakeCache.txt
-    cmake -DCMAKE_BUILD_TYPE=Release .
-    make -j
-fi
-
 # Train model
 TRAIN_RESULT_FILE=${MODEL}/train_results
 TRAIN_LOCK_FILE=${MODEL}/.train_lock
 if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
     mkdir -p $MODEL
     touch $TRAIN_LOCK_FILE
-    (time ./nxc train $TRAIN_ARGS -i $TRAIN_FILE -o $MODEL | tee $TRAIN_RESULT_FILE)
+    (time ../nxc train $TRAIN_ARGS -i $TRAIN_FILE -o $MODEL | tee $TRAIN_RESULT_FILE)
     echo
     echo "Train date: $(date)" | tee -a $TRAIN_RESULT_FILE
     rm $TRAIN_LOCK_FILE
@@ -74,7 +65,7 @@ OFO_RESULT_FILE=${MODEL}/ofo_results_${OFO_CONFIG}
 OFO_LOCK_FILE=${MODEL}/.ofo_lock_${OFO_CONFIG}
 if [[ ! -e $THRESHOLDS_FILE ]] || [[ -e $OFO_LOCK_FILE ]]; then
     touch $OFO_LOCK_FILE
-    (time ./nxc ofo $OFO_ARGS -i $VALID_FILE -o $MODEL --thresholds $THRESHOLDS_FILE | tee -a $OFO_RESULT_FILE)
+    (time ../nxc ofo $OFO_ARGS -i $VALID_FILE -o $MODEL --thresholds $THRESHOLDS_FILE | tee -a $OFO_RESULT_FILE)
     rm $OFO_LOCK_FILE
 fi
 
@@ -92,8 +83,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         cat $OFO_RESULT_FILE > $TEST_RESULT_FILE
     fi
 
-    #(time ./nxc test $TEST_ARGS -i $VALID_FILE -o $MODEL --thresholds $THRESHOLDS_FILE --measures p@1,hl,microf1,macrof1,samplef1,s | tee -a $TEST_RESULT_FILE)
-    (time ./nxc test $TEST_ARGS -i $TEST_FILE -o $MODEL --thresholds $THRESHOLDS_FILE --measures p@1,hl,microf1,macrof1,samplef1,s | tee -a $TEST_RESULT_FILE)
+    (time ../nxc test $TEST_ARGS -i $TEST_FILE -o $MODEL --thresholds $THRESHOLDS_FILE  | tee -a $TEST_RESULT_FILE)
 
     echo
     echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TEST_RESULT_FILE

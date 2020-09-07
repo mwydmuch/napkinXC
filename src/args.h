@@ -1,6 +1,23 @@
-/**
- * Copyright (c) 2018-2020 by Marek Wydmuch
- * All rights reserved.
+/*
+ Copyright (c) 2018-2020 by Marek Wydmuch
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
  */
 
 #pragma once
@@ -27,20 +44,20 @@ enum ModelType {
 };
 
 enum TreeType {
-    hierarchicalKMeans,
+    hierarchicalKmeans,
     huffman,
     completeInOrder,
     completeRandom,
     balancedInOrder,
     balancedRandom,
-    onlineKAryComplete,
-    onlineKAryRandom,
+    onlineKaryComplete,
+    onlineKaryRandom,
     onlineRandom,
     onlineBestScore,
     custom // custom tree has to be the last one
 };
 
-enum OptimizerType { liblinear, sgd, adagrad, fobos };
+enum OptimizerType { liblinear, sgd, adagrad };
 
 enum DataFormatType { libsvm, vw };
 
@@ -54,6 +71,11 @@ enum SetUtilityType {
     uDeltaGamma,
     uAlpha,
     uAlphaBeta
+};
+
+enum LossType {
+    logistic,
+    squaredHinge,
 };
 
 enum OFOType {
@@ -75,8 +97,7 @@ public:
     DataFormatType dataFormatType;
     ModelType modelType;
     bool header;
-    bool bias;
-    double biasValue;
+    double bias;
     bool norm;
     int hash;
     double featuresThreshold;
@@ -88,6 +109,7 @@ public:
     // Training options
     int solverType;
     OptimizerType optimizerType;
+    LossType lossType;
     double eps;
     double cost;
     int maxIter;
@@ -103,7 +125,6 @@ public:
     double eta;
     int epochs;
     double l2Penalty;
-    double fobosPenalty;
     int tmax;
     double adagradEps;
 
@@ -119,9 +140,9 @@ public:
     int maxLeaves;
 
     // K-Means tree options
-    double kMeansEps;
-    bool kMeansBalanced;
-    bool kMeansWeightedFeatures;
+    double kmeansEps;
+    bool kmeansBalanced;
+    bool kmeansWeightedFeatures;
 
     // Online tree options
     double onlineTreeAlpha;
@@ -135,7 +156,6 @@ public:
     inline int getSeed() { return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args);
     void printArgs();
-    void printHelp();
 
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
@@ -174,6 +194,7 @@ private:
     std::default_random_engine rngSeeder;
 
     std::string solverName;
+    std::string lossName;
     std::string treeTypeName;
     std::string optimizerName;
     std::string modelName;

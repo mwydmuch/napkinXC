@@ -21,11 +21,11 @@ public:
     int hash(int value) { return a * value % b; };
 };
 
-// Probabilistic Label Graph
-class PLG : public Model {
+// Merged-Averaged Classifiers via Hashing
+class MACH : public Model {
 public:
-    PLG();
-    ~PLG() override;
+    MACH();
+    ~MACH() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
@@ -33,7 +33,7 @@ public:
 
     void load(Args& args, std::string infile) override;
     inline int baseForLabel(int label, int hash) {
-        return (hash * layerSize) + (hashes[hash].hash(label) % layerSize);
+        return (hash * bucketCount) + (hashes[hash].hash(label) % bucketCount);
     }
 
     static bool isPrime(int number);
@@ -42,7 +42,7 @@ public:
 protected:
     std::vector<Base*> bases;
 
-    int layerSize;
-    std::vector<UniversalHash> hashes;
+    int bucketCount; // B
+    std::vector<UniversalHash> hashes; // of size R
     std::vector<std::vector<int>> baseToLabels;
 };

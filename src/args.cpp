@@ -131,8 +131,8 @@ Args::Args() {
     batchSizes = "100,1000,10000";
     batches = 10;
 
-    plgLayerSize = 100;
-    plgLayers = 10;
+    machHashes = 10;
+    machBuckets = 100;
 }
 
 // Parse args
@@ -189,8 +189,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     modelType = oplt;
                 else if (args.at(ai + 1) == "extremeText")
                     modelType = extremeText;
-                else if (args.at(ai + 1) == "plg")
-                    modelType = plg;
+                else if (args.at(ai + 1) == "mach")
+                    modelType = mach;
 // Mips extension models
 #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips")
@@ -368,6 +368,12 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             } else if (args[ai] == "--onlineTreeAlpha")
                 onlineTreeAlpha = std::stof(args.at(ai + 1));
 
+            // MACH options
+            else if (args[ai] == "--machHashes")
+                machHashes = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--machBuckets")
+                machBuckets = std::stoi(args.at(ai + 1)) != 0;
+
             // OFO options
             else if (args[ai] == "--ofoType") {
                 ofoTypeName = args.at(ai + 1);
@@ -385,12 +391,6 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 ofoA = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--ofoB")
                 ofoB = std::stoi(args.at(ai + 1));
-
-            // PLG options
-            else if (args[ai] == "--plgLayerSize")
-                plgLayerSize = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--plgLayers")
-                plgLayers = std::stoi(args.at(ai + 1)) != 0;
 
             // Prediction/test options
             else if (args[ai] == "--topK")

@@ -38,7 +38,7 @@ enum ModelType {
     ubopHsm,
     oplt,
     extremeText,
-    plg,
+    mach,
     // Mips extension models
     brMips,
     ubopMips,
@@ -132,6 +132,10 @@ public:
     // extremeText
     size_t dims;
 
+    // MACH
+    int machHashes;
+    int machBuckets;
+
     // Tree models
 
     // Tree options
@@ -190,10 +194,6 @@ public:
     // Args for testPredictionTime command
     std::string batchSizes;
     int batches;
-
-    // PLG
-    int plgLayerSize;
-    int plgLayers;
 
 private:
     std::default_random_engine rngSeeder;

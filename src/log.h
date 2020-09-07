@@ -32,7 +32,8 @@
 enum LogLevel {
     NONE,
     COUT,
-    CERR
+    CERR,
+    CERR_DEBUG,
 };
 
 // Log config
@@ -60,6 +61,7 @@ public:
                 case NONE: break;
                 case COUT: std::cout << msg; opened = true; break;
                 case CERR: std::cerr << msg; opened = true; break;
+                case CERR_DEBUG: std::cerr << msg; opened = true; break;
             }
         }
         return *this;
@@ -80,6 +82,7 @@ private:
             case NONE: break;
             case COUT: label = "COUT"; break;
             case CERR: label = "CERR"; break;
+            case CERR_DEBUG: label = "DEBUG"; break;
         }
         return label;
     }

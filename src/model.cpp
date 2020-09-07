@@ -50,7 +50,7 @@
 std::shared_ptr<Model> Model::factory(Args& args) {
     std::shared_ptr<Model> model = nullptr;
 
-    if (args.ensemble > 0) {
+    if (args.ensemble > 1) {
         switch (args.modelType) {
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<HSM>>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<Ensemble<BatchPLT>>()); break;

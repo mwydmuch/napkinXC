@@ -32,7 +32,7 @@ class Model():
     def __init__(self, **params):
         self._model = CPPModel() # In the feature more CPP classes may be available
         self._params = {}
-        self.set_params(**self._params)
+        self.set_params(**params)
 
     def fit(self, X, Y):
         """
@@ -175,7 +175,7 @@ class PLT(Model):
                  output,
 
                  # Tree params
-                 tree_type='k-means',
+                 tree_type='hierarchicalKmeans',
                  arity=2,
                  max_leaves=100,
                  kmeans_eps=0.0001,
@@ -208,7 +208,7 @@ class PLT(Model):
         Initialize Probabilistic Labels Trees
         :param output: directory where the model will be stored
         :type output: str
-        :param tree_type: tree type to construct {'hierachicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierachicalKmeans'
+        :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
         :type tree_type: str
         :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int
@@ -266,7 +266,7 @@ class HSM(Model):
                  output,
 
                  # Tree params
-                 tree_type='k-means',
+                 tree_type='hierarchicalKmeans',
                  arity=2,
                  max_leaves=100,
                  kmeans_eps=0.0001,
@@ -299,7 +299,7 @@ class HSM(Model):
         Initialize Hierarchical Softmax
         :param output: directory where the model will be stored
         :type output: str
-        :param tree_type: tree type to construct {'hierachicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierachicalKmeans'
+        :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
         :type tree_type: str
         :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int

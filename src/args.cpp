@@ -134,7 +134,11 @@ Args::Args() {
 
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
+    LOG(CERR_DEBUG) << "Parsing args...\n";
+
     for (int ai = 0; ai < args.size(); ai += 2) {
+        LOG(CERR_DEBUG) << "  " << args[ai] << " " << args[ai + 1] << "\n";
+
         if (args[ai][0] != '-')
             throw std::invalid_argument("Provided argument without a dash: " + args[ai]);
 

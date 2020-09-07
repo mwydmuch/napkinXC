@@ -195,4 +195,5 @@ template <typename T> void Ensemble<T>::printInfo() {}
 
 template <typename T> void Ensemble<T>::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args){
     LOG(CERR) << "  Threshold prediction is not available for ensemble";
+    // TODO
 }

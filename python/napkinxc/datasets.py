@@ -236,7 +236,7 @@ class GoogleDriveDownloader:
 
         if not path.exists(dest_path) or overwrite:
             if verbose:
-                print('Downloading {} into {}... '.format(url, dest_path))
+                print('Downloading {} into {} ... '.format(url, dest_path))
 
             session = requests.Session()
             response = session.get(GoogleDriveDownloader.DOWNLOAD_URL, params={'id': file_id}, stream=True)
@@ -250,7 +250,7 @@ class GoogleDriveDownloader:
             if unzip:
                 try:
                     if verbose:
-                        print('Unzipping...')
+                        print('Unzipping ...')
 
                     with zipfile.ZipFile(dest_path, 'r') as z:
                         z.extractall(destination_directory)

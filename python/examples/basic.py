@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
+from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
 from napkinxc.measures import precision_at_k
-from napkinxc.datasets import load_dataset
 
 # Use load_dataset function to load one of the benchmark datasets
 # from XML Repository (http://manikvarma.org/downloads/XC/XMLRepository.html)

@@ -14,7 +14,7 @@ set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Building options
 option(EXE "Build executable" ON)
-option(PYTHON "Build Python binding" ON)
+option(PYTHON "Build Python binding" OFF)
 option(MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -85,6 +85,19 @@ if (MIPS_EXT)
 endif ()
 
 if (PYTHON)
+    # Set default install path to be dist so CMake by default installs to the same dist directory location as setuptools:
+    if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+        set (CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/dist" CACHE PATH "default install path" FORCE )
+    endif()
+
+    # Get pybind11
+    git_clone(PROJECT_NAME pybind11
+            GIT_URL https://github.com/pybind/pybind11.git
+            GIT_BRANCH master
+            #GIT_TAG v2.5.0
+            DIRECTORY ${ROOT_DIR})
+
+    add_subdirectory("pybind11")
     add_subdirectory(python)
 endif ()
 
@@ -96,6 +109,11 @@ if (EXE)
     set_target_properties(nxc
         PROPERTIES
         OUTPUT_NAME nxc
+#        RUNTIME_OUTPUT_DIRECTORY ${ROOT_DIR}
+#        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${ROOT_DIR}
+#        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ROOT_DIR}
+#        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${ROOT_DIR}
+#        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${ROOT_DIR}
         PROJECT_LABEL "napkinXC")
 
     if(NOT ${DEPENDENCIES} STREQUAL "")

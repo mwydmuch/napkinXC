@@ -75,7 +75,7 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     LOG(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 }
 
-std::vector<std::vector<std::pair<int, int>>> PLT::assignDataPoints(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+std::vector<std::vector<std::pair<int, int>>> PLT::assignDataPoints(SRMatrix<Label>& labels){
     std::vector<std::vector<std::pair<int, int>>> nodesDataPoints;
 
     // Positive and negative nodes
@@ -83,7 +83,7 @@ std::vector<std::vector<std::pair<int, int>>> PLT::assignDataPoints(SRMatrix<Lab
     UnorderedSet<TreeNode*> nNegative;
 
     // Gather examples for each node
-    int rows = features.rows();
+    int rows = labels.rows();
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 

@@ -45,7 +45,7 @@ public:
     void printInfo() override;
 
     // For Python PLT Framework
-    std::vector<std::vector<std::pair<int, int>>> assignDataPoints(SRMatrix<Label>& labels, SRMatrix<Feature>& features);
+    std::vector<std::vector<std::pair<int, int>>> assignDataPoints(SRMatrix<Label>& labels);
 
 protected:
     Tree* tree;

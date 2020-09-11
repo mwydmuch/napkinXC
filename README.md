@@ -39,11 +39,16 @@ Python version of napkinXC can be easily installed from PyPy repository:
 pip install napkinxc
 ```
 
+or directly from the GitHub repository:
+```
+pip install pip install git+https://github.com/mwydmuch/napkinXC.git
+```
+
 Minimal example of usage:
 ```
+from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
 from napkinxc.measures import precision_at_k
-from napkinxc.datasets import load_dataset
 
 X_train, Y_train = load_dataset("eurlex-4k", "train")
 X_test, Y_test = load_dataset("eurlex-4k", "test")
@@ -84,7 +89,7 @@ Args:
     -i, --input             Input dataset
     -o, --output            Output (model) dir
     -m, --model             Model type (default = plt):
-                            Models: ovr, br, hsm, plt, oplt, ubop, ubopHsm, brMips, ubopMips
+                            Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
     -d, --dataFormat        Type of data format (default = libsvm),
                             Supported data formats: libsvm
@@ -106,7 +111,7 @@ Args:
     --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
 
     LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
-    -s, --solver            LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
+    -s, --liblinearSolver   LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
                             Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
                                                L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
     -c, --liblinearC        LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
@@ -127,7 +132,7 @@ Args:
                                         balancedInOrder, balancedRandom, onlineComplete
 
     K-Means tree:
-    --kmeansEps             Tolerance of termination criterion of the k-means clustering 
+    --kmeansEps             Tolerance of termination criterion of the k-means clustering
                             used in hierarchical k-means tree building procedure (default = 0.001)
     --kmeansBalanced        Use balanced K-Means clustering (default = 1)
 
@@ -135,12 +140,12 @@ Args:
     --topK                  Predict top-k labels (default = 5)
     --threshold             Predict labels with probability above the threshold (default = 0)
     --thresholds            Path to a file with threshold for each label
-    --setUtility            Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
+    --setUtility            Type of set-utility function for prediction using svbopFull, svbopHf, svbopMips models.
                             Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
                             See: https://arxiv.org/abs/1906.08129
 
     Set-Utility:
-    --alfa
+    --alpha
     --beta
     --delta
     --gamma

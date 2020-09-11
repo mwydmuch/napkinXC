@@ -34,14 +34,14 @@ enum ModelType {
     br,
     hsm,
     plt,
-    ubop,
-    ubopHsm,
+    svbopFull,
+    svbopHf,
     oplt,
     extremeText,
     mach,
     // Mips extension models
     brMips,
-    ubopMips,
+    svbopMips,
 };
 
 enum TreeType {
@@ -131,13 +131,6 @@ public:
     int tmax;
     double adagradEps;
 
-    // extremeText
-    size_t dims;
-
-    // MACH
-    int machHashes;
-    int machBuckets;
-
     // Tree models
 
     // Tree options
@@ -153,6 +146,13 @@ public:
 
     // Online tree options
     double onlineTreeAlpha;
+
+    // extremeText options
+    size_t dims;
+
+    // MACH options
+    int machHashes;
+    int machBuckets;
 
     // Prediction options
     int topK;
@@ -170,7 +170,7 @@ public:
     int hnswEfSearch;
 
     // Set utility options
-    double ubopMipsK;
+    double svbopMipsK;
 
     SetUtilityType setUtilityType;
     double alpha;
@@ -202,4 +202,6 @@ private:
     std::string modelName;
     std::string dataFormatName;
     std::string setUtilityName;
+
+    std::vector<std::string> parsedArgs;
 };

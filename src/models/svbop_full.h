@@ -22,12 +22,12 @@
 
 #pragma once
 
-#include "br_mips.h"
+#include "models/ovr.h"
 
 
-class UBOPMIPS : public BRMIPS {
+class SVBOPFull : public OVR {
 public:
-    UBOPMIPS();
+    SVBOPFull();
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 };

@@ -28,12 +28,12 @@
 #include <vector>
 
 #include "set_utility.h"
-#include "ubop_mips.h"
+#include "svbop_mips.h"
 
 
 BRMIPS::BRMIPS() {
     type = brMips;
-    name = "BR MIPS";
+    name = "BR-MIPS";
 }
 
 void BRMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {

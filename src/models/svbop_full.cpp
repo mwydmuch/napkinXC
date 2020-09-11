@@ -20,14 +20,39 @@
  SOFTWARE.
  */
 
-#pragma once
+#include <algorithm>
+#include <cassert>
+#include <climits>
+#include <cmath>
+#include <list>
+#include <vector>
 
-#include "models/ovr.h"
+#include "set_utility.h"
+#include "svbop_full.h"
 
 
-class UBOP : public OVR {
-public:
-    UBOP();
+SVBOPFull::SVBOPFull() {
+    type = svbopFull;
+    name = "SVBOP-Full";
+}
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
-};
+void SVBOPFull::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+    std::vector<Prediction> allPredictions;
+    allPredictions = OVR::predictForAllLabels(features, args);
+    sort(allPredictions.rbegin(), allPredictions.rend());
+
+    std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
+
+    double P = 0, bestU = 0;
+    for (const auto& p : allPredictions) {
+        P += p.value;
+        double U = u->g(prediction.size() + 1) * P;
+        if (bestU <= U) {
+            prediction.push_back(p);
+            bestU = U;
+        } else
+            break;
+    }
+
+    //LOG(CERR) << "  SVBOPFull: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
+}

@@ -356,7 +356,7 @@ Args:
     -i, --input             Input dataset
     -o, --output            Output (model) dir
     -m, --model             Model type (default = plt):
-                            Models: ovr, br, hsm, plt, oplt, ubop, ubopHsm, brMips, ubopMips
+                            Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
     -d, --dataFormat        Type of data format (default = libsvm),
                             Supported data formats: libsvm
@@ -407,12 +407,12 @@ Args:
     --topK                  Predict top-k labels (default = 5)
     --threshold             Predict labels with probability above the threshold (default = 0)
     --thresholds            Path to a file with threshold for each label
-    --setUtility            Type of set-utility function for prediction using ubop, rbop, ubopHsm, ubopMips models.
+    --setUtility            Type of set-utility function for prediction using svbopFull, svbopHf, svbopMips models.
                             Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
                             See: https://arxiv.org/abs/1906.08129
 
     Set-Utility:
-    --alfa
+    --alpha
     --beta
     --delta
     --gamma

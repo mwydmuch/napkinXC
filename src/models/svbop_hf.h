@@ -25,9 +25,9 @@
 #include "hsm.h"
 
 
-class UBOPHSM : public HSM {
+class SVBOPHF : public HSM {
 public:
-    UBOPHSM();
+    SVBOPHF();
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 };

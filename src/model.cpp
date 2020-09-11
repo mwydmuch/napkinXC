@@ -36,15 +36,15 @@
 #include "online_plt.h"
 #include "ovr.h"
 #include "plt.h"
-#include "ubop.h"
-#include "ubop_hsm.h"
+#include "svbop_full.h"
+#include "svbop_hf.h"
 #include "version.h"
 #include "extreme_text.h"
 
 // Mips extension models
 #ifdef MIPS_EXT
 #include "br_mips.h"
-#include "ubop_mips.h"
+#include "svbop_mips.h"
 #endif
 
 std::shared_ptr<Model> Model::factory(Args& args) {
@@ -62,14 +62,14 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case br: model = std::static_pointer_cast<Model>(std::make_shared<BR>()); break;
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<HSM>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>()); break;
-        case ubop: model = std::static_pointer_cast<Model>(std::make_shared<UBOP>()); break;
-        case ubopHsm: model = std::static_pointer_cast<Model>(std::make_shared<UBOPHSM>()); break;
+        case svbopFull: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPFull>()); break;
+        case svbopHf: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPHF>()); break;
         case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
         case extremeText: model = std::static_pointer_cast<Model>(std::make_shared<ExtremeText>()); break;
 #ifdef MIPS_EXT
         // Mips extension models
         case brMips: model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>()); break;
-        case ubopMips: model = std::static_pointer_cast<Model>(std::make_shared<UBOPMIPS>()); break;
+        case svbopMips: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPMIPS>()); break;
 #endif
         default: throw std::invalid_argument("Unknown model type");
         }

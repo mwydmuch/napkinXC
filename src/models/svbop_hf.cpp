@@ -20,16 +20,16 @@
  SOFTWARE.
  */
 
-#include "ubop_hsm.h"
+#include "svbop_hf.h"
 #include "set_utility.h"
 
 
-UBOPHSM::UBOPHSM() {
-    type = ubopHsm;
-    name = "UBOP HSM";
+SVBOPHF::SVBOPHF() {
+    type = svbopHf;
+    name = "SVBOP-HF";
 }
 
-void UBOPHSM::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void SVBOPHF::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     TopKQueue<TreeNodeValue> nQueue;
 
     double value = bases[tree->root->index]->predictProbability(features);

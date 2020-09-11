@@ -77,7 +77,6 @@ Args::Args() {
     tmax = -1;
     l2Penalty = 0;
     adagradEps = 0.001;
-    dims = 100;
 
     // Tree options
     treeStructure = "";
@@ -94,6 +93,13 @@ Args::Args() {
     // Online PLT options
     onlineTreeAlpha = 0.5;
 
+    // extremeText options
+    dims = 100;
+
+    // MACH options
+    machHashes = 10;
+    machBuckets = 100;
+
     // Prediction options
     topK = 5;
     threshold = 0.0;
@@ -107,7 +113,7 @@ Args::Args() {
     hnswEfSearch = 100;
 
     // Set utility options
-    ubopMipsK = 0.05;
+    svbopMipsK = 0.05;
 
     setUtilityType = uP;
     alpha = 0.0;
@@ -129,14 +135,13 @@ Args::Args() {
     // Args for testPredictionTime command
     batchSizes = "100,1000,10000";
     batches = 10;
-
-    machHashes = 10;
-    machBuckets = 100;
 }
 
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
     LOG(CERR_DEBUG) << "Parsing args...\n";
+
+    parsedArgs.insert(parsedArgs.end(), args.begin(), args.end());
 
     for (int ai = 0; ai < args.size(); ai += 2) {
         LOG(CERR_DEBUG) << "  " << args[ai] << " " << args[ai + 1] << "\n";
@@ -180,10 +185,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     modelType = hsm;
                 else if (args.at(ai + 1) == "plt")
                     modelType = plt;
-                else if (args.at(ai + 1) == "ubop")
-                    modelType = ubop;
-                else if (args.at(ai + 1) == "ubopHsm")
-                    modelType = ubopHsm;
+                else if (args.at(ai + 1) == "svbopFull")
+                    modelType = svbopFull;
+                else if (args.at(ai + 1) == "svbopHf")
+                    modelType = svbopHf;
                 else if (args.at(ai + 1) == "oplt")
                     modelType = oplt;
                 else if (args.at(ai + 1) == "extremeText")
@@ -194,10 +199,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips")
                     modelType = brMips;
-                else if (args.at(ai + 1) == "ubopMips")
-                    modelType = ubopMips;
+                else if (args.at(ai + 1) == "svbopMips")
+                    modelType = svbopMips;
 #else
-                else if (args.at(ai + 1) == "brMips" || args.at(ai + 1) == "ubopMips")
+                else if (args.at(ai + 1) == "brMips" || args.at(ai + 1) == "svbopMips")
                     throw std::invalid_argument(args.at(ai + 1) + " model requires MIPS extension");
 #endif
                 else
@@ -210,8 +215,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hnswEfConstruction = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--hnswEfSearch")
                 hnswEfSearch = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--ubopMipsK")
-                ubopMipsK = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--svbopMipsK")
+                svbopMipsK = std::stof(args.at(ai + 1));
             else if (args[ai] == "--setUtility") {
                 setUtilityName = args.at(ai + 1);
                 if (args.at(ai + 1) == "uP")
@@ -468,7 +473,7 @@ void Args::printArgs(std::string command) {
         if (optimizerType == adagrad) LOG(CERR) << ", AdaGrad eps " << adagradEps;
         LOG(CERR) << ", weights threshold: " << weightsThreshold;
 
-        if (modelType == plt || modelType == hsm || modelType == oplt || modelType == ubopHsm) {
+        if (modelType == plt || modelType == hsm || modelType == oplt || modelType == svbopHf) {
             if (treeStructure.empty()) {
                 LOG(CERR) << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
                 if (treeType == hierarchicalKmeans)
@@ -485,11 +490,11 @@ void Args::printArgs(std::string command) {
     if (command == "test" || command == "predict") {
         if(thresholds.empty()) LOG(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
         else LOG(CERR) << "\n  Thresholds: " << thresholds;
-        if (modelType == ubopMips || modelType == brMips) {
+        if (modelType == svbopMips || modelType == brMips) {
             LOG(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
-            if(modelType == ubopMips) LOG(CERR) << ", k: " << ubopMipsK;
+            if(modelType == svbopMips) LOG(CERR) << ", k: " << svbopMipsK;
         }
-        if (modelType == ubop || modelType == ubopHsm || modelType == ubopMips) {
+        if (modelType == svbopFull || modelType == svbopHf || modelType == svbopMips) {
             LOG(CERR) << "\n  Set utility: " << setUtilityName;
             if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) LOG(CERR) << ", alpha: " << alpha;
             if (setUtilityType == uAlphaBeta) LOG(CERR) << ", beta: " << beta;
@@ -510,10 +515,12 @@ void Args::save(std::ostream& out) {
     out.write((char*)&hash, sizeof(hash));
     out.write((char*)&modelType, sizeof(modelType));
     out.write((char*)&dataFormatType, sizeof(dataFormatType));
-    // out.write((char*) &ensemble, sizeof(ensemble));
+    out.write((char*)&ensemble, sizeof(ensemble));
 
     saveVar(out, modelName);
     saveVar(out, dataFormatName);
+
+
 }
 
 void Args::load(std::istream& in) {
@@ -522,8 +529,10 @@ void Args::load(std::istream& in) {
     in.read((char*)&hash, sizeof(hash));
     in.read((char*)&modelType, sizeof(modelType));
     in.read((char*)&dataFormatType, sizeof(dataFormatType));
-    // in.read((char*) &ensemble, sizeof(ensemble));
+    in.read((char*)&ensemble, sizeof(ensemble));
 
     loadVar(in, modelName);
     loadVar(in, dataFormatName);
+
+    parseArgs(parsedArgs);
 }

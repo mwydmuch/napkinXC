@@ -28,19 +28,19 @@
 #include <vector>
 
 #include "set_utility.h"
-#include "ubop_mips.h"
+#include "svbop_mips.h"
 
 
-UBOPMIPS::UBOPMIPS() {
-    type = ubopMips;
-    name = "UBOP MIPS";
+SVBOPMIPS::SVBOPMIPS() {
+    type = svbopMips;
+    name = "SVBOP-MIPS";
 }
 
-void UBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void SVBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
 
     int k;
-    if(args.ubopMipsK < 1) k = std::ceil(static_cast<double>(bases.size()) * args.ubopMipsK);
-    else k = args.ubopMipsK;
+    if(args.svbopMipsK < 1) k = std::ceil(static_cast<double>(bases.size()) * args.svbopMipsK);
+    else k = args.svbopMipsK;
 
     std::vector<Prediction> allPredictions;
     UnorderedSet<int> seenLabels;

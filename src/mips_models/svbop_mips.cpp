@@ -53,7 +53,6 @@ void SVBOPMIPS::predict(std::vector<Prediction>& prediction, Feature* features, 
         seenLabels.insert(p.label);
     }
 
-    // BOP part
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
     double P = 0, bestU = 0;
     for (int i = 0; i < allPredictions.size(); ++i) {

@@ -39,9 +39,9 @@ enum ModelType {
     oplt,
     extremeText,
     mach,
-    // Mips extension models
-    brMips,
-    svbopMips,
+    brMips, // MIPS extension model
+    svbopMips, // MIPS extension model
+    svbopThreshold
 };
 
 enum TreeType {

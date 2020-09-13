@@ -20,39 +20,30 @@
  SOFTWARE.
  */
 
-#include <algorithm>
-#include <cassert>
-#include <climits>
-#include <cmath>
-#include <list>
-#include <vector>
+#pragma once
 
-#include "set_utility.h"
-#include "svbop_full.h"
+#include "models/br.h"
 
+struct WeightIndex {
+    int index;
+    double value; // labels's value/probability/loss
 
-SVBOPFull::SVBOPFull() {
-    type = svbopFull;
-    name = "SVBOP-Full";
-}
+    bool operator<(const WeightIndex& r) const { return value < r.value; }
 
-void SVBOPFull::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    std::vector<Prediction> allPredictions;
-    allPredictions = OVR::predictForAllLabels(features, args);
-    sort(allPredictions.rbegin(), allPredictions.rend());
-
-    std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
-
-    double P = 0, bestU = 0;
-    for (const auto& p : allPredictions) {
-        P += p.value;
-        double U = u->g(prediction.size() + 1) * P;
-        if (bestU <= U) {
-            prediction.push_back(p);
-            bestU = U;
-        } else
-            break;
+    friend std::ostream& operator<<(std::ostream& os, const WeightIndex& p) {
+        os << p.index << ":" << p.value;
+        return os;
     }
+};
 
-    //LOG(CERR) << "  SVBOP-Full: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
-}
+
+class SVBOPThreshold : public BR {
+public:
+    SVBOPThreshold();
+
+    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void load(Args& args, std::string infile) override;
+
+protected:
+    std::vector<std::vector<WeightIndex>> R;
+};

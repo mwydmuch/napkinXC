@@ -63,7 +63,6 @@ if [[ ! -e ${ROOT_DIR}/nxc ]]; then
 fi
 
 # Train model
-rm -rf $MODEL
 TRAIN_RESULT_FILE=${MODEL}/train_results
 TRAIN_LOCK_FILE=${MODEL}/.train_lock
 if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
@@ -77,7 +76,6 @@ fi
 
 ## Test model
 TEST_RESULT_FILE=${RESULTS_DIR}/${TEST_CONFIG}
-rm -rf $TEST_RESULT_FILE
 TEST_LOCK_FILE=${RESULTS_DIR}/.test_lock_${TEST_CONFIG}
 if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     mkdir -p $RESULTS_DIR

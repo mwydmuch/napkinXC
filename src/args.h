@@ -41,7 +41,8 @@ enum ModelType {
     mach,
     brMips, // MIPS extension model
     svbopMips, // MIPS extension model
-    svbopThreshold
+    svbopThreshold,
+    svbopFagin
 };
 
 enum TreeType {

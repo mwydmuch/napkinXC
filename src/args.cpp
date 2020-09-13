@@ -187,6 +187,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     modelType = plt;
                 else if (args.at(ai + 1) == "svbopFull")
                     modelType = svbopFull;
+                else if (args.at(ai + 1) == "svbopFagin")
+                    modelType = svbopFagin;
                 else if (args.at(ai + 1) == "svbopThreshold")
                     modelType = svbopThreshold;
                 else if (args.at(ai + 1) == "svbopHf")

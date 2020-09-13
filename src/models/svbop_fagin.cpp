@@ -28,35 +28,32 @@
 #include <vector>
 
 #include "set_utility.h"
-#include "svbop_threshold.h"
+#include "svbop_fagin.h"
 
 
-SVBOPThreshold::SVBOPThreshold() {
-    type = svbopThreshold;
-    name = "SVBOP-Threshold";
-
-    productCount = 0;
-    dataPointCount = 0;
+SVBOPFagin::SVBOPFagin() {
+    type = svbopFagin;
+    name = "SVBOP-Fagin";
 }
 
-void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     int dim = R.size();
 
     UnorderedSet<int> predictedSet;
     std::vector<Prediction> predicted;
+    std::vector<int> inCount(m);
 
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
     double P = 0, bestU = 0;
 
-    for(int k = 0; k < m; ++k) {
-        double lowerBound = -99999;
-        double upperBound = 99999;
+    int fCount = 0;
+    for(Feature *f = features; f->index != -1; ++f) ++fCount;
+
+    int inAllCount = 0;
+    for(int k = 1; k <= m; ++k) {
 
         int i = 0;
-        while (lowerBound < upperBound) {
-            //LOG(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
-
-            upperBound = 0;
+        while(inAllCount < k) {
             for(Feature *f = features; f->index != -1; ++f) {
                 //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
 
@@ -66,16 +63,22 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
                 WeightIndex r;
                 if(f->value > 0){
                     r = R[f->index][i];
-                    //if(r.value < 0) continue;
+                    if(r.value <= 0 && (i == 0 || R[f->index][i - 1].value > 0)){
+                        for(int j = 0; j < m; ++j) ++inCount[j];
+                        for(int j = 0; j < R[f->index].size(); --j) --inCount[R[f->index][j].index];
+                    }
                 }
                 else{
                     r = R[f->index][R.size() - 1 - i];
-                    //if(r.value > 0) continue;
+                    if(r.value >= 0 && (i == 0 || R[f->index][R.size() - i].value < 0)){
+                        for(int j = 0; j < m; ++j) ++inCount[j];
+                        for(int j = 0; j < R[f->index].size(); --j) --inCount[R[f->index][j].index];
+                    }
                 }
 
-                //LOG(CERR) << "    f->value: " << f->value << ", r.index: " << r.index << ", r.value: " << r.value << "\n";
+                ++inCount[r.index];
+                if(inCount[r.index] >= fCount) ++inAllCount;
 
-                upperBound += f->value * r.value;
                 if (!predictedSet.count(r.index)) {
                     double score = bases[r.index]->predictValue(features);
                     predictedSet.insert(r.index);
@@ -85,11 +88,9 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
                 }
             }
 
-            //LOG(CERR) << "    predicted.size(): " << predicted.size() << "\n";
-            lowerBound = predicted.front().value;
+            //LOG(CERR) << "    inAllCount: " << inAllCount << ", fCount: " << fCount << "\n";
+            //LOG(CERR) << "    predicted.size(): " << predicted.size() << ", i:" << i << "\n";
             ++i;
-
-            //LOG(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
         }
 
         P += exp(predicted.front().value);
@@ -108,40 +109,4 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
     ++dataPointCount;
 
     //LOG(CERR) << "  SVBOP-Full: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
-}
-
-void SVBOPThreshold::load(Args& args, std::string infile) {
-    LOG(CERR) << "Loading weights ...\n";
-    bases = loadBases(joinPath(infile, "weights.bin"));
-    m = bases.size();
-
-    size_t dim = 0;
-    for (int i = 0; i < m; ++i) {
-        if (bases[i]->getWSize() > dim)
-            dim = bases[i]->getWSize();
-    }
-
-    LOG(CERR) << "Building inverted index for " << dim << " features ...\n";
-    R = std::vector<std::vector<WeightIndex>>(dim);
-    for (int i = 0; i < m; ++i) {
-        printProgress(i, m);
-        if (!bases[i]->isDummy()) {
-            if (!bases[i]->getFirstClass()) bases[i]->invertWeights();
-            if (bases[i]->getMapW() != nullptr) {
-                for (auto f: (*bases[i]->getMapW()))
-                    R[f.first].push_back({i, f.second});
-            } else {
-                for (int f = 0; f < bases[i]->getWSize(); ++f)
-                    if (bases[i]->getW()[f] != 0)
-                        R[f].push_back({i, bases[i]->getW()[f]});
-            }
-        }
-    }
-    for (int i = 0; i < dim; ++i)
-        std::sort(R[i].rbegin(), R[i].rend());
-}
-
-void SVBOPThreshold::printInfo() {
-    LOG(CERR) << name << " additional stats:"
-              << "\n  Mean # estimators per data point: " << static_cast<double>(productCount) / dataPointCount << "\n";
 }

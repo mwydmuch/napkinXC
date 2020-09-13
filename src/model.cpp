@@ -37,6 +37,7 @@
 #include "ovr.h"
 #include "plt.h"
 #include "svbop_full.h"
+#include "svbop_fagin.h"
 #include "svbop_threshold.h"
 #include "svbop_hf.h"
 #include "version.h"
@@ -64,6 +65,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<HSM>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>()); break;
         case svbopFull: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPFull>()); break;
+        case svbopFagin: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPFagin>()); break;
         case svbopThreshold: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPThreshold>()); break;
         case svbopHf: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPHF>()); break;
         case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;

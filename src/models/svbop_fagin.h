@@ -22,34 +22,11 @@
 
 #pragma once
 
-#include "models/br.h"
+#include "models/svbop_threshold.h"
 
-struct WeightIndex {
-    int index;
-    double value;
-
-    bool operator<(const WeightIndex& r) const { return value < r.value; }
-
-    friend std::ostream& operator<<(std::ostream& os, const WeightIndex& p) {
-        os << p.index << ":" << p.value;
-        return os;
-    }
-};
-
-
-class SVBOPThreshold : public BR {
+class SVBOPFagin : public SVBOPThreshold {
 public:
-    SVBOPThreshold();
+    SVBOPFagin();
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
-    void load(Args& args, std::string infile) override;
-
-    void printInfo() override;
-
-protected:
-    std::vector<std::vector<WeightIndex>> R;
-
-    int productCount;
-    int dataPointCount; // Data points count
-
 };

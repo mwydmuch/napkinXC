@@ -47,28 +47,28 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
                                  bool weightedFeatures = false);
 
 // Math utils
-template <typename T, typename U> inline T argMax(const std::unordered_map<T, U>& map) {
+template <typename T, typename U> inline T argMax(const UnorderedMap<T, U>& map) {
     auto pMax = std::max_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
         return p1.second < p2.second;
     });
     return pMax.first;
 }
 
-template <typename T, typename U> inline T argMin(const std::unordered_map<T, U>& map) {
+template <typename T, typename U> inline T argMin(const UnorderedMap<T, U>& map) {
     auto pMin = std::min_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
         return p1.second < p2.second;
     });
     return pMin.first;
 }
 
-template <typename T, typename U> inline T max(const std::unordered_map<T, U>& map) {
+template <typename T, typename U> inline T max(const UnorderedMap<T, U>& map) {
     auto pMax = std::max_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
         return p1.first < p2.first;
     });
     return pMax.first;
 }
 
-template <typename T, typename U> inline T min(const std::unordered_map<T, U>& map) {
+template <typename T, typename U> inline T min(const UnorderedMap<T, U>& map) {
     auto pMin = std::min_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
         return p1.first < p2.first;
     });
@@ -260,14 +260,6 @@ template <typename T> inline uint32_t hash(T& v) {
 inline void printProgress(int state, int max) {
     // LOG(CERR) << "  " << state << " / " << max << "\r";
     if (max > 100 && state % (max / 100) == 0) LOG(CERR) << "  " << state / (max / 100) << "%\r";
-}
-
-// Print vector
-template <typename T> void printVector(std::vector<T> vec) {
-    for (size_t i = 0; i < vec.size(); ++i) {
-        if (i != 0) LOG(CERR) << ", ";
-        LOG(CERR) << vec[i];
-    }
 }
 
 // Splits string

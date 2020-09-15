@@ -42,9 +42,9 @@ public:
 protected:
     bool onlineTree;
 
-    std::vector<Base*> tmpBases;
+    std::vector<Base*> auxBases; // Aux classifiers
     std::shared_timed_mutex treeMtx;
 
-    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1, Base* base = nullptr, Base* tmpBase = nullptr);
+    TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1, Base* base = nullptr, Base* auxBase = nullptr);
     void expandTree(const std::vector<Label>& newLabels, Feature* features, Args& args);
 };

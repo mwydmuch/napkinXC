@@ -49,6 +49,11 @@ Base::Base() {
     sparseW = nullptr;
 }
 
+Base::Base(Args& args): Base(){
+    if(args.optimizerType != liblinear)
+        setupOnlineTraining(args);
+}
+
 Base::~Base() { clear(); }
 
 void Base::update(double label, Feature* features, Args& args) {
@@ -81,12 +86,13 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
         else if (W != nullptr)
             updateAdaGrad(W, G, features, grad, t, args);
     }
+    else throw std::invalid_argument("Unknown optimizer type");
 
     // Check if we should change sparse W to dense W
-    if (mapW != nullptr && wSize != 0) {
-        nonZeroW = mapW->size();
-        if (mapSize() > denseSize()) toDense();
-    }
+//    if (mapW != nullptr && wSize != 0) {
+//        nonZeroW = mapW->size();
+//        if (mapSize() > denseSize()) toDense();
+//    }
 }
 
 void Base::trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
@@ -223,7 +229,7 @@ void Base::train(int n, int r, std::vector<double>& binLabels, std::vector<Featu
                  std::vector<double>* instancesWeights, Args& args) {
 
     if(instancesWeights != nullptr && args.optimizerType != liblinear)
-        throw std::invalid_argument("train: optimizer type does not support training with weights");
+        throw std::invalid_argument("Selected optimizer type does not support training with weights");
 
     if (binLabels.empty()) {
         firstClass = 0;
@@ -238,7 +244,7 @@ void Base::train(int n, int r, std::vector<double>& binLabels, std::vector<Featu
         return;
     }
 
-    //assert(binLabels.size() == binFeatures.size());
+    assert(binLabels.size() == binFeatures.size());
     if (instancesWeights != nullptr) assert(instancesWeights->size() == binLabels.size());
 
     if (args.optimizerType == liblinear)
@@ -267,6 +273,7 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 
     classCount = 2;
     firstClass = 1;
+    t = 0;
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
@@ -328,6 +335,8 @@ void Base::forEachIW(const std::function<void(const int&, Weight&)>& func) {
 }
 
 void Base::clear() {
+    firstClass = 0;
+
     delete[] W;
     W = nullptr;
     delete[] G;
@@ -434,11 +443,11 @@ void Base::save(std::ostream& out) {
             });
         } else
             out.write((char*)W, wSize * sizeof(Weight));
-    }
 
-    // LOG(CERR) << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
-    //    << firstClass << ", weights: " << nonZeroCount << "/" << wSize << ", size: " << size()/1024 << "/" <<
-    //    denseSize()/1024 << "K\n";
+//        LOG(CERR_DEBUG) << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
+//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << ", size: " << size()/1024 << "/" <<
+//                  denseSize()/1024 << "K\n";
+    }
 }
 
 void Base::load(std::istream& in) {
@@ -453,8 +462,12 @@ void Base::load(std::istream& in) {
         in.read((char*)&nonZeroW, sizeof(nonZeroW));
         in.read((char*)&loadSparse, sizeof(loadSparse));
 
-        if (loadSparse) {
-            bool loadAsMap = mapSize() < denseSize() && wSize > 50000;
+//        LOG(CERR_DEBUG) << "  Saved base: sparse: " << loadSparse << ", classCount: " << classCount << ", firstClass: "
+//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
+
+        if (loadSparse){
+            //TODO: Improve this
+            bool loadAsMap = wSize == 0 || (mapSize() < denseSize() && wSize > 50000);
 
             if(loadAsMap){
                 mapW = new UnorderedMap<int, Weight>();

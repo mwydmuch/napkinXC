@@ -37,6 +37,7 @@
 class Base {
 public:
     Base();
+    Base(Args& args);
     ~Base();
 
     void update(double label, Feature* features, Args& args);

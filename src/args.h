@@ -26,7 +26,6 @@
 #include <string>
 
 #include "misc.h"
-#include "types.h"
 
 // All tree tree types
 enum ModelType {

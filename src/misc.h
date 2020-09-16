@@ -270,6 +270,12 @@ std::string toLower(std::string text);
 
 std::string formatMem(size_t mem);
 
+inline size_t denseSize(size_t size) { return size * sizeof(Weight); }
+
+inline size_t mapSize(size_t size) { return size * (sizeof(int) + sizeof(int) + sizeof(Weight)); }
+
+inline size_t sparseSize(size_t size) { return size * (sizeof(int) + sizeof(Weight)); }
+
 // Files utils
 class FileHelper {
 public:

@@ -34,6 +34,9 @@
 Args::Args() {
     seed = time(nullptr);
     rngSeeder.seed(seed);
+    threads = getCpuCount();
+    memLimit = getSystemMemory();
+    resume = false;
 
     // Input/output options
     input = "";
@@ -49,8 +52,7 @@ Args::Args() {
     featuresThreshold = 0.0;
 
     // Training options
-    threads = getCpuCount();
-    memLimit = getSystemMemory();
+
     eps = 0.1;
     cost = 16.0;
     maxIter = 100;
@@ -156,7 +158,17 @@ void Args::parseArgs(const std::vector<std::string>& args) {
             else if (args[ai] == "--seed") {
                 seed = std::stoi(args.at(ai + 1));
                 rngSeeder.seed(seed);
-            }
+            } else if (args[ai] == "-t" || args[ai] == "--threads") {
+                threads = std::stoi(args.at(ai + 1));
+                if (threads == 0)
+                    threads = getCpuCount();
+                else if (threads == -1)
+                    threads = getCpuCount() - 1;
+            } else if (args[ai] == "--memLimit") {
+                memLimit = static_cast<unsigned long long>(std::stof(args.at(ai + 1)) * 1024 * 1024 * 1024);
+                if (memLimit == 0) memLimit = getSystemMemory();
+            } else if (args[ai] == "--resume")
+                resume = std::stoi(args.at(ai + 1)) != 0;
 
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
@@ -266,16 +278,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 weightsThreshold = std::stof(args.at(ai + 1));
 
             // Training options
-            else if (args[ai] == "-t" || args[ai] == "--threads") {
-                threads = std::stoi(args.at(ai + 1));
-                if (threads == 0)
-                    threads = getCpuCount();
-                else if (threads == -1)
-                    threads = getCpuCount() - 1;
-            } else if (args[ai] == "--memLimit") {
-                memLimit = static_cast<unsigned long long>(std::stof(args.at(ai + 1)) * 1024 * 1024 * 1024);
-                if (memLimit == 0) memLimit = getSystemMemory();
-            } else if (args[ai] == "-e" || args[ai] == "--eps" || args[ai] == "--liblinearEps")
+            else if (args[ai] == "-e" || args[ai] == "--eps" || args[ai] == "--liblinearEps")
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost" || args[ai] == "--liblinearC")
                 cost = std::stof(args.at(ai + 1));
@@ -440,10 +443,10 @@ void Args::parseArgs(const std::vector<std::string>& args) {
         optimizerName = "adagrad";
     }
 
-    if (modelType == oplt && (treeType == hierarchicalKmeans || treeType == huffman)) {
+    if (modelType == oplt && resume && (treeType != onlineRandom || treeType != onlineBestScore)) {
         if (count(args.begin(), args.end(), "treeType"))
-            LOG(CERR) << "Online PLT does not support " << treeTypeName
-                      << " tree type! Changing to complete in order tree.\n";
+            LOG(CERR) << "Resuming training for Online PLT does not support " << treeTypeName
+                      << " tree type! Changing to onlineBestScore.\n";
         treeType = onlineBestScore;
         treeTypeName = "onlineBestScore";
     }

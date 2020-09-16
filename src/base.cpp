@@ -54,7 +54,7 @@ Base::Base(Args& args): Base(){
         setupOnlineTraining(args);
 }
 
-Base::~Base() { clear(); }
+Base::~Base() { clearW(); }
 
 void Base::update(double label, Feature* features, Args& args) {
     std::lock_guard<std::mutex> lock(updateMtx);
@@ -254,7 +254,7 @@ void Base::train(int n, int r, std::vector<double>& binLabels, std::vector<Featu
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
-    if (sparseSize() < denseSize()) toSparse();
+    if (sparseSize(nonZeroW) < denseSize(wSize)) toSparse();
 }
 
 void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
@@ -325,6 +325,15 @@ void Base::forEachW(const std::function<void(Weight&)>& func) {
         for (int i = 0; i < nonZeroW; ++i) func(sparseW[i].second);
 }
 
+void Base::forEachG(const std::function<void(Weight&)>& func) {
+    if (G != nullptr)
+        for (int i = 0; i < wSize; ++i) func(G[i]);
+    else if (mapG != nullptr)
+        for (auto& w : *mapG) func(w.second);
+//    else if (sparseG != nullptr)
+//        for (int i = 0; i < nonZeroW; ++i) func(sparseG[i].second);
+}
+
 void Base::forEachIW(const std::function<void(const int&, Weight&)>& func) {
     if (W != nullptr)
         for (int i = 0; i < wSize; ++i) func(i, W[i]);
@@ -334,9 +343,30 @@ void Base::forEachIW(const std::function<void(const int&, Weight&)>& func) {
         for (int i = 0; i < nonZeroW; ++i) func(sparseW[i].first, sparseW[i].second);
 }
 
-void Base::clear() {
-    firstClass = 0;
+void Base::forEachIG(const std::function<void(const int&, Weight&)>& func) {
+    if (G != nullptr)
+        for (int i = 0; i < wSize; ++i) func(i, G[i]);
+    else if (mapG != nullptr)
+        for (auto& w : *mapG) func(w.first, w.second);
+//    else if (sparseG != nullptr)
+//        for (int i = 0; i < nonZeroW; ++i) func(sparseG[i].first, sparseW[i].second);
+}
 
+
+void Base::clear() {
+    hingeLoss = false;
+
+    wSize = 0;
+    nonZeroW = 0;
+    classCount = 0;
+    firstClass = 0;
+    firstClassCount = 0;
+    t = 0;
+
+    clearW();
+}
+
+void Base::clearW() {
     delete[] W;
     W = nullptr;
     delete[] G;
@@ -405,7 +435,7 @@ void Base::toSparse() {
             }
         });
 
-        clear();
+        clearW();
         sparseW = tmpSparseW;
     }
 }
@@ -416,8 +446,7 @@ void Base::pruneWeights(double threshold) {
     forEachW([&](Weight& w) {
         if (w != 0 && fabs(w) >= threshold)
             ++nonZeroW;
-        else
-            w = 0;
+        else w = 0;
     });
 }
 
@@ -427,26 +456,22 @@ void Base::save(std::ostream& out) {
 
     if (classCount > 1) {
         // Decide on optimal file coding
-        bool saveSparse = sparseSize() < denseSize() || W == nullptr;
 
         out.write((char*)&hingeLoss, sizeof(hingeLoss));
         out.write((char*)&wSize, sizeof(wSize));
         out.write((char*)&nonZeroW, sizeof(nonZeroW));
-        out.write((char*)&saveSparse, sizeof(saveSparse));
 
-        if (saveSparse) {
-            forEachIW([&](const int& i, Weight& w) {
-                if (w != 0) {
-                    out.write((char*)&i, sizeof(i));
-                    out.write((char*)&w, sizeof(w));
-                }
-            });
-        } else
-            out.write((char*)W, wSize * sizeof(Weight));
+        if(W != nullptr) saveVec(out, W, wSize, nonZeroW);
+        else if(mapW != nullptr) saveVec(out, mapW, wSize, nonZeroW);
+        else if(sparseW != nullptr) saveVec(out, sparseW, wSize, nonZeroW);
 
-//        LOG(CERR_DEBUG) << "  Saved base: sparse: " << saveSparse << ", classCount: " << classCount << ", firstClass: "
-//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << ", size: " << size()/1024 << "/" <<
-//                  denseSize()/1024 << "K\n";
+        bool grads = (G != nullptr || mapG != nullptr);
+        saveVar(out, grads);
+        if(G != nullptr) saveVec(out, G, wSize, nonZeroW);
+        else if(mapG != nullptr) saveVec(out, mapG, wSize, nonZeroW);
+
+//        LOG(CERR) << "  Save base: classCount: " << classCount << ", firstClass: "
+//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
     }
 }
 
@@ -455,52 +480,34 @@ void Base::load(std::istream& in) {
     in.read((char*)&firstClass, sizeof(firstClass));
 
     if (classCount > 1) {
-        bool loadSparse;
-
         in.read((char*)&hingeLoss, sizeof(hingeLoss));
         in.read((char*)&wSize, sizeof(wSize));
         in.read((char*)&nonZeroW, sizeof(nonZeroW));
-        in.read((char*)&loadSparse, sizeof(loadSparse));
 
-//        LOG(CERR_DEBUG) << "  Saved base: sparse: " << loadSparse << ", classCount: " << classCount << ", firstClass: "
-//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
+        //TODO: Improve this
+        bool loadSparse = (wSize == 0 || (mapSize(nonZeroW) < denseSize(wSize) && wSize > 50000));
+        if(loadSparse) mapW = loadAsMap(in);
+        else W = loadAsDense(in);
 
-        if (loadSparse){
-            //TODO: Improve this
-            bool loadAsMap = wSize == 0 || (mapSize() < denseSize() && wSize > 50000);
-
-            if(loadAsMap){
-                mapW = new UnorderedMap<int, Weight>();
-                mapW->reserve(nonZeroW);
-            }
-            else{
-                W = new Weight[wSize];
-                std::memset(W, 0, wSize * sizeof(Weight));
-            }
-
-            int index;
-            Weight w;
-            for (int i = 0; i < nonZeroW; ++i) {
-                in.read((char*)&index, sizeof(index));
-                in.read((char*)&w, sizeof(Weight));
-
-                if (sparseW != nullptr) sparseW[i] = {index, w};
-                if (mapW != nullptr) mapW->insert({index, w});
-                if (W != nullptr) W[index] = w;
-            }
-        } else {
-            W = new Weight[wSize];
-            std::memset(W, 0, wSize * sizeof(Weight));
-            in.read((char*)W, wSize * sizeof(Weight));
+        bool loadGrads;
+        loadVar(in, loadGrads);
+        if(loadGrads) {
+            if (loadSparse) mapG = loadAsMap(in);
+            else G = loadAsDense(in);
         }
+
+//        LOG(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
+//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
     }
 }
 
 size_t Base::size() {
     size_t size = sizeof(Base);
-    if (W) size += denseSize();
-    if (mapW) size += mapSize();
-    if (sparseW) size += sparseSize();
+    if (W) size += denseSize(wSize);
+    if (mapW) size += mapSize(mapW->size());
+    if (sparseW) size += sparseSize(nonZeroW);
+    if (G) size += denseSize(wSize);
+    if (mapG) size += mapSize(mapG->size());
     return size;
 }
 
@@ -544,4 +551,109 @@ Base* Base::copyInverted() {
     Base* c = copy();
     c->invertWeights();
     return c;
+}
+
+void Base::saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero){
+    bool sparse = sparseSize(nonZero) < denseSize(size) || size == 0;
+    saveVar(out, sparse);
+
+    saveVar(out, size);
+    saveVar(out, nonZero);
+    if(sparse){
+        for (int i = 0; i < size; ++i){
+            if (V[i] != 0) {
+                out.write((char*)&i, sizeof(i));
+                out.write((char*)&V[i], sizeof(Weight));
+            }
+        }
+    } else out.write((char*)V, size * sizeof(Weight));
+}
+
+void Base::saveVec(std::ostream& out, SparseWeight* V, size_t size, size_t nonZero){
+    //bool sparse = sparseSize(nonZero) < denseSize(size);
+    bool sparse = true;
+    saveVar(out, sparse);
+
+    saveVar(out, size);
+    saveVar(out, nonZero);
+
+    if(sparse){
+        for (int i = 0; i < nonZero; ++i){
+            if (V[i].second != 0) {
+                out.write((char*)&V[i].first, sizeof(V[i].first));
+                out.write((char*)&V[i].second, sizeof(V[i].second));
+            }
+        }
+    } //else //TODO
+}
+
+void Base::saveVec(std::ostream& out, UnorderedMap<int, Weight>* mapV, size_t size, size_t nonZero){
+    //bool sparse = sparseSize(nonZero) < denseSize(size);
+    bool sparse = true;
+    saveVar(out, sparse);
+
+    saveVar(out, size);
+    size_t mapSize = mapV->size();
+    saveVar(out, mapSize);
+    for(const auto& w : (*mapV)) saveVar(out, w);
+}
+
+Weight* Base::loadAsDense(std::istream& in){
+    bool sparse;
+    loadVar(in, sparse);
+
+    size_t size;
+    loadVar(in, size);
+
+    size_t nonZero;
+    loadVar(in, nonZero);
+
+    Weight *V = new Weight[size];
+    std::memset(V, 0, size * sizeof(Weight));
+
+    if(sparse) {
+        int index;
+        Weight value;
+
+        for(int i = 0; i < nonZero; ++i){
+            loadVar(in, index);
+            loadVar(in, value);
+            V[index] = value;
+        }
+    } else in.read((char *) V, size * sizeof(Weight));
+
+    return V;
+}
+
+UnorderedMap<int, Weight>* Base::loadAsMap(std::istream& in){
+    bool sparse;
+    loadVar(in, sparse);
+
+    size_t size;
+    loadVar(in, size);
+
+    size_t nonZero;
+    loadVar(in, nonZero);
+
+    auto mapV = new UnorderedMap<int, Weight>();
+    mapV->reserve(nonZero);
+
+    if(sparse) {
+        int index;
+        Weight value;
+
+        for (int i = 0; i < nonZero; ++i) {
+            loadVar(in, index);
+            loadVar(in, value);
+            mapV->insert({index, value});
+        }
+    } else {
+        Weight value;
+        for (int i = 0; i < size; ++i) {
+            loadVar(in, value);
+            if(value != 0) mapV->insert({i, value});
+        }
+    }
+
+    return mapV;
 }

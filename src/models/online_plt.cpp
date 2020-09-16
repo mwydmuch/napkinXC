@@ -34,21 +34,32 @@ OnlinePLT::~OnlinePLT() {
     for (auto b : auxBases) delete b;
 }
 
-void OnlinePLT::init(int labelCount, Args& args) {
+void OnlinePLT::init(Args& args) {
+    tree = new Tree();
+    onlineTree = true;
+}
+
+void OnlinePLT::init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
     tree = new Tree();
 
-    if (args.treeType == onlineKaryRandom || args.treeType == onlineKaryComplete
-        || args.treeType == onlineRandom || args.treeType == onlineBestScore)
+    if (args.treeType == onlineRandom || args.treeType == onlineBestScore) {
         onlineTree = true;
-    else
-        tree->buildTreeStructure(labelCount, args);
+    } else if (args.treeType == balancedRandom || args.treeType == balancedInOrder || args.treeType == hierarchicalKmeans){
+        tree->buildTreeStructure(labels, features, args);
+        onlineTree = false;
 
-    if (!onlineTree) {
         bases.resize(tree->t);
-        for (auto& b : bases) {
-            b = new Base(args);
-            b->setupOnlineTraining(args);
+        auxBases.resize(tree->t);
+        for (auto& b : bases) b = new Base(args);
+
+        for(const auto& n : tree->nodes){
+            auxBases[n->index] = nullptr;
+            if(!n->children.empty() && std::any_of(n->children.begin(), n->children.end(),
+                    [](TreeNode* n){ return n->label >= 0; }))
+                auxBases[n->index] = new Base(args);
         }
+
+        LOG(CERR) << "  Aux. base classifiers: " << auxBases.size() - std::count(auxBases.begin(), auxBases.end(), nullptr) << "\n";
     }
 }
 
@@ -82,31 +93,22 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
 
     // Update positive, negative and aux base estimators
     if(onlineTree && args.threads > 1) {
-        {
-            std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
-            getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
-        }
-
-        for (const auto &n : nPositive) bases[n->index]->update(1.0, features, args);
-        for (const auto &n : nNegative) bases[n->index]->update(0.0, features, args);
-        for (const auto &n : nPositive) {
-            if (auxBases[n->index] != nullptr)
-                auxBases[n->index]->update(0.0, features, args);
-        }
-    }
-    else {
+        std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
         getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
-        for (const auto &n : nPositive) bases[n->index]->unsafeUpdate(1.0, features, args);
-        for (const auto &n : nNegative) bases[n->index]->unsafeUpdate(0.0, features, args);
-        if (onlineTree)
-            for (const auto &n : nPositive) {
-                if (auxBases[n->index] != nullptr)
-                    auxBases[n->index]->unsafeUpdate(0.0, features, args);
-            }
+    }
+    else getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+
+    for (const auto &n : nPositive) bases[n->index]->update(1.0, features, args);
+    for (const auto &n : nNegative) bases[n->index]->update(0.0, features, args);
+    for (const auto &n : nPositive) {
+        if (auxBases[n->index] != nullptr)
+            auxBases[n->index]->update(0.0, features, args);
     }
 }
 
 void OnlinePLT::save(Args& args, std::string output) {
+
+    assert(bases.size() == auxBases.size());
 
     // Save base classifiers
     std::ofstream out(joinPath(output, "weights.bin"));
@@ -119,20 +121,22 @@ void OnlinePLT::save(Args& args, std::string output) {
     out.close();
 
     // Save aux classifiers
-//    out = std::ofstream(joinPath(output, "aux_weights.bin"));
-//    size = bases.size();
-//    out.write((char*)&size, sizeof(size));
-//    for (int i = 0; i < size; ++i) {
-//        if(auxBases[i] != nullptr) {
-//            auxBases[i]->finalizeOnlineTraining(args);
-//            auxBases[i]->save(out);
-//        }
-//        else {
-//            out.write((char*)0, sizeof(int));
-//            out.write((char*)0, sizeof(int));
-//        }
-//    }
-//    out.close();
+    out = std::ofstream(joinPath(output, "aux_weights.bin"));
+    size = bases.size();
+    out.write((char*)&size, sizeof(size));
+    for (int i = 0; i < size; ++i) {
+
+        //TODO: Improve
+        if(auxBases[i] != nullptr) {
+            auxBases[i]->finalizeOnlineTraining(args);
+            auxBases[i]->save(out);
+        }
+        else {
+            auto b = new Base();
+            b->save(out);
+        }
+    }
+    out.close();
 
     // Save tree
     tree->saveToFile(joinPath(output, "tree.bin"));
@@ -141,12 +145,29 @@ void OnlinePLT::save(Args& args, std::string output) {
     tree->saveTreeStructure(joinPath(output, "tree.txt"));
 }
 
+void OnlinePLT::load(Args& args, std::string infile){
+    PLT::load(args, infile);
+    if(args.resume){
+        auxBases = loadBases(joinPath(infile, "aux_weights.bin"));
+
+        //TODO: Improve
+        for(auto& b : auxBases){
+            if(b->isDummy()){
+                delete b;
+                b = nullptr;
+            }
+        }
+
+        assert(bases.size() == auxBases.size());
+    }
+}
+
 TreeNode* OnlinePLT::createTreeNode(TreeNode* parent, int label, Base* base, Base* auxBase){
     auto n = tree->createTreeNode(parent, label);
+    n->subtreeLeaves = 0;
+
     bases.push_back(base);
     auxBases.push_back(auxBase);
-
-    n->subtreeLeaves = 0;
 
     return n;
 }
@@ -175,7 +196,7 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
     //LOG(CERR) << "  Looking for node to expand ...\n";
 
     int depth = 0;
-    float alfa = args.onlineTreeAlpha;
+    float alpha = args.onlineTreeAlpha;
     while (auxBases[toExpand->index] == nullptr) { // Stop when we reach expandable node
         ++depth;
 
@@ -185,11 +206,11 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
         else if (args.treeType == onlineBestScore) { // Best score
             //LOG(CERR) << "    Current node: " << toExpand->index << "\n";
             double bestScore = -DBL_MAX;
-            TreeNode *bestChild;
+            TreeNode *bestChild = toExpand->children[0];
 
             for (auto &child : toExpand->children) {
                 double prob = bases[child->index]->predictProbability(features);
-                double score = (1.0 - alfa) * prob + alfa * std::log(
+                double score = (1.0 - alpha) * prob + alpha * std::log(
                         (static_cast<double>(toExpand->subtreeLeaves) / toExpand->children.size()) / child->subtreeLeaves);
                 if (score > bestScore) {
                     bestScore = score;
@@ -243,7 +264,7 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
             auto newBranch = createTreeNode(toExpand, -1, auxBases[toExpand->index]->copy(), new Base(args));
             createTreeNode(newBranch, nl, auxBases[toExpand->index]->copy(), nullptr);
 
-            // Remove aux classifier
+            // Remove aux classifier //TODO: Improve
             if (toExpand->children.size() >= args.arity){
                 delete auxBases[toExpand->index];
                 auxBases[toExpand->index] = nullptr;

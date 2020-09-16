@@ -97,6 +97,7 @@ public:
     int seed;
     int threads;
     unsigned long long memLimit; // TODO: Implement this for some models
+    bool resume;
 
     // Input/output options
     std::string input;

@@ -34,6 +34,7 @@
 Args::Args() {
     seed = time(nullptr);
     rngSeeder.seed(seed);
+    parsedArgs = std::vector<std::string>();
 
     // Input/output options
     input = "";
@@ -138,13 +139,13 @@ Args::Args() {
 }
 
 // Parse args
-void Args::parseArgs(const std::vector<std::string>& args) {
-    LOG(CERR_DEBUG) << "Parsing args...\n";
+void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
+    LOG(CERR_DEBUG) << "Parsing args ...\n";
 
-    parsedArgs.insert(parsedArgs.end(), args.begin(), args.end());
+    if(keepArgs) parsedArgs.insert(parsedArgs.end(), args.begin(), args.end());
 
     for (int ai = 0; ai < args.size(); ai += 2) {
-        LOG(CERR_DEBUG) << "  " << args[ai] << " " << args[ai + 1] << "\n";
+        LOG(CERR_DEBUG) << "  " << args[ai] << " " << args[ai + 1] << "\n" << ai << "\n";
 
         if (args[ai][0] != '-')
             throw std::invalid_argument("Provided argument without a dash: " + args[ai]);
@@ -538,5 +539,5 @@ void Args::load(std::istream& in) {
     loadVar(in, modelName);
     loadVar(in, dataFormatName);
 
-    parseArgs(parsedArgs);
+    parseArgs(parsedArgs, false);
 }

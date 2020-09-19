@@ -72,6 +72,7 @@ public:
     void toSparse(); // From dense (W) to sparse weights (sparseW)
     void pruneWeights(double threshold);
     void invertWeights();
+    void setFirstClass(int first);
 
     void save(std::ostream& out);
     void load(std::istream& in);

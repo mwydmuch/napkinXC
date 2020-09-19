@@ -124,7 +124,7 @@ void BR::load(Args& args, std::string infile) {
 }
 
 void BR::printInfo() {
-    LOG(CERR) << name << " additional stats:"
+    LOG(COUT) << name << " additional stats:"
               << "\n  Mean # estimators per data point: " << bases.size() << "\n";
 }
 

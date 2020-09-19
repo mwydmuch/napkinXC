@@ -500,6 +500,13 @@ void Base::invertWeights() {
     forEachW([&](Weight& w) { w *= -1; });
 }
 
+void Base::setFirstClass(int first){
+    if(firstClass != first){
+        invertWeights();
+        firstClass = first;
+    }
+}
+
 Base* Base::copy() {
     Base* copy = new Base();
     if (W) {

@@ -91,7 +91,7 @@ public:
     Args();
 
     inline int getSeed() { return rngSeeder(); };
-    void parseArgs(const std::vector<std::string>& args);
+    void parseArgs(const std::vector<std::string>& args, bool keepArgs = true);
     void printArgs(std::string command = "");
 
     // Threading, memory and seed options

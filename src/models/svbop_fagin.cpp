@@ -40,7 +40,9 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
     int dim = R.size();
 
     UnorderedSet<int> predictedSet;
+    predictedSet.reserve(m);
     std::vector<Prediction> predicted;
+    predicted.reserve(m);
     std::vector<int> inCount(m);
 
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
@@ -48,6 +50,8 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
 
     int fCount = 0;
     for(Feature *f = features; f->index != -1; ++f) ++fCount;
+
+    //LOG(CERR) << "  fCount: " << fCount << "\n";
 
     int inAllCount = 0;
     for(int k = 1; k <= m; ++k) {
@@ -57,23 +61,30 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
             for(Feature *f = features; f->index != -1; ++f) {
                 //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
 
+                if(f->value == 0)
+                    continue;
+
+                if(f->index >= R.size() || R[f->index].empty()){
+                    f->value = 0;
+                    --fCount;
+                    continue;
+                }
+
                 if(R[f->index].size() <= i)
                     continue;
 
                 WeightIndex r;
-                if(f->value > 0){
-                    r = R[f->index][i];
-                    if(r.value <= 0 && (i == 0 || R[f->index][i - 1].value > 0)){
-                        for(int j = 0; j < m; ++j) ++inCount[j];
-                        for(int j = 0; j < R[f->index].size(); --j) --inCount[R[f->index][j].index];
+                if(f->value > 0) r = R[f->index][i];
+                else r = R[f->index][R.size() - 1 - i];
+
+                if(r.value == 0){
+                    for(int j = 0; j < R[f->index].size(); --j)
+                        if(R[f->index][j].index >= 0) --inCount[R[f->index][j].index];
+                    for(int j = 0; j < m; ++j){
+                        ++inCount[j];
+                        if(inCount[j] >= fCount) ++inAllCount;
                     }
-                }
-                else{
-                    r = R[f->index][R.size() - 1 - i];
-                    if(r.value >= 0 && (i == 0 || R[f->index][R.size() - i].value < 0)){
-                        for(int j = 0; j < m; ++j) ++inCount[j];
-                        for(int j = 0; j < R[f->index].size(); --j) --inCount[R[f->index][j].index];
-                    }
+                    continue;
                 }
 
                 ++inCount[r.index];
@@ -84,7 +95,6 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
                     predictedSet.insert(r.index);
                     predicted.push_back({r.index, score});
                     std::make_heap(predicted.begin(), predicted.end());
-                    //std::sort(predicted.rbegin(), predicted.rend());
                 }
             }
 
@@ -108,5 +118,8 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
     productCount += predictedSet.size();
     ++dataPointCount;
 
-    //LOG(CERR) << "  SVBOP-Full: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
+//    LOG(COUT) << "  SVBOP-Fagin: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
+//    printVector(prediction);
+//    int x;
+//    std::cin >> x;
 }

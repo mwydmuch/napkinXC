@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "models/br.h"
+#include "models/ovr.h"
 
 struct WeightIndex {
     int index;
@@ -37,7 +37,7 @@ struct WeightIndex {
 };
 
 
-class SVBOPThreshold : public BR {
+class SVBOPThreshold : public OVR {
 public:
     SVBOPThreshold();
 
@@ -51,5 +51,5 @@ protected:
 
     int productCount;
     int dataPointCount; // Data points count
-
+    int correctTop;
 };

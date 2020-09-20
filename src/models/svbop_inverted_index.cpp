@@ -51,9 +51,10 @@ void SVBOPInvertedIndex::predict(std::vector<Prediction>& prediction, Feature* f
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
     double P = 0, bestU = 0;
 
+    int i = 0;
     for(int k = 0; k < m; ++k) {
 
-        for(int i = 0; i < args.svbopInvIndexK; ++i){
+        for(int j = 0; j < args.svbopInvIndexK; ++j){
             for(Feature *f = features; f->index != -1; ++f) {
                 //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
 
@@ -76,6 +77,7 @@ void SVBOPInvertedIndex::predict(std::vector<Prediction>& prediction, Feature* f
                 }
             }
 
+            ++i;
             //LOG(CERR) << "    predicted.size(): " << predicted.size() << "\n";
         }
 
@@ -159,9 +161,8 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
     //LOG(CERR) << "  fCount: " << fCount << "\n";
 
     int inAllCount = 0;
+    int i = 0;
     for(int k = 1; k <= m; ++k) {
-
-        int i = 0;
         while(inAllCount < k) {
             for(Feature *f = features; f->index != -1; ++f) {
                 //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
@@ -175,7 +176,7 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
                     continue;
                 }
 
-                if(R[f->index].size() <= i)
+                if(i >= R[f->index].size())
                     continue;
 
                 WeightIndex r;
@@ -240,11 +241,11 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
     double P = 0, bestU = 0;
 
+    int i = 0;
     for(int k = 0; k < m; ++k) {
         double lowerBound = -99999;
         double upperBound = 99999;
 
-        int i = 0;
         while (lowerBound < upperBound) {
             //LOG(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
 

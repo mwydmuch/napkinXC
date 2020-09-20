@@ -37,6 +37,7 @@
 class Base {
 public:
     Base();
+    Base(Args& args);
     ~Base();
 
     void update(double label, Feature* features, Args& args);
@@ -60,13 +61,12 @@ public:
 
     inline int getWSize() { return wSize; }
     inline int getNonZeroW() { return nonZeroW; }
-    inline size_t denseSize() { return wSize * sizeof(Weight); }
-    inline size_t mapSize() { return nonZeroW * (sizeof(int) + sizeof(int) + sizeof(Weight)); }
-    inline size_t sparseSize() { return nonZeroW * (sizeof(int) + sizeof(Weight)); }
+
     size_t size();
     inline int getFirstClass() { return firstClass; }
 
     void clear();
+    void clearW();
     void toMap();    // From dense weights (W) to sparse weights in hashmap (mapW)
     void toDense();  // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)
@@ -96,7 +96,7 @@ private:
     int firstClassCount;
     int t;
 
-    // Weights
+    // Weights //TODO: Change this to one type of Vector object
     Weight* W;
     Weight* G;
     UnorderedMap<int, Weight>* mapW;
@@ -120,8 +120,18 @@ private:
             return -2 * std::max(1.0 - v, 0.0) * _label;
     }
 
+    void saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero);
+    void saveVec(std::ostream& out, SparseWeight* V, size_t size, size_t nonZero);
+    void saveVec(std::ostream& out, UnorderedMap<int, Weight>* mapV, size_t size, size_t nonZero);
+
+    Weight* loadAsDense(std::istream& in);
+    UnorderedMap<int, Weight>* loadAsMap(std::istream& in);
+
+    // TODO: Improve
     void forEachW(const std::function<void(Weight&)>& f);
     void forEachIW(const std::function<void(const int&, Weight&)>& f);
+    void forEachG(const std::function<void(Weight&)>& f);
+    void forEachIG(const std::function<void(const int&, Weight&)>& f);
 };
 
 template <typename T> void Base::updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args) {

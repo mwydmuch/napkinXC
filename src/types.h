@@ -73,6 +73,44 @@ struct Prediction {
 };
 
 
+// Helping out operators
+template <typename T, typename U>
+std::ostream& operator<<(std::ostream& os, const std::pair<T, U>& pair) {
+    os << pair.index << ":" << pair.value;
+    return os;
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
+    os << "[ ";
+    for (auto i = vec.begin(); i != vec.end(); ++i){
+        if (i != vec.begin()) os << ", ";
+        os << *i;
+    }
+    os << " ]";
+}
+
+template <typename T, typename U>
+std::ostream& operator<<(std::ostream& os, const UnorderedMap<T, U>& map) {
+    os << "{ ";
+    for (auto i = map.begin(); i != map.end(); ++i){
+        if (i != map.begin()) os << ", ";
+        os << *i;
+    }
+    os << " }";
+}
+
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const UnorderedSet<T>& set) {
+    os << "{ ";
+    for (auto i = set.begin(); i != set.end(); ++i){
+        if (i != set.begin()) os << ", ";
+        os << *i;
+    }
+    os << " }";
+}
+
+
 template <typename T> class TopKQueue{
 public:
     TopKQueue(){
@@ -144,9 +182,13 @@ public:
     inline int size() const { return s; }
     inline unsigned long long mem() { return s * sizeof(T); }
 
-    inline void print(){
-        for(int i = 0; i < s; ++i) LOG(COUT) << d[i] << " ";
-        LOG(COUT) << "\n";
+    friend std::ostream& operator<<(std::ostream& os, const Vector& v) {
+        os << "[ ";
+        for (int i = 0; i < v.s; ++i) {
+            if (i != 0) os << ", ";
+            os << v.d[i];
+        }
+        os << " ]";
     }
 
     void save(std::ostream& out) const;

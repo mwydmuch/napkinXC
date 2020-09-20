@@ -26,7 +26,6 @@
 #include "data_reader.h"
 #include "libsvm_reader.h"
 #include "log.h"
-#include "misc.h"
 #include "vw_reader.h"
 
 

@@ -39,7 +39,8 @@ void OnlineModel::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     LOG(CERR) << "Preparing online model ...\n";
 
     // Init model
-    init(labels.cols(), args);
+    if(args.resume) load(args, output);
+    else init(labels, features, args);
 
     // Iterate over rows
     LOG(CERR) << "Training online for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
@@ -51,6 +52,6 @@ void OnlineModel::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
                  std::min((t + 1) * tRows, features.rows()));
     tSet.joinAll();
 
-    // Save traning output
+    // Save training output
     save(args, output);
 }

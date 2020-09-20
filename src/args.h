@@ -42,7 +42,8 @@ enum ModelType {
     brMips, // MIPS extension model
     svbopMips, // MIPS extension model
     svbopThreshold,
-    svbopFagin
+    svbopFagin,
+    svbopInvertedIndex
 };
 
 enum TreeType {
@@ -172,6 +173,7 @@ public:
 
     // Set utility options
     double svbopMipsK;
+    int svbopInvIndexK;
 
     SetUtilityType setUtilityType;
     double alpha;

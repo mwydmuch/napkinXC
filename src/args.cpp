@@ -115,6 +115,7 @@ Args::Args() {
 
     // Set utility options
     svbopMipsK = 0.05;
+    svbopInvIndexK = 1;
 
     setUtilityType = uP;
     alpha = 0.0;
@@ -192,6 +193,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     modelType = svbopFagin;
                 else if (args.at(ai + 1) == "svbopThreshold")
                     modelType = svbopThreshold;
+                else if (args.at(ai + 1) == "svbopInvertedIndex")
+                    modelType = svbopInvertedIndex;
                 else if (args.at(ai + 1) == "svbopHf")
                     modelType = svbopHf;
                 else if (args.at(ai + 1) == "oplt")
@@ -524,8 +527,6 @@ void Args::save(std::ostream& out) {
 
     saveVar(out, modelName);
     saveVar(out, dataFormatName);
-
-
 }
 
 void Args::load(std::istream& in) {

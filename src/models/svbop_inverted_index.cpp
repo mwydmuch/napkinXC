@@ -81,10 +81,11 @@ void SVBOPInvertedIndex::predict(std::vector<Prediction>& prediction, Feature* f
             //LOG(CERR) << "    predicted.size(): " << predicted.size() << "\n";
         }
 
-        P += exp(predicted.front().value);
+        double value = exp(predicted.front().value);
+        P += value;
         double U = u->g(prediction.size() + 1) * P;
         if (bestU <= U) {
-            prediction.push_back(predicted.front());
+            prediction.push_back({predicted.front().label, value});
             bestU = U;
 
             std::pop_heap(predicted.begin(), predicted.end());
@@ -209,10 +210,11 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
             ++i;
         }
 
-        P += exp(predicted.front().value);
+        double value = exp(predicted.front().value);
+        P += value;
         double U = u->g(prediction.size() + 1) * P;
         if (bestU <= U) {
-            prediction.push_back(predicted.front());
+            prediction.push_back({predicted.front().label, value});
             bestU = U;
 
             std::pop_heap(predicted.begin(), predicted.end());
@@ -280,10 +282,11 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
             //LOG(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
         }
 
-        P += exp(predicted.front().value);
+        double value = exp(predicted.front().value);
+        P += value;
         double U = u->g(prediction.size() + 1) * P;
         if (bestU <= U) {
-            prediction.push_back(predicted.front());
+            prediction.push_back({predicted.front().label, value});
             bestU = U;
 
             std::pop_heap(predicted.begin(), predicted.end());

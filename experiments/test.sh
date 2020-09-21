@@ -10,7 +10,7 @@ DATASET_NAME=$1
 MODEL_DIR=models
 RESULTS_DIR=results
 
-# If there are exactly 3 arguments that starts with nxc parameter (-)
+# If there are exactly 3 arguments and 2 starts with nxc parameter (-)
 if [[ $# -gt 2 ]] && [[ $2 == -* ]] && [[ $3 == -* ]]; then
     TRAIN_ARGS=$2
     TEST_ARGS=$3

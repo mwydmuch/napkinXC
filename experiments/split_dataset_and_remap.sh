@@ -28,13 +28,18 @@ if [ ! -e ${NEW_DATASET_DIR} ]; then
     TRAIN_SIZE=$[ ${ALL_SIZE} - ${VALID_SIZE} ]
 
     # Create validation file
-    echo "${VALID_SIZE} $(head -n 1 ${DATASET_PREFIX}_train.txt | cut -d " " -f2-)" > ${NEW_DATASET_PREFIX}_valid.txt
-    head -n ${VALID_SIZE} ${NEW_DATASET_PREFIX}_tmp.txt >> ${NEW_DATASET_PREFIX}_valid.txt
+    head -n ${VALID_SIZE} ${NEW_DATASET_PREFIX}_tmp.txt > ${NEW_DATASET_PREFIX}_valid.txt
 
     # Create train file
-    echo "${TRAIN_SIZE} $(head -n 1 ${DATASET_PREFIX}_train.txt | cut -d " " -f2-)" > ${NEW_DATASET_PREFIX}_train.txt
-    tail -n +$[ ${VALID_SIZE} + 1 ] ${NEW_DATASET_PREFIX}_tmp.txt >> ${NEW_DATASET_PREFIX}_train.txt
+    tail -n +$[ ${VALID_SIZE} + 1 ] ${NEW_DATASET_PREFIX}_tmp.txt > ${NEW_DATASET_PREFIX}_train.txt
+
+    # Remove header from test file
+    tail -n +2 ${DATASET_PREFIX}_test.txt > ${NEW_DATASET_PREFIX}_test.txt
 
     # Remove temporary file
     rm ${NEW_DATASET_PREFIX}_tmp.txt
+
+    # Remap files
+    python3 ${SCRIPT_DIR}/remap_libsvm.py ${NEW_DATASET_PREFIX}_train.txt ${NEW_DATASET_PREFIX}_valid.txt ${NEW_DATASET_PREFIX}_test.txt
+    rm ${NEW_DATASET_PREFIX}_train.txt ${NEW_DATASET_PREFIX}_valid.txt ${NEW_DATASET_PREFIX}_test.txt
 fi

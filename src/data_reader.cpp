@@ -95,6 +95,7 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
         }
 
         processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
+        if (!std::is_sorted(lLabels.begin(), lLabels.end())) sort(lLabels.begin(), lLabels.end());
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
@@ -116,9 +117,9 @@ void DataReader::readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, 
     // Print data
     /*
     for (int r = 0; r < features.rows(); ++r){
-       for(int c = 0; c < features.size(r); ++c)
-           Log(CERR) << features.row(r)[c].index << ":" << features.row(r)[c].value << " ";
-       Log(CERR) << "\n";
+        for(int c = 0; c < features.size(r); ++c)
+            Log(CERR) << features.row(r)[c].index << ":" << features.row(r)[c].value << " ";
+        Log(CERR) << "\n";
     }
     */
 
@@ -144,7 +145,7 @@ void DataReader::processFeaturesVector(std::vector<Feature> &lFeatures, bool nor
     // Apply features threshold
     if (featuresThreshold > 0) threshold(lFeatures, featuresThreshold);
 
-    // Check if it requires sorting
+    // Check if it requires sorting //TODO: Move this to matrix class
     if (!std::is_sorted(lFeatures.begin(), lFeatures.end())) sort(lFeatures.begin(), lFeatures.end());
 }
 

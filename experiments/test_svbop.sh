@@ -159,3 +159,25 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
 else
     cat $TEST_RESULT_FILE
 fi
+
+
+## Test SVBOP Threshold model
+_TEST_ARGS="${TEST_ARGS} -m svbopMips --svbopMipsK 0.1 --hnswM 50 --hnswEfConstruction 250"
+TEST_CONFIG=${TRAIN_CONFIG}_$(echo "${_TEST_ARGS}" | tr " /" "__")
+TEST_RESULT_FILE=${RESULTS_DIR}/${TEST_CONFIG}
+TEST_LOCK_FILE=${RESULTS_DIR}/.test_lock_${TEST_CONFIG}
+if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
+    mkdir -p $RESULTS_DIR
+    touch $TEST_LOCK_FILE
+    if [ -e $TRAIN_RESULT_FILE ]; then
+        cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
+    fi
+    (time ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $_TEST_ARGS | tee -a $TEST_RESULT_FILE)
+    ${ROOT_DIR}/nxc predict -i $TEST_FILE -o $MODEL $_TEST_ARGS > ${TEST_RESULT_FILE}_prediction
+
+    echo
+    echo "Test date: $(date)" | tee -a $TEST_RESULT_FILE
+    rm -rf $TEST_LOCK_FILE
+else
+    cat $TEST_RESULT_FILE
+fi

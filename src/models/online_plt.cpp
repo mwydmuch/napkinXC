@@ -151,6 +151,16 @@ void OnlinePLT::load(Args& args, std::string infile){
         auxBases = loadBases(joinPath(infile, "aux_weights.bin"));
 
         //TODO: Improve
+        /*
+        for(auto& b : bases){
+            if(b->isDummy()){
+                b->clear();
+                b->setupOnlineTraining(args);
+            }
+        }
+         */
+
+        //TODO: Improve
         for(auto& b : auxBases){
             if(b->isDummy()){
                 delete b;

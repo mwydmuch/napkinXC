@@ -277,16 +277,19 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
+    // Because aux bases needs previous weights, TODO: Change this later
+    /*
     if (firstClassCount == t || firstClassCount == 0) {
         classCount = 1;
         if (firstClassCount == 0) firstClass = 1 - firstClass;
     }
+    */
 
     pruneWeights(args.weightsThreshold);
 }
 
 double Base::predictValue(Feature* features) {
-    if (classCount < 2) return static_cast<double>(firstClass * 10);
+    if (classCount < 2) return static_cast<double>((1 - 2 * firstClass) * -10);
     double val = 0;
 
     if (mapW) { // Sparse features dot sparse weights in hash map
@@ -443,9 +446,8 @@ void Base::toSparse() {
 void Base::pruneWeights(double threshold) {
     nonZeroW = 0;
 
-    forEachW([&](Weight& w) {
-        if (w != 0 && fabs(w) >= threshold)
-            ++nonZeroW;
+    forEachIW([&](const int& i, Weight& w) {
+        if (i == 1 || (w != 0 && fabs(w) >= threshold)) ++nonZeroW; // Do not prune bias feature
         else w = 0;
     });
 }

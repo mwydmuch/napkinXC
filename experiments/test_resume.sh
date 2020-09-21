@@ -45,6 +45,10 @@ if [[ -e "${DATASET_FILE}.train.remapped" ]]; then
     TRAIN_FILE="${DATASET_FILE}.train.remapped"
     TRAIN_RESUME_FILE="${DATASET_FILE}.valid.remapped"
     TEST_FILE="${DATASET_FILE}.test.remapped"
+elif [[ -e "${DATASET_FILE}_train.txt.remapped" ]]; then
+    TRAIN_FILE="${DATASET_FILE}_train.txt.remapped"
+    TRAIN_RESUME_FILE="${DATASET_FILE}_valid.txt.remapped"
+    TEST_FILE="${DATASET_FILE}_test.txt.remapped"
 elif [[ -e "${DATASET_FILE}_train.txt" ]]; then
     TRAIN_FILE="${DATASET_FILE}_train.txt"
     TRAIN_RESUME_FILE="${DATASET_FILE}_valid.txt"

@@ -22,14 +22,14 @@ BASE_TEST_ARGS="--measures p@1,hl,microf1,macrof1,samplef1,s"
 OFO_ARGS="--ofoType micro --ofoA 10 --ofoB 20 --epochs 1"
 
 for s in "${SEEDS[@]}"; do
-    bash ${EXP_DIR}/test_ofo.sh eurlex_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 12" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
-    bash ${EXP_DIR}/test_ofo.sh wiki10_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 16" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
-    bash ${EXP_DIR}/test_ofo.sh amazonCat_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 8" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
-    bash ${EXP_DIR}/test_ofo.sh deliciousLarge_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 1" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
-    bash ${EXP_DIR}/test_ofo.sh wikiLSHTC_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 32" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
-    bash ${EXP_DIR}/test_ofo.sh WikipediaLarge-500K_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 32" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
-    bash ${EXP_DIR}/test_ofo.sh amazon_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 16" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
-    bash ${EXP_DIR}/test_ofo.sh amazon-3M_split_--seed_${s} "${BASE_TRAIN_ARGS} -c 8" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh eurlex_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 12" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh wiki10_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 16" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh amazonCat_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 8" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh deliciousLarge_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 1" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh wikiLSHTC_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 32" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh WikipediaLarge-500K_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 32" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh amazon_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 16" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
+    bash ${EXP_DIR}/test_ofo.sh amazon-3M_--split_30_--seed_${s} "${BASE_TRAIN_ARGS} -c 8" " ${OFO_ARGS}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
 
     # k = avg. #labels per example
     bash ${EXP_DIR}/test.sh eurlex "${BASE_TRAIN_ARGS} -c 12 --seed ${s}" "--topK 5 ${BASE_TEST_ARGS}" $MODEL $RESULTS

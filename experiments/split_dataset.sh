@@ -7,8 +7,8 @@ SEED=$3
 SCRIPT_DIR=$( dirname "${BASH_SOURCE[0]}" )
 DATASET_DIR="${SCRIPT_DIR}/../data/${DATASET}"
 DATASET_PREFIX="${SCRIPT_DIR}/../data/${DATASET}/${DATASET}"
-NEW_DATASET_DIR="${DATASET_DIR}_split_--seed_${SEED}"
-NEW_DATASET_PREFIX="${NEW_DATASET_DIR}/${DATASET}_split_--seed_${SEED}"
+NEW_DATASET_DIR="${DATASET_DIR}_--split_${VALID_SIZE}_--seed_${SEED}"
+NEW_DATASET_PREFIX="${NEW_DATASET_DIR}/${DATASET}_--split_${VALID_SIZE}_--seed_${SEED}"
 
 get_random_source () {
     seed="$1"

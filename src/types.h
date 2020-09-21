@@ -88,6 +88,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<T>& vec) {
         os << *i;
     }
     os << " ]";
+    return os;
 }
 
 template <typename T, typename U>
@@ -98,6 +99,7 @@ std::ostream& operator<<(std::ostream& os, const UnorderedMap<T, U>& map) {
         os << *i;
     }
     os << " }";
+    return os;
 }
 
 template <typename T>
@@ -108,6 +110,7 @@ std::ostream& operator<<(std::ostream& os, const UnorderedSet<T>& set) {
         os << *i;
     }
     os << " }";
+    return os;
 }
 
 
@@ -189,6 +192,7 @@ public:
             os << v.d[i];
         }
         os << " ]";
+        return os;
     }
 
     void save(std::ostream& out) const;

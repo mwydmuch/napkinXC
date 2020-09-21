@@ -32,6 +32,8 @@
 #include "version.h"
 
 Args::Args() {
+    parsedArgs = std::vector<std::string>();
+
     seed = time(nullptr);
     rngSeeder.seed(seed);
     threads = getCpuCount();
@@ -52,7 +54,6 @@ Args::Args() {
     featuresThreshold = 0.0;
 
     // Training options
-
     eps = 0.1;
     cost = 16.0;
     maxIter = 100;
@@ -116,6 +117,7 @@ Args::Args() {
 
     // Set utility options
     svbopMipsK = 0.05;
+    svbopInvIndexK = 1;
 
     setUtilityType = uP;
     alpha = 0.0;
@@ -140,10 +142,10 @@ Args::Args() {
 }
 
 // Parse args
-void Args::parseArgs(const std::vector<std::string>& args) {
-    Log(CERR_DEBUG) << "Parsing args...\n";
+void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
+    Log(CERR_DEBUG) << "Parsing args ...\n";
 
-    parsedArgs.insert(parsedArgs.end(), args.begin(), args.end());
+    if(keepArgs) parsedArgs.insert(parsedArgs.end(), args.begin(), args.end());
 
     for (int ai = 0; ai < args.size(); ai += 2) {
         Log(CERR_DEBUG) << "  " << args[ai] << " " << args[ai + 1] << "\n";
@@ -203,6 +205,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                     modelType = svbopFagin;
                 else if (args.at(ai + 1) == "svbopThreshold")
                     modelType = svbopThreshold;
+                else if (args.at(ai + 1) == "svbopInvertedIndex")
+                    modelType = svbopInvertedIndex;
                 else if (args.at(ai + 1) == "svbopHf")
                     modelType = svbopHf;
                 else if (args.at(ai + 1) == "oplt")
@@ -233,6 +237,8 @@ void Args::parseArgs(const std::vector<std::string>& args) {
                 hnswEfSearch = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--svbopMipsK")
                 svbopMipsK = std::stof(args.at(ai + 1));
+            else if (args[ai] == "--svbopInvIndexK")
+                svbopInvIndexK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--setUtility") {
                 setUtilityName = args.at(ai + 1);
                 if (args.at(ai + 1) == "uP")
@@ -526,8 +532,6 @@ void Args::save(std::ostream& out) {
 
     saveVar(out, modelName);
     saveVar(out, dataFormatName);
-
-
 }
 
 void Args::load(std::istream& in) {
@@ -541,5 +545,5 @@ void Args::load(std::istream& in) {
     loadVar(in, modelName);
     loadVar(in, dataFormatName);
 
-    parseArgs(parsedArgs);
+    parseArgs(parsedArgs, false);
 }

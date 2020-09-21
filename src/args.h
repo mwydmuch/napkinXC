@@ -41,7 +41,8 @@ enum ModelType {
     brMips, // MIPS extension model
     svbopMips, // MIPS extension model
     svbopThreshold,
-    svbopFagin
+    svbopFagin,
+    svbopInvertedIndex
 };
 
 enum TreeType {
@@ -90,7 +91,7 @@ public:
     Args();
 
     inline int getSeed() { return rngSeeder(); };
-    void parseArgs(const std::vector<std::string>& args);
+    void parseArgs(const std::vector<std::string>& args, bool keepArgs = true);
     void printArgs(std::string command = "");
 
     // Threading, memory and seed options
@@ -172,6 +173,7 @@ public:
 
     // Set utility options
     double svbopMipsK;
+    int svbopInvIndexK;
 
     SetUtilityType setUtilityType;
     double alpha;

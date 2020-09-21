@@ -50,7 +50,7 @@ double ExtremeText::updateNode(TreeNode* node, double label, Vector<XTWeight>& h
     double val = dotVectors(outputW[i], hidden);
     double pred = sigmoid(dotVectors(outputW[i], hidden));
     double grad = label - pred;
-    LOG(COUT) << val << " " << pred << " " << grad << "\n";
+    Log(COUT) << val << " " << pred << " " << grad << "\n";
 
     for(int j = 0; j < dims; ++j){
         gradient[j] += lr * (grad * outputW[i][j] - l2 * gradient[j]);
@@ -116,7 +116,7 @@ void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     outputW = Matrix<XTWeight>(tree->t, dims);
 
     // Iterate over rows
-    LOG(CERR) << "Training extremeText for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
+    Log(CERR) << "Training extremeText for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
 
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
@@ -136,7 +136,7 @@ void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
 }
 
 void ExtremeText::load(Args& args, std::string infile) {
-    LOG(CERR) << "Loading " << name << " model ...\n";
+    Log(CERR) << "Loading " << name << " model ...\n";
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));

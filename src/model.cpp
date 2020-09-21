@@ -104,7 +104,7 @@ void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vect
 }
 
 std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& features, Args& args) {
-    LOG(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
+    Log(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
 
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
@@ -140,7 +140,7 @@ void Model::predictBatchWithThresholdsThread(int threadId, Model* model, std::ve
 }
 
 std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args) {
-    LOG(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
+    Log(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
 
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
@@ -160,7 +160,7 @@ double Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Arg
     double a = args.ofoA;
     double b = args.ofoB;
 
-    LOG(CERR) << "Optimizing Micro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
+    Log(CERR) << "Optimizing Micro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
 
     const int examples = features.rows() * args.epochs;
     for (int i = 0; i < examples; ++i) {
@@ -193,7 +193,7 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     std::vector<double> bs(m, args.ofoB);
     thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
 
-    LOG(CERR) << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads
+    Log(CERR) << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads
               << " threads ...\n";
 
     // Set initial thresholds
@@ -267,7 +267,7 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
         args.epochs = 1;
         double microThr = microOfo(features, labels, args);
 
-        LOG(CERR) << "Mixing thresholds for top " << args.ofoTopLabels << " labels ...\n";
+        Log(CERR) << "Mixing thresholds for top " << args.ofoTopLabels << " labels ...\n";
         std::vector<Prediction> priors = computeLabelsPriors(labels);
         std::sort(priors.rbegin(), priors.rend());
 
@@ -324,8 +324,8 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
     if (instancesWeights != nullptr) assert(baseLabels.size() == instancesWeights->size());
 
     size_t size = baseLabels.size(); // This "batch" size
-    LOG(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
-    LOG(CERR) << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << "\n";
+    Log(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
+    Log(CERR) << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << "\n";
 
     // Run learning in parallel
     if(args.threads > 1) {
@@ -384,7 +384,7 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
                                        std::vector<double>* instancesWeights, Args& args) {
 
     int size = baseLabels.size(); // This "batch" size
-    LOG(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
+    Log(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
 
     // Run learning in parallel
     if(args.threads > 1) {
@@ -420,7 +420,7 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
 }
 
 std::vector<Base*> Model::loadBases(std::string infile) {
-    LOG(CERR) << "Loading base estimators ...\n";
+    Log(CERR) << "Loading base estimators ...\n";
 
     double nonZeroSum = 0;
     unsigned long long memSize = 0;
@@ -442,7 +442,7 @@ std::vector<Base*> Model::loadBases(std::string infile) {
     }
     in.close();
 
-    LOG(CERR) << "  Loaded bases: " << size
+    Log(CERR) << "  Loaded bases: " << size
               << "\n  Bases size: " << formatMem(memSize) << "\n  Non zero weights / bases: " << nonZeroSum / size
               << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << "\n";
 

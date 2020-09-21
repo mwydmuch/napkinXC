@@ -55,7 +55,7 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
         int i = 0;
         while(inAllCount < k) {
             for(Feature *f = features; f->index != -1; ++f) {
-                //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
+                //Log(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
 
                 if(R[f->index].size() <= i)
                     continue;
@@ -88,8 +88,8 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
                 }
             }
 
-            //LOG(CERR) << "    inAllCount: " << inAllCount << ", fCount: " << fCount << "\n";
-            //LOG(CERR) << "    predicted.size(): " << predicted.size() << ", i:" << i << "\n";
+            //Log(CERR) << "    inAllCount: " << inAllCount << ", fCount: " << fCount << "\n";
+            //Log(CERR) << "    predicted.size(): " << predicted.size() << ", i:" << i << "\n";
             ++i;
         }
 
@@ -108,5 +108,5 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
     productCount += predictedSet.size();
     ++dataPointCount;
 
-    //LOG(CERR) << "  SVBOP-Full: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
+    //Log(CERR) << "  SVBOP-Full: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
 }

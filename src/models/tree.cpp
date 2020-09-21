@@ -45,7 +45,7 @@ Tree::~Tree() {
 
 void Tree::buildTreeStructure(int labelCount, Args& args) {
     // Create a tree structure
-    LOG(CERR) << "Building tree ...\n";
+    Log(CERR) << "Building tree ...\n";
 
     if (args.treeType == completeInOrder)
         buildCompleteTree(labelCount, false, args);
@@ -66,7 +66,7 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
     if (!args.treeStructure.empty()) loadTreeStructure(args.treeStructure);
 
     // Create a tree structure
-    LOG(CERR) << "Building tree ...\n";
+    Log(CERR) << "Building tree ...\n";
 
     if (args.treeType == completeInOrder)
         buildCompleteTree(labels.cols(), false, args);
@@ -104,7 +104,7 @@ TreeNodePartition Tree::buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<
 }
 
 void Tree::buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
-    LOG(CERR) << "Hierarchical K-Means clustering in " << args.threads << " threads ...\n";
+    Log(CERR) << "Hierarchical K-Means clustering in " << args.threads << " threads ...\n";
 
     root = createTreeNode();
     k = labelsFeatures.rows();
@@ -160,7 +160,7 @@ void Tree::buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
 
     t = nodes.size();
     assert(k == leaves.size());
-    LOG(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
 void Tree::squashTree(){
@@ -186,7 +186,7 @@ void Tree::squashTree(){
 }
 
 void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
-    LOG(CERR) << "Building Huffman Tree ...\n";
+    Log(CERR) << "Building Huffman Tree ...\n";
 
     k = labels.cols();
 
@@ -221,11 +221,11 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
     }
 
     t = nodes.size(); // size of the tree
-    LOG(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
+    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
 void Tree::buildBalancedTree(int labelCount, bool randomizeOrder, Args& args) {
-    LOG(CERR) << "Building balanced Tree ...\n";
+    Log(CERR) << "Building balanced Tree ...\n";
 
     root = createTreeNode();
     k = labelCount;
@@ -276,11 +276,11 @@ void Tree::buildBalancedTree(int labelCount, bool randomizeOrder, Args& args) {
 
     t = nodes.size();
     assert(k == leaves.size());
-    LOG(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
 void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
-    LOG(CERR) << "Building complete Tree ...\n";
+    Log(CERR) << "Building complete Tree ...\n";
 
     std::default_random_engine rng(args.getSeed());
 
@@ -310,11 +310,11 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
         createTreeNode(parent, label);
     }
 
-    LOG(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
+    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
 void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
-    LOG(CERR) << "Building online tree ...\n";
+    Log(CERR) << "Building online tree ...\n";
 
     int nextToExpand = 0;
 
@@ -357,11 +357,11 @@ void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features,
     }
 
     t = nodes.size(); // size of the tree
-    LOG(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
+    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
 void Tree::loadTreeStructure(std::string file) {
-    LOG(CERR) << "Loading Tree structure from: " << file << "...\n";
+    Log(CERR) << "Loading Tree structure from: " << file << "...\n";
 
     std::ifstream in(file);
     in >> k >> t;
@@ -371,7 +371,7 @@ void Tree::loadTreeStructure(std::string file) {
     root = createTreeNode();
     for (int i = 1; i < t; ++i) createTreeNode();
 
-    LOG(CERR) << "  Header: nodes: " << t << ", labels: " << k << "\n";
+    Log(CERR) << "  Header: nodes: " << t << ", labels: " << k << "\n";
 
     std::string line;
     while (std::getline(in, line)) {
@@ -417,11 +417,11 @@ void Tree::loadTreeStructure(std::string file) {
 
     assert(nodes.size() == t);
     assert(leaves.size() == k);
-    LOG(CERR) << "  Loaded: nodes: " << nodes.size() << ", labels: " << leaves.size() << "\n";
+    Log(CERR) << "  Loaded: nodes: " << nodes.size() << ", labels: " << leaves.size() << "\n";
 }
 
 void Tree::saveTreeStructure(std::string file) {
-    LOG(CERR) << "Saving Tree structure to: " << file << "...\n";
+    Log(CERR) << "Saving Tree structure to: " << file << "...\n";
 
     std::ofstream out(file);
     out << k << " " << t << "\n";
@@ -448,7 +448,7 @@ TreeNode* Tree::createTreeNode(TreeNode* parent, int label) {
 }
 
 void Tree::save(std::ostream& out) {
-    LOG(CERR) << "Saving tree ...\n";
+    Log(CERR) << "Saving tree ...\n";
 
     out.write((char*)&k, sizeof(k));
 
@@ -477,7 +477,7 @@ void Tree::save(std::ostream& out) {
 }
 
 void Tree::load(std::istream& in) {
-    LOG(CERR) << "Loading tree ...\n";
+    Log(CERR) << "Loading tree ...\n";
 
     in.read((char*)&k, sizeof(k));
     in.read((char*)&t, sizeof(t));
@@ -505,11 +505,11 @@ void Tree::load(std::istream& in) {
         }
     }
 
-    LOG(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
 void Tree::printTree(TreeNode* rootNode) {
-    LOG(CERR) << "Tree:";
+    Log(CERR) << "Tree:";
     if (rootNode == nullptr) rootNode = root;
 
     UnorderedSet<TreeNode*> nSet;
@@ -517,7 +517,7 @@ void Tree::printTree(TreeNode* rootNode) {
     nQueue.push(rootNode);
     nSet.insert(rootNode);
     int depth = 0;
-    LOG(CERR) << "\nDepth " << depth << ":";
+    Log(CERR) << "\nDepth " << depth << ":";
 
     while (!nQueue.empty()) {
         TreeNode* n = nQueue.front();
@@ -525,17 +525,17 @@ void Tree::printTree(TreeNode* rootNode) {
 
         if (nSet.count(n->parent)) {
             nSet.clear();
-            LOG(CERR) << "\nDepth " << ++depth << ":";
+            Log(CERR) << "\nDepth " << ++depth << ":";
         }
 
         nSet.insert(n);
-        LOG(CERR) << " " << n->index;
-        if (n->parent) LOG(CERR) << "(" << n->parent->index << ")";
-        if (n->label >= 0) LOG(CERR) << "<" << n->label << ">";
+        Log(CERR) << " " << n->index;
+        if (n->parent) Log(CERR) << "(" << n->parent->index << ")";
+        if (n->label >= 0) Log(CERR) << "<" << n->label << ">";
         for (auto c : n->children) nQueue.push(c);
     }
 
-    LOG(CERR) << "\n";
+    Log(CERR) << "\n";
 }
 
 int Tree::getNumberOfLeaves(TreeNode* rootNode) {

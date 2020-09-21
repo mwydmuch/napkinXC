@@ -141,12 +141,12 @@ Args::Args() {
 
 // Parse args
 void Args::parseArgs(const std::vector<std::string>& args) {
-    LOG(CERR_DEBUG) << "Parsing args...\n";
+    Log(CERR_DEBUG) << "Parsing args...\n";
 
     parsedArgs.insert(parsedArgs.end(), args.begin(), args.end());
 
     for (int ai = 0; ai < args.size(); ai += 2) {
-        LOG(CERR_DEBUG) << "  " << args[ai] << " " << args[ai + 1] << "\n";
+        Log(CERR_DEBUG) << "  " << args[ai] << " " << args[ai + 1] << "\n";
 
         if (args[ai][0] != '-')
             throw std::invalid_argument("Provided argument without a dash: " + args[ai]);
@@ -438,14 +438,14 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     // Change default values for specific cases + parameters warnings
     if (modelType == oplt && optimizerType == liblinear) {
         if (count(args.begin(), args.end(), "optimizer"))
-            LOG(CERR) << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
+            Log(CERR) << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
         optimizerType = adagrad;
         optimizerName = "adagrad";
     }
 
     if (modelType == oplt && resume && (treeType != onlineRandom || treeType != onlineBestScore)) {
         if (count(args.begin(), args.end(), "treeType"))
-            LOG(CERR) << "Resuming training for Online PLT does not support " << treeTypeName
+            Log(CERR) << "Resuming training for Online PLT does not support " << treeTypeName
                       << " tree type! Changing to onlineBestScore.\n";
         treeType = onlineBestScore;
         treeTypeName = "onlineBestScore";
@@ -454,7 +454,7 @@ void Args::parseArgs(const std::vector<std::string>& args) {
     // If only threshold used set topK to 0, otherwise display warning
     if (threshold > 0) {
         if (count(args.begin(), args.end(), "topK"))
-            LOG(CERR) << "Warning: Top K and threshold prediction are used at the same time!\n";
+            Log(CERR) << "Warning: Top K and threshold prediction are used at the same time!\n";
         else
             topK = 0;
     }
@@ -463,56 +463,56 @@ void Args::parseArgs(const std::vector<std::string>& args) {
 }
 
 void Args::printArgs(std::string command) {
-    LOG(CERR) << "napkinXC " << VERSION;
+    Log(CERR) << "napkinXC " << VERSION;
     if (!input.empty())
-        LOG(CERR) << "\n  Input: " << input << "\n    Data format: " << dataFormatName
+        Log(CERR) << "\n  Input: " << input << "\n    Data format: " << dataFormatName
                   << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm
                   << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
-    LOG(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
-    if (ensemble > 1) LOG(CERR) << ", ensemble: " << ensemble;
+    Log(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
+    if (ensemble > 1) Log(CERR) << ", ensemble: " << ensemble;
 
     if (command == "train") {
-        LOG(CERR) << "\n  Base models optimizer: " << optimizerName;
+        Log(CERR) << "\n  Base models optimizer: " << optimizerName;
         if (optimizerType == liblinear)
-            LOG(CERR) << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
+            Log(CERR) << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
         else
-            LOG(CERR) << "\n    Loss: " << lossName << ", eta: " << eta << ", epochs: " << epochs;
-        if (optimizerType == adagrad) LOG(CERR) << ", AdaGrad eps " << adagradEps;
-        LOG(CERR) << ", weights threshold: " << weightsThreshold;
+            Log(CERR) << "\n    Loss: " << lossName << ", eta: " << eta << ", epochs: " << epochs;
+        if (optimizerType == adagrad) Log(CERR) << ", AdaGrad eps " << adagradEps;
+        Log(CERR) << ", weights threshold: " << weightsThreshold;
 
         if (modelType == plt || modelType == hsm || modelType == oplt || modelType == svbopHf) {
             if (treeStructure.empty()) {
-                LOG(CERR) << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
+                Log(CERR) << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
                 if (treeType == hierarchicalKmeans)
-                    LOG(CERR) << ", k-means eps: " << kmeansEps << ", balanced: " << kmeansBalanced
+                    Log(CERR) << ", k-means eps: " << kmeansEps << ", balanced: " << kmeansBalanced
                               << ", weighted features: " << kmeansWeightedFeatures;
                 if (treeType == hierarchicalKmeans || treeType == balancedInOrder || treeType == balancedRandom)
-                    LOG(CERR) << ", max leaves: " << maxLeaves;
+                    Log(CERR) << ", max leaves: " << maxLeaves;
             } else {
-                LOG(CERR) << "\n    Tree: " << treeStructure;
+                Log(CERR) << "\n    Tree: " << treeStructure;
             }
         }
     }
 
     if (command == "test" || command == "predict") {
-        if(thresholds.empty()) LOG(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
-        else LOG(CERR) << "\n  Thresholds: " << thresholds;
+        if(thresholds.empty()) Log(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
+        else Log(CERR) << "\n  Thresholds: " << thresholds;
         if (modelType == svbopMips || modelType == brMips) {
-            LOG(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
-            if(modelType == svbopMips) LOG(CERR) << ", k: " << svbopMipsK;
+            Log(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
+            if(modelType == svbopMips) Log(CERR) << ", k: " << svbopMipsK;
         }
         if (modelType == svbopFull || modelType == svbopHf || modelType == svbopMips) {
-            LOG(CERR) << "\n  Set utility: " << setUtilityName;
-            if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) LOG(CERR) << ", alpha: " << alpha;
-            if (setUtilityType == uAlphaBeta) LOG(CERR) << ", beta: " << beta;
-            if (setUtilityType == uDeltaGamma) LOG(CERR) << ", delta: " << delta << ", gamma: " << gamma;
+            Log(CERR) << "\n  Set utility: " << setUtilityName;
+            if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) Log(CERR) << ", alpha: " << alpha;
+            if (setUtilityType == uAlphaBeta) Log(CERR) << ", beta: " << beta;
+            if (setUtilityType == uDeltaGamma) Log(CERR) << ", delta: " << delta << ", gamma: " << gamma;
         }
     }
 
     if (command == "ofo")
-        LOG(CERR) << "\n  Epochs: " << epochs << ", a: " << ofoA << ", b: " << ofoB;
+        Log(CERR) << "\n  Epochs: " << epochs << ", a: " << ofoA << ", b: " << ofoB;
 
-    LOG(CERR) << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
+    Log(CERR) << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
               << "\n  Seed: " << seed << "\n";
 }
 

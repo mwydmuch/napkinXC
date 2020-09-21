@@ -51,9 +51,9 @@
 // #define ROBIN_HOOD_LOG_ENABLED
 #ifdef ROBIN_HOOD_LOG_ENABLED
 #    include <iostream>
-#    define ROBIN_HOOD_LOG(x) std::cout << __FUNCTION__ << "@" << __LINE__ << ": " << x << std::endl
+#    define ROBIN_HOOD_Log(x) std::cout << __FUNCTION__ << "@" << __LINE__ << ": " << x << std::endl
 #else
-#    define ROBIN_HOOD_LOG(x)
+#    define ROBIN_HOOD_Log(x)
 #endif
 
 // #define ROBIN_HOOD_TRACE_ENABLED
@@ -2093,7 +2093,7 @@ inline uint64_t umul128(uint64_t a, uint64_t b, uint64_t* high) noexcept {
             }
 
             bool try_increase_info() {
-                ROBIN_HOOD_LOG("mInfoInc=" << mInfoInc << ", numElements=" << mNumElements
+                ROBIN_HOOD_Log("mInfoInc=" << mInfoInc << ", numElements=" << mNumElements
                                            << ", maxNumElementsAllowed="
                                            << calcMaxNumElementsAllowed(mMask + 1));
                 if (mInfoInc <= 2) {
@@ -2132,7 +2132,7 @@ inline uint64_t umul128(uint64_t a, uint64_t b, uint64_t* high) noexcept {
                     return;
                 }
 
-                ROBIN_HOOD_LOG("mNumElements=" << mNumElements << ", maxNumElementsAllowed="
+                ROBIN_HOOD_Log("mNumElements=" << mNumElements << ", maxNumElementsAllowed="
                                                << maxNumElementsAllowed << ", load="
                                                << (static_cast<double>(mNumElements) * 100.0 /
                                                    (static_cast<double>(mMask) + 1)));

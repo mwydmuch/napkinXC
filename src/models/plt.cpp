@@ -50,7 +50,7 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
                            std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
                            SRMatrix<Feature>& features, Args& args) {
 
-    LOG(CERR) << "Assigning data points to nodes ...\n";
+    Log(CERR) << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
     UnorderedSet<TreeNode*> nPositive;
@@ -72,7 +72,7 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     }
 
     unsigned long long usedMem = nodeUpdateCount * (sizeof(double) + sizeof(Feature*)) + binLabels.size() * (sizeof(binLabels) + sizeof(binFeatures));
-    LOG(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
+    Log(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 }
 
 std::vector<std::vector<std::pair<int, int>>> PLT::assignDataPoints(SRMatrix<Label>& labels){
@@ -102,7 +102,7 @@ void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
     for (int i = 0; i < rSize; ++i) {
         auto ni = tree->leaves.find(rLabels[i]);
         if (ni == tree->leaves.end()) {
-            LOG(CERR) << "Encountered example with label " << rLabels[i] << " that does not exists in the tree\n";
+            Log(CERR) << "Encountered example with label " << rLabels[i] << " that does not exists in the tree\n";
             continue;
         }
         TreeNode* n = ni->second;
@@ -183,7 +183,7 @@ Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
 void PLT::setThresholds(std::vector<double> th){
     thresholds = th;
 
-    //LOG(CERR) << "Setting thresholds for PLT ...\n";
+    //Log(CERR) << "Setting thresholds for PLT ...\n";
     for(auto& n : tree->nodes) {
         n->th = 1;
         for (auto &l : n->labels) {
@@ -192,7 +192,7 @@ void PLT::setThresholds(std::vector<double> th){
                 n->thLabel = l;
             }
         }
-        //LOG(CERR) << "  Node " << n->index << ", labels: " << n->labels.size() << ", min: " << n->th << std::endl;
+        //Log(CERR) << "  Node " << n->index << ", labels: " << n->labels.size() << ", min: " << n->th << std::endl;
     }
 
     tree->root->th = 0;
@@ -266,7 +266,7 @@ double PLT::predictForLabel(Label label, Feature* features, Args& args) {
 }
 
 void PLT::load(Args& args, std::string infile) {
-    LOG(CERR) << "Loading " << name << " model ...\n";
+    Log(CERR) << "Loading " << name << " model ...\n";
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
@@ -279,13 +279,13 @@ void PLT::load(Args& args, std::string infile) {
 }
 
 void PLT::printInfo() {
-    LOG(COUT) << name << " additional stats:"
+    Log(COUT) << name << " additional stats:"
               << "\n  Tree size: " << (tree != nullptr ? tree->nodes.size() : treeSize)
               << "\n  Tree depth: " << (tree != nullptr ? tree->getTreeDepth() : treeDepth) << "\n";
     if(nodeUpdateCount > 0)
-        LOG(COUT) << "  Updated estimators / data point: " << static_cast<double>(nodeUpdateCount) / dataPointCount << "\n";
+        Log(COUT) << "  Updated estimators / data point: " << static_cast<double>(nodeUpdateCount) / dataPointCount << "\n";
     if(nodeEvaluationCount > 0)
-        LOG(COUT) << "  Evaluated estimators / data point: " << static_cast<double>(nodeEvaluationCount) / dataPointCount << "\n";
+        Log(COUT) << "  Evaluated estimators / data point: " << static_cast<double>(nodeEvaluationCount) / dataPointCount << "\n";
 }
 
 void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
@@ -297,7 +297,7 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     }
     m = tree->getNumberOfLeaves();
 
-    LOG(CERR) << "Training tree ...\n";
+    Log(CERR) << "Training tree ...\n";
 
     // Check data
     assert(features.rows() == labels.rows());

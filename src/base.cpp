@@ -470,7 +470,7 @@ void Base::save(std::ostream& out) {
         if(G != nullptr) saveVec(out, G, wSize, nonZeroW);
         else if(mapG != nullptr) saveVec(out, mapG, wSize, nonZeroW);
 
-//        LOG(CERR) << "  Save base: classCount: " << classCount << ", firstClass: "
+//        Log(CERR) << "  Save base: classCount: " << classCount << ", firstClass: "
 //                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
     }
 }
@@ -496,7 +496,7 @@ void Base::load(std::istream& in) {
             else G = loadAsDense(in);
         }
 
-//        LOG(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
+//        Log(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
 //                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
     }
 }
@@ -512,8 +512,8 @@ size_t Base::size() {
 }
 
 void Base::printWeights() {
-    forEachIW([&](const int& i, Weight& w) { LOG(CERR) << i << ":" << w << " "; });
-    LOG(CERR) << "\n";
+    forEachIW([&](const int& i, Weight& w) { Log(CERR) << i << ":" << w << " "; });
+    Log(CERR) << "\n";
 }
 
 void Base::invertWeights() {

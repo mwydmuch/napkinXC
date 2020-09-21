@@ -56,7 +56,7 @@ void SVBOPInvertedIndex::predict(std::vector<Prediction>& prediction, Feature* f
 
         for(int j = 0; j < args.svbopInvIndexK; ++j){
             for(Feature *f = features; f->index != -1; ++f) {
-                //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
+                //Log(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
 
                 if(f->index >= R.size() || R[f->index].size() <= i)
                     continue;
@@ -67,7 +67,7 @@ void SVBOPInvertedIndex::predict(std::vector<Prediction>& prediction, Feature* f
 
                 if(r.value == 0) continue;
 
-                //LOG(CERR) << "    f->value: " << f->value << ", r.index: " << r.index << ", r.value: " << r.value << "\n";
+                //Log(CERR) << "    f->value: " << f->value << ", r.index: " << r.index << ", r.value: " << r.value << "\n";
 
                 if (!predictedSet.count(r.index)) {
                     double score = bases[r.index]->predictValue(features);
@@ -78,7 +78,7 @@ void SVBOPInvertedIndex::predict(std::vector<Prediction>& prediction, Feature* f
             }
 
             ++i;
-            //LOG(CERR) << "    predicted.size(): " << predicted.size() << "\n";
+            //Log(CERR) << "    predicted.size(): " << predicted.size() << "\n";
         }
 
         P += exp(predicted.front().value);
@@ -98,7 +98,7 @@ void SVBOPInvertedIndex::predict(std::vector<Prediction>& prediction, Feature* f
 }
 
 void SVBOPInvertedIndex::load(Args& args, std::string infile) {
-    LOG(CERR) << "Loading weights ...\n";
+    Log(CERR) << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();
 
@@ -108,7 +108,7 @@ void SVBOPInvertedIndex::load(Args& args, std::string infile) {
             dim = bases[i]->getWSize();
     }
 
-    LOG(CERR) << "Building inverted index for " << dim << " features ...\n";
+    Log(CERR) << "Building inverted index for " << dim << " features ...\n";
     R = std::vector<std::vector<WeightIndex>>(dim);
 
     for (int i = 0; i < m; ++i) {
@@ -133,7 +133,7 @@ void SVBOPInvertedIndex::load(Args& args, std::string infile) {
 }
 
 void SVBOPInvertedIndex::printInfo() {
-    LOG(COUT) << name << " additional stats:"
+    Log(COUT) << name << " additional stats:"
               << "\n  Correct top: " << static_cast<double>(correctTop) / dataPointCount
               << "\n  Mean # estimators per data point: " << static_cast<double>(productCount) / dataPointCount << "\n";
 }
@@ -158,14 +158,14 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
     int fCount = 0;
     for(Feature *f = features; f->index != -1; ++f) ++fCount;
 
-    //LOG(CERR) << "  fCount: " << fCount << "\n";
+    //Log(CERR) << "  fCount: " << fCount << "\n";
 
     int inAllCount = 0;
     int i = 0;
     for(int k = 1; k <= m; ++k) {
         while(inAllCount < k) {
             for(Feature *f = features; f->index != -1; ++f) {
-                //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
+                //Log(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
 
                 if(f->value == 0)
                     continue;
@@ -204,8 +204,8 @@ void SVBOPFagin::predict(std::vector<Prediction>& prediction, Feature* features,
                 }
             }
 
-            //LOG(CERR) << "    inAllCount: " << inAllCount << ", fCount: " << fCount << "\n";
-            //LOG(CERR) << "    predicted.size(): " << predicted.size() << ", i:" << i << "\n";
+            //Log(CERR) << "    inAllCount: " << inAllCount << ", fCount: " << fCount << "\n";
+            //Log(CERR) << "    predicted.size(): " << predicted.size() << ", i:" << i << "\n";
             ++i;
         }
 
@@ -247,11 +247,11 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
         double upperBound = 99999;
 
         while (lowerBound < upperBound) {
-            //LOG(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
+            //Log(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
 
             upperBound = 0;
             for(Feature *f = features; f->index != -1; ++f) {
-                //LOG(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
+                //Log(CERR) << "    f->index: " << f->index << ", f->value: " << f->value << ", R[f->index].size(): " << R[f->index].size() << "\n";
 
                 if(f->index >= R.size() || R[f->index].size() <= i)
                     continue;
@@ -262,7 +262,7 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
 
                 if(r.value == 0) continue;
 
-                //LOG(CERR) << "    f->value: " << f->value << ", r.index: " << r.index << ", r.value: " << r.value << "\n";
+                //Log(CERR) << "    f->value: " << f->value << ", r.index: " << r.index << ", r.value: " << r.value << "\n";
 
                 upperBound += f->value * r.value;
                 if (!predictedSet.count(r.index)) {
@@ -273,11 +273,11 @@ void SVBOPThreshold::predict(std::vector<Prediction>& prediction, Feature* featu
                 }
             }
 
-            //LOG(CERR) << "    predicted.size(): " << predicted.size() << "\n";
+            //Log(CERR) << "    predicted.size(): " << predicted.size() << "\n";
             lowerBound = predicted.front().value;
             ++i;
 
-            //LOG(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
+            //Log(CERR) << "  lowerBound: " << lowerBound << ", upperBound: " << upperBound << ", i: " << i << "\n";
         }
 
         P += exp(predicted.front().value);

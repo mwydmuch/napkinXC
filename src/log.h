@@ -41,21 +41,21 @@ extern LogLevel logLevel;
 extern bool logTime;
 extern bool logLabel;
 
-class LOG {
+class Log {
 public:
-    LOG() {}
-    LOG(LogLevel level): level(level) {
+    Log() {}
+    Log(LogLevel level): level(level) {
         if(logTime) operator << (getTime() + " ");
         if(logLabel) operator << ("[" + getLabel(level) + "] : ");
     }
 
-    ~LOG() {
+    ~Log() {
         //if(opened) cout << std::endl;
         opened = false;
     }
 
     template<class T>
-    LOG &operator<<(const T &msg) {
+    Log &operator<<(const T &msg) {
         if(level <= logLevel) {
             switch(level){
                 case NONE: break;

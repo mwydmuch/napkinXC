@@ -39,7 +39,7 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     int hashCount = args.machHashes;
     bucketCount = args.machBuckets;
 
-    LOG(CERR) << "  Number of hashes: " << hashCount << ", number of buckets per hash: " << bucketCount << "\n";
+    Log(CERR) << "  Number of hashes: " << hashCount << ", number of buckets per hash: " << bucketCount << "\n";
 
     long seed = args.getSeed();
     std::default_random_engine rng(seed);
@@ -129,10 +129,10 @@ double MACH::predictForLabel(Label label, Feature* features, Args& args) {
 }
 
 void MACH::load(Args& args, std::string infile) {
-    LOG(CERR) << "Loading weights ...\n";
+    Log(CERR) << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
 
-    LOG(CERR) << "Loading hashes ...\n";
+    Log(CERR) << "Loading hashes ...\n";
     std::ifstream in(joinPath(infile, "hashes.bin"));
     int hashCount, a, b;
     in.read((char*)&m, sizeof(m));

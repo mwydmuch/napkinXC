@@ -32,7 +32,7 @@
 
 // Data utils
 std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
-    LOG(CERR) << "Computing labels' prior probabilities ...\n";
+    Log(CERR) << "Computing labels' prior probabilities ...\n";
 
     std::vector<Prediction> labelsProb;
 
@@ -80,7 +80,7 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
                                  const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures) {
 
     assert(features.rows() == labels.rows());
-    LOG(CERR) << "Computing labels' features matrix in " << threads << " threads ...\n";
+    Log(CERR) << "Computing labels' features matrix in " << threads << " threads ...\n";
 
     // Labels matrix transposed dot features matrix
     std::vector<std::vector<int>> labelsExamples(labels.cols());

@@ -68,7 +68,7 @@ void train(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->readData(labels, features, args);
     reader->saveToFile(joinPath(args.output, "data_reader.bin"));
-    LOG(COUT) << "Train data statistics:"
+    Log(COUT) << "Train data statistics:"
               << "\n  Train data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
               << "\n  Uniq labels: " << labels.cols()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
@@ -89,7 +89,7 @@ void train(Args& args) {
                                             .count()) /
                     1000;
     auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
-    LOG(COUT) << "Resources during training:"
+    Log(COUT) << "Resources during training:"
               << "\n  Train real time (s): " << realTime << "\n  Train CPU time (s): " << cpuTime
               << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
@@ -109,7 +109,7 @@ void test(Args& args) {
     std::shared_ptr<DataReader> reader = DataReader::factory(args);
     reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
     reader->readData(labels, features, args);
-    LOG(COUT) << "Test data statistics:"
+    Log(COUT) << "Test data statistics:"
               << "\n  Test data points: " << features.rows()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
               << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
@@ -138,11 +138,11 @@ void test(Args& args) {
     for (auto& m : measures) m->accumulate(labels, predictions);
 
     // Print results
-    LOG(COUT) << std::setprecision(5) << "Results:\n";
+    Log(COUT) << std::setprecision(5) << "Results:\n";
     for (auto& m : measures){
-        LOG(COUT) << "  " << m->getName() << ": " << m->value();
-        //if(m->isMeanMeasure()) LOG(COUT) << " ± " << m->stdDev(); // Print std
-        LOG(COUT) << "\n";
+        Log(COUT) << "  " << m->getName() << ": " << m->value();
+        //if(m->isMeanMeasure()) Log(COUT) << " ± " << m->stdDev(); // Print std
+        Log(COUT) << "\n";
     }
     model->printInfo();
 
@@ -155,7 +155,7 @@ void test(Args& args) {
                                             .count()) / 1000;
     auto loadCpuTime = resAfterModel.cpuTime - resAfterData.cpuTime;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
-    LOG(COUT) << "Resources during test:"
+    Log(COUT) << "Resources during test:"
               << "\n  Loading real time (s): " << loadRealTime
               << "\n  Loading CPU time (s): " << loadCpuTime
               << "\n  Test real time (s): " << realTime << "\n  Test CPU time (s): " << cpuTime
@@ -182,7 +182,7 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    LOG(COUT) << std::setprecision(5);
+    Log(COUT) << std::setprecision(5);
 
     // Predict data from cin and output to cout
     if (args.input == "-") {
@@ -210,8 +210,8 @@ void predict(Args& args) {
                 predictions = model->predictBatch(features, args);
 
             for (const auto &p : predictions) {
-                for (const auto &l : p) LOG(COUT) << l.label << ":" << l.value << " ";
-                LOG(COUT) << "\n";
+                for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
+                Log(COUT) << "\n";
             }
         } else { // For 1 thread predict and immediately save to file
             for(int r = 0; r < features.rows(); ++r){
@@ -223,8 +223,8 @@ void predict(Args& args) {
                 else
                     model->predict(prediction, features[r], args);
 
-                for (const auto &l : prediction) LOG(COUT) << l.label << ":" << l.value << " ";
-                LOG(COUT) << "\n";
+                for (const auto &l : prediction) Log(COUT) << l.label << ":" << l.value << " ";
+                Log(COUT) << "\n";
             }
         }
     }
@@ -260,7 +260,7 @@ void ofo(Args& args) {
             .count()) /
                     1000;
     auto cpuTime = resAfterFo.cpuTime - resAfterData.cpuTime;
-    LOG(COUT) << "Resources during F-measure optimization:"
+    Log(COUT) << "Resources during F-measure optimization:"
               << "\n  Optimization real time (s): " << realTime
               << "\n  Optimization CPU time (s): " << cpuTime << "\n";
 }
@@ -293,7 +293,7 @@ void testPredictionTime(Args& args) {
     std::default_random_engine rng(args.seed);
     std::uniform_int_distribution<int> dist(0, features.rows() - 1);
 
-    LOG(COUT) << "Results:";
+    Log(COUT) << "Results:";
     for(const auto& batchSize : batchSizes) {
         long double time = 0;
         long double timeSq = 0;
@@ -329,13 +329,13 @@ void testPredictionTime(Args& args) {
 
         long double meanTime = time / args.batches;
         long double meanTimePerPoint = timePerPoint / args.batches;
-        LOG(COUT) << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
+        Log(COUT) << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
                   << "\n  Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
                   << "\n  Batch " << batchSize << " test CPU time / data points (ms): " << meanTimePerPoint
                   << "\n  Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint);
 
     }
-    LOG(COUT) << "\n";
+    Log(COUT) << "\n";
 }
 
 void printHelp() {

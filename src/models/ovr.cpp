@@ -57,7 +57,7 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
         int rSize = labels.size(r);
 
         if (rSize != 1 && !args.pickOneLabelWeighting) {
-            LOG(CERR) << "Encountered example with " << rSize
+            Log(CERR) << "Encountered example with " << rSize
                       << " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!\n";
             continue;
         }
@@ -82,9 +82,9 @@ void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
 
     for (int p = 0; p < parts; ++p) {
         if (parts > 1)
-            LOG(CERR) << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
+            Log(CERR) << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
         else
-            LOG(CERR) << "Assigning labels for base estimators ...\n";
+            Log(CERR) << "Assigning labels for base estimators ...\n";
 
         int rStart = p * range;
         int rStop = (p + 1) * range;
@@ -121,6 +121,9 @@ std::vector<Prediction> OVR::predictForAllLabels(Feature* features, Args& args) 
 
     for (int i = 0; i < bases.size(); ++i) {
         double value = exp(bases[i]->predictValue(features)); // Softmax normalization
+
+        if(value == 1) value = 0;
+
         sum += value;
         prediction.push_back({i, value});
     }

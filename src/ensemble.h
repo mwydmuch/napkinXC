@@ -69,7 +69,7 @@ template <typename T> Ensemble<T>::~Ensemble() {
 
 template <typename T>
 void Ensemble<T>::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
-    LOG(CERR) << "Training ensemble of " << args.ensemble << " models ...\n";
+    Log(CERR) << "Training ensemble of " << args.ensemble << " models ...\n";
 
     for (int i = 0; i < args.ensemble; ++i) {
         std::string memberDir = joinPath(output, "member_" + std::to_string(i));
@@ -171,7 +171,7 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix<Feature>
 }
 
 template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& infile, int memberNo) {
-    LOG(CERR) << "  Loading ensemble member number " << memberNo << " ...\n";
+    Log(CERR) << "  Loading ensemble member number " << memberNo << " ...\n";
     assert(memberNo < args.ensemble);
     T* member = new T();
     member->load(args, joinPath(infile, "member_" + std::to_string(memberNo)));
@@ -180,7 +180,7 @@ template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& 
 
 template <typename T> void Ensemble<T>::load(Args& args, std::string infile) {
     if (!args.onTheTrotPrediction) {
-        LOG(CERR) << "Loading ensemble of " << args.ensemble << " models ...\n";
+        Log(CERR) << "Loading ensemble of " << args.ensemble << " models ...\n";
         for (int i = 0; i < args.ensemble; ++i) members.push_back(loadMember(args, infile, i));
         m = members[0]->outputSize();
     } else {
@@ -194,6 +194,6 @@ template <typename T> void Ensemble<T>::printInfo() {}
 
 
 template <typename T> void Ensemble<T>::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args){
-    LOG(CERR) << "  Threshold prediction is not available for ensemble";
+    Log(CERR) << "  Threshold prediction is not available for ensemble";
     // TODO
 }

@@ -36,14 +36,14 @@ void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<L
 }
 
 void OnlineModel::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
-    LOG(CERR) << "Preparing online model ...\n";
+    Log(CERR) << "Preparing online model ...\n";
 
     // Init model
     if(args.resume) load(args, output);
     else init(labels, features, args);
 
     // Iterate over rows
-    LOG(CERR) << "Training online for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
+    Log(CERR) << "Training online for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
 
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(features.rows()) / args.threads);

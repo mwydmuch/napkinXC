@@ -54,5 +54,5 @@ void SVBOPFull::predict(std::vector<Prediction>& prediction, Feature* features, 
             break;
     }
 
-    //LOG(CERR) << "  SVBOP-Full: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
+    //Log(CERR) << "  SVBOP-Full: pred. size: " << prediction.size() << " P: " << P << " best U: " << bestU << "\n";
 }

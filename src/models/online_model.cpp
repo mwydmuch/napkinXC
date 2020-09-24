@@ -22,6 +22,8 @@
 
 #include "online_model.h"
 #include "threads.h"
+#include "resources.h"
+#include "log.h"
 
 
 void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<Label>& labels,
@@ -32,6 +34,14 @@ void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<L
         if (!threadId) printProgress(i, examples);
         int r = startRow + i % rowsRange;
         model->update(r, labels.row(r), labels.size(r), features.row(r), features.size(r), args);
+
+        if(!threadId && logLevel >= CERR_DEBUG && i % (examples / 100) == 0){
+            auto res = getResources();
+            Log(COUT) << "  R mem (MB): " << res.currentRealMem / 1024
+                      << ", V mem (MB): " << res.currentVirtualMem / 1024
+                      << ", R mem peak (MB): " << res.peakRealMem / 1024
+                      << ", V mem peak (MB): " << res.peakVirtualMem / 1024 << "\n";
+        }
     }
 }
 

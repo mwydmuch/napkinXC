@@ -236,18 +236,20 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
 
     // Add labels
     for(int li = 0; li < newLabels.size(); ++li){
+
         Label nl = newLabels[li];
-        if (toExpand->children.size() < args.maxLeaves) { // If there is still place in OVR
+
+        if (toExpand->children.size() < args.maxLeaves) { // If there is still place under current node (operation variant 1)
             ++toExpand->subtreeLeaves;
             auto newLabelNode = createTreeNode(toExpand, nl, auxBases[toExpand->index]->copy());
             //Log(CERR) << "    Added node " << newLabelNode->index << " with label " << nl << " as " << toExpand->index << " child\n";
         } else {
-            // If not, expand node
+            // If not, expand node (variant 2 and variant 3)
             bool inserted = false;
 
             //Log(CERR) << "    Looking for other free siblings...\n";
+            for (auto &sibling : toExpand->parent->children) { // Try to expand sibling node with operation variant 2
 
-            for (auto &sibling : toExpand->parent->children) {
                 if (sibling->children.size() < args.maxLeaves && auxBases[sibling->index] != nullptr) {
                     auto newLabelNode = createTreeNode(sibling, nl, auxBases[sibling->index]->copy());
                     ++sibling->subtreeLeaves;

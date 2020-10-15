@@ -74,13 +74,14 @@ public:
     void invertWeights();
     void setFirstClass(int first);
 
-    void save(std::ostream& out);
-    void load(std::istream& in);
+    void save(std::ostream& out, bool saveGrads=false);
+    void load(std::istream& in, bool loadGrads=false, bool loadDense=false);
 
     Base* copy();
     Base* copyInverted();
 
     bool isDummy() { return (classCount < 2); }
+    void setDummy() { clear(); }
 
     // Used for debug
     void printWeights();

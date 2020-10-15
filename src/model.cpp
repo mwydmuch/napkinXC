@@ -296,11 +296,11 @@ void Model::trainBatchThread(int n, int r, std::vector<std::promise<Base *>>& re
                                    (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
 }
 
-void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results) {
+void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results, bool saveGrads) {
     for (int i = 0; i < results.size(); ++i) {
         printProgress(i, results.size());
         Base* base = results[i].get();
-        base->save(out);
+        base->save(out, saveGrads);
         delete base;
     }
 }
@@ -348,13 +348,13 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
         */
 
         // Saving in the main thread
-        saveResults(out, results);
+        saveResults(out, results, args.saveGrads);
         tSet.joinAll();
     } else {
         for (int i = 0; i < size; ++i){
             Base* base = new Base();
             base->train(n, baseFeatures[0].size(), baseLabels[i], baseFeatures[i], (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args);
-            base->save(out);
+            base->save(out, args.saveGrads);
             delete base;
         }
     }
@@ -407,19 +407,19 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
         */
 
         // Saving in the main thread
-        saveResults(out, results);
+        saveResults(out, results, args.saveGrads);
         tSet.joinAll();
     } else {
         for (int i = 0; i < size; ++i){
             Base* base = new Base();
             base->train(n, 0, baseLabels[i], baseFeatures, instancesWeights, args);
-            base->save(out);
+            base->save(out, args.saveGrads);
             delete base;
         }
     }
 }
 
-std::vector<Base*> Model::loadBases(std::string infile) {
+std::vector<Base*> Model::loadBases(std::string infile, bool resume) {
     Log(CERR) << "Loading base estimators ...\n";
 
     double nonZeroSum = 0;
@@ -434,7 +434,8 @@ std::vector<Base*> Model::loadBases(std::string infile) {
     for (int i = 0; i < size; ++i) {
         printProgress(i, size);
         auto b = new Base();
-        b->load(in);
+        b->load(in, resume);
+
         nonZeroSum += b->getNonZeroW();
         memSize += b->size();
         if(b->getMapW() != nullptr) ++sparse;

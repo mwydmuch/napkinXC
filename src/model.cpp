@@ -41,6 +41,8 @@
 #include "svbop_hf.h"
 #include "version.h"
 #include "extreme_text.h"
+#include "mach.h"
+#include "plg.h"
 
 // Mips extension models
 #ifdef MIPS_EXT
@@ -70,6 +72,8 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case svbopHf: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPHF>()); break;
         case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
         case extremeText: model = std::static_pointer_cast<Model>(std::make_shared<ExtremeText>()); break;
+        case mach: model = std::static_pointer_cast<Model>(std::make_shared<MACH>()); break;
+        case plg: model = std::static_pointer_cast<Model>(std::make_shared<PLG>()); break;
 #ifdef MIPS_EXT
         // Mips extension models
         case brMips: model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>()); break;

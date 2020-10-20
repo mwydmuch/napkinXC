@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "mach.h"
+#include "misc.h"
 #include "threads.h"
 
 
@@ -20,19 +21,6 @@ MACH::MACH() {
 
 MACH::~MACH() {
     for (auto b : bases) delete b;
-}
-
-bool MACH::isPrime(int number){
-    if(number % 2 == 0) return false;
-    double numberSqrt = std::sqrt(static_cast<double>(number));
-    for(int i = 3; i <= numberSqrt; i += 2)
-        if(number % i == 0) return false;
-    return true;
-}
-
-int MACH::getFirstBiggerPrime(int number){
-    while(!isPrime(number)) ++number;
-    return number;
 }
 
 void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
@@ -47,7 +35,7 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     m = labels.cols();
 
     // Generate hashes and save them to file
-    std::ofstream out(joinPath(output, "graph.bin"));
+    std::ofstream out(joinPath(output, "hashes.bin"));
     out.write((char*)&m, sizeof(m));
     out.write((char*)&bucketCount, sizeof(bucketCount));
     out.write((char*)&hashCount, sizeof(hashCount));
@@ -95,7 +83,7 @@ void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args&
     // Brute force prediction
     prediction.reserve(m);
     for (int i = 0; i < m; ++i){
-        prediction.push_back({i, 1.0});
+        prediction.push_back({i, 0.0});
     }
 
     for (int i = 0; i < bases.size(); ++i) {

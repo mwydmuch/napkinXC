@@ -38,6 +38,7 @@ enum ModelType {
     oplt,
     extremeText,
     mach,
+    plg,
     brMips, // MIPS extension model
     svbopMips, // MIPS extension model
     svbopThreshold,
@@ -155,8 +156,12 @@ public:
     size_t dims;
 
     // MACH options
-    int machHashes;
-    int machBuckets;
+    int machHashes = 10;
+    int machBuckets = 100;
+
+    // PLG options
+    int plgLayers = 10;
+    int plgLayerSize = 10;
 
     // Prediction options
     int topK;

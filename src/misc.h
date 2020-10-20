@@ -319,3 +319,29 @@ void makeDir(const std::string& dirname);
 
 // Remove file or directory
 void remove(const std::string& path);
+
+
+class UniversalHash {
+public:
+    UniversalHash(int a, int b) : a(a), b(b){};
+
+    int a;
+    int b;
+
+    int hash(int value) { return a * value % b; };
+};
+
+
+inline bool isPrime(int number){
+    if(number % 2 == 0) return false;
+    double numberSqrt = std::sqrt(static_cast<double>(number));
+    for(int i = 3; i <= numberSqrt; i += 2)
+        if(number % i == 0) return false;
+    return true;
+}
+
+
+inline int getFirstBiggerPrime(int number){
+    while(!isPrime(number)) ++number;
+    return number;
+}

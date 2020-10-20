@@ -105,6 +105,10 @@ Args::Args() {
     machHashes = 10;
     machBuckets = 100;
 
+    // PLT options
+    plgLayers = 10;
+    plgLayerSize = 10;
+
     // Prediction options
     topK = 5;
     threshold = 0.0;
@@ -221,6 +225,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     modelType = extremeText;
                 else if (args.at(ai + 1) == "mach")
                     modelType = mach;
+                else if (args.at(ai + 1) == "plg")
+                    modelType = plg;
 // Mips extension models
 #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips")
@@ -393,9 +399,15 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 
             // MACH options
             else if (args[ai] == "--machHashes")
-                machHashes = std::stoi(args.at(ai + 1)) != 0;
+                machHashes = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--machBuckets")
-                machBuckets = std::stoi(args.at(ai + 1)) != 0;
+                machBuckets = std::stoi(args.at(ai + 1));
+
+            // PLG options
+            else if (args[ai] == "--plgLayers")
+                plgLayers = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--plgLayerSize")
+                plgLayerSize = std::stoi(args.at(ai + 1));
 
             // OFO options
             else if (args[ai] == "--ofoType") {

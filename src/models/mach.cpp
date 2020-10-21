@@ -31,8 +31,8 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
 
     long seed = args.getSeed();
     std::default_random_engine rng(seed);
-
     m = labels.cols();
+    std::uniform_int_distribution dist(0, m);
 
     // Generate hashes and save them to file
     std::ofstream out(joinPath(output, "hashes.bin"));
@@ -41,8 +41,8 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     out.write((char*)&hashCount, sizeof(hashCount));
     
     for(int i = 0; i < hashCount; ++i){
-        int a = getFirstBiggerPrime(rng() % m);
-        int b = getFirstBiggerPrime(bucketCount + rng() % m);
+        unsigned int a = getFirstBiggerPrime(dist(rng));
+        unsigned int b = getFirstBiggerPrime(bucketCount + dist(rng));
 
         out.write((char*)&a, sizeof(a));
         out.write((char*)&b, sizeof(b));

@@ -30,9 +30,9 @@ void PLG::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     Log(CERR) << "  Number of graph layers: " << layerCount << ", number of nodes per layer: " << layerSize << "\n";
 
     long seed = args.getSeed();
-    std::default_random_engine rng(seed);
-
     m = labels.cols();
+    std::default_random_engine rng(seed);
+    std::uniform_int_distribution dist(0, m);
 
     // Generate hashes and save them to file
     std::ofstream out(joinPath(output, "graph.bin"));
@@ -41,8 +41,8 @@ void PLG::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     out.write((char*)&layerSize, sizeof(layerSize));
 
     for(int i = 0; i < layerCount; ++i){
-        int a = getFirstBiggerPrime(rng() % m);
-        int b = getFirstBiggerPrime(layerSize + rng() % m);
+        unsigned int a = getFirstBiggerPrime(dist(rng));
+        unsigned int b = getFirstBiggerPrime(layerSize + dist(rng));
 
         out.write((char*)&a, sizeof(a));
         out.write((char*)&b, sizeof(b));
@@ -52,7 +52,7 @@ void PLG::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
 
     out.close();
 
-    int size = layerSize + (layerSize * layerSize) * hashes.size();
+    int size = layerSize + (layerSize * layerSize) * (hashes.size() - 1);
 
     int rows = features.rows();
     int lCols = labels.cols();
@@ -62,27 +62,33 @@ void PLG::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     std::vector<std::vector<Feature*>> binFeatures(size);
 
     for (int r = 0; r < rows; ++r) {
+        Log(CERR_DEBUG) << "-- POINT0 --\n";
+
         printProgress(r, rows);
 
         int rSize = labels.size(r);
         auto rLabels = labels[r];
         auto rFeatures = features[r];
+
+        Log(CERR_DEBUG) << r << " " << rSize << "\n";
+        Log(CERR_DEBUG) << "-- POINT1 --\n";
         
         UnorderedSet<int> posEdges;
         UnorderedSet<int> posNodes;
 
+        Log(CERR_DEBUG) << "-- POINT2 --\n";
+
         for (int i = 0; i < rSize; ++i) {
             int prevNode = 0;
-            posNodes.insert(prevNode);
             for (int j = 0; j < hashes.size(); ++j) {
+                posNodes.insert(prevNode);
                 int nextNode = nodeForLabel(rLabels[i], j);
                 int edge = prevNode * layerSize + nextNode;
                 posEdges.insert(prevNode * layerSize + nextNode);
                 prevNode = 1 + j * layerSize + nextNode;
-                posNodes.insert(prevNode);
             }
         }
-        
+
         for(const auto& e : posEdges) {
             binLabels[e].push_back(1.0);
             binFeatures[e].push_back(rFeatures);

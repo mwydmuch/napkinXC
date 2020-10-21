@@ -323,12 +323,12 @@ void remove(const std::string& path);
 
 class UniversalHash {
 public:
-    UniversalHash(int a, int b) : a(a), b(b){};
+    UniversalHash(unsigned int a, unsigned int b) : a(a), b(b){};
 
-    int a;
-    int b;
+    unsigned int a;
+    unsigned int b;
 
-    int hash(int value) { return a * value % b; };
+    unsigned int hash(int value) { return a * value % b; };
 };
 
 

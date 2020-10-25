@@ -105,7 +105,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
     if [ -e $TRAIN_RESUME_RESULT_FILE ]; then
-        cat $TRAIN_RESUME_RESULT_FILE > $TEST_RESULT_FILE
+        cat $TRAIN_RESUME_RESULT_FILE >> $TEST_RESULT_FILE
     fi
     (time ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
 

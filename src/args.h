@@ -61,8 +61,6 @@ enum TreeType {
 
 enum OptimizerType { liblinear, sgd, adagrad };
 
-enum DataFormatType { libsvm, vw };
-
 enum SetUtilityType {
     uP,
     uR,
@@ -103,9 +101,7 @@ public:
     // Input/output options
     std::string input;
     std::string output;
-    DataFormatType dataFormatType;
     ModelType modelType;
-    bool header;
     double bias;
     bool norm;
     int hash;
@@ -186,7 +182,6 @@ public:
 
     // Args for OFO command
     OFOType ofoType;
-    std::string ofoTypeName;
     double ofoTopLabels;
     double ofoA;
     double ofoB;
@@ -203,8 +198,8 @@ private:
     std::string treeTypeName;
     std::string optimizerName;
     std::string modelName;
-    std::string dataFormatName;
     std::string setUtilityName;
+    std::string ofoTypeName;
 
     std::vector<std::string> parsedArgs;
 };

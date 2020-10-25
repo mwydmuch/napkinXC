@@ -43,11 +43,8 @@ Args::Args() {
     // Input/output options
     input = "";
     output = ".";
-    dataFormatName = "libsvm";
-    dataFormatType = libsvm;
     modelName = "plt";
     modelType = plt;
-    header = true;
     hash = 0;
     bias = 1.0;
     norm = true;
@@ -177,15 +174,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 input = std::string(args.at(ai + 1));
             else if (args[ai] == "-o" || args[ai] == "--output")
                 output = std::string(args.at(ai + 1));
-            else if (args[ai] == "-d" || args[ai] == "--dataFormat") {
-                dataFormatName = args.at(ai + 1);
-                if (args.at(ai + 1) == "libsvm")
-                    dataFormatType = libsvm;
-                else if (args.at(ai + 1) == "vw" || args.at(ai + 1) == "vowpalwabbit")
-                    dataFormatType = vw;
-                else
-                    throw std::invalid_argument("Unknown date format type: " + args.at(ai + 1));
-            } else if (args[ai] == "--ensemble")
+            else if (args[ai] == "--ensemble")
                 ensemble = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--onTheTrotPrediction")
                 onTheTrotPrediction = std::stoi(args.at(ai + 1));
@@ -270,8 +259,6 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
             else if (args[ai] == "--gamma")
                 gamma = std::stof(args.at(ai + 1));
 
-            else if (args[ai] == "--header")
-                header = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--bias")
                 bias = std::stof(args.at(ai + 1));
             else if (args[ai] == "--norm")
@@ -471,8 +458,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 void Args::printArgs(std::string command) {
     Log(CERR) << "napkinXC " << VERSION;
     if (!input.empty())
-        Log(CERR) << "\n  Input: " << input << "\n    Data format: " << dataFormatName
-                  << "\n    Header: " << header << ", bias: " << bias << ", norm: " << norm
+        Log(CERR) << "\n  Input: " << input << "\n    Bias: " << bias << ", norm: " << norm
                   << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
     Log(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
     if (ensemble > 1) Log(CERR) << ", ensemble: " << ensemble;
@@ -523,27 +509,25 @@ void Args::printArgs(std::string command) {
 }
 
 void Args::save(std::ostream& out) {
-    out.write((char*)&bias, sizeof(bias));
-    out.write((char*)&norm, sizeof(norm));
-    out.write((char*)&hash, sizeof(hash));
-    out.write((char*)&modelType, sizeof(modelType));
-    out.write((char*)&dataFormatType, sizeof(dataFormatType));
-    out.write((char*)&ensemble, sizeof(ensemble));
+    saveVar(out, bias);
+    saveVar(out, norm);
+    saveVar(out, hash);
+    saveVar(out, weightsThreshold);
 
+    saveVar(out, modelType);
     saveVar(out, modelName);
-    saveVar(out, dataFormatName);
+    saveVar(out, ensemble);
 }
 
 void Args::load(std::istream& in) {
-    in.read((char*)&bias, sizeof(bias));
-    in.read((char*)&norm, sizeof(norm));
-    in.read((char*)&hash, sizeof(hash));
-    in.read((char*)&modelType, sizeof(modelType));
-    in.read((char*)&dataFormatType, sizeof(dataFormatType));
-    in.read((char*)&ensemble, sizeof(ensemble));
+    loadVar(in, bias);
+    loadVar(in, norm);
+    loadVar(in, hash);
+    loadVar(in, weightsThreshold);
 
+    loadVar(in, modelType);
     loadVar(in, modelName);
-    loadVar(in, dataFormatName);
+    loadVar(in, ensemble);
 
     parseArgs(parsedArgs, false);
 }

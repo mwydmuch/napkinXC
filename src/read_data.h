@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2018-2020 by Marek Wydmuch
+ Copyright (c) 2019-2020 by Marek Wydmuch
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -24,13 +24,14 @@
 
 #include <string>
 
-#include "data_reader.h"
+#include "args.h"
+#include "misc.h"
+#include "types.h"
 
-class LibSvmReader : public DataReader {
-public:
-    LibSvmReader();
-    ~LibSvmReader() override;
 
-    void readHeader(std::string& line, int& hLabels, int& hFeatures, int& hRows) override;
-    void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures) override;
-};
+// Libsvm, XMLCRepo and numberic VW file reader
+void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures);
+
+void prepareFeaturesVector(std::vector<Feature> &lFeatures, double bias = 1.0);
+void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm = true, int hashSize = 0, double featuresThreshold = 0);

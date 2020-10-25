@@ -30,7 +30,7 @@
 #include <iostream>
 
 #include "args.h"
-#include "data_reader.h"
+#include "read_data.h"
 #include "log.h"
 #include "measure.h"
 #include "misc.h"
@@ -65,9 +65,7 @@ void train(Args& args) {
     args.saveToFile(joinPath(args.output, "args.bin"));
 
     // Create data reader and load train data
-    std::shared_ptr<DataReader> reader = DataReader::factory(args);
-    reader->readData(labels, features, args);
-    reader->saveToFile(joinPath(args.output, "data_reader.bin"));
+    readData(labels, features, args);
     Log(COUT) << "Train data statistics:"
               << "\n  Train data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
               << "\n  Uniq labels: " << labels.cols()
@@ -105,10 +103,8 @@ void test(Args& args) {
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs("test");
 
-    // Create data reader and load test data
-    std::shared_ptr<DataReader> reader = DataReader::factory(args);
-    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
-    reader->readData(labels, features, args);
+    // Load test data
+    readData(labels, features, args);
     Log(COUT) << "Test data statistics:"
               << "\n  Test data points: " << features.rows()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
@@ -174,10 +170,6 @@ void predict(Args& args) {
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
 
-    // Create data reader
-    std::shared_ptr<DataReader> reader = DataReader::factory(args);
-    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
-
     // Load model
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
@@ -195,7 +187,7 @@ void predict(Args& args) {
     else {
         SRMatrix<Label> labels;
         SRMatrix<Feature> features;
-        reader->readData(labels, features, args);
+        readData(labels, features, args);
 
         if (!args.thresholds.empty()) { // Using thresholds if provided
             std::vector<double> thresholds = loadThresholds(args.thresholds);
@@ -235,17 +227,13 @@ void ofo(Args& args) {
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
 
-    // Create data reader
-    std::shared_ptr<DataReader> reader = DataReader::factory(args);
-    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
-
     // Load model
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
-    reader->readData(labels, features, args);
+    readData(labels, features, args);
 
     auto resAfterData = getResources();
 
@@ -272,17 +260,13 @@ void testPredictionTime(Args& args) {
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
 
-    // Create data reader
-    std::shared_ptr<DataReader> reader = DataReader::factory(args);
-    reader->loadFromFile(joinPath(args.output, "data_reader.bin"));
-
     // Load model
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
-    reader->readData(labels, features, args);
+    readData(labels, features, args);
 
     // Read batch sizes
     std::vector<int> batchSizes;

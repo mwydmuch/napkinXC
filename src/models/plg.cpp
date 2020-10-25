@@ -62,21 +62,14 @@ void PLG::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args
     std::vector<std::vector<Feature*>> binFeatures(size);
 
     for (int r = 0; r < rows; ++r) {
-        Log(CERR_DEBUG) << "-- POINT0 --\n";
-
         printProgress(r, rows);
 
         int rSize = labels.size(r);
         auto rLabels = labels[r];
         auto rFeatures = features[r];
-
-        Log(CERR_DEBUG) << r << " " << rSize << "\n";
-        Log(CERR_DEBUG) << "-- POINT1 --\n";
         
         UnorderedSet<int> posEdges;
         UnorderedSet<int> posNodes;
-
-        Log(CERR_DEBUG) << "-- POINT2 --\n";
 
         for (int i = 0; i < rSize; ++i) {
             int prevNode = 0;

@@ -152,19 +152,27 @@ def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbos
     Downloads the dataset from the internet and puts it in root directory.
     If dataset is already downloaded, it is not downloaded again.
     Then loads requested datasets into features matrix and labels.
+
     :param dataset: name of the dataset to load, case insensitive
-        {'Eurlex-4K', 'AmazonCat-13K', 'AmazonCat-14K', 'Wiki10-31K', 'DeliciousLarge-200K', 'WikiLSHTC-325K',
-         'WikipediaLarge-500K', 'Amazon-670K', 'Amazon-3M'}
+    {'Eurlex-4K',
+     'AmazonCat-13K',
+     'AmazonCat-14K',
+     'Wiki10-31K',
+     'DeliciousLarge-200K',
+     'WikiLSHTC-325K',
+     'WikipediaLarge-500K',
+     'Amazon-670K',
+     'Amazon-3M'}
     :type dataset: str
     :param subset: subset of dataset to load into features matrix and labels {'train', 'test', 'all'}, defaults to 'train'
-    :type subset: str
+    :type subset: str, optional
     :param format: format of dataset to load {'tf-idf'}, defaults to 'tf-idf'
-    :type format: str
+    :type format: str, optional
     :param root: location of datasets directory, defaults to ./data
-    :type root: str
+    :type root: str, optional
     :param verbose: if True print downloading and loading progress, defaults to False
-    :type verbose: bool
-    :return: (csr_matrix, list[list[int]]), features matrix and labels
+    :type verbose: bool, optional
+    :return: (csr_matrix, list[list[int]]), tuple of features matrix and labels
     """
     dataset = dataset.lower()
     dataset_meta = DATASETS.get(dataset, None)

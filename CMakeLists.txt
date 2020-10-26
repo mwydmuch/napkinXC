@@ -15,6 +15,7 @@ set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # Building options
 option(EXE "Build executable" ON)
 option(PYTHON "Build Python binding" OFF)
+option(BACKWARD "Build with backward.cpp" ON)
 option(MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -41,26 +42,30 @@ configure_file(
     ${SRC_DIR}/version.h
 )
 
+
+
 # Gather napkinXC source files
 file(GLOB SOURCES
     ${SRC_DIR}/*.cpp
-    ${SRC_DIR}/utils/*.cpp
     ${SRC_DIR}/blas/*.c
-    ${SRC_DIR}/data_readers/*.cpp
     ${SRC_DIR}/liblinear/*.cpp
     ${SRC_DIR}/models/*.cpp)
 
 set(INCLUDES
     ${SRC_DIR}
-    ${SRC_DIR}/utils
     ${SRC_DIR}/blas
-    ${SRC_DIR}/data_readers
     ${SRC_DIR}/liblinear
     ${SRC_DIR}/models)
 
 set(LIBRARIES PRIVATE Threads::Threads)
 
 set(DEPENDENCIES)
+
+# Include backward.cpp
+if (BACKWARD)
+    list(APPEND SOURCES ${SRC_DIR}/backward/backward.cpp)
+    list(APPEND INCLUDES ${SRC_DIR}/backward)
+endif ()
 
 # MIPS extension files
 if (MIPS_EXT)
@@ -93,8 +98,8 @@ if (PYTHON)
     # Get pybind11
     git_clone(PROJECT_NAME pybind11
             GIT_URL https://github.com/pybind/pybind11.git
-            GIT_BRANCH master
-            #GIT_TAG v2.5.0
+            #GIT_BRANCH master # To use master version
+            GIT_TAG v2.6.0
             DIRECTORY ${ROOT_DIR})
 
     add_subdirectory("pybind11")

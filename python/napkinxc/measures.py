@@ -31,6 +31,7 @@ def _process_Y(Y):
 def precision_at_k(Y_true, Y_pred, k=5):
     """
     Calculate precision at k
+
     :param Y_true: true labels
     :param Y_pred: ranking of predicted labels
     :param k: k
@@ -51,6 +52,7 @@ def precision_at_k(Y_true, Y_pred, k=5):
 def recall_at_k(Y_true, Y_pred, k=5):
     """
     Calculate recall at k
+
     :param Y_true: true labels
     :param Y_pred: ranking of predicted labels
     :param k: k
@@ -72,6 +74,7 @@ def recall_at_k(Y_true, Y_pred, k=5):
 def coverage_at_k(Y_true, Y_pred, k=5):
     """
     Calculate coverage at k
+
     :param Y_true: true labels
     :param Y_pred: ranking of predicted labels
     :param k: k
@@ -95,6 +98,7 @@ def coverage_at_k(Y_true, Y_pred, k=5):
 def dcg_at_k(Y_true, Y_pred, k=5):
     """
     Calculate DCG at k
+
     :param Y_true: true labels
     :param Y_pred: ranking of predicted labels
     :param k: k
@@ -113,6 +117,7 @@ def dcg_at_k(Y_true, Y_pred, k=5):
 def ndcg_at_k(Y_true, Y_pred, k=5):
     """
     Calculate nDCG at k
+
     :param Y_true: true labels
     :param Y_pred: ranking of predicted labels
     :param k: k
@@ -135,6 +140,7 @@ def ndcg_at_k(Y_true, Y_pred, k=5):
 def hamming_loss(Y_true, Y_pred):
     """
     Calculate hamming loss
+
     :param Y_true: true labels
     :param Y_pred: predicted labels
     :return: value of hamming loss

@@ -252,7 +252,7 @@ private:
                 output.appendRow(rLabels);
             }
         } else
-            throw py::value_error("Unsupported data type");
+            throw py::value_error("Unsupported data type for Y, should be list of lists or tuples");
     }
 
     // Reads multiple items from a python object and inserts onto a SRMatrix<Feature>

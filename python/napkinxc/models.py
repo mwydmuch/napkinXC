@@ -39,12 +39,12 @@ class Model():
         Fit the model to the given training data
 
         :param X: training data points
-        :type X: array-like, sparse matrix
+        :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
         :param Y: target labels
-        :type Y: list of lists
+        :type Y: list of lists or tuples
         :return: None
         """
-        self._model.fit(X, Y, Model._get_data_type(X), Model._get_data_type(Y))
+        self._model.fit(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
 
     def fit_on_file(self, path):
         """
@@ -61,28 +61,28 @@ class Model():
         Predict labels for data points in X
 
         :param X: data points
-        :type X: array-like, sparse matrix
+        :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
         :param top_k: Predict top-k labels, defaults to 5
         :type top_k: int
         :param threshold: Predict labels with probability above the threshold, defaults to 0
         :type threshold: float
         :return: list of list
         """
-        return self._model.predict(X, Model._get_data_type(X), top_k, threshold)
+        return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
 
     def predict_proba(self, X, top_k=5, threshold=0):
         """
         Predict labels with probability estimates for data points in X
 
         :param X: data points
-        :type X: array-like, sparse matrix
+        :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
         :param top_k: Predict top-k labels, defaults to 5
         :type top_k: int
         :param threshold: Predict labels with probability above the threshold, defaults to 0
         :type threshold: float
         :return: list of list of tuples
         """
-        return self._model.predict(X, Model._get_data_type(X), top_k, threshold)
+        return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
 
     def predict_for_file(self, path, top_k=5, threshold=0):
         """
@@ -114,19 +114,19 @@ class Model():
 
     def get_params(self, deep=False): # deep argument for sklearn compatibility
         """
-        Get parameters for this model
+        Get parameters of this model/
 
-        :param deep: ignored, added for sklearn compatibility, defaults to False
+        :param deep: Ignored, added for sklearn compatibility, defaults to False.
         :return: mapping of string to any
         """
         return self._params
 
     def set_params(self, **params):
         """
-        Set model params
+        Set parameters for this model.
 
-        :param: \*\*params: parameters of the model
-        :return: None
+        :param: \*\*params: Parameter names with their new values.
+        :return: self
         """
         if 'model' in self._params and 'model' in params:
             params.pop('model')  # do not allow for changing model param
@@ -149,6 +149,8 @@ class Model():
             params_list.extend([arg_k, arg_v])
         self._model.set_args(params_list)
 
+        return self
+
     @staticmethod
     def _get_init_params(locals):
         kwargs = locals['kwargs']
@@ -162,7 +164,7 @@ class Model():
         return re.sub(r'(?!^)_([a-zA-Z])', lambda m: m.group(1).upper(), string)
 
     @staticmethod
-    def _get_data_type(data):
+    def _check_data_type(data):
         data_type = type(data)
         if data_type == list:
             return InputDataType.list
@@ -176,7 +178,7 @@ class Model():
 
 class PLT(Model):
     """
-    Probabilistic Labels Trees model with linear node estimators, using CPP core
+    Probabilistic Labels Trees (PLTs) model with linear node estimators, using CPP core.
     """
 
     def __init__(self,
@@ -213,50 +215,52 @@ class PLT(Model):
                  verbose=0,
                  **kwargs):
         """
+        Construct a Probabilistic Labels Trees model.
+
         :param output: directory where the model will be stored
         :type output: str
         :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
-        :type tree_type: str
+        :type tree_type: str, optional
         :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
-        :type arity: int
+        :type arity: int, optional
         :param max_leaves: maximum degree of pre-leaf nodes, defaults to 100
-        :type max_leaves: int
+        :type max_leaves: int, optional
         :param kmeans_eps: tolerance of termination criterion of the k-means clustering used in hierarchical k-means tree building procedure, defaults to 0.0001
-        :type kmeans_eps: float
+        :type kmeans_eps: float, optional
         :param kmeans_balanced: use balanced k-means clustering, defaults to True
-        :type kmeans_balanced: bool
+        :type kmeans_balanced: bool, optional
         :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
-        :type hash: int
+        :type hash: int, optional
         :param features_threshold: prune features below given threshold, defaults to 0
-        :type features_threshold: float
+        :type features_threshold: float, optional
         :param norm: unit norm feature vector, defaults to True
-        :type norm: bool
+        :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
-        :type bias: float
+        :type bias: float, optional
         :param optimizer: optimizer used for training node classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
-        :type optimizer: str
+        :type optimizer: str, optional
         :param loss: loss optimized while training node classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
-        :type loss: str
+        :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
-        :type weights_threshold: float
+        :type weights_threshold: float, optional
         :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
-        :type liblinear_c: float
+        :type liblinear_c: float, optional
         :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
-        :type liblinear_eps: float
+        :type liblinear_eps: float, optional
         :param eta: step size (learning rate) for online optimizers, defaults to 1.0
-        :type eta: float
+        :type eta: float, optional
         :param epochs: number of training epochs for online optimizers, defaults to 1
-        :type epochs: int
+        :type epochs: int, optional
         :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
-        :type adagrad_eps: float
+        :type adagrad_eps: float, optional
         :param ensemble: number of trees in the ensemble, defaults to 1
-        :type ensemble: int
+        :type ensemble: int, optional
         :param seed: seed, if None use current system time, defaults to None
-        :type seed: int
+        :type seed: int, optional
         :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
-        :type threads: int
+        :type threads: int, optional
         :param verbose: if True print progress, defaults to False
-        :type verbose: bool
+        :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "plt"})
@@ -265,7 +269,7 @@ class PLT(Model):
 
 class HSM(Model):
     """
-    Hierarchical Softmax model with linear node estimators, using CPP core
+    Hierarchical Softmax model with linear node estimators, using CPP core.
     """
 
     def __init__(self,
@@ -302,50 +306,52 @@ class HSM(Model):
                  verbose=0,
                  **kwargs):
         """
+        Construct a Hierarchical Softmax model.
+
         :param output: directory where the model will be stored
         :type output: str
         :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
-        :type tree_type: str
+        :type tree_type: str, optional
         :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
-        :type arity: int
+        :type arity: int, optional
         :param max_leaves: maximum degree of pre-leaf nodes, defaults to 100
-        :type max_leaves: int
+        :type max_leaves: int, optional
         :param kmeans_eps: tolerance of termination criterion of the k-means clustering used in hierarchical k-means tree building procedure, defaults to 0.0001
-        :type kmeans_eps: float
+        :type kmeans_eps: float, optional
         :param kmeans_balanced: use balanced k-means clustering, defaults to True
-        :type kmeans_balanced: bool
+        :type kmeans_balanced: bool, optional
         :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
-        :type hash: int
+        :type hash: int, optional
         :param features_threshold: prune features below given threshold, defaults to 0
-        :type features_threshold: float
+        :type features_threshold: float, optional
         :param norm: unit norm feature vector, defaults to True
-        :type norm: bool
+        :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
-        :type bias: float
+        :type bias: float, optional
         :param optimizer: optimizer used for training binary classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
-        :type optimizer: str
+        :type optimizer: str, optional
         :param loss: loss optimized while training binary classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
-        :type loss: str
+        :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
-        :type weights_threshold: float
+        :type weights_threshold: float, optional
         :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
-        :type liblinear_c: float
+        :type liblinear_c: float, optional
         :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
-        :type liblinear_eps: float
+        :type liblinear_eps: float, optional
         :param eta: step size (learning rate) for online optimizers, defaults to 1.0
-        :type eta: float
+        :type eta: float, optional
         :param epochs: number of training epochs for online optimizers, defaults to 1
-        :type epochs: int
+        :type epochs: int, optional
         :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
-        :type adagrad_eps: float
+        :type adagrad_eps: float, optional
         :param ensemble: number of trees in the ensemble, defaults to 1
-        :type ensemble: int
+        :type ensemble: int, optional
         :param seed: seed, if None use current system time, defaults to None
-        :type seed: int
+        :type seed: int, optional
         :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
-        :type threads: int
+        :type threads: int, optional
         :param verbose: if True print progress, defaults to False
-        :type verbose: bool
+        :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "hsm"})
@@ -380,36 +386,38 @@ class BR(Model):
                  verbose=0,
                  **kwargs):
         """
+        Construct a Binary Relevance model.
+
         :param output: directory where the model will be stored
-        :type output: str
+        :type output: str, optional
         :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
-        :type hash: int
+        :type hash: int, optional
         :param features_threshold: prune features below given threshold, defaults to 0
-        :type features_threshold: float
+        :type features_threshold: float, optional
         :param norm: unit norm feature vector, defaults to True
-        :type norm: bool
+        :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
-        :type bias: float
+        :type bias: float, optional
         :param optimizer: optimizer used for training binary classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
-        :type optimizer: str
+        :type optimizer: str, optional
         :param loss: loss optimized while training binary classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
-        :type loss: str
+        :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
-        :type weights_threshold: float
+        :type weights_threshold: float, optional
         :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
-        :type liblinear_c: float
+        :type liblinear_c: float, optional
         :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
-        :type liblinear_eps: float
+        :type liblinear_eps: float, optional
         :param eta: step size (learning rate) for online optimizers, defaults to 1.0
-        :type eta: float
+        :type eta: float, optional
         :param epochs: number of training epochs for online optimizers, defaults to 1
-        :type epochs: int
+        :type epochs: int, optional
         :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
-        :type adagrad_eps: float
+        :type adagrad_eps: float, optional
         :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
-        :type threads: int
+        :type threads: int, optional
         :param verbose: if True print progress, defaults to False
-        :type verbose: bool
+        :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "br"})
@@ -418,7 +426,7 @@ class BR(Model):
 
 class OVR(Model):
     """
-    One Versus Rest model with linear node estimators, using CPP core
+    One Versus Rest model with linear node estimators, using CPP core.
     """
 
     def __init__(self,
@@ -444,36 +452,38 @@ class OVR(Model):
                  verbose=0,
                  **kwargs):
         """
+        Construct a One Versus Rest model.
+
         :param output: directory where the model will be stored
         :type output: str
         :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
-        :type hash: int
+        :type hash: int, optional
         :param features_threshold: prune features below given threshold, defaults to 0
-        :type features_threshold: float
+        :type features_threshold: float, optional
         :param norm: unit norm feature vector, defaults to True
-        :type norm: bool
+        :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
-        :type bias: float
+        :type bias: float, optional
         :param optimizer: optimizer used for training node classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
-        :type optimizer: str
+        :type optimizer: str, optional
         :param loss: loss optimized while training node classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
-        :type loss: str
+        :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
-        :type weights_threshold: float
+        :type weights_threshold: float, optional
         :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
-        :type liblinear_c: float
+        :type liblinear_c: float, optional
         :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
-        :type liblinear_eps: float
+        :type liblinear_eps: float, optional
         :param eta: step size (learning rate) for online optimizers, defaults to 1.0
-        :type eta: float
+        :type eta: float, optional
         :param epochs: number of training epochs for online optimizers, defaults to 1
-        :type epochs: int
+        :type epochs: int, optional
         :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
-        :type adagrad_eps: float
+        :type adagrad_eps: float, optional
         :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
-        :type threads: int
+        :type threads: int, optional
         :param verbose: if True print progress, defaults to False
-        :type verbose: bool
+        :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "ovr"})

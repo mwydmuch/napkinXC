@@ -17,6 +17,9 @@
 # Cpp
 nxc
 
+# Docs
+docs/*/*
+
 # Experiments
 /data
 /models*

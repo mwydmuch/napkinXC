@@ -342,12 +342,8 @@ Args:
     -m, --model             Model type (default = plt):
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
-    -d, --dataFormat        Type of data format (default = libsvm),
-                            Supported data formats: libsvm
     -t, --threads           Number of threads to use (default = 0)
                             Note: -1 to use #cpus - 1, 0 to use #cpus
-    --header                Input contains header (default = 1)
-                            Header format for libsvm: #lines #features #labels
     --hash                  Size of features space (default = 0)
                             Note: 0 to disable hashing
     --featuresThreshold     Prune features below given threshold (default = 0.0)

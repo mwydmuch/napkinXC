@@ -1,10 +1,14 @@
-# napkinXC [![Build Status](https://travis-ci.org/mwydmuch/napkinXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkinXC)
+# napkinXC 
+[![PyPI version](https://badge.fury.io/py/napkinxc.svg)](https://badge.fury.io/py/napkinxc) 
+[![Build Status](https://travis-ci.org/mwydmuch/napkinXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkinXC) 
+[![Documentation Status](https://readthedocs.org/projects/napkinxc/badge/?version=latest)](https://napkinxc.readthedocs.io/en/latest/?badge=latest)
+[![License](https://img.shields.io/github/license/mwydmuch/napkinXC.svg)](https://github.com/mwydmuch/napkinXC/blob/master/LICENSE)
 
 napkinXC is an extremely simple and fast library for extreme multi-class and multi-label classification.
 It allows to train a classifier for very large datasets in few lines of code with minimal resources.
 
 Right now, napkinXC implements the following features both in Python and C++:
-- Probabilistic Label Trees (PLT) and Online Probabilistic Label Trees (OPLT),
+- Probabilistic Label Trees (PLTs) and Online Probabilistic Label Trees (OPLTs),
 - Hierarchical softmax (HSM),
 - Binary Relevance (BR),
 - One Versus Rest (OVR),
@@ -16,6 +20,7 @@ Right now, napkinXC implements the following features both in Python and C++:
 - helpers to download and load data from [XML Repository](http://manikvarma.org/downloads/XC/XMLRepository.html),
 - helpers to measure performance.
 
+Documentation is 
 Please note that this library is still under development and also serves as a base for experiments. 
 Some of the experimental features may not be documented. 
 
@@ -26,20 +31,22 @@ All contributions to the project are welcome!
 ## Roadmap
 
 Coming soon:
-- OPLT available in Python
 - Possibility to use any type of binary classifier from Python
 - Improved dataset loading from Python
 - More datasets from XML Repository
 
 
-## Python quick start
+## Python Quick Start and Documentation
 
-Python version of napkinXC can be easily installed from PyPy repository:
+napkinXC's documentation is available at [https://napkinxc.readthedocs.io](https://napkinxc.readthedocs.io) and is generated from this repository. 
+
+Python version of napkinXC can be easily installed from PyPy repository on Linux and MacOS, 
+it requires modern C++ compiler, CMake and Git installed:
 ```
 pip install napkinxc
 ```
 
-or directly from the GitHub repository:
+or the latest master version directly from the GitHub repository:
 ```
 pip install pip install git+https://github.com/mwydmuch/napkinXC.git
 ```
@@ -63,11 +70,11 @@ More examples can be found under `python/examples` directory.
 
 ## Building executable
 
-napkinXC can be also build as executable using:
+napkinXC can also be built using:
 
 ```
 cmake .
-make -j
+make
 ```
 
 
@@ -80,7 +87,7 @@ Commands:
     train                   Train model on given input data
     test                    Test model on given input data
     predict                 Predict for given data
-    ofo                     Use online f-measure optimalization
+    ofo                     Use online f-measure optimization
     version                 Print napkinXC version
     help                    Print help
 
@@ -91,12 +98,8 @@ Args:
     -m, --model             Model type (default = plt):
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
-    -d, --dataFormat        Type of data format (default = libsvm),
-                            Supported data formats: libsvm
     -t, --threads           Number of threads to use (default = 0)
                             Note: -1 to use #cpus - 1, 0 to use #cpus
-    --header                Input contains header (default = 1)
-                            Header format for libsvm: #lines #features #labels
     --hash                  Size of features space (default = 0)
                             Note: 0 to disable hashing
     --featuresThreshold     Prune features below given threshold (default = 0.0)
@@ -157,12 +160,23 @@ Args:
 ```
 
 
+## Data Format
+
+napkinXC supports multi-label svmlight/libsvm format 
+and format of datasets from [The Extreme Classification Repository](https://manikvarma.github.io/downloads/XC/XMLRepository.html), 
+which has an additional header line with a number of data points, features, and labels.
+
+```
+label,label,... feature(:value) feature(:value) ...
+```
+
+
 ## References and acknowledgments
 
 This library implements methods from following papers:
 
+- [Probabilistic Label Trees for Extreme Multi-label Classification](https://arxiv.org/pdf/2009.11218.pdf)
 - [Online Probabilistic Label Trees](https://arxiv.org/abs/1906.08129)
-
 - [Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification](https://arxiv.org/abs/1906.08129)
 
 Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, 

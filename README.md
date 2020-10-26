@@ -41,7 +41,7 @@ Coming soon:
 napkinXC's documentation is available at [https://napkinxc.readthedocs.io](https://napkinxc.readthedocs.io) and is generated from this repository. 
 
 Python version of napkinXC can be easily installed from PyPy repository on Linux and MacOS, 
-it requires modern C++ compiler, CMake and Git installed:
+it requires modern C++17 compiler, CMake and Git installed:
 ```
 pip install napkinxc
 ```

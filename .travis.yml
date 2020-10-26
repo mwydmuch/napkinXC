@@ -1,18 +1,42 @@
-sudo: false
 language: cpp
+matrix:
+  include:
+    - os: linux
+      dist: focal
+      compiler: gcc
+      install:
+        - sudo apt-get install cmake git python3-dev
 
-branches:
-  only:
-    - master
+    - os: linux
+      dist: focal
+      compiler: clang
+      install:
+        - sudo apt-get install cmake git python3-dev
 
-os:
-  - linux
-  - osx
+    - os: linux
+      dist: bionic
+      compiler: gcc
+      install:
+        - sudo apt-get install cmake git python3-dev
 
-compiler:
-  - gcc
-  - clang
+    - os: linux
+      dist: bionic
+      compiler: clang
+      install:
+        - sudo apt-get install cmake git python3-dev
+
+    - os: osx
+      compiler: gcc
+      install:
+        - HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake git
+
+    - os: osx
+      compiler: clang
+      install:
+        - HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake git
 
 script:
-  - cmake .
+  - python --version
+  - cmake -Bbuild -DPYTHON=ON .
+  - cd build
   - make

@@ -37,6 +37,7 @@ class Model():
     def fit(self, X, Y):
         """
         Fit the model to the given training data
+
         :param X: training data points
         :type X: array-like, sparse matrix
         :param Y: target labels
@@ -48,6 +49,7 @@ class Model():
     def fit_on_file(self, path):
         """
         Fit the model to the training data in the given file
+
         :param path: path to the file
         :type path: str
         :return: None
@@ -57,6 +59,7 @@ class Model():
     def predict(self, X, top_k=5, threshold=0):
         """
         Predict labels for data points in X
+
         :param X: data points
         :type X: array-like, sparse matrix
         :param top_k: Predict top-k labels, defaults to 5
@@ -70,6 +73,7 @@ class Model():
     def predict_proba(self, X, top_k=5, threshold=0):
         """
         Predict labels with probability estimates for data points in X
+
         :param X: data points
         :type X: array-like, sparse matrix
         :param top_k: Predict top-k labels, defaults to 5
@@ -83,6 +87,7 @@ class Model():
     def predict_for_file(self, path, top_k=5, threshold=0):
         """
         Predict labels for data points in the given file
+
         :param path: path to the file
         :type path: str
         :param top_k: Predict top-k labels, defaults to 5
@@ -96,6 +101,7 @@ class Model():
     def predict_proba_for_file(self, path, top_k=5, threshold=0):
         """
         Predict labels with probability estimates for data points in the given file
+
         :param path: path to the file
         :type path: str
         :param top_k: Predict top-k labels, defaults to 5
@@ -109,6 +115,7 @@ class Model():
     def get_params(self, deep=False): # deep argument for sklearn compatibility
         """
         Get parameters for this model
+
         :param deep: ignored, added for sklearn compatibility, defaults to False
         :return: mapping of string to any
         """
@@ -117,7 +124,8 @@ class Model():
     def set_params(self, **params):
         """
         Set model params
-        :param **params: parameters of the model
+
+        :param: \*\*params: parameters of the model
         :return: None
         """
         if 'model' in self._params and 'model' in params:
@@ -205,7 +213,6 @@ class PLT(Model):
                  verbose=0,
                  **kwargs):
         """
-        Initialize Probabilistic Labels Trees
         :param output: directory where the model will be stored
         :type output: str
         :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
@@ -250,7 +257,6 @@ class PLT(Model):
         :type threads: int
         :param verbose: if True print progress, defaults to False
         :type verbose: bool
-        :return: None
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "plt"})
@@ -296,7 +302,6 @@ class HSM(Model):
                  verbose=0,
                  **kwargs):
         """
-        Initialize Hierarchical Softmax
         :param output: directory where the model will be stored
         :type output: str
         :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
@@ -341,7 +346,6 @@ class HSM(Model):
         :type threads: int
         :param verbose: if True print progress, defaults to False
         :type verbose: bool
-        :return: None
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "hsm"})
@@ -376,7 +380,6 @@ class BR(Model):
                  verbose=0,
                  **kwargs):
         """
-        Initialize Binary Relevance
         :param output: directory where the model will be stored
         :type output: str
         :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
@@ -407,7 +410,6 @@ class BR(Model):
         :type threads: int
         :param verbose: if True print progress, defaults to False
         :type verbose: bool
-        :return: None
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "br"})
@@ -442,7 +444,6 @@ class OVR(Model):
                  verbose=0,
                  **kwargs):
         """
-        Initialize One Versus Rest
         :param output: directory where the model will be stored
         :type output: str
         :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
@@ -473,7 +474,6 @@ class OVR(Model):
         :type threads: int
         :param verbose: if True print progress, defaults to False
         :type verbose: bool
-        :return: None
         """
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "ovr"})

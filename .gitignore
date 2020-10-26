@@ -11,6 +11,10 @@
 /pybind11
 /src/version.h
 /src/nmslib
+*.pyc
+*.so
+
+# Cpp
 nxc
 
 # Experiments

@@ -1,5 +1,5 @@
-Executable
-==========
+Using C++ executable
+====================
 
 napkinXC can also be built and used as an executable that can be used to train and evaluate models and make a prediction.
 
@@ -7,7 +7,9 @@ napkinXC can also be built and used as an executable that can be used to train a
 Building
 --------
 
-To build napkinXC, first clone the project repository and run the following commands in the root directory of the project:
+To build napkinXC, first clone the project repository and run the following commands in the root directory of the project.
+It requires modern C++17 compiler, CMake and Git installed.
+Set CXX and CC environmental variables before running ``cmake`` command if you want to build with the specific C++ compiler.
 
 .. code:: sh
 
@@ -22,13 +24,28 @@ After successful compilation, ``nxc`` executable should appear in the root or sp
 Data Format
 -----------
 
-napkinXC supports multi-label svmlight/libsvm format
+napkinXC supports multi-label svmlight/libsvm like-format (less strict)
 and format of datasets from `The Extreme Classification Repository <https://manikvarma.github.io/downloads/XC/XMLRepository.html>`_,
 which has an additional header line with a number of data points, features, and labels.
 
+Each line contains an instance and is ended by a '\n' character.
+``<label>`` and ``<feature>`` are indexes that should be positive integers.
+Unlike to normal svmlight/libsvm format, labels and features do not have to be sorted in ascending order.
+
 .. code:: sh
 
-    label,label,... feature(:value) feature(:value) ...
+    <label>,<label>,... <feature>(:<value>) <feature>(:<value>) ...
+
+
+Usage
+-----
+
+``nxc`` executable needs command, i.e. train, test, predict as a first argument.
+``-i``/``--input`` and ``-o``/``--output`` arguments needs to be always provided.
+
+.. code:: sh
+
+    nxc <command> -i <path to dataset> -o <path to model directory> <args> ...
 
 
 Command line options
@@ -48,8 +65,8 @@ Command line options
 
     Args:
         General:
-        -i, --input             Input dataset
-        -o, --output            Output (model) dir
+        -i, --input             Input dataset, required
+        -o, --output            Output (model) dir, required
         -m, --model             Model type (default = plt):
                                 Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
         --ensemble              Number of models in ensemble (default = 1)

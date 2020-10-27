@@ -20,7 +20,6 @@ Right now, napkinXC implements the following features both in Python and C++:
 - helpers to download and load data from [XML Repository](http://manikvarma.org/downloads/XC/XMLRepository.html),
 - helpers to measure performance.
 
-Documentation is 
 Please note that this library is still under development and also serves as a base for experiments. 
 Some of the experimental features may not be documented. 
 
@@ -31,16 +30,19 @@ All contributions to the project are welcome!
 ## Roadmap
 
 Coming soon:
-- Possibility to use any type of binary classifier from Python
-- Improved dataset loading from Python
-- More datasets from XML Repository
+
+- Possibility to use any type of binary classifier from Python.
+- Efficient prediction with different threshold for each label.
+- Improved dataset loading from Python.
+- More datasets from XML Repository.
 
 
 ## Python Quick Start and Documentation
 
-napkinXC's documentation is available at [https://napkinxc.readthedocs.io](https://napkinxc.readthedocs.io) and is generated from this repository. 
+napkinXC's documentation is available at [https://napkinxc.readthedocs.io](https://napkinxc.readthedocs.io) 
+and is generated from this repository. 
 
-Python version of napkinXC can be easily installed from PyPy repository on Linux and MacOS, 
+Python (3.5+) version of napkinXC can be easily installed from PyPy repository on Linux and MacOS, 
 it requires modern C++17 compiler, CMake and Git installed:
 ```
 pip install napkinxc
@@ -62,23 +64,23 @@ X_test, Y_test = load_dataset("eurlex-4k", "test")
 plt = PLT("eurlex-model")
 plt.fit(X_train, Y_train)
 Y_pred = plt.predict(X_test, top_k=1)
-print(precision_at_k(Y_test, Y_pred, k=1))
+print(precision_at_k(Y_test, Y_pred, k=1)) 
 ```
 
 More examples can be found under `python/examples` directory.
 
 
-## Building executable
+## Executable
 
-napkinXC can also be built using:
+napkinXC can also be used as executable to train and evaluate model and make a predict using a data in libsvm format
 
+To build executable use:
 ```
 cmake .
 make
 ```
 
-
-## Command line options
+Command line options:
 
 ```
 Usage: nxc <command> <args>
@@ -93,9 +95,9 @@ Commands:
 
 Args:
     General:
-    -i, --input             Input dataset
-    -o, --output            Output (model) dir
-    -m, --model             Model type (default = plt):
+    -i, --input             Input dataset, required
+    -o, --output            Output (model) dir, required
+    -m, --model             Model type (default = plt)
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
     -t, --threads           Number of threads to use (default = 0)
@@ -159,16 +161,7 @@ Args:
                                       p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
 ```
 
-
-## Data Format
-
-napkinXC supports multi-label svmlight/libsvm format 
-and format of datasets from [The Extreme Classification Repository](https://manikvarma.github.io/downloads/XC/XMLRepository.html), 
-which has an additional header line with a number of data points, features, and labels.
-
-```
-label,label,... feature(:value) feature(:value) ...
-```
+See documentation for more details.
 
 
 ## References and acknowledgments

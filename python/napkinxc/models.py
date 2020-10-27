@@ -36,7 +36,7 @@ class Model():
 
     def fit(self, X, Y):
         """
-        Fit the model to the given training data
+        Fit the model to the given training data.
 
         :param X: training data points
         :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
@@ -48,7 +48,7 @@ class Model():
 
     def fit_on_file(self, path):
         """
-        Fit the model to the training data in the given file
+        Fit the model to the training data in the given file in multi-label svmlight/libsvm format.
 
         :param path: path to the file
         :type path: str
@@ -58,7 +58,7 @@ class Model():
 
     def predict(self, X, top_k=5, threshold=0):
         """
-        Predict labels for data points in X
+        Predict labels for data points in X.
 
         :param X: data points
         :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
@@ -72,7 +72,7 @@ class Model():
 
     def predict_proba(self, X, top_k=5, threshold=0):
         """
-        Predict labels with probability estimates for data points in X
+        Predict labels with probability estimates for data points in X.
 
         :param X: data points
         :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
@@ -86,7 +86,7 @@ class Model():
 
     def predict_for_file(self, path, top_k=5, threshold=0):
         """
-        Predict labels for data points in the given file
+        Predict labels for data points in the given file in multi-label svmlight/libsvm format.
 
         :param path: path to the file
         :type path: str
@@ -100,23 +100,23 @@ class Model():
 
     def predict_proba_for_file(self, path, top_k=5, threshold=0):
         """
-        Predict labels with probability estimates for data points in the given file
+        Predict labels with probability estimates for data points in the given file in multi-label svmlight/libsvm format.
 
         :param path: path to the file
         :type path: str
         :param top_k: Predict top-k labels, defaults to 5
-        :type top_k: int
+        :type top_k: int, optional
         :param threshold: Predict labels with probability above the threshold, defaults to 0
-        :type threshold: float
+        :type threshold: float, optional
         :return: list of list of tuples
         """
         return self._model.predict_proba_for_file(path, top_k, threshold)
 
-    def get_params(self, deep=False): # deep argument for sklearn compatibility
+    def get_params(self, deep=False): # deep argument for Scikit-learn compatibility
         """
-        Get parameters of this model/
+        Get parameters of this model.
 
-        :param deep: Ignored, added for sklearn compatibility, defaults to False.
+        :param deep: Ignored, added for Scikit-learn compatibility, defaults to False.
         :return: mapping of string to any
         """
         return self._params

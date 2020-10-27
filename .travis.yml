@@ -13,18 +13,6 @@ matrix:
       install:
         - sudo apt-get install cmake git python3-dev
 
-    - os: linux
-      dist: bionic
-      compiler: gcc
-      install:
-        - sudo apt-get install cmake git python3-dev
-
-    - os: linux
-      dist: bionic
-      compiler: clang
-      install:
-        - sudo apt-get install cmake git python3-dev
-
     - os: osx
       compiler: gcc
       install:

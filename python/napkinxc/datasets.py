@@ -153,16 +153,7 @@ def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbos
     If dataset is already downloaded, it is not downloaded again.
     Then loads requested datasets into features matrix and labels.
 
-    :param dataset: name of the dataset to load, case insensitive
-    {'Eurlex-4K',
-     'AmazonCat-13K',
-     'AmazonCat-14K',
-     'Wiki10-31K',
-     'DeliciousLarge-200K',
-     'WikiLSHTC-325K',
-     'WikipediaLarge-500K',
-     'Amazon-670K',
-     'Amazon-3M'}
+    :param dataset: name of the dataset to load, case insensitive {'Eurlex-4K', 'AmazonCat-13K', 'AmazonCat-14K', 'Wiki10-31K', 'DeliciousLarge-200K', 'WikiLSHTC-325K', 'WikipediaLarge-500K', 'Amazon-670K', 'Amazon-3M'}
     :type dataset: str
     :param subset: subset of dataset to load into features matrix and labels {'train', 'test', 'all'}, defaults to 'train'
     :type subset: str, optional

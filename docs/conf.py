@@ -53,10 +53,12 @@ autodoc_mock_imports = [
     "numpy",
     "scipy",
     "scipy.sparse",
-    "sklearn"
+    "sklearn",
+    "requests"
+    "warnings"
+    "zipfile"
 ]
 #autoclass_content = 'both'
-autodoc_default_flags = ['members', 'inherited-members', 'show-inheritance']
 autodoc_default_options = {
     "members": True,
     "inherited-members": True,

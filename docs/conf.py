@@ -21,9 +21,6 @@ project = 'napkinXC'
 copyright = '2020, Marek Wydmuch'
 author = 'Marek Wydmuch'
 
-# The full version, including alpha/beta/rc tags
-release = '0.4.1'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -48,6 +45,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
 # -- Autodoc configuration ---------------------------------------------------
+# Mock required packages
 autodoc_mock_imports = [
     "napkinxc._napkinxc",
     "numpy",
@@ -58,7 +56,8 @@ autodoc_mock_imports = [
     "warnings"
     "zipfile"
 ]
-#autoclass_content = 'both'
+
+# Autodoc options
 autodoc_default_options = {
     "members": True,
     "inherited-members": True,

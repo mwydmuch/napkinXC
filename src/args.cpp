@@ -101,9 +101,9 @@ Args::Args() {
     // extremeText options
     dims = 100;
 
-    // MACH options
-    machHashes = 10;
-    machBuckets = 100;
+    // Bloom/MACH options
+    hashes = 10;
+    buckets = 100;
 
     // PLT options
     plgLayers = 10;
@@ -223,6 +223,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     modelType = oplt;
                 else if (args.at(ai + 1) == "extremeText")
                     modelType = extremeText;
+                else if (args.at(ai + 1) == "bloom")
+                    modelType = bloom;
                 else if (args.at(ai + 1) == "mach")
                     modelType = mach;
                 else if (args.at(ai + 1) == "plg")
@@ -398,10 +400,10 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 onlineTreeAlpha = std::stof(args.at(ai + 1));
 
             // MACH options
-            else if (args[ai] == "--machHashes")
-                machHashes = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--machBuckets")
-                machBuckets = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--hashes")
+                hashes = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--buckets")
+                buckets = std::stoi(args.at(ai + 1));
 
             // PLG options
             else if (args[ai] == "--plgLayers")

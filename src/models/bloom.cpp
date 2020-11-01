@@ -10,20 +10,20 @@
 #include <list>
 #include <vector>
 
-#include "mach.h"
+#include "bloom.h"
 #include "misc.h"
 #include "threads.h"
 
 
-MACH::MACH() {
+Bloom::Bloom() {
 
 }
 
-MACH::~MACH() {
+Bloom::~Bloom() {
     for (auto b : bases) delete b;
 }
 
-void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void Bloom::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
     int hashCount = args.hashes;
     bucketCount = args.buckets;
 
@@ -52,7 +52,7 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
 
     out.close();
 
-    int size = hashes.size() * bucketCount;
+    int size = bucketCount;
 
     int rows = features.rows();
     int lCols = labels.cols();
@@ -79,7 +79,7 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
                                args);
 }
 
-void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void Bloom::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     // Brute force prediction
     prediction.reserve(m);
     for (int i = 0; i < m; ++i){
@@ -96,27 +96,16 @@ void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args&
     sort(prediction.rbegin(), prediction.rend());
     prediction.resize(args.topK);
     prediction.shrink_to_fit();
-
-    // TODO: Faster prediction
-    /*
-    std::priority_queue<Prediction> nQueue;
-    std::vector<double> basePredictions(bases.size());
-    for (int i = 0; i < bases.size(); ++i)
-        basePredictions[i] = bases[i]->predictProbability(features);
-
-    //...
-     */
-
 }
 
-double MACH::predictForLabel(Label label, Feature* features, Args& args) {
+double Bloom::predictForLabel(Label label, Feature* features, Args& args) {
     double prob = 1;
     for (int i = 0; i < hashes.size(); ++i)
         prob *= bases[baseForLabel(label, i)]->predictProbability(features);
     return prob;
 }
 
-void MACH::load(Args& args, std::string infile) {
+void Bloom::load(Args& args, std::string infile) {
     Log(CERR) << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
 

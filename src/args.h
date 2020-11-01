@@ -37,6 +37,7 @@ enum ModelType {
     svbopHf,
     oplt,
     extremeText,
+    bloom,
     mach,
     plg,
     brMips, // MIPS extension model
@@ -155,9 +156,9 @@ public:
     // extremeText options
     size_t dims;
 
-    // MACH options
-    int machHashes = 10;
-    int machBuckets = 100;
+    // Bloom/MACH options
+    int hashes = 10;
+    int buckets = 100;
 
     // PLG options
     int plgLayers = 10;

@@ -456,7 +456,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 }
 
 void Args::printArgs(std::string command) {
-    Log(CERR) << "napkinXC " << VERSION;
+    Log(CERR) << "napkinXC " << VERSION << " - " << command;
     if (!input.empty())
         Log(CERR) << "\n  Input: " << input << "\n    Bias: " << bias << ", norm: " << norm
                   << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
@@ -509,6 +509,9 @@ void Args::printArgs(std::string command) {
 }
 
 void Args::save(std::ostream& out) {
+    std::string version = VERSION;
+    saveVar(out, version);
+
     saveVar(out, bias);
     saveVar(out, norm);
     saveVar(out, hash);
@@ -520,6 +523,11 @@ void Args::save(std::ostream& out) {
 }
 
 void Args::load(std::istream& in) {
+    std::string version;
+    loadVar(in, version);
+    if(version != VERSION)
+        Log(CERR) << "Warning: Model version (" << version << ") does not match napkinXC version (" << VERSION << "), something may not work correctly!\n";
+
     loadVar(in, bias);
     loadVar(in, norm);
     loadVar(in, hash);

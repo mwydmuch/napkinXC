@@ -337,8 +337,8 @@ Commands:
 
 Args:
     General:
-    -i, --input             Input dataset
-    -o, --output            Output (model) dir
+    -i, --input             Input dataset, required
+    -o, --output            Output (model) dir, required
     -m, --model             Model type (default = plt):
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)

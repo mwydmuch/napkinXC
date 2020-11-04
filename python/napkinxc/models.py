@@ -56,7 +56,23 @@ class Model():
         """
         self._model.fitOnFile(path)
 
-    def predict(self, X, top_k=5, threshold=0):
+    def load(self):
+        """
+        Load the model to RAM
+
+        :return: None
+        """
+        self._model.load()
+
+    def unload(self):
+        """
+        Unload the model from RAM.
+
+        :return: None
+        """
+        self._model.unload()
+
+    def predict(self, X, top_k=5, threshold=0, ):
         """
         Predict labels for data points in X.
 

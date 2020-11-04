@@ -41,9 +41,11 @@ PLT::PLT() {
     name = "PLT";
 }
 
-PLT::~PLT() {
-    delete tree;
+void PLT::unload() {
     for (auto b : bases) delete b;
+    bases.clear();
+    bases.shrink_to_fit();
+    delete tree;
 }
 
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
@@ -276,6 +278,8 @@ void PLT::load(Args& args, std::string infile) {
 
     if(!args.thresholds.empty())
         tree->populateNodeLabels();
+
+    loaded = true;
 }
 
 void PLT::printInfo() {

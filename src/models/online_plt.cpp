@@ -170,6 +170,8 @@ void OnlinePLT::load(Args& args, std::string infile){
 
         assert(bases.size() == auxBases.size());
     }
+
+    loaded = true;
 }
 
 TreeNode* OnlinePLT::createTreeNode(TreeNode* parent, int label, Base* base, Base* auxBase){

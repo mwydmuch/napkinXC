@@ -154,6 +154,8 @@ void ExtremeText::load(Args& args, std::string infile) {
 
     if(!args.thresholds.empty())
         tree->populateNodeLabels();
+
+    loaded = true;
 }
 
 void ExtremeText::predict(std::vector<Prediction>& prediction, Feature* features, Args& args){

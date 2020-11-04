@@ -84,7 +84,9 @@ std::shared_ptr<Model> Model::factory(Args& args) {
 
 Model::Model():loaded(false), m(0) {}
 
-Model::~Model() {}
+Model::~Model() {
+    unload();
+}
 
 void Model::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::vector<Prediction> tmpPrediction;

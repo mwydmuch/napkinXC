@@ -92,6 +92,16 @@ public:
         });
     }
 
+    void load(){
+        args.loadFromFile(joinPath(args.output, "args.bin"));
+        if(model == nullptr) model = Model::factory(args);
+        if(!model->isLoaded()) model->load(args, args.output);
+    }
+
+    void unload(){
+        if(model->isLoaded()) model->unload();
+    }
+
     std::vector<std::vector<int>> predict(py::object inputFeatures, int featuresDataType, int topK, double threshold){
         auto predWithProba = predictProba(inputFeatures, featuresDataType, topK, threshold);
         return dropProbaHelper(predWithProba);
@@ -100,6 +110,7 @@ public:
     std::vector<std::vector<std::pair<int, double>>> predictProba(py::object inputFeatures, int featuresDataType, int topK, double threshold){
         std::vector<std::vector<std::pair<int, double>>> pred;
         runAsInterruptable([&] {
+            load();
             SRMatrix<Feature> features;
             readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
             pred = predictHelper(features, topK, threshold);
@@ -116,6 +127,7 @@ public:
     std::vector<std::vector<std::pair<int, double>>> predictProbaForFile(std::string path, int topK, double threshold) {
         std::vector<std::vector<std::pair<int, double>>> pred;
         runAsInterruptable([&] {
+            load();
             args.input = path;
 
             SRMatrix<Label> labels;
@@ -131,6 +143,7 @@ public:
                                                      int topK, double threshold, std::string measuresStr){
         std::vector<std::pair<std::string, double>> results;
         runAsInterruptable([&] {
+            load();
             SRMatrix<Label> labels;
             SRMatrix<Feature> features;
             readFeatureMatrix(features, inputFeatures, (InputDataType) featuresDataType);
@@ -144,7 +157,9 @@ public:
     std::vector<std::pair<std::string, double>> testOnFile(std::string path, int topK, double threshold, std::string measuresStr){
         std::vector<std::pair<std::string, double>> results;
         runAsInterruptable([&] {
+            load();
             args.input = path;
+
             SRMatrix<Label> labels;
             SRMatrix<Feature> features;
             readData(labels, features, args);
@@ -332,13 +347,7 @@ private:
     }
 
     inline std::vector<std::vector<std::pair<int, double>>> predictHelper(SRMatrix<Feature>& features, int topK, double threshold){
-        args.printArgs("test");
-        if(model == nullptr)
-            //throw std::runtime_error("Model does not exist!");
-            model = Model::factory(args);
-
-        if(!model->isLoaded())
-            model->load(args, args.output);
+        args.printArgs("predict");
 
         // TODO: refactor this
         args.topK = topK;
@@ -350,6 +359,8 @@ private:
     }
 
     inline std::vector<std::pair<std::string, double>> testHelper(SRMatrix<Label>& labels, SRMatrix<Feature>& features, int topK, double threshold, std::string measuresStr){
+        args.printArgs("test");
+
         args.topK = topK;
         args.threshold = threshold;
         auto predictions = model->predictBatch(features, args);
@@ -392,6 +403,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("set_args", &CPPModel::setArgs)
     .def("fit", &CPPModel::fit)
     .def("fit_on_file", &CPPModel::fitOnFile)
+    .def("load", &CPPModel::load)
+    .def("unload", &CPPModel::unload)
     .def("predict", &CPPModel::predict)
     .def("predict_for_file", &CPPModel::predictForFile)
     .def("predict_proba", &CPPModel::predictProba)

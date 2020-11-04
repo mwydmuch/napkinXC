@@ -29,7 +29,6 @@
 class BR : public Model {
 public:
     BR();
-    ~BR() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
@@ -38,6 +37,7 @@ public:
     void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
+    void unload() override;
 
     void printInfo() override;
 

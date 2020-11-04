@@ -36,8 +36,10 @@ BR::BR() {
     name = "BR";
 }
 
-BR::~BR() {
+void BR::unload() {
     for (auto b : bases) delete b;
+    bases.clear();
+    bases.shrink_to_fit();
 }
 
 void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
@@ -121,6 +123,8 @@ void BR::load(Args& args, std::string infile) {
     Log(CERR) << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();
+
+    loaded = true;
 }
 
 void BR::printInfo() {

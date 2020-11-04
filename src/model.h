@@ -53,6 +53,7 @@ public:
     std::vector<double> macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
+    virtual void unload() {};
     bool isLoaded() { return loaded; };
 
     virtual void printInfo() {}

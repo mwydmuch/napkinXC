@@ -31,7 +31,6 @@
 class PLT : virtual public Model {
 public:
     PLT();
-    ~PLT() override;
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
@@ -41,6 +40,7 @@ public:
     void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
+    void unload() override;
 
     void printInfo() override;
 

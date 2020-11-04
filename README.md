@@ -33,7 +33,7 @@ Coming soon:
 
 - Possibility to use any type of binary classifier from Python.
 - Efficient prediction with different threshold for each label.
-- Improved dataset loading from Python.
+- Improved dataset loading in Python.
 - More datasets from XML Repository.
 
 

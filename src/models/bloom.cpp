@@ -29,25 +29,26 @@ void Bloom::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
 
     Log(CERR) << "  Number of hashes: " << hashCount << ", number of buckets per hash: " << bucketCount << "\n";
 
-    long seed = args.getSeed();
-    std::default_random_engine rng(seed);
     m = labels.cols();
-    std::uniform_int_distribution dist(0, m);
-
-    // Generate hashes and save them to file
     std::ofstream out(joinPath(output, "hashes.bin"));
     out.write((char*)&m, sizeof(m));
     out.write((char*)&bucketCount, sizeof(bucketCount));
     out.write((char*)&hashCount, sizeof(hashCount));
-    
+
+    // Generate hashes and save them to file
+    long seed = args.getSeed();
+    std::default_random_engine rng(seed);
+    std::uniform_int_distribution dist(1, bucketCount);
     for(int i = 0; i < hashCount; ++i){
         unsigned int a = getFirstBiggerPrime(dist(rng));
-        unsigned int b = getFirstBiggerPrime(bucketCount + dist(rng));
+        unsigned int b = getFirstBiggerPrime(dist(rng));
+        unsigned int p = getFirstBiggerPrime(bucketCount + dist(rng));
 
         out.write((char*)&a, sizeof(a));
         out.write((char*)&b, sizeof(b));
+        out.write((char*)&p, sizeof(p));
 
-        hashes.emplace_back(a, b);
+        hashes.emplace_back(a, b, p);
     }
 
     out.close();
@@ -81,21 +82,52 @@ void Bloom::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& ar
 
 void Bloom::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     // Brute force prediction
+
     prediction.reserve(m);
-    for (int i = 0; i < m; ++i){
-        prediction.push_back({i, 0.0});
-    }
+    for (int i = 0; i < m; ++i)
+        prediction.emplace_back(i, 0.0);
 
     for (int i = 0; i < bases.size(); ++i) {
         double value = bases[i]->predictProbability(features);
-        for (const auto &l : baseToLabels[i]) {
+        for (const auto &l : baseToLabels[i])
             prediction[l].value += value;
-        }
     }
 
-    sort(prediction.rbegin(), prediction.rend());
+    std::nth_element(prediction.begin(), prediction.begin() + args.topK, prediction.end(), std::greater<Prediction>());
     prediction.resize(args.topK);
     prediction.shrink_to_fit();
+    std::sort(prediction.begin(), prediction.end(), std::greater<Prediction>());
+
+    /*
+    std::vector<double> predictionScore(m, 0);
+    std::vector<int> predictionCount(m, 0);
+
+    std::vector<std::pair<double, int>> basesPred;
+    basesPred.reserve(bases.size());
+    for (int i = 0; i < bases.size(); ++i)
+        basesPred.emplace_back(bases[i]->predictProbability(features), i);
+    std::sort(basesPred.rbegin(), basesPred.rend());
+
+
+    for (int i = 0; i < bases.size(); ++i){
+        //std::cout << basesPred[i].first << " " << basesPred[i].second << "\n";
+        for (const auto &l : baseToLabels[i]) {
+            predictionScore[l] += basesPred[i].first;
+            ++predictionCount[l];
+            std::cout << l << " " << predictionScore[l] << " " << predictionCount[l] << "/" << hashes.size() << ", ";
+            if(predictionCount[l] >= hashes.size())
+                prediction.push_back({l, predictionScore[l]});
+        }
+        //std::cout << "\n" << prediction.size() << "\n";
+        if(prediction.size() >= args.topK){
+            std::sort(prediction.rbegin(), prediction.rend());
+            prediction.resize(args.topK);
+            break;
+        }
+    }
+    */
+
+    //exit(1);
 }
 
 double Bloom::predictForLabel(Label label, Feature* features, Args& args) {
@@ -111,14 +143,16 @@ void Bloom::load(Args& args, std::string infile) {
 
     Log(CERR) << "Loading hashes ...\n";
     std::ifstream in(joinPath(infile, "hashes.bin"));
-    int hashCount, a, b;
+    int hashCount;
+    unsigned int a, b, p;
     in.read((char*)&m, sizeof(m));
     in.read((char*)&bucketCount, sizeof(bucketCount));
     in.read((char*)&hashCount, sizeof(hashCount));
     for(int i = 0; i < hashCount; ++i){
         in.read((char*)&a, sizeof(a));
         in.read((char*)&b, sizeof(b));
-        hashes.emplace_back(a, b);
+        in.read((char*)&p, sizeof(p));
+        hashes.emplace_back(a, b, p);
     }
     in.close();
 

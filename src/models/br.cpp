@@ -90,14 +90,24 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     prediction = predictForAllLabels(features, args);
 
-    sort(prediction.rbegin(), prediction.rend());
-    if (args.threshold > 0) {
-        int i = 0;
-        while (prediction[i++].value > args.threshold)
-            ;
-        prediction.resize(i - 1);
+    if(args.topK > 0 && args.threshold == 0){
+        std::nth_element(prediction.begin(), prediction.begin() + args.topK, prediction.end(), std::greater<Prediction>());
+        prediction.resize(args.topK);
+        prediction.shrink_to_fit();
+        std::sort(prediction.begin(), prediction.end(), std::greater<Prediction>());
+    } else {
+        sort(prediction.rbegin(), prediction.rend());
+        if (args.threshold > 0) {
+            int i = 0;
+            while (prediction[i++].value > args.threshold)
+                ;
+            prediction.resize(i - 1);
+        }
+        if (args.topK > 0){
+            prediction.resize(args.topK);
+            prediction.shrink_to_fit();
+        }
     }
-    if (args.topK > 0) prediction.resize(args.topK);
 }
 
 std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {

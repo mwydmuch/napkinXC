@@ -82,7 +82,7 @@ class Model():
         :type threshold: float
         :return: list of list of tuples
         """
-        return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
+        return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
 
     def predict_for_file(self, path, top_k=5, threshold=0):
         """

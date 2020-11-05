@@ -78,7 +78,7 @@ TRAIN_LOCK_FILE=${MODEL}/.train_lock
 if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
     mkdir -p $MODEL
     touch $TRAIN_LOCK_FILE
-    (time ${ROOT_DIR}/nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
+    (time ${ROOT_DIR}/nxc train --saveGrads 1 -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
     echo
     echo "Train date: $(date)" | tee -a $TRAIN_RESULT_FILE
     rm -f $TRAIN_LOCK_FILE

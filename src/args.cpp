@@ -46,6 +46,7 @@ Args::Args() {
     modelName = "plt";
     modelType = plt;
     hash = 0;
+    processData = true;
     bias = 1.0;
     norm = true;
     featuresThreshold = 0.0;

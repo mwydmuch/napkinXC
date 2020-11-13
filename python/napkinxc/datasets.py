@@ -24,7 +24,8 @@ import warnings
 import re
 from sys import stdout
 from os import makedirs, path, remove
-from sklearn.datasets import load_svmlight_file
+from scipy.sparse import csr_matrix
+from ._napkinxc import _load_libsvm_file
 
 
 # List of all available datasets
@@ -38,7 +39,6 @@ DATASETS = {
             'train': 'Eurlex/eurlex_train.txt',
             'test': 'Eurlex/eurlex_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 5000, 'offset': 1}
         }
     },
     'amazoncat-13k': {
@@ -50,7 +50,6 @@ DATASETS = {
             'train': 'AmazonCat/amazonCat_train.txt',
             'test': 'AmazonCat/amazonCat_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 203882, 'offset': 1}
         }
     },
     'amazoncat-14k': {
@@ -62,7 +61,6 @@ DATASETS = {
             'train': 'AmazonCat-14K/amazonCat-14K_train.txt',
             'test': 'AmazonCat-14K/amazonCat-14K_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 597540, 'offset': 1}
         }
     },
     'wiki10-31k': {
@@ -74,7 +72,6 @@ DATASETS = {
             'train': 'Wiki10/wiki10_train.txt',
             'test': 'Wiki10/wiki10_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 101938, 'offset': 1}
         }
     },
     'deliciouslarge-200k': {
@@ -86,7 +83,6 @@ DATASETS = {
             'train': 'DeliciousLarge/deliciousLarge_train.txt',
             'test': 'DeliciousLarge/deliciousLarge_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 782585, 'offset': 1}
         }
     },
     'wikilshtc-325k': {
@@ -98,7 +94,6 @@ DATASETS = {
             'train': 'WikiLSHTC/wikiLSHTC_train.txt',
             'test': 'WikiLSHTC/wikiLSHTC_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 1617899, 'offset': 1}
         }
     },
     'wikipedialarge-500k': {
@@ -110,7 +105,6 @@ DATASETS = {
             'train': 'WikipediaLarge-500K/WikipediaLarge-500K_train.txt',
             'test': 'WikipediaLarge-500K/WikipediaLarge-500K_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 2381304, 'offset': 1}
         }
     },
     'amazon-670k': {
@@ -122,7 +116,6 @@ DATASETS = {
             'train': 'Amazon/amazon_train.txt',
             'test': 'Amazon/amazon_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 135909, 'offset': 1}
         }
     },
     'amazon-3m': {
@@ -134,7 +127,6 @@ DATASETS = {
             'train': 'Amazon-3M/amazon-3M_train.txt',
             'test': 'Amazon-3M/amazon-3M_test.txt',
             'file_format': 'libsvm',
-            'load_params': {'multilabel': True, 'zero_based': True, 'n_features': 337067, 'offset': 1}
         }
     },
 }
@@ -146,7 +138,35 @@ DATASETS['wikilshtc'] = DATASETS['wikilshtc-325k']
 DATASETS['wikipedialarge'] = DATASETS['wikipedialarge-500k']
 
 
-# Main function for downloading and loading datasets
+# Main functions for downloading and loading datasets
+def load_libsvm_file(path):
+    """
+
+    :param path:
+    :return: (csr_matrix, list[list[int]]), tuple of features matrix and labels
+    """
+    labels, indptr, indices, data = _load_libsvm_file(path)
+    return csr_matrix((data, indices, indptr)), labels
+
+
+def download_dataset(dataset, subset='train', format='tf-idf', root='./data', verbose=False):
+    """
+
+
+    :param dataset:
+    :param subset:
+    :param format:
+    :param root:
+    :param verbose:
+    """
+    dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
+    dataset_dest = path.join(root, dataset.lower() + '_' + format + ".zip")
+    file_path = path.join(root, dataset_meta[subset])
+    if not path.exists(file_path):
+        if 'drive.google.com' in dataset_meta['url']:
+            GoogleDriveDownloader.download_file(dataset_meta['url'], dataset_dest, unzip=True, overwrite=True, delete_zip=True, verbose=verbose)
+
+
 def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbose=False):
     """
     Downloads the dataset from the internet and puts it in root directory.
@@ -165,37 +185,32 @@ def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbos
     :type verbose: bool, optional
     :return: (csr_matrix, list[list[int]]), tuple of features matrix and labels
     """
-    dataset = dataset.lower()
-    dataset_meta = DATASETS.get(dataset, None)
+    dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
+    file_path = path.join(root, dataset_meta[subset])
+    download_dataset(dataset, subset=subset, format=format, root=root, verbose=verbose)
 
-    if dataset_meta is None:
-        raise ValueError("Dataset {} is not avialable".format(dataset))
-
-    if format not in dataset_meta['formats']:
-        raise ValueError("Format {} is not available for dataset {}".format(format, dataset))
-
-    if subset is not None and subset not in dataset_meta['subsets']:
-        raise ValueError("Subset {} is not available for dataset {}".format(format, dataset))
-
-    dataset_dest = path.join(root, dataset_meta['name'] + '_' + format + ".zip")
-    format_meta = dataset_meta[format]
-    train_path = path.join(root, format_meta['train'])
-    test_path = path.join(root, format_meta['test'])
-
-    if not path.exists(train_path) or not path.exists(test_path):
-        if 'drive.google.com' in format_meta['url']:
-            GoogleDriveDownloader.download_file(format_meta['url'], dataset_dest, unzip=True, overwrite=True, delete_zip=True, verbose=verbose)
-
-    if subset == 'train':
-        return _load_file(train_path, format_meta['file_format'], format_meta['load_params'])
-    elif subset == 'test':
-        return _load_file(test_path, format_meta['file_format'], format_meta['load_params'])
+    return _load_file(file_path, dataset_meta['file_format'])
 
 
 # Helpers
-def _load_file(filepath, format, load_params):
+def _get_data_meta(dataset, subset='train', format='tf-idf'):
+    dataset = dataset.lower()
+
+    if dataset not in DATASETS:
+        raise ValueError("Dataset {} is not available".format(dataset))
+
+    if format not in DATASETS[dataset]['formats']:
+        raise ValueError("Format {} is not available for dataset {}".format(format, dataset))
+
+    if subset is not None and subset not in DATASETS[dataset]['subsets']:
+        raise ValueError("Subset {} is not available for dataset {}".format(format, dataset))
+
+    return DATASETS[dataset][format]
+
+
+def _load_file(filepath, format):
     if format == 'libsvm':
-        return load_svmlight_file(filepath, **load_params)
+        return load_libsvm_file(filepath)
 
 
 # Based on: https://stackoverflow.com/questions/25010369/wget-curl-large-file-from-google-drive/39225039#39225039

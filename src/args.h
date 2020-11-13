@@ -102,6 +102,7 @@ public:
     std::string input;
     std::string output;
     ModelType modelType;
+    bool processData;
     double bias;
     bool norm;
     int hash;

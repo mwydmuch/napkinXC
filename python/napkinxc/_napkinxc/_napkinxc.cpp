@@ -41,8 +41,14 @@ using namespace std::chrono_literals;
 namespace py = pybind11;
 
 
-template<typename F>
-void runAsInterruptable(F func){
+enum InputDataType {
+    list,
+    ndarray,
+    csr_matrix
+};
+
+
+template<typename F> void runAsInterruptable(F func){
     std::atomic<bool> done(false);
     std::thread t([&]{
         func();
@@ -57,12 +63,96 @@ void runAsInterruptable(F func){
     t.join();
 }
 
+template<typename T> std::vector<T> pyListToVector(py::list const &list){
+    std::vector<T> vector(list.size());
+    for (size_t i = 0; i < list.size(); ++i) vector[i] = py::cast<T>(list[i]);
+    return vector;
+}
 
-enum InputDataType {
-    list,
-    ndarray,
-    csr_matrix
-};
+template<typename T> std::vector<T> pyDataToSparseVector(py::object input, InputDataType dataType) {
+    std::vector<T> output;
+    pyDataToSparseVector(output, input, dataType);
+    return output;
+}
+
+template<typename T> void pyDataToSparseVector(std::vector<T>& output, py::object input, InputDataType dataType) {
+    switch (dataType) {
+        case ndarray: {
+            py::array_t<double, py::array::c_style | py::array::forcecast> array(input); // TODO: test it with different strides
+            for(int i = 0; i < array.size(); ++i)
+                output.push_back({i, array.at(i)});
+        }
+        case list: {
+            // Sparse vectors are expected to be list of (id, value) tuples
+            py::list list(input);
+            for (int i = 0; i < list.size(); ++i) {
+                py::tuple pyTuple(list[i]);
+                output.push_back({py::cast<int>(pyTuple[0]), py::cast<double>(pyTuple[1])});
+            }
+        }
+        default:
+            throw py::value_error("Unsupported data type for pyDataToSparseVector");
+    }
+}
+
+template<typename T> py::array_t<T> dataToPyArray(T* ptr, std::vector<py::ssize_t> dims){
+    std::vector<py::ssize_t> strides(dims);
+    for(auto& s : strides) s = sizeof(T);
+    return py::array(py::buffer_info(
+        (void*)ptr,         // Pointer to data (nullptr -> ask NumPy to allocate!)
+        sizeof(T),          // Size of one item
+        py::format_descriptor<T>::value, // Buffer format
+        dims.size(),        // How many dimensions?
+        dims,               // Number of elements for each dimension */
+        strides             // Strides for each dimension */
+    ));
+}
+
+
+std::tuple<std::vector<std::vector<int>>, py::array_t<int>, py::array_t<int>, py::array_t<double>> loadLibSvmFile(std::string path){
+    SRMatrix<Label> labels;
+    SRMatrix<Feature> features;
+
+    Args args;
+    args.input = path;
+    args.processData = false;
+    readData(labels, features, args);
+
+    int rows = features.rows();
+    int cells = features.cells();
+
+    // For labels
+    std::vector<std::vector<Label>> pyLabels(labels.rows());
+    for(auto r = 0; r < labels.rows(); ++r){
+        for(auto l = labels[r]; (*l) != -1; ++l) pyLabels[r].push_back(*l);
+    }
+    labels.clear();
+
+    // For feature CSR-matrix
+    int* indptr = new int[rows + 1];
+    int* indices = new int[cells];
+    double* data = new double[cells];
+
+    int i = 0;
+    for(auto r = 0; r < features.rows(); ++r){
+        indptr[r] = i;
+        if (!std::is_sorted(features[r], features[r] + features.size(r))) std::sort(features[r], features[r] + features.size(r));
+        for(auto f = features[r]; (*f).index != -1; ++f){
+            indices[i] = (*f).index;
+            data[i] = (*f).value;
+            ++i;
+        }
+    }
+    indptr[rows] = cells;
+    features.clear();
+
+    auto pyIndptr = dataToPyArray(indptr, {rows + 1});
+    auto pyIndices = dataToPyArray(indices, {cells});
+    auto pyData = dataToPyArray(data, {cells});
+
+    return std::make_tuple(pyLabels, pyIndptr, pyIndices, pyData);
+}
+
 
 class CPPModel {
 public:
@@ -216,38 +306,6 @@ private:
     Args args;
     std::shared_ptr<Model> model;
 
-    template<typename T> std::vector<T> pyListToVector(py::list const &list){
-        std::vector<T> vector(list.size());
-        for (size_t i = 0; i < list.size(); ++i) vector[i] = py::cast<T>(list[i]);
-        return vector;
-    }
-
-    template<typename T> std::vector<T> pyDataToSparseVector(py::object input, InputDataType dataType, int shift = 0) {
-        std::vector<T> output;
-        pyDataToSparseVector(output, input, dataType, shift);
-        return output;
-    }
-
-    template<typename T> void pyDataToSparseVector(std::vector<T>& output, py::object input, InputDataType dataType, int shift = 0) {
-        switch (dataType) {
-            case ndarray: {
-                py::array_t<double, py::array::c_style | py::array::forcecast> array(input);
-                for(int i = 0; i < array.size(); ++i)
-                    output.push_back({i + shift, array.at(i)});
-            }
-            case list: {
-                // Sparse vectors are expected to be list of (id, value) tuples
-                py::list list(input);
-                for (int i = 0; i < list.size(); ++i) {
-                    py::tuple pyTuple(list[i]);
-                    output.push_back({py::cast<int>(pyTuple[0]) + shift, py::cast<double>(pyTuple[1])});
-                }
-            }
-            default:
-                throw py::value_error("Unsupported data type for pyDataToSparseVector");
-        }
-    }
-
     // Reads multiple items from a python object and inserts onto a SRMatrix<Label>
     void readLabelsMatrix(SRMatrix<Label>& output, py::object& input, InputDataType dataType) {
         if (dataType == list && py::isinstance<py::list>(input)) {
@@ -281,7 +339,7 @@ private:
                 rFeatures.clear();
                 prepareFeaturesVector(rFeatures, args.bias);
 
-                pyDataToSparseVector<Feature>(rFeatures, data[i], list, 2);
+                pyDataToSparseVector<Feature>(rFeatures, data[i], list);
 
                 processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
                 output.appendRow(rFeatures);
@@ -325,9 +383,8 @@ private:
                 rFeatures.clear();
                 prepareFeaturesVector(rFeatures, args.bias);
 
-                for (int i = indptr.at(rId); i < indptr.at(rId + 1); ++i) {
-                    rFeatures.push_back({indices.at(i) + 2, data.at(i)});
-                }
+                for (int i = indptr.at(rId); i < indptr.at(rId + 1); ++i)
+                    rFeatures.push_back({indices.at(i), data.at(i)});
 
                 processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
                 output.appendRow(rFeatures);
@@ -390,8 +447,10 @@ private:
 
 
 PYBIND11_MODULE(_napkinxc, n) {
-    n.doc() = "Python Bindings for napkinXC C++ core";
+    n.doc() = "Python bindings for napkinXC C++ core";
     n.attr("__version__") = VERSION;
+
+    n.def("_load_libsvm_file", &loadLibSvmFile);
 
     py::enum_<InputDataType>(n, "InputDataType")
     .value("list", list)
@@ -411,8 +470,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("predict_proba_for_file", &CPPModel::predictProbaForFile)
     .def("test", &CPPModel::test)
     .def("test_on_file", &CPPModel::testOnFile)
-    .def("call_python_function", &CPPModel::callPythonFunction)
-    .def("call_python_object_method", &CPPModel::callPythonObjectMethod)
+    //.def("call_python_function", &CPPModel::callPythonFunction)
+    //.def("call_python_object_method", &CPPModel::callPythonObjectMethod)
     .def("test_data_load", &CPPModel::testDataLoad);
 
 }

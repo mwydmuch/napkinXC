@@ -38,7 +38,9 @@ Args::Args() {
     rngSeeder.seed(seed);
     threads = getCpuCount();
     memLimit = getSystemMemory();
+    saveGrads = false;
     resume = false;
+    loadDense = false;
 
     // Input/output options
     input = "";
@@ -167,7 +169,11 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
             } else if (args[ai] == "--memLimit") {
                 memLimit = static_cast<unsigned long long>(std::stof(args.at(ai + 1)) * 1024 * 1024 * 1024);
                 if (memLimit == 0) memLimit = getSystemMemory();
-            } else if (args[ai] == "--resume")
+            } else if (args[ai] == "--saveGrads")
+                saveGrads = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--resume")
+                resume = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--loadDense")
                 resume = std::stoi(args.at(ai + 1)) != 0;
 
             // Input/output options
@@ -479,8 +485,11 @@ void Args::printArgs(std::string command) {
                 if (treeType == hierarchicalKmeans)
                     Log(CERR) << ", k-means eps: " << kmeansEps << ", balanced: " << kmeansBalanced
                               << ", weighted features: " << kmeansWeightedFeatures;
-                if (treeType == hierarchicalKmeans || treeType == balancedInOrder || treeType == balancedRandom)
+                if (treeType == hierarchicalKmeans || treeType == balancedInOrder || treeType == balancedRandom
+                    || treeType == onlineBestScore || treeType == onlineRandom)
                     Log(CERR) << ", max leaves: " << maxLeaves;
+                if (treeType == onlineBestScore)
+                    Log(CERR) << ", alpha: " << onlineTreeAlpha;
             } else {
                 Log(CERR) << "\n    Tree: " << treeStructure;
             }

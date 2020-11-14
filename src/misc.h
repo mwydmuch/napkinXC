@@ -273,7 +273,8 @@ template <typename T> inline uint32_t hash(T& v) {
 
 // Prints progress
 inline void printProgress(int state, int max) {
-    if (max > 100 && state % (max / 100) == 0) Log(CERR) << "  " << state / (max / 100) << "%\r";
+    if (max < 100 || state % (max / 100) == 0)
+        Log(CERR) << "  " << std::round(static_cast<double>(state) / (static_cast<double>(max) / 100)) << "%\r";
 }
 
 // Splits string

@@ -28,14 +28,15 @@ napkinXC supports multi-label svmlight/libsvm like-format (less strict)
 and format of datasets from `The Extreme Classification Repository <https://manikvarma.github.io/downloads/XC/XMLRepository.html>`_,
 which has an additional header line with a number of data points, features, and labels.
 
-Each line contains an instance and is ended by a '\n' character.
-``<label>`` and ``<feature>`` are indexes that should be positive integers.
-Unlike to normal svmlight/libsvm format, labels and features do not have to be sorted in ascending order.
+The format is text-based. Each line contains an instance and is ended by a ``\\n`` character.
 
-.. code:: sh
+.. code::
 
     <label>,<label>,... <feature>(:<value>) <feature>(:<value>) ...
 
+``<label>`` and ``<feature>`` are indexes that should be positive integers.
+Unlike to normal svmlight/libsvm format, labels and features do not have to be sorted in ascending order.
+The ``:<value>`` can be omitted after ``<feature>``, to assume value = 1.
 
 Usage
 -----

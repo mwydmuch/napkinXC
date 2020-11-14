@@ -139,32 +139,52 @@ DATASETS['wikipedialarge'] = DATASETS['wikipedialarge-500k']
 
 
 # Main functions for downloading and loading datasets
-def load_libsvm_file(path):
+def load_libsvm_file(file):
     """
+    Load data in the libsvm format into sparse CSR matrix.
+    The format is text-based. Each line contains an instance and is ended by a ``\\n`` character.
 
-    :param path:
+    .. code::
+
+        <label>,<label>,... <feature>(:<value>) <feature>(:<value>) ...
+
+    ``<label>`` and ``<feature>`` are indexes that should be positive integers.
+    This method supports less-strict versions of the format.
+    Labels and features do not have to be sorted in ascending order.
+    The ``:<value>`` can be omitted after ``<feature>``, to assume value = 1.
+    It automatically detects header used in format of datasets from
+    `The Extreme Classification Repository <https://manikvarma.github.io/downloads/XC/XMLRepository.html>`_,
+
+    :param file: path to a file to load
+    :type file: str
     :return: (csr_matrix, list[list[int]]), tuple of features matrix and labels
     """
-    labels, indptr, indices, data = _load_libsvm_file(path)
+    labels, indptr, indices, data = _load_libsvm_file(file)
     return csr_matrix((data, indices, indptr)), labels
 
 
 def download_dataset(dataset, subset='train', format='tf-idf', root='./data', verbose=False):
     """
+    Downloads the dataset from the internet and puts it in root directory.
+    If dataset is already downloaded, it is not downloaded again.
 
-
-    :param dataset:
-    :param subset:
-    :param format:
-    :param root:
-    :param verbose:
+    :param dataset: name of the dataset to load, case insensitive {'Eurlex-4K', 'AmazonCat-13K', 'AmazonCat-14K', 'Wiki10-31K', 'DeliciousLarge-200K', 'WikiLSHTC-325K', 'WikipediaLarge-500K', 'Amazon-670K', 'Amazon-3M'}
+    :type dataset: str
+    :param subset: subset of dataset to load into features matrix and labels {'train', 'test', 'all'}, defaults to 'train'
+    :type subset: str, optional
+    :param format: format of dataset to load {'tf-idf'}, defaults to 'tf-idf'
+    :type format: str, optional
+    :param root: location of datasets directory, defaults to './data'
+    :type root: str, optional
+    :param verbose: if True print downloading and loading progress, defaults to False
+    :type verbose: bool, optional
     """
     dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
     dataset_dest = path.join(root, dataset.lower() + '_' + format + ".zip")
     file_path = path.join(root, dataset_meta[subset])
     if not path.exists(file_path):
         if 'drive.google.com' in dataset_meta['url']:
-            GoogleDriveDownloader.download_file(dataset_meta['url'], dataset_dest, unzip=True, overwrite=True, delete_zip=True, verbose=verbose)
+            _download_file_from_google_drive(dataset_meta['url'], dataset_dest, unzip=True, overwrite=True, delete_zip=True, verbose=verbose)
 
 
 def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbose=False):
@@ -213,93 +233,83 @@ def _load_file(filepath, format):
         return load_libsvm_file(filepath)
 
 
-# Based on: https://stackoverflow.com/questions/25010369/wget-curl-large-file-from-google-drive/39225039#39225039
-class GoogleDriveDownloader:
+def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=False, delete_zip=False, verbose=False):
     """
-    Minimal class to download shared files from Google Drive.
+    Downloads a shared file from google drive into a given folder and optionally unzips it.
+    :param url: file url to download
+    :type url: str
+    :param dest_path: the destination where to save the downloaded file
+    :type dest_path: str
+    :param overwrite: if True force redownload and overwrite, defaults to False
+    :type overwrite: bool
+    :param unzip: if True unzip a file, optional, defaults to False
+    :type unzip: bool
+    :param delete_zip: if True and unzips is True delete archive file after unziping, defaults to False
+    :type delete_zip: bool
+    :param verbose: if True print downloading progress, defaults to False
+    :type verbose: bool
+    :return: None
     """
 
-    CHUNK_SIZE = 32768
-    DOWNLOAD_URL = 'https://drive.google.com/uc?export=download'
+    download_url = 'https://drive.google.com/uc?export=download'
+    re_match = re.search('id=([\w\d]+)', url)
+    file_id = re_match.group(1)
 
-    @staticmethod
-    def download_file(url, dest_path, overwrite=False, unzip=False, delete_zip=False, verbose=False):
-        """
-        Downloads a shared file from google drive into a given folder and optionally unzips it.
-        :param url: file url to download
-        :type url: str
-        :param dest_path: the destination where to save the downloaded file
-        :type dest_path: str
-        :param overwrite: if True force redownload and overwrite, defaults to False
-        :type overwrite: bool
-        :param unzip: if True unzip a file, optional, defaults to False
-        :type unzip: bool
-        :param delete_zip: if True and unzips is True delete archive file after unziping, defaults to False
-        :type delete_zip: bool
-        :param verbose: if True print downloading progress, defaults to False
-        :type verbose: bool
-        :return: None
-        """
+    destination_directory = path.dirname(dest_path)
+    if not path.exists(destination_directory):
+        makedirs(destination_directory)
 
-        re_match = re.search('id=([\w\d]+)', url)
-        file_id = re_match.group(1)
+    if not path.exists(dest_path) or overwrite:
+        if verbose:
+            print('Downloading {} into {} ... '.format(url, dest_path))
 
-        destination_directory = path.dirname(dest_path)
-        if not path.exists(destination_directory):
-            makedirs(destination_directory)
+        session = requests.Session()
+        response = session.get(download_url, params={'id': file_id}, stream=True)
+        token = _get_google_drive_confirm_token(response)
+        if token:
+            params = {'id': file_id, 'confirm': token}
+            response = session.get(download_url, params=params, stream=True)
+        current_download_size = [0]
+        _save_response_content(response, dest_path, verbose, current_download_size)
 
-        if not path.exists(dest_path) or overwrite:
-            if verbose:
-                print('Downloading {} into {} ... '.format(url, dest_path))
+        if unzip:
+            try:
+                if verbose:
+                    print('Unzipping ...')
 
-            session = requests.Session()
-            response = session.get(GoogleDriveDownloader.DOWNLOAD_URL, params={'id': file_id}, stream=True)
-            token = GoogleDriveDownloader._get_confirm_token(response)
-            if token:
-                params = {'id': file_id, 'confirm': token}
-                response = session.get(GoogleDriveDownloader.DOWNLOAD_URL, params=params, stream=True)
-            current_download_size = [0]
-            GoogleDriveDownloader._save_response_content(response, dest_path, verbose, current_download_size)
+                with zipfile.ZipFile(dest_path, 'r') as z:
+                    z.extractall(destination_directory)
+                if delete_zip:
+                    remove(dest_path)
 
-            if unzip:
-                try:
-                    if verbose:
-                        print('Unzipping ...')
+            except zipfile.BadZipfile:
+                warnings.warn('Ignoring `unzip` since "{}" does not look like a valid zip file'.format(file_id))
 
-                    with zipfile.ZipFile(dest_path, 'r') as z:
-                        z.extractall(destination_directory)
-                    if delete_zip:
-                        remove(dest_path)
+        if verbose:
+            print('Done.')
 
-                except zipfile.BadZipfile:
-                    warnings.warn('Ignoring `unzip` since "{}" does not look like a valid zip file'.format(file_id))
 
-            if verbose:
-                print('Done.')
+def _get_google_drive_confirm_token(response):
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            return value
+    return None
 
-    @staticmethod
-    def _get_confirm_token(response):
-        for key, value in response.cookies.items():
-            if key.startswith('download_warning'):
-                return value
-        return None
 
-    @staticmethod
-    def _save_response_content(response, destination, verbose, current_size):
-        with open(destination, 'wb') as f:
-            for chunk in response.iter_content(GoogleDriveDownloader.CHUNK_SIZE):
-                if chunk:  # filter out keep-alive new chunks
-                    f.write(chunk)
-                    if verbose:
-                        print('\r' + GoogleDriveDownloader._sizeof_fmt(current_size[0]), end=' ')
-                        stdout.flush()
-                        current_size[0] += GoogleDriveDownloader.CHUNK_SIZE
+def _save_response_content(response, destination, verbose, current_size, chunk_size=32768):
+    with open(destination, 'wb') as f:
+        for chunk in response.iter_content(chunk_size):
+            if chunk:  # filter out keep-alive new chunks
+                f.write(chunk)
+                if verbose:
+                    print('\r' + _sizeof_fmt(current_size[0]), end=' ')
+                    stdout.flush()
+                    current_size[0] += chunk_size
 
-    # From: https://stackoverflow.com/questions/1094841/reusable-library-to-get-human-readable-version-of-file-size
-    @staticmethod
-    def _sizeof_fmt(num, suffix='B'):
-        for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
-            if abs(num) < 1024.0:
-                return '{:.1f} {}{}'.format(num, unit, suffix)
-            num /= 1024.0
-        return '{:.1f} {}{}'.format(num, 'Y', suffix)
+
+def _sizeof_fmt(num, suffix='B'):
+    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+        if abs(num) < 1024.0:
+            return '{:.1f} {}{}'.format(num, unit, suffix)
+        num /= 1024.0
+    return '{:.1f} {}{}'.format(num, 'Y', suffix)

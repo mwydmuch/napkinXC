@@ -20,6 +20,8 @@ Datasets
 .. autosummary::
     :toctree: python_api/
 
+    datasets.load_libsvm_file
+    datasets.download_dataset
     datasets.load_dataset
 
 Measures

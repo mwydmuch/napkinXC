@@ -236,6 +236,7 @@ def _load_file(filepath, format):
 def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=False, delete_zip=False, verbose=False):
     """
     Downloads a shared file from google drive into a given folder and optionally unzips it.
+
     :param url: file url to download
     :type url: str
     :param dest_path: the destination where to save the downloaded file

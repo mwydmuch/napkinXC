@@ -28,6 +28,13 @@ def _process_Y(Y):
     return Y
 
 
+def _check_k(k):
+    if not isinstance(k, int):
+        raise TypeError("k should be an integer number larger than 0")
+    if k < 1:
+        raise ValueError("k should be larger than 0")
+
+
 def precision_at_k(Y_true, Y_pred, k=5):
     """
     Calculate precision at k
@@ -37,6 +44,7 @@ def precision_at_k(Y_true, Y_pred, k=5):
     :param k: k
     :return: value of precision at k
     """
+    _check_k(k)
     Y_true = _process_Y(Y_true)
     Y_pred = _process_Y(Y_pred)
 
@@ -49,26 +57,29 @@ def precision_at_k(Y_true, Y_pred, k=5):
     return sum / len(Y_true)
 
 
-def recall_at_k(Y_true, Y_pred, k=5):
+def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
     """
     Calculate recall at k
 
     :param Y_true: true labels
     :param Y_pred: ranking of predicted labels
     :param k: k
+    :param zero_division: sets the value to use when there is a zero division for an instance caused by number of true labels equal to 0, should be 0 or 1
     :return: value of recall at k
     """
+    _check_k(k)
     Y_true = _process_Y(Y_true)
     Y_pred = _process_Y(Y_pred)
-
     sum = 0
     for t, p in zip(Y_true, Y_pred):
-        r_at_k = 0
-        for p_i in p[:k]:
-            r_at_k += 1 if p_i in t else 0
-        sum += r_at_k / len(t)
+        if len(t) > 0:
+            r_at_k = 0
+            for p_i in p[:k]:
+                r_at_k += 1 if p_i in t else 0
+            sum += r_at_k / len(t)
+        else:
+            sum += zero_division
     return sum / len(Y_true)
-
 
 
 def coverage_at_k(Y_true, Y_pred, k=5):
@@ -80,7 +91,7 @@ def coverage_at_k(Y_true, Y_pred, k=5):
     :param k: k
     :return: value of coverage at k
     """
-
+    _check_k(k)
     Y_true = _process_Y(Y_true)
     Y_pred = _process_Y(Y_pred)
 
@@ -104,6 +115,7 @@ def dcg_at_k(Y_true, Y_pred, k=5):
     :param k: k
     :return: value of DCG at k
     """
+    _check_k(k)
     Y_true = _process_Y(Y_true)
     Y_pred = _process_Y(Y_pred)
 
@@ -123,6 +135,7 @@ def ndcg_at_k(Y_true, Y_pred, k=5):
     :param k: k
     :return: value of nDCG at k
     """
+    _check_k(k)
     Y_true = _process_Y(Y_true)
     Y_pred = _process_Y(Y_pred)
 
@@ -145,7 +158,6 @@ def hamming_loss(Y_true, Y_pred):
     :param Y_pred: predicted labels
     :return: value of hamming loss
     """
-
     Y_true = _process_Y(Y_true)
     Y_pred = _process_Y(Y_pred)
 

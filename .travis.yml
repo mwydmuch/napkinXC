@@ -36,7 +36,7 @@ matrix:
         - HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake git
 
 script:
+  - cmake --version
   - python3 --version
-  - cmake -Bbuild -DPYTHON=ON -DPYTHON_EXECUTABLE=$(which python3) .
-  - cd build
+  - cmake -DPYTHON=ON -DPYTHON_EXECUTABLE=$(which python3) .
   - make

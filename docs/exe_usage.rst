@@ -28,7 +28,7 @@ napkinXC supports multi-label svmlight/libsvm like-format (less strict)
 and format of datasets from `The Extreme Classification Repository <https://manikvarma.github.io/downloads/XC/XMLRepository.html>`_,
 which has an additional header line with a number of data points, features, and labels.
 
-The format is text-based. Each line contains an instance and is ended by a ``\\n`` character.
+The format is text-based. Each line contains an instance and is ended by a ``\n`` character.
 
 .. code::
 

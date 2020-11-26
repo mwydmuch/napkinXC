@@ -1,6 +1,6 @@
 # napkinXC 
 [![PyPI version](https://badge.fury.io/py/napkinxc.svg)](https://badge.fury.io/py/napkinxc) 
-[![Build Status](https://travis-ci.org/mwydmuch/napkinXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkinXC) 
+[![Build Status](https://travis-ci.com/mwydmuch/napkinXC.svg?branch=master)](https://travis-ci.org/mwydmuch/napkinXC) 
 [![Documentation Status](https://readthedocs.org/projects/napkinxc/badge/?version=latest)](https://napkinxc.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/github/license/mwydmuch/napkinXC.svg)](https://github.com/mwydmuch/napkinXC/blob/master/LICENSE)
 
@@ -50,7 +50,7 @@ pip install napkinxc
 
 or the latest master version directly from the GitHub repository:
 ```
-pip install pip install git+https://github.com/mwydmuch/napkinXC.git
+pip install git+https://github.com/mwydmuch/napkinXC.git
 ```
 
 Minimal example of usage:

@@ -13,6 +13,18 @@ matrix:
       install:
         - sudo apt-get install cmake git python3-dev
 
+    - os: linux
+      dist: bionic
+      compiler: gcc
+      install:
+        - sudo apt-get install cmake git python3-dev
+
+    - os: linux
+      dist: bionic
+      compiler: clang
+      install:
+        - sudo apt-get install cmake git python3-dev
+
     - os: osx
       compiler: gcc
       install:
@@ -24,7 +36,7 @@ matrix:
         - HOMEBREW_NO_AUTO_UPDATE=1 brew install cmake git
 
 script:
-  - python --version
-  - cmake -Bbuild -DPYTHON=ON .
+  - python3 --version
+  - cmake -Bbuild -DPYTHON=ON -DPYTHON_EXECUTABLE=$(which python3) .
   - cd build
   - make

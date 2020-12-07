@@ -35,7 +35,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGU0VTR1pCejFpWjg',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGU0VTR1pCejFpWjg', # XMLC repo url
             'train': 'Eurlex/eurlex_train.txt',
             'test': 'Eurlex/eurlex_test.txt',
             'file_format': 'libsvm',
@@ -46,7 +46,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc', # XMLC repo url
             'train': 'AmazonCat/amazonCat_train.txt',
             'test': 'AmazonCat/amazonCat_test.txt',
             'file_format': 'libsvm',
@@ -57,7 +57,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDFqU2E5U0dxS00',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDFqU2E5U0dxS00', # XMLC repo url
             'train': 'AmazonCat-14K/amazonCat-14K_train.txt',
             'test': 'AmazonCat-14K/amazonCat-14K_test.txt',
             'file_format': 'libsvm',
@@ -68,7 +68,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDdOeGliWF9EOTA',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDdOeGliWF9EOTA', # XMLC repo url
             'train': 'Wiki10/wiki10_train.txt',
             'test': 'Wiki10/wiki10_test.txt',
             'file_format': 'libsvm',
@@ -79,7 +79,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGR3lBWWYyVlhDLWM',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGR3lBWWYyVlhDLWM', # XMLC repo url
             'train': 'DeliciousLarge/deliciousLarge_train.txt',
             'test': 'DeliciousLarge/deliciousLarge_test.txt',
             'file_format': 'libsvm',
@@ -90,7 +90,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGSHE1SWx4TVRva3c',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGSHE1SWx4TVRva3c', # XMLC repo url
             'train': 'WikiLSHTC/wikiLSHTC_train.txt',
             'test': 'WikiLSHTC/wikiLSHTC_test.txt',
             'file_format': 'libsvm',
@@ -101,7 +101,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGRmEzVDVkNjBMR3c',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGRmEzVDVkNjBMR3c', # XMLC repo url
             'train': 'WikipediaLarge-500K/WikipediaLarge-500K_train.txt',
             'test': 'WikipediaLarge-500K/WikipediaLarge-500K_test.txt',
             'file_format': 'libsvm',
@@ -112,7 +112,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdUJwRzltS1dvUVk',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdUJwRzltS1dvUVk', # XMLC repo url
             'train': 'Amazon/amazon_train.txt',
             'test': 'Amazon/amazon_test.txt',
             'file_format': 'libsvm',
@@ -123,7 +123,7 @@ DATASETS = {
         'formats': ['tf-idf'],
         'subsets': ['train', 'test'],
         'tf-idf': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE',
+            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE', # XMLC repo url
             'train': 'Amazon-3M/amazon-3M_train.txt',
             'test': 'Amazon-3M/amazon-3M_test.txt',
             'file_format': 'libsvm',
@@ -131,11 +131,15 @@ DATASETS = {
     },
 }
 
+
 # Create datasets aliases
+#DATASETS['eurlex'] = DATASETS['eurlex-4k']
+#DATASETS['amazoncat'] = DATASETS['amazoncat-13k']
 DATASETS['wiki10'] = DATASETS['wiki10-31k']
 DATASETS['deliciouslarge'] = DATASETS['deliciouslarge-200k']
 DATASETS['wikilshtc'] = DATASETS['wikilshtc-325k']
 DATASETS['wikipedialarge'] = DATASETS['wikipedialarge-500k']
+#DATASETS['amazon'] = DATASETS['amazon-670k']
 
 
 # Main functions for downloading and loading datasets
@@ -157,7 +161,7 @@ def load_libsvm_file(file):
 
     :param file: path to a file to load
     :type file: str
-    :return: (csr_matrix, list[list[int]]), tuple of features matrix and labels
+    :return: (csr_matrix, list[list[int]]) - tuple of features matrix and labels
     """
     labels, indptr, indices, data = _load_libsvm_file(file)
     return csr_matrix((data, indices, indptr)), labels
@@ -168,13 +172,24 @@ def download_dataset(dataset, subset='train', format='tf-idf', root='./data', ve
     Downloads the dataset from the internet and puts it in root directory.
     If dataset is already downloaded, it is not downloaded again.
 
-    :param dataset: name of the dataset to load, case insensitive {'Eurlex-4K', 'AmazonCat-13K', 'AmazonCat-14K', 'Wiki10-31K', 'DeliciousLarge-200K', 'WikiLSHTC-325K', 'WikipediaLarge-500K', 'Amazon-670K', 'Amazon-3M'}
+    :param dataset: name of the dataset to load, case insensitive, available datasets:
+
+        - ``Eurlex-4K``,
+        - ``AmazonCat-13K``,
+        - ``AmazonCat-14K``,
+        - ``Wiki10-31K``, alias: ``Wiki10``
+        - ``DeliciousLarge-200K``, alias: ``DeliciousLarge``
+        - ``WikiLSHTC-325K``, alias: ``WikiLSHTC``
+        - ``WikipediaLarge-500K``, alias: ``WikipediaLarge``
+        - ``Amazon-670K``
+        - ``Amazon-3M``
+
     :type dataset: str
-    :param subset: subset of dataset to load into features matrix and labels {'train', 'test', 'all'}, defaults to 'train'
+    :param subset: subset of dataset to load into features matrix and labels {``train``, ``test``, ``all``}, defaults to ``train``
     :type subset: str, optional
-    :param format: format of dataset to load {'tf-idf'}, defaults to 'tf-idf'
+    :param format: format of dataset to load {``bow`` (bag-of-words, in many cases with tf-idf weights)}, defaults to ``bow``
     :type format: str, optional
-    :param root: location of datasets directory, defaults to './data'
+    :param root: location of datasets directory, defaults to ``./data``
     :type root: str, optional
     :param verbose: if True print downloading and loading progress, defaults to False
     :type verbose: bool, optional
@@ -193,17 +208,28 @@ def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbos
     If dataset is already downloaded, it is not downloaded again.
     Then loads requested datasets into features matrix and labels.
 
-    :param dataset: name of the dataset to load, case insensitive {'Eurlex-4K', 'AmazonCat-13K', 'AmazonCat-14K', 'Wiki10-31K', 'DeliciousLarge-200K', 'WikiLSHTC-325K', 'WikipediaLarge-500K', 'Amazon-670K', 'Amazon-3M'}
+    :param dataset: name of the dataset to load, case insensitive, available datasets:
+
+        - ``Eurlex-4K``,
+        - ``AmazonCat-13K``,
+        - ``AmazonCat-14K``,
+        - ``Wiki10-31K``, alias: ``Wiki10``
+        - ``DeliciousLarge-200K``, alias: ``DeliciousLarge``
+        - ``WikiLSHTC-325K``, alias: ``WikiLSHTC``
+        - ``WikipediaLarge-500K``, alias: ``WikipediaLarge``
+        - ``Amazon-670K``
+        - ``Amazon-3M``
+
     :type dataset: str
-    :param subset: subset of dataset to load into features matrix and labels {'train', 'test', 'all'}, defaults to 'train'
+    :param subset: subset of dataset to load into features matrix and labels {``train``, ``test``, ``all``}, defaults to ``train``
     :type subset: str, optional
-    :param format: format of dataset to load {'tf-idf'}, defaults to 'tf-idf'
+    :param format: format of dataset to load {``bow`` (bag-of-words, in many cases with tf-idf weights)}, defaults to ``bow``
     :type format: str, optional
-    :param root: location of datasets directory, defaults to ./data
+    :param root: location of datasets directory, defaults to ``./data``
     :type root: str, optional
     :param verbose: if True print downloading and loading progress, defaults to False
     :type verbose: bool, optional
-    :return: (csr_matrix, list[list[int]]), tuple of features matrix and labels
+    :return: (csr_matrix, list[list[int]]) - tuple of features matrix and labels
     """
     dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
     file_path = path.join(root, dataset_meta[subset])

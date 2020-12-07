@@ -24,6 +24,260 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
+def precision_at_k(Y_true, Y_pred, k=5):
+    """
+    Calculate precision at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels
+    :type Y_true: ndarray, csr_matrix, list[list[int]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as list of labels or tuples of labels with scores (idx, score)..
+        In case of matrix, ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :return: ndarray with values of precision at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+
+    sum = np.zeros(k)
+    count = 0
+    for t, p in zip(Y_true, Y_pred):
+        p_at_i = 0
+        for i, p_i in enumerate(p[:k]):
+            p_at_i += 1 if p_i in t else 0
+            sum[i] += p_at_i / (i + 1)
+        count += 1
+    return sum / count
+
+
+def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
+    """
+    Calculate recall at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels
+    :type Y_true: ndarray, csr_matrix, list[list[int]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as list of labels or tuples of labels with scores (idx, score)..
+        In case of matrix, ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :param zero_division: Value to add when there is a zero division.
+    :type zero_division: float {0, 1}
+    :return: ndarray with values of recall at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+
+    sum = np.zeros(k)
+    count = 0
+    for t, p in zip(Y_true, Y_pred):
+        if len(t) > 0:
+            r_at_k = 0
+            for i, p_i in enumerate(p[:k]):
+                r_at_k += 1 if p_i in t else 0
+                sum[i] += r_at_k / len(t)
+        else:
+            sum += zero_division
+        count += 1
+    return sum / count
+
+
+def coverage_at_k(Y_true, Y_pred, k=5):
+    """
+    Calculate coverage at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels
+    :type Y_true: ndarray, csr_matrix, list[list[int]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as list of labels or tuples of labels with scores (idx, score)..
+        In case of matrix, ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :return: ndarray with values of coverage at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+
+    uniq_t = [set() for _ in range(k)]
+    uniq_tp = [set() for _ in range(k)]
+    for t, p in zip(Y_true, Y_pred):
+        for t_i in t:
+            uniq_t.add(t_i)
+        for p_i in p[:k]:
+            if p_i in t:
+                uniq_tp.add(p_i)
+    return len(uniq_tp) / len(uniq_t)
+
+
+def dcg_at_k(Y_true, Y_pred, k=5):
+    """
+    Calculate DCG at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels
+    :type Y_true: ndarray, csr_matrix, list[list[int]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as list of labels or tuples of labels with scores (idx, score)..
+        In case of matrix, ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :return: ndarray with values of DCG at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+
+    sum = np.zeros(k)
+    count = 0
+    for t, p in zip(Y_true, Y_pred):
+        dcg_at_i = 0
+        for i, p_i in enumerate(p[:k]):
+            dcg_at_i += 1 / log2(i + 2) if p_i in t else 0
+            sum[i] += dcg_at_i
+        count += 1
+    return sum / count
+
+
+def ndcg_at_k(Y_true, Y_pred, k=5):
+    """
+    Calculate nDCG at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels
+    :type Y_true: ndarray, csr_matrix, list[list[int]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as list of labels or tuples of labels with scores (idx, score)..
+        In case of matrix, ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :return: ndarray with values of nDCG at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+
+    sum = np.zeros(k)
+    count = 0
+    for t, p in zip(Y_true, Y_pred):
+        dcg_at_i = 0
+        norm_at_i = 0
+        for i, p_i in enumerate(p[:k]):
+            norm_at_i += 1 / log2(i + 2)
+            dcg_at_i += 1 / log2(i + 2) if p_i in t else 0
+            sum[i] += dcg_at_i / norm_at_i
+        count += 1
+    return sum / count
+
+
+def hamming_loss(Y_true, Y_pred):
+    """
+    Calculate hamming loss.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels
+    :type Y_true: ndarray, csr_matrix, list[list[int]]
+    :param Y_pred: Predicted labels provided as a matrix with scores or list of list of labels or tuples of labels with scores (idx, score).
+    :type Y_pred: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+    :return: ndarray with values of nDCG at 1-k places.
+    """
+    
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred)
+
+    sum = 0
+    count = 0
+    for t, p in zip(Y_true, Y_pred):
+        sum += len(p) + len(t) - 2 * len(set(t).intersection(p))
+        count += 1
+
+    return sum / count
+
+
+def inverse_propensity(Y, A=0.55, B=1.5):
+    """
+    Calculate inverse propensity as proposed in Jain et al. 2016.
+
+    :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels
+    :type Y: ndarray, csr_matrix, list of lists of ints or tuples (idx, score)
+    :param A: A value, typical values:
+
+        - 0.5: ``WikiLSHTC-325K``
+        - 0.6: ``Amazon-670K``
+        - 0.55: otherwise
+
+    :type A: float, optional
+    :param B: B value, typical values:
+
+        - 0.4: ``WikiLSHTC-325K``
+        - 2.6: ``Amazon-670K``
+        - 1.5: otherwise
+
+    :type B: float, optional
+    :return: ndarray with propensity scores for each label
+    """
+    if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
+        m = Y.shape[0]
+        freqs = np.sum(Y, axis=0)
+
+    elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
+        m = max([max(y) for y in Y])
+        freqs = np.zeros(m)
+        for y in Y:
+            freqs[y] += 1
+
+    else:
+        raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of list of ints")
+
+    C = (log(m) - 1.0) * (B + 1) ** A
+    inv_ps = 1.0 + C * (freqs + B) ** -A
+    return inv_ps
+
+
+def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
+    """
+    Calculate Propensity Scored Precision (PSP) at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels
+    :type Y_true: ndarray, csr_matrix, list[list[int]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as list of labels or tuples of labels with scores (idx, score)..
+        In case of matrix, ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+    :param inv_ps: Propensity scores for each label.
+    :type inv_ps: ndarray, list
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :return: ndarray with values of PSP at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+
+    if not isinstance(inv_ps, np.ndarray):
+        inv_ps = np.array(inv_ps)
+
+    sum = np.zeros(k)
+    best_sum = np.zeros(k)
+    for t, p in zip(Y_true, Y_pred):
+        top_ps = np.sort(inv_ps[t])
+        psp_at_i = 0
+        best_psp_at_i = 0
+        for i, p_i in enumerate(p[:k]):
+            psp_at_i += inv_ps[p_i] if p_i in t else 0
+            if i < top_ps.shape:
+                best_psp_at_i += top_ps[i]
+            sum[i] += psp_at_i / (i + 1)
+            best_sum[i] += best_psp_at_i / (i + 1)
+    return sum / best_sum
+
+
+# Helpers
 def _check_k(k):
     if not isinstance(k, int):
         raise TypeError("k should be an integer number larger than 0")
@@ -71,207 +325,3 @@ def _get_Y_iterator(Y, ranking=False):
 
     else:
         raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of list of ints")
-
-
-def precision_at_k(Y_true, Y_pred, k=5):
-    """
-    Calculate precision at {1-k} places
-
-    :param Y_true: true labels
-    :param Y_pred: ranking of predicted labels
-    :param k: k
-    :return: value of precision at k
-    """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        p_at_i = 0
-        for i, p_i in enumerate(p[:k]):
-            p_at_i += 1 if p_i in t else 0
-            sum[i] += p_at_i / (i + 1)
-        count += 1
-    return sum / count
-
-
-def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
-    """
-    Calculate recall at k
-
-    :param Y_true: true labels
-    :param Y_pred: ranking of predicted labels
-    :param k: k
-    :param zero_division: sets the value to use when there is a zero division for an instance caused by number of true labels equal to 0, should be 0 or 1
-    :return: value of recall at k
-    """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        if len(t) > 0:
-            r_at_k = 0
-            for i, p_i in enumerate(p[:k]):
-                r_at_k += 1 if p_i in t else 0
-                sum[i] += r_at_k / len(t)
-        else:
-            sum += zero_division
-        count += 1
-    return sum / count
-
-
-def coverage_at_k(Y_true, Y_pred, k=5):
-    """
-    Calculate coverage at k
-
-    :param Y_true: true labels
-    :param Y_pred: ranking of predicted labels
-    :param k: k
-    :return: value of coverage at k
-    """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    uniq_t = set()
-    uniq_tp = set()
-    for t, p in zip(Y_true, Y_pred):
-        for t_i in t:
-            uniq_t.add(t_i)
-        for p_i in p[:k]:
-            if p_i in t:
-                uniq_tp.add(p_i)
-    return len(uniq_tp) / len(uniq_t)
-
-
-def dcg_at_k(Y_true, Y_pred, k=5):
-    """
-    Calculate DCG at k
-
-    :param Y_true: true labels
-    :param Y_pred: ranking of predicted labels
-    :param k: k
-    :return: value of DCG at k
-    """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        dcg_at_i = 0
-        for i, p_i in enumerate(p[:k]):
-            dcg_at_i += 1 / log2(i + 2) if p_i in t else 0
-            sum[i] += dcg_at_i
-        count += 1
-    return sum / count
-
-
-def ndcg_at_k(Y_true, Y_pred, k=5):
-    """
-    Calculate nDCG at k
-
-    :param Y_true: true labels
-    :param Y_pred: ranking of predicted labels
-    :param k: k
-    :return: value of nDCG at k
-    """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        dcg_at_i = 0
-        norm_at_i = 0
-        for i, p_i in enumerate(p[:k]):
-            norm_at_i += 1 / log2(i + 2)
-            dcg_at_i += 1 / log2(i + 2) if p_i in t else 0
-            sum[i] += dcg_at_i / norm_at_i
-        count += 1
-    return sum / count
-
-
-def hamming_loss(Y_true, Y_pred):
-    """
-    Calculate hamming loss
-
-    :param Y_true: true labels
-    :param Y_pred: predicted labels
-    :return: value of hamming loss
-    """
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred)
-
-    sum = 0
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        sum += len(p) + len(t) - 2 * len(set(t).intersection(p))
-        count += 1
-
-    return sum / count
-
-
-def inverse_propensity(Y, A, B):
-    """
-    Computes inverse propernsity as proposed in Jain et al. 16.
-
-    :param Y:
-    :param A:
-    :param B:
-    :return:
-    """
-    if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
-        m = Y.shape[0]
-        freqs = np.sum(Y, axis=0)
-
-    elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
-        m = max([max(y) for y in Y])
-        freqs = np.zeros(m)
-        for y in Y:
-            freqs[y] += 1
-
-    else:
-        raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of list of ints")
-
-    C = (log(m) - 1.0) * (B + 1) ** A
-    inv_psp = 1.0 + C * (freqs + B) ** -A
-    return inv_psp
-
-
-def psprecision_at_k(Y_true, Y_pred, inv_psp, k=5):
-    """
-    Calculate precision at {1-k} places
-
-    :param Y_true: true labels
-    :param Y_pred: ranking of predicted labels
-    :param k: k
-    :return: value of precision at k
-    """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    if not isinstance(inv_psp, np.ndarray):
-        inv_psp = np.array(inv_psp)
-
-    sum = np.zeros(k)
-    best_sum = np.zeros(k)
-    for t, p in zip(Y_true, Y_pred):
-        top_psp = np.sort(inv_psp[t])
-        psp_at_i = 0
-        best_psp_at_i = 0
-        for i, p_i in enumerate(p[:k]):
-            psp_at_i += inv_psp[p_i] if p_i in t else 0
-            if i < top_psp.shape:
-                best_psp_at_i += best_psp[i]
-            sum[i] += psp_at_i / (i + 1)
-            best_sum[i] += best_psp_at_i / (i + 1)
-    return sum / best_sum

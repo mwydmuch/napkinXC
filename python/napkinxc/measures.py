@@ -105,15 +105,21 @@ def coverage_at_k(Y_true, Y_pred, k=5):
     Y_true = _get_Y_iterator(Y_true)
     Y_pred = _get_Y_iterator(Y_pred, ranking=True)
 
-    uniq_t = [set() for _ in range(k)]
-    uniq_tp = [set() for _ in range(k)]
+    uniq_t = set()
+    uniq_tp_at_i = [set() for _ in range(k)]
     for t, p in zip(Y_true, Y_pred):
         for t_i in t:
             uniq_t.add(t_i)
-        for p_i in p[:k]:
+        for i, p_i in enumerate(p[:k]):
             if p_i in t:
-                uniq_tp.add(p_i)
-    return len(uniq_tp) / len(uniq_t)
+                uniq_tp_at_i[i].add(p_i)
+    uniq_tp = np.zeros(k)
+    for i in range(0, k):
+        if i > 0:
+            uniq_tp_at_i[i].update(uniq_tp_at_i[i - 1])
+        uniq_tp[i] = len(uniq_tp_at_i[i]) / len(uniq_t)
+
+    return uniq_tp
 
 
 def dcg_at_k(Y_true, Y_pred, k=5):

@@ -209,6 +209,43 @@ public:
         return pred;
     }
 
+    std::vector<std::vector<int>> predictWithThresholds(py::object inputFeatures, int featuresDataType, int topK, std::vector<double> thresholds){
+        auto predWithProba = predictProbaWithThresholds(inputFeatures, featuresDataType, topK, thresholds);
+        return dropProbaHelper(predWithProba);
+    }
+
+    std::vector<std::vector<std::pair<int, double>>> predictProbaWithThresholds(py::object inputFeatures, int featuresDataType, int topK, std::vector<double> thresholds){
+        std::vector<std::vector<Prediction>> pred;
+        runAsInterruptable([&] {
+            load();
+            SRMatrix<Feature> features;
+            readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
+            args.printArgs("predict");
+
+            args.topK = topK;
+            model->setThresholds(thresholds);
+            pred = model->predictBatchWithThresholds(features, args);
+        });
+
+        // This is only safe because it's struct with two fields casted to pair, don't do this with tuples!
+        return reinterpret_cast<std::vector<std::vector<std::pair<int, double>>>&>(pred);
+    }
+
+    std::vector<double> ofo(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType) {
+        std::vector<double> thresholds;
+        runAsInterruptable([&] {
+            load();
+            SRMatrix<Label> labels;
+            SRMatrix<Feature> features;
+            readFeatureMatrix(features, inputFeatures, (InputDataType) featuresDataType);
+            readLabelsMatrix(labels, inputLabels, (InputDataType) labelsDataType);
+            args.printArgs("ofo");
+            thresholds = model->ofo(features, labels, args);
+        });
+
+        return thresholds;
+    }
+
     std::vector<std::vector<int>> predictForFile(std::string path, int topK, double threshold) {
         auto predWithProba = predictProbaForFile(path, topK, threshold);
         return dropProbaHelper(predWithProba);
@@ -465,9 +502,12 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("load", &CPPModel::load)
     .def("unload", &CPPModel::unload)
     .def("predict", &CPPModel::predict)
-    .def("predict_for_file", &CPPModel::predictForFile)
     .def("predict_proba", &CPPModel::predictProba)
+    .def("predict_for_file", &CPPModel::predictForFile)
     .def("predict_proba_for_file", &CPPModel::predictProbaForFile)
+    .def("predict_with_thresholds", &CPPModel::predictWithThresholds)
+    .def("predict_proba_with_thresholds", &CPPModel::predictProbaWithThresholds)
+    .def("ofo", &CPPModel::ofo)
     .def("test", &CPPModel::test)
     .def("test_on_file", &CPPModel::testOnFile)
     //.def("call_python_function", &CPPModel::callPythonFunction)

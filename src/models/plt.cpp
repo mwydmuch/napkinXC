@@ -183,7 +183,7 @@ Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
 }
 
 void PLT::setThresholds(std::vector<double> th){
-    thresholds = th;
+    Model::setThresholds(th);
 
     //Log(CERR) << "Setting thresholds for PLT ...\n";
     for(auto& n : tree->nodes) {
@@ -225,7 +225,7 @@ void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
 }
 
 void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    TopKQueue<TreeNodeValue> nQueue;
+    TopKQueue<TreeNodeValue> nQueue(args.topK);
 
     nQueue.push({tree->root, predictForNode(tree->root, features)});
     ++nodeEvaluationCount;

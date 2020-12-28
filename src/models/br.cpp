@@ -113,6 +113,7 @@ void BR::predictWithThresholds(std::vector<Prediction>& prediction, Feature* fea
     std::vector<Prediction> tmpPrediction = predictForAllLabels(features, args);
     for (auto& p : tmpPrediction)
         if (p.value >= thresholds[p.label]) prediction.push_back(p);
+    if (args.topK > 0) prediction.resize(args.topK);
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args& args) {

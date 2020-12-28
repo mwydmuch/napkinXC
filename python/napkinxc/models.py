@@ -23,7 +23,8 @@ from numpy import ndarray
 from scipy.sparse import csr_matrix
 from ._napkinxc import CPPModel, InputDataType
 
-class Model:
+
+class Model():
     """
     Main model class that wraps CPPModel
     """
@@ -71,33 +72,46 @@ class Model:
         """
         self._model.unload()
 
-    def predict(self, X, top_k=5, threshold=0):
+    def predict(self, X, top_k=0, threshold=0):
         """
         Predict labels for data points in X.
 
         :param X: data points
         :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
-        :param top_k: predict top-k labels, defaults to 5
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
-        :param threshold: predict labels with probability above the threshold, defaults to 0
+        :param threshold: predict labels with probability above the threshold in case of single value
+            or above the specific threshold for each label in case of list or array of values,
+            if 0, the option is ignored, defaults to 0
+        :type threshold: float, list[float], ndarray
+        :param threshold: predict labels with probability above the thresholds, defaults to None
         :type threshold: float
         :return: list[list[int]] - list of list predicted labels
         """
-        return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
+        if isinstance(threshold, list):
+            return self._model.predict_with_thresholds(X, Model._check_data_type(X), top_k, threshold)
+        else:
+            return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
 
-    def predict_proba(self, X, top_k=5, threshold=0):
+    def predict_proba(self, X, top_k=None, threshold=None):
         """
         Predict labels with probability estimates for data points in X.
 
         :param X: data points
         :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
-        :param top_k: predict top-k labels, defaults to 5
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
         :param threshold: predict labels with probability above the threshold, defaults to 0
         :type threshold: float
         :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
         """
-        return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
+        if top_k == 0 and threshold == 0:
+            print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
+
+        if isinstance(threshold, list):
+            return self._model.predict_proba_with_thresholds(X, Model._check_data_type(X), top_k, threshold)
+        else:
+            return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
 
     def predict_for_file(self, path, top_k=5, threshold=0):
         """
@@ -105,12 +119,14 @@ class Model:
 
         :param path: path to the file
         :type path: str
-        :param top_k: predict top-k labels, defaults to 5
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
         :param threshold: predict labels with probability above the threshold, defaults to 0
         :type threshold: float
         :return: list[list[int]] - list of list predicted labels
         """
+        if top_k == 0 and threshold == 0:
+            print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
         return self._model.predict_for_file(path, top_k, threshold)
 
     def predict_proba_for_file(self, path, top_k=5, threshold=0):
@@ -119,13 +135,36 @@ class Model:
 
         :param path: path to the file
         :type path: str
-        :param top_k: predict top-k labels, defaults to 5
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int, optional
         :param threshold: predict labels with probability above the threshold, defaults to 0
         :type threshold: float, optional
         :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
         """
+        if top_k == 0 and threshold == 0:
+            print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
         return self._model.predict_proba_for_file(path, top_k, threshold)
+
+    def ofo(self, X, Y, type="macro", a=10, b=20, epochs=1):
+        """
+        Perform Online F-measure Optimization procedure on the given data to find optimal thresholds.
+
+        :param X: data points
+        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
+        :param Y: target labels
+        :type Y: list of lists or tuples
+        :param type: type of OFO procedure {``macro``, ``micro``}, default to ``macro``
+        :type type: str
+        :param a: a parameter of OFO procedure, defaults to 10
+        :type a: int
+        :param b: b parameter of OFO procedure, defaults to 20
+        :type b: int
+        :param epochs: number of training epochs for online optimizers, defaults to 1
+        :type epochs: int, optional
+        :return: list[float] - list of thresholds
+        """
+        self.set_params(ofo_type=type, ofo_a=a, ofo_b=b, epochs=epochs)
+        return self._model.ofo(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
 
     def get_params(self, deep=False): # deep argument for Scikit-learn compatibility
         """
@@ -180,12 +219,11 @@ class Model:
 
     @staticmethod
     def _check_data_type(data):
-        data_type = type(data)
-        if data_type == list:
+        if isinstance(data, list):
             return InputDataType.list
-        elif data_type == ndarray:
+        elif isinstance(data, ndarray):
             return InputDataType.ndarray
-        elif data_type == csr_matrix:
+        elif isinstance(data, csr_matrix):
             return InputDataType.csr_matrix
         else:
             return -1

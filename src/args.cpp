@@ -512,7 +512,7 @@ void Args::printArgs(std::string command) {
     }
 
     if (command == "ofo")
-        Log(CERR) << "\n  Epochs: " << epochs << ", a: " << ofoA << ", b: " << ofoB;
+        Log(CERR) << "\n  Epochs: " << epochs << ", initial a: " << ofoA << ", initial b: " << ofoB;
 
     Log(CERR) << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
               << "\n  Seed: " << seed << "\n";

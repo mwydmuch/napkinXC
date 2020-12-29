@@ -109,7 +109,7 @@ private:
     static void predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                                  SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
 
-    static void ofoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
-                          SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
-                          const int startRow, const int stopRow);
+    static void macroOfoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
+                               SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
+                               const int startRow, const int stopRow);
 };

@@ -206,7 +206,7 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
     for (int t = 0; t < args.threads; ++t)
-        tSet.add(ofoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels),
+        tSet.add(macroOfoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels),
                  std::ref(args),
                  t * tRows, std::min((t + 1) * tRows, features.rows()));
     tSet.joinAll();
@@ -214,7 +214,7 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     return thresholds;
 }
 
-void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
+void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
                       SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args, const int startRow, const int stopRow) {
 
     const int rowsRange = stopRow - startRow;
@@ -245,7 +245,7 @@ void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::
         // b[j] =  .. + sum_{i = 1}^{t} y_j
         int l = -1;
         while (labels[r][++l] > -1)
-            bs[labels[r][l]]++;
+            if(labels[r][++l] < bs.size()) bs[labels[r][l]]++;
 
         // Update thresholds, only those that may have changed due to update of as or bs,
         // For simplicity I compute some of them twice because it does not really matter
@@ -254,7 +254,7 @@ void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::
             thresholdsToUpdate[p.label] = as[p.label] / bs[p.label];
         l = -1;
         while (labels[r][++l] > -1)
-            thresholdsToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
+            if(labels[r][++l] < bs.size()) thresholdsToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
 
         model->updateThresholds(thresholdsToUpdate);
     }

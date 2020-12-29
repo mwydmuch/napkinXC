@@ -606,16 +606,6 @@ void Tree::moveSubtree(TreeNode* oldParent, TreeNode* newParent) {
     setParent(newParent, oldParent);
 }
 
-void Tree::populateNodeLabels() {
-    for (auto& l : leaves) {
-        TreeNode* n = l.second;
-        while (n != nullptr) {
-            n->labels.push_back(l.first);
-            n = n->parent;
-        }
-    }
-}
-
 int Tree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2) {
     UnorderedMap<TreeNode*, int> path1;
 

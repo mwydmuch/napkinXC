@@ -26,6 +26,12 @@
 #include "model.h"
 #include "tree.h"
 
+// Additional node information for prediction with thresholds
+struct TreeNodeThrExt {
+    std::vector<int> labels;
+    double th;
+    int thLabel;
+};
 
 // This is virtual class for all PLT based models: HSM, Batch PLT, Online PLT
 class PLT : virtual public Model {
@@ -50,6 +56,9 @@ public:
 protected:
     Tree* tree;
     std::vector<Base*> bases;
+
+    // For prediction with thresholds
+    std::vector<TreeNodeThrExt> nodesThr;
 
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,
@@ -76,8 +85,8 @@ protected:
         if (value >= threshold) nQueue.push({node, value}, node->label > -1);
     }
 
-    inline static void addToQueueThresholds(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value) {
-        if (value >= node->th) nQueue.push({node, value}, node->label > -1);
+    inline void addToQueueThresholds(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value) {
+        if (value >= nodesThr[node->index].th) nQueue.push({node, value}, node->label > -1);
     }
 
     // Additional statistics

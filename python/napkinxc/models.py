@@ -93,7 +93,7 @@ class Model():
         else:
             return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
 
-    def predict_proba(self, X, top_k=None, threshold=None):
+    def predict_proba(self, X, top_k=0, threshold=0):
         """
         Predict labels with probability estimates for data points in X.
 
@@ -113,7 +113,7 @@ class Model():
         else:
             return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
 
-    def predict_for_file(self, path, top_k=5, threshold=0):
+    def predict_for_file(self, path, top_k=0, threshold=0):
         """
         Predict labels for data points in the given file in multi-label svmlight/libsvm format.
 
@@ -129,7 +129,7 @@ class Model():
             print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
         return self._model.predict_for_file(path, top_k, threshold)
 
-    def predict_proba_for_file(self, path, top_k=5, threshold=0):
+    def predict_proba_for_file(self, path, top_k=0, threshold=0):
         """
         Predict labels with probability estimates for data points in the given file in multi-label svmlight/libsvm format.
 
@@ -145,7 +145,7 @@ class Model():
             print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
         return self._model.predict_proba_for_file(path, top_k, threshold)
 
-    def ofo(self, X, Y, type="macro", a=10, b=20, epochs=1):
+    def ofo(self, X, Y, type='micro', a=10, b=20, epochs=1):
         """
         Perform Online F-measure Optimization procedure on the given data to find optimal thresholds.
 
@@ -153,7 +153,7 @@ class Model():
         :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
         :param Y: target labels
         :type Y: list of lists or tuples
-        :param type: type of OFO procedure {``macro``, ``micro``}, default to ``macro``
+        :param type: type of OFO procedure {``micro``, ``macro``}, default to ``micro``
         :type type: str
         :param a: a parameter of OFO procedure, defaults to 10
         :type a: int
@@ -161,10 +161,13 @@ class Model():
         :type b: int
         :param epochs: number of training epochs for online optimizers, defaults to 1
         :type epochs: int, optional
-        :return: list[float] - list of thresholds
+        :return: single float threshold in case of type == ``micro`` and list[float] of thresholds in case of type == ``macro``
         """
         self.set_params(ofo_type=type, ofo_a=a, ofo_b=b, epochs=epochs)
-        return self._model.ofo(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
+        thr = self._model.ofo(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
+        if type == 'micro':
+            thr = thr[0]
+        return thr
 
     def get_params(self, deep=False): # deep argument for Scikit-learn compatibility
         """
@@ -251,8 +254,8 @@ class PLT(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base (node) classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,
@@ -342,8 +345,8 @@ class HSM(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base (node) classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,
@@ -424,8 +427,8 @@ class BR(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,
@@ -490,8 +493,8 @@ class OVR(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,

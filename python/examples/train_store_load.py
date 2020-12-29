@@ -24,7 +24,7 @@ plt.fit(X_train, Y_train)
 
 # Predict.
 Y_pred = plt.predict(X_test, top_k=1)
-print(precision_at_k(Y_test, Y_pred, k=1))
+print("Precision at 1:", precision_at_k(Y_test, Y_pred, k=1))
 
 # Delete plt object.
 del plt
@@ -34,4 +34,4 @@ new_plt = PLT("eurlex-model")
 
 # Predict using a new model object.
 Y_pred = new_plt.predict(X_test, top_k=1)
-print(precision_at_k(Y_test, Y_pred, k=1))
+print("Precision at 1 after loading:", precision_at_k(Y_test, Y_pred, k=1))

@@ -27,12 +27,12 @@ plt.fit(X_train, Y_train)
 # You can preload the model to RAM to perform prediction.
 plt.load()
 
-# Predict only the best label (top-1 label) for each data point in the test dataset.
+# Predict only five top labels for each data point in the test dataset.
 # This will also load the model if it is not loaded.
-Y_pred = plt.predict(X_test, top_k=1)
+Y_pred = plt.predict(X_test, top_k=5)
 
-# Evaluate the prediction with precision at 1 measure.
-print(precision_at_k(Y_test, Y_pred, k=1))
+# Evaluate the prediction with precision at 5 measure.
+print("Precision at k:", precision_at_k(Y_test, Y_pred, k=5))
 
 # Unload the model from RAM
 # You can also just delete the object if you do not need it

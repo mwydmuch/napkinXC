@@ -233,7 +233,7 @@ def inverse_propensity(Y, A=0.55, B=1.5):
 
     elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
         m = max([max(y) for y in Y if len(y)])
-        freqs = np.zeros(m)
+        freqs = np.zeros(m + 1)
         for y in Y:
             freqs[y] += 1
 

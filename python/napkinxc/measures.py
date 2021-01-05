@@ -232,7 +232,7 @@ def inverse_propensity(Y, A=0.55, B=1.5):
         freqs = np.sum(Y, axis=0)
 
     elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
-        m = max([max(y) for y in Y])
+        m = max([max(y) for y in Y if len(y)])
         freqs = np.zeros(m)
         for y in Y:
             freqs[y] += 1
@@ -283,7 +283,7 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
     return sum / best_sum
 
 
-def f1_measure(Y_true, Y_pred, average='micro', zero_division=0, labels=None):
+def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):
     """
     Calculate F1 measure, also known as balanced F-score or F-measure.
 
@@ -326,11 +326,10 @@ def f1_measure(Y_true, Y_pred, average='micro', zero_division=0, labels=None):
                 if t_i not in tp:
                     labels_fn[t_i] = labels_fn.get(t_i, 0) + 1
 
-        # This will work for text labels
         labels = set(list(labels_tp.keys()) + list(labels_fp.keys()) + list(labels_fn.keys()))
-        if all(isinstance(l, int) for l in labels):
+        if all(isinstance(l, (int, np.integer)) for l in labels): # If there is no text labels
             max_label = max(max(labels_tp.keys()), max(labels_fp.keys()), max(labels_fn.keys()))
-            labels = range(max_label)
+            labels = range(max_label + 1)
 
         for l in labels:
             if (2 * labels_tp.get(l, 0) + labels_fp.get(l, 0) + labels_fn.get(l, 0)) > 0:
@@ -358,7 +357,7 @@ def f1_measure(Y_true, Y_pred, average='micro', zero_division=0, labels=None):
 
 # Helpers
 def _check_k(k):
-    if not isinstance(k, int):
+    if not isinstance(k, (int, np.integer)):
         raise TypeError("k should be an integer number larger than 0")
     if k < 1:
         raise ValueError("k should be larger than 0")
@@ -399,7 +398,7 @@ def _get_Y_iterator(Y, ranking=False):
     elif isinstance(Y, csr_matrix):
         return _Y_csr_matrix_iterator(Y, ranking)
 
-    elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
+    elif all(isinstance(y, (list, tuple)) for y in Y):
         return _Y_list_iterator(Y)
 
     else:

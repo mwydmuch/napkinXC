@@ -271,12 +271,12 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
     sum = np.zeros(k)
     best_sum = np.zeros(k)
     for t, p in zip(Y_true, Y_pred):
-        top_ps = np.sort(inv_ps[t])
+        top_ps = -np.sort(-inv_ps[t])
         psp_at_i = 0
         best_psp_at_i = 0
         for i, p_i in enumerate(p[:k]):
             psp_at_i += inv_ps[p_i] if p_i in t else 0
-            if i < top_ps.shape:
+            if i < top_ps.shape[0]:
                 best_psp_at_i += top_ps[i]
             sum[i] += psp_at_i / (i + 1)
             best_sum[i] += best_psp_at_i / (i + 1)

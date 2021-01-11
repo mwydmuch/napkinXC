@@ -47,6 +47,10 @@ public:
     virtual void setThresholds(std::vector<double> th);
     virtual void updateThresholds(UnorderedMap<int, double> thToUpdate);
     virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args);
+
+    virtual void setLabelWeights(std::vector<double> lw);
+    //virtual void predictWithLabelWeights(std::vector<Prediction>& prediction, Feature* features, Args& args);
+
     virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args);
     std::vector<double> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
     double microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
@@ -65,6 +69,7 @@ protected:
     int m; // Output size/number of labels
     bool loaded;
     std::vector<double> thresholds; // For prediction with thresholds
+    std::vector<double> labelsWeights; // For prediction with label weights
 
     // Base utils
     static Base* trainBase(int n, int r, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,

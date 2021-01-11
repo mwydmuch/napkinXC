@@ -143,6 +143,12 @@ void Model::predictBatchWithThresholdsThread(int threadId, Model* model, std::ve
     }
 }
 
+void Model::setLabelWeights(std::vector<double> lw){
+    if(lw.size() != m)
+        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
+    labelsWeights = lw;
+}
+
 std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args) {
     Log(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
 

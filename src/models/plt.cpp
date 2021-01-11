@@ -152,28 +152,67 @@ void PLT::addNodesDataPoints(std::vector<std::vector<std::pair<int, int>>>& node
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+    int topK = args.topK;
+    double threshold = args.threshold;
+
     TopKQueue<TreeNodeValue> nQueue(args.topK);
     //TopKQueue<TreeNodeValue> nQueue(0);
 
-    nQueue.push({tree->root, predictForNode(tree->root, features)});
+    // Set functions
+    std::function<bool(TreeNode*, double)> ifAddToQueue = [&] (TreeNode* node, double prob) {
+        return true;
+    };
+
+    if(args.threshold > 0)
+        ifAddToQueue = [&] (TreeNode* node, double prob) {
+            return (prob >= threshold);
+        };
+    else if(thresholds.size())
+        ifAddToQueue = [&] (TreeNode* node, double prob) {
+            return (prob >= nodesThr[node->index].th);
+        };
+
+    std::function<double(TreeNode*, double)> calculateValue = [&] (TreeNode* node, double prob) {
+        return prob;
+    };
+
+    if (!labelsWeights.empty())
+        calculateValue = [&] (TreeNode* node, double prob) {
+            return prob * this->nodesWeights[node->index].weight;
+        };
+
+    double rootProb = predictForNode(tree->root, features);
+    addToQueue(ifAddToQueue, calculateValue, nQueue, tree->root, rootProb);
     ++nodeEvaluationCount;
     ++dataPointCount;
 
-    Prediction p = predictNextLabel(nQueue, features, args.threshold);
-    while ((prediction.size() < args.topK || args.topK == 0) && p.label != -1) {
+    Prediction p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features);
+    while ((prediction.size() < topK || topK == 0) && p.label != -1) {
         prediction.push_back(p);
-        p = predictNextLabel(nQueue, features, args.threshold);
+        p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features);
     }
+
+    // Naive weighting
+    /*
+    if (!labelsWeights.empty()) {
+        for(auto& p : prediction)
+            p.value = p.label * labelsWeights[p.label];
+
+        std::sort(prediction.rbegin(), prediction.rend());
+    }
+     */
 }
 
-Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold) {
+Prediction PLT::predictNextLabel(
+    std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
+    TopKQueue<TreeNodeValue>& nQueue, Feature* features) {
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
         if (!nVal.node->children.empty()) {
             for (const auto& child : nVal.node->children)
-                addToQueue(nQueue, child, nVal.value * predictForNode(child, features), threshold);
+                addToQueue(ifAddToQueue, calculateValue, nQueue, child, nVal.prob * predictForNode(child, features));
             nodeEvaluationCount += nVal.node->children.size();
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
@@ -182,36 +221,55 @@ Prediction PLT::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
     return {-1, 0};
 }
 
-void PLT::setThresholds(std::vector<double> th){
-    Model::setThresholds(th);
+void PLT::calculateNodesLabels(){
+    if(tree->t != nodesLabels.size()){
+        nodesLabels.clear();
+        nodesLabels.resize(tree->t);
 
-    // Prepare additional structure
-    if(tree->k != nodesThr.size()) {
-        nodesThr = std::vector<TreeNodeThrExt>(tree->t);
         for (auto& l : tree->leaves) {
             TreeNode* n = l.second;
             while (n != nullptr) {
-                nodesThr[n->index].labels.push_back(l.first);
+                nodesLabels[n->index].push_back(l.first);
                 n = n->parent;
             }
         }
     }
+}
 
-    //Log(CERR) << "Setting thresholds for PLT ...\n";
-    for(auto& n : tree->nodes) {
-        TreeNodeThrExt& nTh = nodesThr[n->index];
-        nTh.th = 1;
-        for (auto &l : nTh.labels) {
-            if (thresholds[l] < nTh.th) {
-                nTh.th = thresholds[l];
-                nTh.thLabel = l;
-            }
+void PLT::setNodeThreshold(TreeNode* n){
+    TreeNodeThrExt& nTh = nodesThr[n->index];
+    nTh.th = 1;
+    for (auto &l : nodesLabels[n->index]) {
+        if (thresholds[l] < nTh.th) {
+            nTh.th = thresholds[l];
+            nTh.label = l;
         }
-        //Log(CERR) << "  Node " << n->index << ", labels: " << n->labels.size() << ", min: " << n->th << std::endl;
     }
+}
 
-    nodesThr[tree->root->index].th = 0;
-    nodesThr[tree->root->index].thLabel = 0;
+void PLT::setNodeWeight(TreeNode* n){
+    TreeNodeWeightsExt& nW = nodesWeights[n->index];
+    nW.weight = 0;
+    for (auto &l : nodesLabels[n->index]) {
+        if (labelsWeights[l] > nW.weight) {
+            nW.weight = labelsWeights[l];
+            nW.label = l;
+        }
+    }
+}
+
+void PLT::setThresholds(std::vector<double> th){
+    Model::setThresholds(th);
+    calculateNodesLabels();
+    if(tree->t != nodesThr.size()) nodesThr.resize(tree->t);
+    for(auto& n : tree->nodes) setNodeThreshold(n);
+}
+
+void PLT::setLabelWeights(std::vector<double> lw){
+    Model::setLabelWeights(lw);
+    calculateNodesLabels();
+    if(tree->t != nodesWeights.size()) nodesWeights.resize(tree->t);
+    for(auto& n : tree->nodes) setNodeWeight(n);
 }
 
 void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
@@ -224,14 +282,9 @@ void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
         while(n != tree->root){
             if(th.second < nTh.th){
                 nTh.th = th.second;
-                nTh.thLabel = th.first;
-            } else if (th.first == nTh.thLabel && th.second > nTh.th){
-                for(auto& l : nTh.labels) {
-                    if(thresholds[l] < nTh.th){
-                        nTh.th = thresholds[l];
-                        nTh.thLabel = l;
-                    }
-                }
+                nTh.label = th.first;
+            } else if (th.first == nTh.label && th.second > nTh.th){
+                setNodeThreshold(n);
             }
             n = n->parent;
         }
@@ -241,7 +294,8 @@ void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
 void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     TopKQueue<TreeNodeValue> nQueue(args.topK);
 
-    nQueue.push({tree->root, predictForNode(tree->root, features)});
+    double rootProb = predictForNode(tree->root, features);
+    nQueue.push({tree->root, rootProb, rootProb});
     ++nodeEvaluationCount;
     ++dataPointCount;
 

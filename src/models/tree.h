@@ -50,9 +50,11 @@ struct TreeNode {
 // For prediction in tree based models / Huffman trees building
 struct TreeNodeValue {
     TreeNodeValue(TreeNode* node, double value): node(node), value(value) {};
+    TreeNodeValue(TreeNode* node, double prob, double value): node(node), prob(prob), value(value) {};
 
     TreeNode* node;
-    double value; // Node's value/probability/loss
+    double prob; // Node's probability
+    double value; // Node's probability/value/loss, used for tree search
 
     bool operator<(const TreeNodeValue& r) const { return value < r.value; }
     bool operator>(const TreeNodeValue& r) const { return value > r.value; }

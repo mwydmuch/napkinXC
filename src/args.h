@@ -159,6 +159,7 @@ public:
     int topK;
     double threshold;
     std::string thresholds;
+    std::string labelsWeights;
     bool ensMissingScores;
 
     void save(std::ostream& out) override;

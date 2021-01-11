@@ -86,7 +86,23 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     if [ -e $TRAIN_RESULT_FILE ]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
-    (time ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
+    #(time ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
+
+    INV_PS_FILE="${DATASET_FILE}.inv_ps"
+    if [[ ! -e $INV_PS_FILE ]]; then
+        python3 ${SCRIPT_DIR}/calculate_inv_ps.py $TRAIN_FILE $INV_PS_FILE
+    fi
+
+    PRED_FILE=${MODEL}/pred_$(echo "${TEST_ARGS}" | tr " /" "__")
+    PRED_LOCK_FILE=${MODEL}/.pred_lock_$(echo "${TEST_ARGS}" | tr " /" "__")
+    if [[ ! -e $PRED_FILE ]] || [[ -e $PRED_LOCK_FILE ]]; then
+        touch $PRED_LOCK_FILE
+        TEST_ARGS=$(eval "echo $TEST_ARGS")
+        ${ROOT_DIR}/nxc predict -i $TEST_FILE -o $MODEL --topK 10 $TEST_ARGS > $PRED_FILE
+        rm -rf $PRED_LOCK_FILE
+    fi
+
+    python3 ${SCRIPT_DIR}/evaluate.py $TEST_FILE $PRED_FILE $INV_PS_FILE | tee -a $TEST_RESULT_FILE
 
     echo
     echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TEST_RESULT_FILE

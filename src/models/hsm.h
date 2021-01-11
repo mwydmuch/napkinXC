@@ -47,7 +47,9 @@ protected:
                           std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
                           SRMatrix<Feature>& features, Args& args) override;
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const int rLabel);
-    Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold) override;
+    Prediction predictNextLabel(
+        std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
+        TopKQueue<TreeNodeValue>& nQueue, Feature* features) override;
 
     int pathLength;   // Length of the path
 };

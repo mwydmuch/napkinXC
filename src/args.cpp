@@ -410,6 +410,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--thresholds")
                 thresholds = std::string(args.at(ai + 1));
+            else if (args[ai] == "--labelsWeights")
+                labelsWeights = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensMissingScores")
                 ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
 
@@ -499,6 +501,7 @@ void Args::printArgs(std::string command) {
     if (command == "test" || command == "predict") {
         if(thresholds.empty()) Log(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
         else Log(CERR) << "\n  Thresholds: " << thresholds;
+        if(!labelsWeights.empty()) Log(CERR) << "\n  Labels' weights: " << labelsWeights;
         if (modelType == svbopMips || modelType == brMips) {
             Log(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
             if(modelType == svbopMips) Log(CERR) << ", k: " << svbopMipsK;

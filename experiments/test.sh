@@ -95,9 +95,12 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
 
     PRED_FILE=${MODEL}/pred_$(echo "${TEST_ARGS}" | tr " /" "__")
     PRED_LOCK_FILE=${MODEL}/.pred_lock_$(echo "${TEST_ARGS}" | tr " /" "__")
+    if [[ $TEST_ARGS == *"--labelsWeights"* ]]; then
+        TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PS_FILE}"
+    fi
+
     if [[ ! -e $PRED_FILE ]] || [[ -e $PRED_LOCK_FILE ]]; then
         touch $PRED_LOCK_FILE
-        TEST_ARGS=$(eval "echo $TEST_ARGS")
         ${ROOT_DIR}/nxc predict -i $TEST_FILE -o $MODEL $TEST_ARGS > $PRED_FILE
         rm -rf $PRED_LOCK_FILE
     fi

@@ -51,9 +51,9 @@ elif [[ -e "${DATASET_FILE}_train.txt" ]]; then
 elif [[ -e "${DATASET_FILE}.train" ]]; then
     TRAIN_FILE="${DATASET_FILE}.train"
     TEST_FILE="${DATASET_FILE}.test"
-elif [[ -e "${DATASET_FILE}_train.svm" ]]; then
-    TRAIN_FILE="${DATASET_FILE}_train.svm"
-    TEST_FILE="${DATASET_FILE}_test.svm"
+elif [[ -e "${DATASET_FILE}_train.libsvm" ]]; then
+    TRAIN_FILE="${DATASET_FILE}_train.libsvm"
+    TEST_FILE="${DATASET_FILE}_test.libsvm"
 fi
 
 # Build nxc
@@ -98,7 +98,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     if [[ ! -e $PRED_FILE ]] || [[ -e $PRED_LOCK_FILE ]]; then
         touch $PRED_LOCK_FILE
         TEST_ARGS=$(eval "echo $TEST_ARGS")
-        ${ROOT_DIR}/nxc predict -i $TEST_FILE -o $MODEL --topK 10 $TEST_ARGS > $PRED_FILE
+        ${ROOT_DIR}/nxc predict -i $TEST_FILE -o $MODEL $TEST_ARGS > $PRED_FILE
         rm -rf $PRED_LOCK_FILE
     fi
 

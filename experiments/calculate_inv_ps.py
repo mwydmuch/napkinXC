@@ -30,10 +30,10 @@ if __name__ == "__main__":
     A = 0.55
     B = 1.5
 
-    if '/WikiLSHTC/' in true_file:
+    if '/wikiLSHTC/' in true_file:
         A = 0.5
         B = 0.4
-    elif '/Amazon/' in true_file:
+    elif '/amazon/' in true_file:
         A = 0.6
         B = 2.6
 

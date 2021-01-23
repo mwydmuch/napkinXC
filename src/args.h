@@ -96,12 +96,15 @@ public:
     int seed;
     int threads;
     unsigned long long memLimit; // TODO: Implement this for some models
+    bool saveGrads;
     bool resume;
+    bool loadDense;
 
     // Input/output options
     std::string input;
     std::string output;
     ModelType modelType;
+    bool processData;
     double bias;
     bool norm;
     int hash;

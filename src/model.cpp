@@ -84,7 +84,9 @@ std::shared_ptr<Model> Model::factory(Args& args) {
 
 Model::Model():loaded(false), m(0) {}
 
-Model::~Model() {}
+Model::~Model() {
+    unload();
+}
 
 void Model::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     std::vector<Prediction> tmpPrediction;
@@ -121,6 +123,8 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
 }
 
 void Model::setThresholds(std::vector<double> th){
+    if(th.size() != m)
+        throw std::invalid_argument("Size of thresholds vector dose not match number of model outputs");
     thresholds = th;
 }
 
@@ -202,7 +206,7 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     ThreadSet tSet;
     int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
     for (int t = 0; t < args.threads; ++t)
-        tSet.add(ofoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels),
+        tSet.add(macroOfoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels),
                  std::ref(args),
                  t * tRows, std::min((t + 1) * tRows, features.rows()));
     tSet.joinAll();
@@ -210,7 +214,7 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     return thresholds;
 }
 
-void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
+void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
                       SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args, const int startRow, const int stopRow) {
 
     const int rowsRange = stopRow - startRow;
@@ -241,7 +245,7 @@ void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::
         // b[j] =  .. + sum_{i = 1}^{t} y_j
         int l = -1;
         while (labels[r][++l] > -1)
-            bs[labels[r][l]]++;
+            if(labels[r][++l] < bs.size()) bs[labels[r][l]]++;
 
         // Update thresholds, only those that may have changed due to update of as or bs,
         // For simplicity I compute some of them twice because it does not really matter
@@ -250,7 +254,7 @@ void Model::ofoThread(int threadId, Model* model, std::vector<double>& as, std::
             thresholdsToUpdate[p.label] = as[p.label] / bs[p.label];
         l = -1;
         while (labels[r][++l] > -1)
-            thresholdsToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
+            if(labels[r][++l] < bs.size()) thresholdsToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
 
         model->updateThresholds(thresholdsToUpdate);
     }
@@ -296,11 +300,11 @@ void Model::trainBatchThread(int n, int r, std::vector<std::promise<Base *>>& re
                                    (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
 }
 
-void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results) {
+void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results, bool saveGrads) {
     for (int i = 0; i < results.size(); ++i) {
         printProgress(i, results.size());
         Base* base = results[i].get();
-        base->save(out);
+        base->save(out, saveGrads);
         delete base;
     }
 }
@@ -348,13 +352,13 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
         */
 
         // Saving in the main thread
-        saveResults(out, results);
+        saveResults(out, results, args.saveGrads);
         tSet.joinAll();
     } else {
         for (int i = 0; i < size; ++i){
             Base* base = new Base();
             base->train(n, baseFeatures[0].size(), baseLabels[i], baseFeatures[i], (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args);
-            base->save(out);
+            base->save(out, args.saveGrads);
             delete base;
         }
     }
@@ -407,19 +411,19 @@ void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<st
         */
 
         // Saving in the main thread
-        saveResults(out, results);
+        saveResults(out, results, args.saveGrads);
         tSet.joinAll();
     } else {
         for (int i = 0; i < size; ++i){
             Base* base = new Base();
             base->train(n, 0, baseLabels[i], baseFeatures, instancesWeights, args);
-            base->save(out);
+            base->save(out, args.saveGrads);
             delete base;
         }
     }
 }
 
-std::vector<Base*> Model::loadBases(std::string infile) {
+std::vector<Base*> Model::loadBases(std::string infile, bool resume) {
     Log(CERR) << "Loading base estimators ...\n";
 
     double nonZeroSum = 0;
@@ -434,7 +438,8 @@ std::vector<Base*> Model::loadBases(std::string infile) {
     for (int i = 0; i < size; ++i) {
         printProgress(i, size);
         auto b = new Base();
-        b->load(in);
+        b->load(in, resume);
+
         nonZeroSum += b->getNonZeroW();
         memSize += b->size();
         if(b->getMapW() != nullptr) ++sparse;

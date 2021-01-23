@@ -210,23 +210,38 @@ template <typename T> inline void divVector(T& vector, double scalar) {
     divVector(vector.data(), scalar, vector.size());
 }
 
-template <typename T> inline void unitNorm(T* data, const size_t size) {
-    T norm = 0;
-    for (int f = 0; f < size; ++f) norm += data[f] * data[f];
-    norm = std::sqrt(norm);
-    if (norm == 0) norm = 1;
-    for (int f = 0; f < size; ++f) data[f] /= norm;
-}
-
-inline void unitNorm(Feature* data, const size_t size) {
+// Unit norm values in container
+template <typename I>
+typename std::enable_if<std::is_same<typename std::iterator_traits<I>::value_type, Feature>::value, void>::type
+unitNorm(I begin, I end) {
     double norm = 0;
-    for (int f = 0; f < size; ++f) norm += data[f].value * data[f].value;
+    for (auto i = begin; i != end; ++i) norm += (*i).value * (*i).value;
+    if (norm == 0) return;
     norm = std::sqrt(norm);
-    if (norm == 0) norm = 1;
-    for (int f = 0; f < size; ++f) data[f].value /= norm;
+    for (auto i = begin; i != end; ++i) (*i).value /= norm;
 }
 
-template <typename T> inline void unitNorm(T& vector) { unitNorm(vector.data(), vector.size()); }
+template <typename I>
+typename std::enable_if<std::is_floating_point<typename std::iterator_traits<I>::value_type>::value, void>::type
+unitNorm(I begin, I end) {
+    double norm = 0;
+    for (auto& i = begin; i != end; ++i) norm += (*i) * (*i);
+    if (norm == 0) return;
+    norm = std::sqrt(norm);
+    for (auto& i = begin; i != end; ++i) (*i) /= norm;
+}
+
+template <typename T> inline void unitNorm(T& cont) { unitNorm(cont.begin(), cont.end()); }
+
+// Shift index in sparse data
+template <typename I>
+typename std::enable_if<std::is_same<typename std::iterator_traits<I>::value_type, Feature>::value, void>::type
+shift(I begin, I end, int shift) {
+    for (auto i = begin; i != end; ++i) (*i).index += shift;
+}
+
+template <typename T> inline void shift(T& cont, int shift) { shift(cont.begin(), cont.end(), shift); }
+
 
 inline void threshold(std::vector<Feature>& vector, double threshold) {
     int c = 0;
@@ -258,8 +273,8 @@ template <typename T> inline uint32_t hash(T& v) {
 
 // Prints progress
 inline void printProgress(int state, int max) {
-    // Log(CERR) << "  " << state << " / " << max << "\r";
-    if (max > 100 && state % (max / 100) == 0) Log(CERR) << "  " << state / (max / 100) << "%\r";
+    if (max < 100 || state % (max / 100) == 0)
+        Log(CERR) << "  " << std::round(static_cast<double>(state) / (static_cast<double>(max) / 100)) << "%\r";
 }
 
 // Splits string

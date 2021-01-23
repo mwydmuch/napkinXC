@@ -51,7 +51,6 @@ autodoc_mock_imports = [
     "numpy",
     "scipy",
     "scipy.sparse",
-    "sklearn",
     "requests"
     "warnings"
     "zipfile"

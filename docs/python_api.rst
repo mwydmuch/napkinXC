@@ -20,6 +20,8 @@ Datasets
 .. autosummary::
     :toctree: python_api/
 
+    datasets.load_libsvm_file
+    datasets.download_dataset
     datasets.load_dataset
 
 Measures
@@ -34,3 +36,5 @@ Measures
     measures.dcg_at_k
     measures.ndcg_at_k
     measures.hamming_loss
+    measures.inverse_propensity
+    measures.psprecision_at_k

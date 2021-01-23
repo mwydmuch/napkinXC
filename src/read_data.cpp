@@ -63,16 +63,16 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
         lLabels.clear();
         lFeatures.clear();
 
-        prepareFeaturesVector(lFeatures, args.bias);
+        if(args.processData) prepareFeaturesVector(lFeatures, args.bias);
 
         try {
             readLine(line, lLabels, lFeatures);
         } catch (const std::exception& e) {
-            Log(CERR) << "  Failed to read line " << i << " from input!\n";
-            exit(1);
+            Log(CERR) << "  Failed to read line " << i << ", skipping!\n";
+            continue;
         }
 
-        processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
+        if(args.processData) processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
@@ -119,14 +119,13 @@ void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Featur
             (line[nextPos] == ',' || line[nextPos] == ' ')) // || nextPos == std::string::npos))
             lLabels.push_back(std::stoi(line.substr(pos, nextPos - pos)));
 
-            // Feature index
+        // Feature index
         else if (line[pos - 1] == ' ' && line[nextPos] == ':') {
-            // Feature (LibLinear ignore feature 0 and feature 1 is reserved for bias)
-            int index = std::stoi(line.substr(pos, nextPos - pos)) + 2;
+            int index = std::stoi(line.substr(pos, nextPos - pos));
             lFeatures.push_back({index, 1.0});
         }
 
-            // Feature value
+        // Feature value
         else if (line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
             lFeatures.back().value = std::stof(line.substr(pos, nextPos - pos));
 
@@ -141,6 +140,10 @@ void prepareFeaturesVector(std::vector<Feature> &lFeatures, double bias) {
 }
 
 void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashSize, double featuresThreshold) {
+    //Shift index by 2 because LibLinear ignore feature 0 and feature 1 is reserved for bias
+    assert(lFeatures.size() >= 1);
+    shift(lFeatures.begin() + 1, lFeatures.end(), 2);
+
     // Hash features
     if (hashSize) {
         UnorderedMap<int, double> lHashed;
@@ -152,12 +155,12 @@ void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashS
     }
 
     // Norm row
-    if (norm) unitNorm(lFeatures.data() + 1, lFeatures.size() - 1);
+    if (norm) unitNorm(lFeatures.begin() + 1, lFeatures.end());
 
     // Apply features threshold
     if (featuresThreshold > 0) threshold(lFeatures, featuresThreshold);
 
-    // Check if it requires sorting //TODO: Move this to matrix class
+    // Check if it requires sorting
     if (!std::is_sorted(lFeatures.begin(), lFeatures.end())) sort(lFeatures.begin(), lFeatures.end());
 }
 

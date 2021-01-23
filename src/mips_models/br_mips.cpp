@@ -74,4 +74,5 @@ void BRMIPS::load(Args& args, std::string infile) {
     }
 
     mipsIndex->createIndex(args);
+    loaded = true;
 }

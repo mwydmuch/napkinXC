@@ -44,12 +44,6 @@ struct TreeNode {
     TreeNode* parent;                // Pointer to the parent node
     std::vector<TreeNode*> children; // Pointers to the children nodes
 
-    // TODO: move all of this to separate data structure
-    std::vector<int> labels;
-
-    double th;
-    int thLabel;
-
     int subtreeLeaves;
 };
 

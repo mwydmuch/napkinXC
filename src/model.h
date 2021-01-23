@@ -53,6 +53,7 @@ public:
     std::vector<double> macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
+    virtual void unload() {};
     bool isLoaded() { return loaded; };
 
     virtual void printInfo() {}
@@ -97,9 +98,9 @@ protected:
                                            std::vector<Feature*>& baseFeatures,
                                            std::vector<double>* instancesWeights, Args& args);
 
-    static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results);
+    static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results, bool saveGrads=false);
 
-    static std::vector<Base*> loadBases(std::string infile);
+    static std::vector<Base*> loadBases(std::string infile, bool resume=false);
 
 private:
     static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
@@ -108,7 +109,7 @@ private:
     static void predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                                  SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
 
-    static void ofoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
-                          SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
-                          const int startRow, const int stopRow);
+    static void macroOfoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
+                               SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
+                               const int startRow, const int stopRow);
 };

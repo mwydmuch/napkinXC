@@ -61,7 +61,7 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labels
         UnorderedMap<int, double> lFeatures;
 
         for (const auto& e : labelsExamples[l]){
-            Feature* f = (Feature*)features[e];
+            auto f = features[e];
             if(f->index == 1) ++f; // Skip bias feature
             if(weightedFeatures) addVector(f, 1.0 / features.size(e), lFeatures);
             else addVector(f, 1.0, lFeatures);

@@ -29,7 +29,7 @@
 #include "types.h"
 
 
-// Libsvm, XMLCRepo and numberic VW file reader
+// Libsvm, XMLCRepo and numeric VW file reader
 void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures);
 

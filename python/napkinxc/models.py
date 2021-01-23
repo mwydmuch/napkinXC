@@ -39,7 +39,7 @@ class Model():
         Fit the model to the given training data.
 
         :param X: training data points
-        :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
+        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
         :param Y: target labels
         :type Y: list of lists or tuples
         :return: None
@@ -56,67 +56,124 @@ class Model():
         """
         self._model.fitOnFile(path)
 
-    def predict(self, X, top_k=5, threshold=0):
+    def load(self):
+        """
+        Load the model to RAM
+
+        :return: None
+        """
+        self._model.load()
+
+    def unload(self):
+        """
+        Unload the model from RAM.
+
+        :return: None
+        """
+        self._model.unload()
+
+    def predict(self, X, top_k=0, threshold=0):
         """
         Predict labels for data points in X.
 
         :param X: data points
-        :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
-        :param top_k: Predict top-k labels, defaults to 5
+        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
-        :param threshold: Predict labels with probability above the threshold, defaults to 0
+        :param threshold: predict labels with probability above the threshold in case of single value
+            or above the specific threshold for each label in case of list or array of values,
+            if 0, the option is ignored, defaults to 0
+        :type threshold: float, list[float], ndarray
+        :param threshold: predict labels with probability above the thresholds, defaults to None
         :type threshold: float
-        :return: list of list
+        :return: list[list[int]] - list of list predicted labels
         """
-        return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
+        if isinstance(threshold, list):
+            return self._model.predict_with_thresholds(X, Model._check_data_type(X), top_k, threshold)
+        else:
+            return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
 
-    def predict_proba(self, X, top_k=5, threshold=0):
+    def predict_proba(self, X, top_k=0, threshold=0):
         """
         Predict labels with probability estimates for data points in X.
 
         :param X: data points
-        :type X: array-like, sparse matrix, list of lists of tuples (idx, value)
-        :param top_k: Predict top-k labels, defaults to 5
+        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
-        :param threshold: Predict labels with probability above the threshold, defaults to 0
+        :param threshold: predict labels with probability above the threshold, defaults to 0
         :type threshold: float
-        :return: list of list of tuples
+        :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
         """
-        return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
+        if top_k == 0 and threshold == 0:
+            print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
 
-    def predict_for_file(self, path, top_k=5, threshold=0):
+        if isinstance(threshold, list):
+            return self._model.predict_proba_with_thresholds(X, Model._check_data_type(X), top_k, threshold)
+        else:
+            return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
+
+    def predict_for_file(self, path, top_k=0, threshold=0):
         """
         Predict labels for data points in the given file in multi-label svmlight/libsvm format.
 
         :param path: path to the file
         :type path: str
-        :param top_k: Predict top-k labels, defaults to 5
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
-        :param threshold: Predict labels with probability above the threshold, defaults to 0
+        :param threshold: predict labels with probability above the threshold, defaults to 0
         :type threshold: float
-        :return: list of list
+        :return: list[list[int]] - list of list predicted labels
         """
+        if top_k == 0 and threshold == 0:
+            print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
         return self._model.predict_for_file(path, top_k, threshold)
 
-    def predict_proba_for_file(self, path, top_k=5, threshold=0):
+    def predict_proba_for_file(self, path, top_k=0, threshold=0):
         """
         Predict labels with probability estimates for data points in the given file in multi-label svmlight/libsvm format.
 
         :param path: path to the file
         :type path: str
-        :param top_k: Predict top-k labels, defaults to 5
+        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int, optional
-        :param threshold: Predict labels with probability above the threshold, defaults to 0
+        :param threshold: predict labels with probability above the threshold, defaults to 0
         :type threshold: float, optional
-        :return: list of list of tuples
+        :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
         """
+        if top_k == 0 and threshold == 0:
+            print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
         return self._model.predict_proba_for_file(path, top_k, threshold)
+
+    def ofo(self, X, Y, type='micro', a=10, b=20, epochs=1):
+        """
+        Perform Online F-measure Optimization procedure on the given data to find optimal thresholds.
+
+        :param X: data points
+        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
+        :param Y: target labels
+        :type Y: list of lists or tuples
+        :param type: type of OFO procedure {``micro``, ``macro``}, default to ``micro``
+        :type type: str
+        :param a: a parameter of OFO procedure, defaults to 10
+        :type a: int
+        :param b: b parameter of OFO procedure, defaults to 20
+        :type b: int
+        :param epochs: number of training epochs for online optimizers, defaults to 1
+        :type epochs: int, optional
+        :return: single float threshold in case of type == ``micro`` and list[float] of thresholds in case of type == ``macro``
+        """
+        self.set_params(ofo_type=type, ofo_a=a, ofo_b=b, epochs=epochs)
+        thr = self._model.ofo(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
+        if type == 'micro':
+            thr = thr[0]
+        return thr
 
     def get_params(self, deep=False): # deep argument for Scikit-learn compatibility
         """
         Get parameters of this model.
 
-        :param deep: Ignored, added for Scikit-learn compatibility, defaults to False.
+        :param deep: ignored, added for Scikit-learn compatibility, defaults to False
         :return: mapping of string to any
         """
         return self._params
@@ -125,7 +182,7 @@ class Model():
         """
         Set parameters for this model.
 
-        :param: \*\*params: Parameter names with their new values.
+        :param: \*\*params: parameter names with their new values
         :return: self
         """
         if 'model' in self._params and 'model' in params:
@@ -165,12 +222,11 @@ class Model():
 
     @staticmethod
     def _check_data_type(data):
-        data_type = type(data)
-        if data_type == list:
+        if isinstance(data, list):
             return InputDataType.list
-        elif data_type == ndarray:
+        elif isinstance(data, ndarray):
             return InputDataType.ndarray
-        elif data_type == csr_matrix:
+        elif isinstance(data, csr_matrix):
             return InputDataType.csr_matrix
         else:
             return -1
@@ -198,8 +254,8 @@ class PLT(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base (node) classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,
@@ -219,7 +275,7 @@ class PLT(Model):
 
         :param output: directory where the model will be stored
         :type output: str
-        :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
+        :param tree_type: tree type to construct {``hierarchicalKmeans``, ``balancedRandom``, ``completeKaryRandom``, ``huffman``}, defaults to ``hierarchicalKmeans``
         :type tree_type: str, optional
         :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
@@ -237,9 +293,9 @@ class PLT(Model):
         :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training node classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
+        :param optimizer: optimizer used for training node classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
         :type optimizer: str, optional
-        :param loss: loss optimized while training node classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
+        :param loss: loss optimized while training node classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
         :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional
@@ -289,8 +345,8 @@ class HSM(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base (node) classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,
@@ -310,7 +366,7 @@ class HSM(Model):
 
         :param output: directory where the model will be stored
         :type output: str
-        :param tree_type: tree type to construct {'hierarchicalKmeans', 'balancedRandom', 'completeKaryRandom', 'huffman'}, defaults to 'hierarchicalKmeans'
+        :param tree_type: tree type to construct {``hierarchicalKmeans``, ``balancedRandom``, ``completeKaryRandom``, ``huffman``}, defaults to ``hierarchicalKmeans``
         :type tree_type: str, optional
         :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
@@ -328,9 +384,9 @@ class HSM(Model):
         :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training binary classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
+        :param optimizer: optimizer used for training binary classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
         :type optimizer: str, optional
-        :param loss: loss optimized while training binary classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
+        :param loss: loss optimized while training binary classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
         :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional
@@ -371,8 +427,8 @@ class BR(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,
@@ -398,9 +454,9 @@ class BR(Model):
         :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training binary classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
+        :param optimizer: optimizer used for training binary classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
         :type optimizer: str, optional
-        :param loss: loss optimized while training binary classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
+        :param loss: loss optimized while training binary classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
         :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional
@@ -437,8 +493,8 @@ class OVR(Model):
                  norm=True,
                  bias=1.0,
 
-                 # Node classifiers params
-                 optimizer="liblinear",
+                 # Base classifiers params
+                 optimizer='liblinear',
                  loss='log',
                  weights_threshold=0.1,
                  liblinear_c=10,
@@ -464,9 +520,9 @@ class OVR(Model):
         :type norm: bool, optional
         :param bias: value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training node classifiers {'liblinear', 'sgd', 'adagrad'}, defaults to 'libliner'
+        :param optimizer: optimizer used for training node classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
         :type optimizer: str, optional
-        :param loss: loss optimized while training node classifiers {'logistic', 'l2' (squared hinge)}, defaults to 'logistic'
+        :param loss: loss optimized while training node classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
         :type loss: str, optional
         :param weights_threshold: threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional

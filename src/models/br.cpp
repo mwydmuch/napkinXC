@@ -36,8 +36,10 @@ BR::BR() {
     name = "BR";
 }
 
-BR::~BR() {
+void BR::unload() {
     for (auto b : bases) delete b;
+    bases.clear();
+    bases.shrink_to_fit();
 }
 
 void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
@@ -111,6 +113,7 @@ void BR::predictWithThresholds(std::vector<Prediction>& prediction, Feature* fea
     std::vector<Prediction> tmpPrediction = predictForAllLabels(features, args);
     for (auto& p : tmpPrediction)
         if (p.value >= thresholds[p.label]) prediction.push_back(p);
+    if (args.topK > 0) prediction.resize(args.topK);
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args& args) {
@@ -121,6 +124,8 @@ void BR::load(Args& args, std::string infile) {
     Log(CERR) << "Loading weights ...\n";
     bases = loadBases(joinPath(infile, "weights.bin"));
     m = bases.size();
+
+    loaded = true;
 }
 
 void BR::printInfo() {

@@ -54,7 +54,7 @@ Base::Base(Args& args): Base(){
         setupOnlineTraining(args);
 }
 
-Base::~Base() { clearW(); }
+Base::~Base() { clear(); }
 
 void Base::update(double label, Feature* features, Args& args) {
     std::lock_guard<std::mutex> lock(updateMtx);
@@ -452,7 +452,7 @@ void Base::pruneWeights(double threshold) {
     });
 }
 
-void Base::save(std::ostream& out) {
+void Base::save(std::ostream& out, bool saveGrads) {
     out.write((char*)&classCount, sizeof(classCount));
     out.write((char*)&firstClass, sizeof(firstClass));
 
@@ -467,17 +467,19 @@ void Base::save(std::ostream& out) {
         else if(mapW != nullptr) saveVec(out, mapW, wSize, nonZeroW);
         else if(sparseW != nullptr) saveVec(out, sparseW, wSize, nonZeroW);
 
-        bool grads = (G != nullptr || mapG != nullptr);
+        bool grads = (saveGrads && (G != nullptr || mapG != nullptr));
         saveVar(out, grads);
-        if(G != nullptr) saveVec(out, G, wSize, nonZeroW);
-        else if(mapG != nullptr) saveVec(out, mapG, wSize, nonZeroW);
+        if(grads){
+            if (G != nullptr) saveVec(out, G, wSize, nonZeroW);
+            else if (mapG != nullptr) saveVec(out, mapG, wSize, nonZeroW);
+        }
 
 //        Log(CERR) << "  Save base: classCount: " << classCount << ", firstClass: "
 //                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
     }
 }
 
-void Base::load(std::istream& in) {
+void Base::load(std::istream& in, bool loadGrads, bool loadDense) {
     in.read((char*)&classCount, sizeof(classCount));
     in.read((char*)&firstClass, sizeof(firstClass));
 
@@ -487,13 +489,13 @@ void Base::load(std::istream& in) {
         in.read((char*)&nonZeroW, sizeof(nonZeroW));
 
         //TODO: Improve this
-        bool loadSparse = (wSize == 0 || (mapSize(nonZeroW) < denseSize(wSize) && wSize > 50000));
+        bool loadSparse = (!loadDense && (wSize == 0 || (mapSize(nonZeroW) < denseSize(wSize) && wSize > 50000)));
         if(loadSparse) mapW = loadAsMap(in);
         else W = loadAsDense(in);
 
-        bool loadGrads;
-        loadVar(in, loadGrads);
-        if(loadGrads) {
+        bool grads;
+        loadVar(in, grads);
+        if(grads && loadGrads) {
             if (loadSparse) mapG = loadAsMap(in);
             else G = loadAsDense(in);
         }

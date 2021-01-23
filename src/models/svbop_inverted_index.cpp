@@ -131,6 +131,8 @@ void SVBOPInvertedIndex::load(Args& args, std::string infile) {
         R[i].push_back({-1, 0});
         std::sort(R[i].rbegin(), R[i].rend());
     }
+
+    loaded = true;
 }
 
 void SVBOPInvertedIndex::printInfo() {

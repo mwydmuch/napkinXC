@@ -332,6 +332,10 @@ double PLT::predictForLabel(Label label, Feature* features, Args& args) {
         value *= predictForNode(n, features);
         ++nodeEvaluationCount;
     }
+
+    if(!labelsWeights.empty())
+        value = labelsWeights[label] = value;
+
     return value;
 }
 

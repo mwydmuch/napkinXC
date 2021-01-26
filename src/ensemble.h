@@ -48,6 +48,7 @@ public:
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
 
     void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void setLabelWeights(std::vector<double> lw) override;
 
     void load(Args& args, std::string infile) override;
 
@@ -135,6 +136,9 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix<Feature>
     for (int memberNo = 0; memberNo < args.ensemble; ++memberNo) {
         T* member = loadMember(args, args.output, memberNo);
 
+        if(!labelsWeights.empty())
+            member->setLabelWeights(labelsWeights);
+
         std::vector<std::vector<Prediction>> memberPredictions = member->predictBatch(features, args);
         for (int i = 0; i < rows; ++i) accumulatePrediction(ensemblePredictions[i], memberPredictions[i], memberNo);
 
@@ -163,6 +167,7 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix<Feature>
     for (int i = 0; i < rows; ++i) {
         for (auto& p : ensemblePredictions[i])
             predictions[i].push_back({p.second.label, p.second.value / args.ensemble});
+
         sort(predictions[i].rbegin(), predictions[i].rend());
         if (args.topK > 0) predictions[i].resize(args.topK);
     }
@@ -196,4 +201,11 @@ template <typename T> void Ensemble<T>::printInfo() {}
 template <typename T> void Ensemble<T>::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args){
     Log(CERR) << "  Threshold prediction is not available for ensemble";
     // TODO
+}
+
+template <typename T> void Ensemble<T>::setLabelWeights(std::vector<double> lw){
+    Model::setLabelWeights(lw);
+    if (members.size())
+        for (size_t i = 0; i < members.size(); ++i)
+            members[i]->setLabelWeights(lw);
 }

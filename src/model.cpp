@@ -88,13 +88,6 @@ Model::~Model() {
     unload();
 }
 
-void Model::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    std::vector<Prediction> tmpPrediction;
-    predict(tmpPrediction, features, args);
-    for (auto& p : tmpPrediction)
-        if (p.value >= thresholds[p.label]) prediction.push_back(p);
-}
-
 void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
     const int batchSize = stopRow - startRow;
@@ -133,37 +126,10 @@ void Model::updateThresholds(UnorderedMap<int, double> thToUpdate){
         thresholds[th.first] = th.second;
 }
 
-void Model::predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
-                                             SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
-    const int batchSize = stopRow - startRow;
-    for (int r = startRow; r < stopRow; ++r) {
-        int i = r - startRow;
-        model->predictWithThresholds(predictions[r], features[r], args);
-        if (!threadId) printProgress(i, batchSize);
-    }
-}
-
-void Model::setLabelWeights(std::vector<double> lw){
+void Model::setLabelsWeights(std::vector<double> lw){
     if(lw.size() != m)
         throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
     labelsWeights = lw;
-}
-
-std::vector<std::vector<Prediction>> Model::predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args) {
-    Log(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
-
-    int rows = features.rows();
-    std::vector<std::vector<Prediction>> predictions(rows);
-
-    // Run prediction in parallel using thread set
-    ThreadSet tSet;
-    int tRows = ceil(static_cast<double>(rows) / args.threads);
-    for (int t = 0; t < args.threads; ++t)
-        tSet.add(predictBatchWithThresholdsThread, t, this, std::ref(predictions), std::ref(features),
-                 std::ref(args), t * tRows, std::min((t + 1) * tRows, rows));
-    tSet.joinAll();
-
-    return predictions;
 }
 
 double Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
@@ -232,7 +198,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, 
 
         // Predict with current thresholds
         std::vector<Prediction> prediction;
-        model->predictWithThresholds(prediction, features[r], args);
+        model->predict(prediction, features[r], args);
 
         // Update a and b counters
         for (const auto& p : prediction) {
@@ -267,6 +233,11 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, 
 }
 
 std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
+
+    args.topK = 0;
+    args.threshold = 0;
+    thresholds.clear();
+    labelsWeights.clear();
 
     if(args.ofoType == macro)
         thresholds = macroOfo(features, labels, args);

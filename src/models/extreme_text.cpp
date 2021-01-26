@@ -161,12 +161,6 @@ void ExtremeText::predict(std::vector<Prediction>& prediction, Feature* features
     delete[] hidden;
 }
 
-void ExtremeText::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args){
-    Feature* hidden = computeHidden(features);
-    PLT::predictWithThresholds(prediction, hidden, args);
-    delete[] hidden;
-}
-
 double ExtremeText::predictForLabel(Label label, Feature* features, Args& args){
     Feature* hidden = computeHidden(features);
     double value = PLT::predictForLabel(label, hidden, args);

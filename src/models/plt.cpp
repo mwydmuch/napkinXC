@@ -265,8 +265,8 @@ void PLT::setThresholds(std::vector<double> th){
     for(auto& n : tree->nodes) setNodeThreshold(n);
 }
 
-void PLT::setLabelWeights(std::vector<double> lw){
-    Model::setLabelWeights(lw);
+void PLT::setLabelsWeights(std::vector<double> lw){
+    Model::setLabelsWeights(lw);
     calculateNodesLabels();
     if(tree->t != nodesWeights.size()) nodesWeights.resize(tree->t);
     for(auto& n : tree->nodes) setNodeWeight(n);
@@ -288,21 +288,6 @@ void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
             }
             n = n->parent;
         }
-    }
-}
-
-void PLT::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    TopKQueue<TreeNodeValue> nQueue(args.topK);
-
-    double rootProb = predictForNode(tree->root, features);
-    nQueue.push({tree->root, rootProb, rootProb});
-    ++nodeEvaluationCount;
-    ++dataPointCount;
-
-    Prediction p = predictNextLabelWithThresholds(nQueue, features);
-    while (p.label != -1) {
-        prediction.push_back(p);
-        p = predictNextLabelWithThresholds(nQueue, features);
     }
 }
 

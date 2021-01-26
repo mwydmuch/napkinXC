@@ -48,8 +48,7 @@ public:
 
     void setThresholds(std::vector<double> th) override;
     void updateThresholds(UnorderedMap<int, double> thToUpdate) override;
-    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
-    void setLabelWeights(std::vector<double> lw) override;
+    void setLabelsWeights(std::vector<double> lw) override;
 
     void load(Args& args, std::string infile) override;
     void unload() override;

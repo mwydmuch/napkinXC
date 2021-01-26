@@ -92,11 +92,22 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     prediction = predictForAllLabels(features, args);
 
+    if(!thresholds.empty()){
+        int j = 0;
+        for(int i = 0; i < prediction.size(); ++i){
+            if(prediction[i].value > thresholds[i])
+                prediction[j++] = prediction[i];
+        }
+        prediction.resize(j - 1);
+    }
+
+    if(!labelsWeights.empty())
+        for(auto &p : prediction) p.value *= labelsWeights[p.label];
+
     sort(prediction.rbegin(), prediction.rend());
     if (args.threshold > 0) {
         int i = 0;
-        while (prediction[i++].value > args.threshold)
-            ;
+        while (prediction[i++].value > args.threshold);
         prediction.resize(i - 1);
     }
     if (args.topK > 0) prediction.resize(args.topK);
@@ -105,15 +116,9 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& a
 std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
-    for (int i = 0; i < bases.size(); ++i) prediction.push_back({i, bases[i]->predictProbability(features)});
-    return prediction;
-}
+    for (int i = 0; i < bases.size(); ++i) prediction.emplace_back(i, bases[i]->predictProbability(features));
 
-void BR::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    std::vector<Prediction> tmpPrediction = predictForAllLabels(features, args);
-    for (auto& p : tmpPrediction)
-        if (p.value >= thresholds[p.label]) prediction.push_back(p);
-    if (args.topK > 0) prediction.resize(args.topK);
+    return prediction;
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args& args) {

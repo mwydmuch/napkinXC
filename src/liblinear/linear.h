@@ -8,6 +8,8 @@ struct feature_node
 {
     int index;
     double value;
+    feature_node() { index = 0; value = 0; }
+    feature_node(int index, double value): index(index), value(value) {}
 
     // Features are sorted by index
     bool operator<(const feature_node &r) const { return index < r.index; }

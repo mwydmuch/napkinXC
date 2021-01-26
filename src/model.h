@@ -46,12 +46,9 @@ public:
     // Prediction with thresholds and ofo
     virtual void setThresholds(std::vector<double> th);
     virtual void updateThresholds(UnorderedMap<int, double> thToUpdate);
-    virtual void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args);
 
-    virtual void setLabelWeights(std::vector<double> lw);
-    //virtual void predictWithLabelWeights(std::vector<Prediction>& prediction, Feature* features, Args& args);
+    virtual void setLabelsWeights(std::vector<double> lw);
 
-    virtual std::vector<std::vector<Prediction>> predictBatchWithThresholds(SRMatrix<Feature>& features, Args& args);
     std::vector<double> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
     double microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
     std::vector<double> macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
@@ -110,9 +107,6 @@ protected:
 private:
     static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                    SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
-
-    static void predictBatchWithThresholdsThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
-                                                 SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
 
     static void macroOfoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
                                SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,

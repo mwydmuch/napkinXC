@@ -122,7 +122,7 @@ std::vector<Prediction> OVR::predictForAllLabels(Feature* features, Args& args) 
     for (int i = 0; i < bases.size(); ++i) {
         double value = exp(bases[i]->predictValue(features)); // Softmax normalization
         sum += value;
-        prediction.push_back({i, value});
+        prediction.emplace_back(i, value);
     }
 
     for (auto& p : prediction) p.value /= sum;

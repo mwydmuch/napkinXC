@@ -62,7 +62,7 @@ void loadVecs(std::shared_ptr<Model> model, Args& args){
     }
     if (!args.labelsWeights.empty()) { // Using labelsWeights if provided
         std::vector<double> labelsWeights = loadVec(args.labelsWeights);
-        model->setLabelWeights(labelsWeights);
+        model->setLabelsWeights(labelsWeights);
     }
 }
 

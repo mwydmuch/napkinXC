@@ -72,8 +72,8 @@ protected:
 
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,
-                                  std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
-                                  SRMatrix<Feature>& features, Args& args);
+                                  std::vector<std::vector<double>>& binWeights,
+                                  SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
 

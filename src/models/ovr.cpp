@@ -36,82 +36,27 @@ OVR::OVR() {
     name = "OVR";
 }
 
-void OVR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
-    // Check data
-    int rows = features.rows();
-    int bRows = rows;
-    int lCols = labels.cols();
-    assert(rows == labels.rows());
-
-    std::vector<double>* binWeights = nullptr;
-    if (args.pickOneLabelWeighting) {
-        bRows = labels.cells();
-        binWeights = new std::vector<double>();
-        binWeights->reserve(bRows);
-    }
-
-    std::vector<Feature*> binFeatures;
-    binFeatures.reserve(bRows);
-
+void OVR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<double>& binWeights,
+                          SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
+    int rows = labels.rows();
     for (int r = 0; r < rows; ++r) {
+        printProgress(r, rows);
+
         int rSize = labels.size(r);
+        auto rLabels = labels.row(r);
 
-        if (rSize != 1 && !args.pickOneLabelWeighting) {
-            Log(CERR) << "Encountered example with " << rSize
-                      << " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!\n";
-            continue;
-        }
+        if (rSize != 1 && !args.pickOneLabelWeighting)
+            throw std::invalid_argument("Encountered example with " + std::to_string(rSize) + " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!");
 
-        for (int i = 0; i < rSize; ++i)
+        for (int i = 0; i < rSize; ++i){
             binFeatures.push_back(features[r]);
-        if(args.pickOneLabelWeighting)
-            for (int i = 0; i < rSize; ++i)
-                binWeights->push_back(1.0 / rSize);
-    }
-
-    std::ofstream out(joinPath(output, "weights.bin"));
-    int size = lCols;
-    out.write((char*)&size, sizeof(size));
-
-    int parts = calculateNumberOfParts(labels, features, args);
-    int range = lCols / parts + 1;
-
-    assert(lCols < range * parts);
-    std::vector<std::vector<double>> binLabels(range);
-    for (int i = 0; i < binLabels.size(); ++i) binLabels[i].reserve(bRows);
-
-    for (int p = 0; p < parts; ++p) {
-        if (parts > 1)
-            Log(CERR) << "Assigning labels for base estimators (" << p + 1 << "/" << parts << ") ...\n";
-        else
-            Log(CERR) << "Assigning labels for base estimators ...\n";
-
-        int rStart = p * range;
-        int rStop = (p + 1) * range;
-
-        for (int r = 0; r < rows - 1; ++r) {
-            printProgress(r, rows);
-
-            int rSize = labels.size(r);
-            auto rLabels = labels.row(r);
-
-            if(rSize != 1 && !args.pickOneLabelWeighting) continue;
-
-            for (int i = 0; i < rSize; ++i){
-                for (auto &l : binLabels) l.push_back(0.0);
-                if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart].back() = 1.0;
+            binWeights.push_back(1.0 / rSize);
+            for (int j = 0; j < rSize; ++j) {
+                for (auto &bl: binLabels) bl.push_back(0);
+                if (rLabels[j] >= rStart && rLabels[j] < rStop) binLabels[rLabels[j] - rStart].back() = 1;
             }
         }
-
-        if(args.pickOneLabelWeighting)
-            assert(binLabels[0].size() == binWeights->size());
-
-        trainBasesWithSameFeatures(out, features.cols(), binLabels, binFeatures, binWeights, args);
-        for (auto& l : binLabels) l.clear();
     }
-
-    out.close();
-    delete binWeights;
 }
 
 std::vector<Prediction> OVR::predictForAllLabels(Feature* features, Args& args) {

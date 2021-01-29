@@ -135,9 +135,6 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix<Feature>
     for (int memberNo = 0; memberNo < args.ensemble; ++memberNo) {
         T* member = loadMember(args, args.output, memberNo);
 
-        if(!labelsWeights.empty())
-            member->setLabelsWeights(labelsWeights);
-
         std::vector<std::vector<Prediction>> memberPredictions = member->predictBatch(features, args);
         for (int i = 0; i < rows; ++i) accumulatePrediction(ensemblePredictions[i], memberPredictions[i], memberNo);
 
@@ -179,6 +176,10 @@ template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& 
     assert(memberNo < args.ensemble);
     T* member = new T();
     member->load(args, joinPath(infile, "member_" + std::to_string(memberNo)));
+
+    if(!labelsWeights.empty())
+        member->setLabelsWeights(labelsWeights);
+
     return member;
 }
 

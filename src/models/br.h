@@ -41,7 +41,10 @@ public:
 
 protected:
     std::vector<Base*> bases;
-
+    virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
+                                  std::vector<Feature*>& binFeatures,
+                                  std::vector<double>& binWeights,
+                                  SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args);
     virtual std::vector<Prediction> predictForAllLabels(Feature* features, Args& args);
     static size_t calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 };

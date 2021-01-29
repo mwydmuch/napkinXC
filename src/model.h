@@ -69,39 +69,12 @@ protected:
     std::vector<double> labelsWeights; // For prediction with label weights
 
     // Base utils
-    static Base* trainBase(int n, int r, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
-                           std::vector<double>* instancesWeights, Args& args);
-
-    static void trainBatchThread(int n, int r, std::vector<std::promise<Base *>>& results,
-                                 std::vector<std::vector<double>>& baseLabels,
-                                 std::vector<std::vector<Feature*>>& baseFeatures,
-                                 std::vector<std::vector<double>*>* instancesWeights,
-                                 Args& args, int threadId, int threads);
-
-    static void trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                           std::vector<std::vector<Feature*>>& baseFeatures,
-                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
-
-    static void trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                           std::vector<std::vector<Feature*>>& baseFeatures,
-                           std::vector<std::vector<double>*>* instancesWeights, Args& args);
-
-    static void trainBatchWithSameFeaturesThread(int n, std::vector<std::promise<Base *>>& results,
-                                                 std::vector<std::vector<double>>& baseLabels,
-                                                 std::vector<Feature*>& baseFeatures,
-                                                 std::vector<double>* instancesWeights,
-                                                 Args& args, int threadId, int threads);
-
-    static void trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                                           std::vector<Feature*>& baseFeatures,
-                                           std::vector<double>* instancesWeights, Args& args);
-
-    static void trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                                           std::vector<Feature*>& baseFeatures,
-                                           std::vector<double>* instancesWeights, Args& args);
+    static Base* trainBase(ProblemData& problemsData, Args& args);
+    static void trainBatchThread(std::vector<std::promise<Base *>>& results, std::vector<ProblemData>& problemsData, Args& args, int threadId, int threads);
+    static void trainBases(std::string outfile, std::vector<ProblemData>& problemsData, Args& args);
+    static void trainBases(std::ofstream& out, std::vector<ProblemData>& problemsData, Args& args);
 
     static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results, bool saveGrads=false);
-
     static std::vector<Base*> loadBases(std::string infile, bool resume=false);
 
 private:

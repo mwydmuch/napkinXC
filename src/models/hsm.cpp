@@ -39,7 +39,7 @@ HSM::HSM() {
 }
 
 void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                           std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
+                           std::vector<std::vector<double>>& binWeights, SRMatrix<Label>& labels,
                            SRMatrix<Feature>& features, Args& args) {
     Log(CERR) << "Assigning data points to nodes ...\n";
 
@@ -70,8 +70,8 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
             addNodesLabelsAndFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
             if (args.pickOneLabelWeighting) {
                 double w = 1.0 / rSize;
-                for (const auto& n : nPositive) (*binWeights)[n->index]->push_back(w);
-                for (const auto& n : nNegative) (*binWeights)[n->index]->push_back(w);
+                for (const auto& n : nPositive) binWeights[n->index].push_back(w);
+                for (const auto& n : nNegative) binWeights[n->index].push_back(w);
             }
 
             nodeUpdateCount += nPositive.size() + nNegative.size();

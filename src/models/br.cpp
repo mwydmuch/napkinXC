@@ -42,11 +42,26 @@ void BR::unload() {
     bases.shrink_to_fit();
 }
 
+void BR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<double>& binWeights,
+                          SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
+    int rows = labels.rows();
+    for (int r = 0; r < rows; ++r) {
+        printProgress(r, rows);
+
+        int rSize = labels.size(r);
+        auto rLabels = labels[r];
+        binWeights.push_back(1);
+        binFeatures.push_back(features[r]);
+
+        for (int i = 0; i < rSize; ++i)
+            if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart][r] = 1.0;
+    }
+}
+
 void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
     // Check data
-    int rows = features.rows();
+    int rows = labels.rows();
     int lCols = labels.cols();
-    assert(rows == labels.rows());
 
     std::ofstream out(joinPath(output, "weights.bin"));
     int size = lCols;
@@ -57,7 +72,8 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 
     assert(lCols < range * parts);
     std::vector<std::vector<double>> binLabels(range);
-    for (int i = 0; i < binLabels.size(); ++i) binLabels[i].reserve(rows);
+    std::vector<Feature*> binFeatures;
+    std::vector<double> binWeights;
 
     for (int p = 0; p < parts; ++p) {
         if (parts > 1)
@@ -67,23 +83,21 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 
         int rStart = p * range;
         int rStop = (p + 1) * range;
+        for (auto &bl: binLabels) std::fill(bl.begin(), bl.end(), 0);
 
-        for (int r = 0; r < rows; ++r) {
-            printProgress(r, rows);
-
-            int rSize = labels.size(r);
-            auto rLabels = labels.row(r);
-
-            for (auto &l : binLabels) l.push_back(0.0);
-            for (int i = 0; i < rSize; ++i)
-                if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart].back() = 1.0;
-        }
+        assignDataPoints(binLabels, binFeatures, binWeights, labels, features, rStart, rStop, args);
 
         unsigned long long usedMem = range * (rows * sizeof(double) + sizeof(void*));
         Log(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 
-        trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), nullptr, args);
+        // Train bases
+        std::vector<ProblemData> binProblemData;
+        for(int i = rStart; i < rStop; ++i) binProblemData.emplace_back(binLabels[i], binFeatures, features.cols(), binWeights);
+        trainBases(joinPath(output, "weights.bin"), binProblemData, args);
+
         for (auto& l : binLabels) l.clear();
+        binFeatures.clear();
+        binWeights.clear();
     }
 
     out.close();

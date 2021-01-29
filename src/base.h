@@ -34,6 +34,29 @@
 #include "types.h"
 
 
+struct ProblemData {
+    std::vector<double>& binLabels;
+    std::vector<Feature*>& binFeatures;
+    std::vector<double>& instancesWeights;
+    int n; // features space size
+
+    int labelsCount;
+    int* labels;
+    double* labelsWeights;
+    double invPs; // inverse propensity
+    int r; // number of all examples
+
+    ProblemData(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, int n, std::vector<double>& instancesWeights):
+                binLabels(binLabels), binFeatures(binFeatures), n(n), instancesWeights(instancesWeights) {
+        labelsCount = 0;
+        labels = NULL;
+        labelsWeights = NULL;
+        invPs = 1.0;
+        r = 0;
+    }
+};
+
+
 class Base {
 public:
     Base();
@@ -42,11 +65,9 @@ public:
 
     void update(double label, Feature* features, Args& args);
     void unsafeUpdate(double label, Feature* features, Args& args);
-    void train(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
-               std::vector<double>* instancesWeights, Args& args);
-    void trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
-                        std::vector<double>* instancesWeights, int positiveLabel, Args& args);
-    void trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args);
+    void train(ProblemData& problemData, Args& args);
+    void trainLiblinear(ProblemData& problemData, Args& args);
+    void trainOnline(ProblemData& problemData, Args& args);
 
     // For online training
     void setupOnlineTraining(Args& args, int n = 0, bool startWithDenseW = false);

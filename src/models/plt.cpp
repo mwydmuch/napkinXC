@@ -49,7 +49,7 @@ void PLT::unload() {
 }
 
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                           std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
+                           std::vector<std::vector<double>>& binWeights, SRMatrix<Label>& labels,
                            SRMatrix<Feature>& features, Args& args) {
 
     Log(CERR) << "Assigning data points to nodes ...\n";
@@ -364,12 +364,10 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     // Examples selected for each node
     std::vector<std::vector<double>> binLabels(tree->t);
     std::vector<std::vector<Feature*>> binFeatures(tree->t);
-    std::vector<std::vector<double>*>* binWeights = nullptr;
+    std::vector<std::vector<double>> binWeights;
 
-    if (type == hsm && args.pickOneLabelWeighting) {
-        binWeights = new std::vector<std::vector<double>*>(tree->t);
-        for (auto& p : *binWeights) p = new std::vector<double>();
-    }
+    if (type == hsm && args.pickOneLabelWeighting) binWeights.resize(tree->t);
+    else binWeights.emplace_back(features.rows(), 1);
 
     assignDataPoints(binLabels, binFeatures, binWeights, labels, features, args);
 
@@ -381,10 +379,11 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     delete tree;
     tree = nullptr;
 
-    trainBases(joinPath(output, "weights.bin"), features.cols(), binLabels, binFeatures, binWeights, args);
-
-    if (type == hsm && args.pickOneLabelWeighting) {
-        for (auto& w : *binWeights) delete w;
-        delete binWeights;
-    }
+    // Train bases
+    std::vector<ProblemData> binProblemData;
+    if (type == hsm && args.pickOneLabelWeighting)
+        for(int i = 0; i < tree->t; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
+    else
+        for(int i = 0; i < tree->t; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[0]);
+    trainBases(joinPath(output, "weights.bin"), binProblemData, args);
 }

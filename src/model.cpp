@@ -260,21 +260,16 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
     return thresholds;
 }
 
-Base* Model::trainBase(int n, int r, std::vector<double>& baseLabels, std::vector<Feature*>& baseFeatures,
-                       std::vector<double>* instancesWeights, Args& args) {
+Base* Model::trainBase(ProblemData& problemsData, Args& args) {
     Base* base = new Base();
-    base->train(n, r, baseLabels, baseFeatures, instancesWeights, args);
+    base->train(problemsData, args);
     return base;
 }
 
-void Model::trainBatchThread(int n, int r, std::vector<std::promise<Base *>>& results, std::vector<std::vector<double>>& baseLabels,
-                             std::vector<std::vector<Feature*>>& baseFeatures,
-                             std::vector<std::vector<double>*>* instancesWeights, Args& args, int threadId, int threads) {
-
-    size_t size = baseLabels.size();
+void Model::trainBatchThread(std::vector<std::promise<Base *>>& results, std::vector<ProblemData>& problemsData, Args& args, int threadId, int threads) {
+    size_t size = problemsData.size();
     for (int i = threadId; i < size; i += threads)
-        results[i].set_value(trainBase(n, r, baseLabels[i], baseFeatures[i],
-                                   (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
+        results[i].set_value(trainBase(problemsData[i], args));
 }
 
 void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results, bool saveGrads) {
@@ -286,27 +281,19 @@ void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& res
     }
 }
 
-void Model::trainBases(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                       std::vector<std::vector<Feature*>>& baseFeatures,
-                       std::vector<std::vector<double>*>* instancesWeights, Args& args) {
-
+void Model::trainBases(std::string outfile, std::vector<ProblemData>& problemsData, Args& args) {
     std::ofstream out(outfile);
-    int size = baseLabels.size();
+    int size = problemsData.size();
     out.write((char*)&size, sizeof(size));
-    trainBases(out, n, baseLabels, baseFeatures, instancesWeights, args);
+    trainBases(out, problemsData, args);
     out.close();
 }
 
-void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                       std::vector<std::vector<Feature*>>& baseFeatures,
-                       std::vector<std::vector<double>*>* instancesWeights, Args& args) {
+void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsData, Args& args) {
 
-    assert(baseLabels.size() == baseFeatures.size());
-    if (instancesWeights != nullptr) assert(baseLabels.size() == instancesWeights->size());
-
-    size_t size = baseLabels.size(); // This "batch" size
+    size_t size = problemsData.size(); // This "batch" size
     Log(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
-    Log(CERR) << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << "\n";
+    //Log(CERR) << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << "\n";
 
     // Run learning in parallel
     if(args.threads > 1) {
@@ -316,7 +303,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
         std::vector<std::future<Base *>> results(size);
         for(int i = 0; i < size; ++i) results[i] = resultsPromise[i].get_future();
         for (int t = 0; t < args.threads; ++t)
-            tSet.add(trainBatchThread, n, baseFeatures[0].size(), std::ref(resultsPromise), std::ref(baseLabels), std::ref(baseFeatures), instancesWeights, args, t, args.threads);
+            tSet.add(trainBatchThread, std::ref(resultsPromise), std::ref(problemsData), args, t, args.threads);
 
         // Thread pool solution is slower
         /*
@@ -334,66 +321,7 @@ void Model::trainBases(std::ofstream& out, int n, std::vector<std::vector<double
     } else {
         for (int i = 0; i < size; ++i){
             Base* base = new Base();
-            base->train(n, baseFeatures[0].size(), baseLabels[i], baseFeatures[i], (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args);
-            base->save(out, args.saveGrads);
-            delete base;
-        }
-    }
-}
-
-void Model::trainBatchWithSameFeaturesThread(int n, std::vector<std::promise<Base *>>& results,
-                                             std::vector<std::vector<double>>& baseLabels,
-                                             std::vector<Feature*>& baseFeatures,
-                                             std::vector<double>* instancesWeights, Args& args, int threadId, int threads){
-    size_t size = baseLabels.size();
-    for(int i = threadId; i < size; i += threads)
-        results[i].set_value(trainBase(n, 0, baseLabels[i], baseFeatures, instancesWeights, args));
-}
-
-void Model::trainBasesWithSameFeatures(std::string outfile, int n, std::vector<std::vector<double>>& baseLabels,
-                                       std::vector<Feature*>& baseFeatures,
-                                       std::vector<double>* instancesWeights, Args& args) {
-    std::ofstream out(outfile);
-    int size = baseLabels.size();
-    out.write((char*)&size, sizeof(size));
-    trainBasesWithSameFeatures(out, n, baseLabels, baseFeatures, instancesWeights, args);
-    out.close();
-}
-
-void Model::trainBasesWithSameFeatures(std::ofstream& out, int n, std::vector<std::vector<double>>& baseLabels,
-                                       std::vector<Feature*>& baseFeatures,
-                                       std::vector<double>* instancesWeights, Args& args) {
-
-    int size = baseLabels.size(); // This "batch" size
-    Log(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
-
-    // Run learning in parallel
-    if(args.threads > 1) {
-        // Thread set solution
-        ThreadSet tSet;
-        std::vector<std::promise<Base *>> resultsPromise(size);
-        std::vector<std::future<Base *>> results(size);
-        for(int i = 0; i < size; ++i) results[i] = resultsPromise[i].get_future();
-        for (int t = 0; t < args.threads; ++t)
-            tSet.add(trainBatchWithSameFeaturesThread, n, std::ref(resultsPromise), std::ref(baseLabels), std::ref(baseFeatures), instancesWeights, args, t, args.threads);
-
-        // Thread pool solution is slower
-        /*
-        ThreadPool tPool(args.threads);
-        std::vector<std::future<Base *>> results;
-        results.reserve(size);
-
-        for (int i = 0; i < size; ++i)
-            results.emplace_back(tPool.enqueue(trainBase, n, std::ref(baseLabels[i]), std::ref(baseFeatures), instancesWeights, args));
-        */
-
-        // Saving in the main thread
-        saveResults(out, results, args.saveGrads);
-        tSet.joinAll();
-    } else {
-        for (int i = 0; i < size; ++i){
-            Base* base = new Base();
-            base->train(n, 0, baseLabels[i], baseFeatures, instancesWeights, args);
+            base->train(problemsData[i], args);
             base->save(out, args.saveGrads);
             delete base;
         }

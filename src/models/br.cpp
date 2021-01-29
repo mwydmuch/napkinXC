@@ -45,16 +45,20 @@ void BR::unload() {
 void BR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<double>& binWeights,
                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
     int rows = labels.rows();
+
+    binWeights.resize(rows, 1);
+    binFeatures.reserve(rows);
+    for (auto &bl: binLabels) bl.resize(rows, 0);
+
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
         int rSize = labels.size(r);
         auto rLabels = labels[r];
-        binWeights.push_back(1);
-        binFeatures.push_back(features[r]);
 
+        binFeatures.push_back(features[r]);
         for (int i = 0; i < rSize; ++i)
-            if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart][r] = 1.0;
+            if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart][r] = 1;
     }
 }
 
@@ -94,6 +98,10 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
         std::vector<ProblemData> binProblemData;
         for(int i = rStart; i < rStop; ++i) binProblemData.emplace_back(binLabels[i], binFeatures, features.cols(), binWeights);
         trainBases(joinPath(output, "weights.bin"), binProblemData, args);
+
+        if(!labelsWeights.empty()) {
+            for (int i = 0; i < range; ++i) binProblemData[i].invPs = labelsWeights[i + rStart];
+        }
 
         for (auto& l : binLabels) l.clear();
         binFeatures.clear();

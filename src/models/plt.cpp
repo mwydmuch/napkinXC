@@ -376,14 +376,19 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     tree->saveTreeStructure(joinPath(output, "tree"));
     treeSize = tree->nodes.size();
     treeDepth = tree->getTreeDepth();
+    assert(treeSize == tree->t);
     delete tree;
     tree = nullptr;
 
     // Train bases
     std::vector<ProblemData> binProblemData;
     if (type == hsm && args.pickOneLabelWeighting)
-        for(int i = 0; i < tree->t; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
+        for(int i = 0; i < treeSize; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
     else
-        for(int i = 0; i < tree->t; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[0]);
+        for (int i = 0; i < treeSize; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[0]);
+
+    for (auto &pb: binProblemData) {
+        pb.r = features.rows();
+    }
     trainBases(joinPath(output, "weights.bin"), binProblemData, args);
 }

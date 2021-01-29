@@ -43,7 +43,7 @@ void OVR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         printProgress(r, rows);
 
         int rSize = labels.size(r);
-        auto rLabels = labels.row(r);
+        auto rLabels = labels[r];
 
         if (rSize != 1 && !args.pickOneLabelWeighting)
             throw std::invalid_argument("Encountered example with " + std::to_string(rSize) + " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!");
@@ -51,10 +51,8 @@ void OVR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         for (int i = 0; i < rSize; ++i){
             binFeatures.push_back(features[r]);
             binWeights.push_back(1.0 / rSize);
-            for (int j = 0; j < rSize; ++j) {
-                for (auto &bl: binLabels) bl.push_back(0);
-                if (rLabels[j] >= rStart && rLabels[j] < rStop) binLabels[rLabels[j] - rStart].back() = 1;
-            }
+            for (auto &bl: binLabels) bl.push_back(0);
+            if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart].back() = 1;
         }
     }
 }

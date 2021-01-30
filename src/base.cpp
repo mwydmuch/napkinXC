@@ -71,9 +71,9 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     double pred = predictValue(features);
     double grad;
     if(args.lossType == logistic)
-        grad = logisticGrad(label, pred);
+        grad = logisticGrad(label, pred, 0);
     else
-        grad = squaredHingeGrad(label, pred);
+        grad = squaredHingeGrad(label, pred, 0);
 
     if (args.optimizerType == sgd) {
         if (mapW != nullptr)
@@ -149,11 +149,18 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
     setupOnlineTraining(args, problemData.n, true);
 
     // Set loss function
-    double (*gradFunc)(double, double);
-    if (args.lossType == logistic)
+    double (*lossFunc)(double, double, double);
+    double (*gradFunc)(double, double, double);
+    if (args.lossType == logistic) {
+        lossFunc = &logisticLoss;
         gradFunc = &logisticGrad;
+    }
     else if (args.lossType == squaredHinge)
         gradFunc = &squaredHingeGrad;
+    else if (args.lossType == pslogistic) {
+        lossFunc = &psLogisticLoss;
+        gradFunc = &psLogisticGrad;
+    }
     else
         throw std::invalid_argument("Unknown loss function type");
 
@@ -167,9 +174,9 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
         throw std::invalid_argument("Unknown online update function type");
 
     const int examples = problemData.binFeatures.size();
+    double loss = 0;
     for (int e = 0; e < args.epochs; ++e)
         for (int r = 0; r < examples; ++r) {
-
             double label = problemData.binLabels[r];
             Feature* features = problemData.binFeatures[r];
 
@@ -180,7 +187,8 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 
             //double pred = predictValue(binFeatures[r]);
             double pred = dotVectors(features, W, wSize);
-            double grad = gradFunc(label, pred);
+            double grad = gradFunc(label, pred, problemData.invPs);
+            //loss += lossFunc(label, pred, problemData.invPs);
             updateFunc(W, G, features, grad, t, args);
         }
 

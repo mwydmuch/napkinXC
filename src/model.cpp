@@ -116,8 +116,8 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
 }
 
 void Model::setThresholds(std::vector<double> th){
-    if(th.size() != m)
-        throw std::invalid_argument("Size of thresholds vector dose not match number of model outputs");
+//    if(th.size() != m)
+//        throw std::invalid_argument("Size of thresholds vector dose not match number of model outputs");
     thresholds = th;
 }
 
@@ -127,8 +127,8 @@ void Model::updateThresholds(UnorderedMap<int, double> thToUpdate){
 }
 
 void Model::setLabelsWeights(std::vector<double> lw){
-    if(lw.size() != m)
-        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
+//    if(lw.size() != m)
+//        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
     labelsWeights = lw;
 }
 

@@ -86,9 +86,8 @@ void train(Args& args) {
 
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = Model::factory(args);
-
-    model->train(labels, features, args, args.output);
     loadVecs(model, args);
+    model->train(labels, features, args, args.output);
     model->printInfo();
 
     auto resAfterTraining = getResources();

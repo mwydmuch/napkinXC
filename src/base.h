@@ -128,11 +128,16 @@ private:
     template <typename T> static void updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args);
     template <typename T> static void updateAdaGrad(T& W, T& G, Feature* features, double grad, int t, Args& args);
 
-    static double logisticGrad(double label, double pred){
+    static double logisticLoss(double label, double pred, double w){
+        double prob = (1.0 / (1.0 + std::exp(-pred)));
+        return -label * std::log(prob) - (1 - label) * std::log(1 - prob);
+    }
+
+    static double logisticGrad(double label, double pred, double w){
         return (1.0 / (1.0 + std::exp(-pred))) - label;
     }
 
-    static double squaredHingeGrad(double label, double pred){
+    static double squaredHingeGrad(double label, double pred, double w){
         double _label = 2 * label - 1;
         double v = _label * pred;
         // return v > 1 ? 0.0 : -_label; // hinge grad
@@ -140,6 +145,15 @@ private:
             return 0.0;
         else
             return -2 * std::max(1.0 - v, 0.0) * _label;
+    }
+
+    static double psLogisticGrad(double label, double pred, double w){
+        return (1.0 / (1.0 + std::exp(-pred))) - w * label;
+    }
+
+    static double psLogisticLoss(double label, double pred, double w){
+        double prob = (1.0 / (1.0 + std::exp(-pred)));
+        return -label * w * log(prob) + (label * (1 - 1/w) - 1/w + 1/w * label) * w * log(1 - prob);
     }
 
     void saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero);

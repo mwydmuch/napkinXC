@@ -294,6 +294,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     lossType = logistic;
                 else if (args.at(ai + 1) == "squaredHinge" || args.at(ai + 1) == "l2")
                     lossType = squaredHinge;
+                else if (args.at(ai + 1) == "pslogistc" || args.at(ai + 1) == "pslog")
+                    lossType = pslogistic;
                 else
                     throw std::invalid_argument("Unknown loss type: " + args.at(ai + 1));
             }
@@ -497,6 +499,8 @@ void Args::printArgs(std::string command) {
             }
         }
     }
+
+    if(!labelsWeights.empty()) Log(CERR) << "\n  Label weights: " << labelsWeights;
 
     if (command == "test" || command == "predict") {
         if(thresholds.empty()) Log(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;

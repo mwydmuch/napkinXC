@@ -65,17 +65,18 @@ if [[ ! -e ${ROOT_DIR}/nxc ]]; then
     cd ${ROOT_DIR}/experiments
 fi
 
+# Calculate inverse propensity
+INV_PS_FILE="${DATASET_FILE}.inv_ps"
+if [[ ! -e $INV_PS_FILE ]]; then
+    python3 ${SCRIPT_DIR}/calculate_inv_ps.py $TRAIN_FILE $INV_PS_FILE
+fi
+
 # Train model
 TRAIN_RESULT_FILE=${MODEL}/train_results
 TRAIN_LOCK_FILE=${MODEL}/.train_lock
 if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
     mkdir -p $MODEL
     touch $TRAIN_LOCK_FILE
-
-    INV_PS_FILE="${DATASET_FILE}.inv_ps"
-    if [[ ! -e $INV_PS_FILE ]]; then
-        python3 ${SCRIPT_DIR}/calculate_inv_ps.py $TRAIN_FILE $INV_PS_FILE
-    fi
 
     if [[ $TRAIN_ARGS == *"--labelsWeights"* ]]; then
         TRAIN_ARGS="${TRAIN_ARGS} --labelsWeights ${INV_PS_FILE}"
@@ -97,11 +98,6 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
     #(time ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
-
-    INV_PS_FILE="${DATASET_FILE}.inv_ps"
-    if [[ ! -e $INV_PS_FILE ]]; then
-        python3 ${SCRIPT_DIR}/calculate_inv_ps.py $TRAIN_FILE $INV_PS_FILE
-    fi
 
     if [[ $TEST_ARGS == *"--labelsWeights"* ]]; then
         TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PS_FILE}"

@@ -136,6 +136,9 @@ Args::Args() {
     ofoA = 10;
     ofoB = 20;
 
+    psA = 0.55;
+    psB = 1.5;
+
     // Args for testPredictionTime command
     batchSizes = "100,1000,10000";
     batches = 10;

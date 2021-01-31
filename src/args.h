@@ -191,6 +191,9 @@ public:
     double ofoA;
     double ofoB;
 
+    double psA;
+    double psB;
+
     // Args for testPredictionTime command
     std::string batchSizes;
     int batches;

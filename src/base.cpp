@@ -185,11 +185,14 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             ++t;
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
-            //double pred = predictValue(binFeatures[r]);
             double pred = dotVectors(features, W, wSize);
             double grad = gradFunc(label, pred, problemData.invPs);
-            //loss += lossFunc(label, pred, problemData.invPs);
+            loss += lossFunc(label, pred, problemData.invPs);
             updateFunc(W, G, features, grad, t, args);
+
+//            int iter = e * examples + r;
+//            if(iter % 10000 == 9999)
+//                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";
         }
 
     finalizeOnlineTraining(args);

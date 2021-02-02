@@ -245,7 +245,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, 
         // b[j] =  .. + sum_{i = 1}^{t} y_j
         int l = -1;
         while (labels[r][++l] > -1)
-            if(labels[r][++l] < bs.size()) bs[labels[r][l]]++;
+            if(labels[r][l] < bs.size()) bs[labels[r][l]]++;
 
         // Update thresholds, only those that may have changed due to update of as or bs,
         // For simplicity I compute some of them twice because it does not really matter
@@ -254,7 +254,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, 
             thresholdsToUpdate[p.label] = as[p.label] / bs[p.label];
         l = -1;
         while (labels[r][++l] > -1)
-            if(labels[r][++l] < bs.size()) thresholdsToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
+            if(labels[r][l] < bs.size()) thresholdsToUpdate[labels[r][l]] = as[labels[r][l]] / bs[labels[r][l]];
 
         model->updateThresholds(thresholdsToUpdate);
     }

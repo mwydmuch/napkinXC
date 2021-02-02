@@ -297,8 +297,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     lossType = logistic;
                 else if (args.at(ai + 1) == "squaredHinge" || args.at(ai + 1) == "l2")
                     lossType = squaredHinge;
-                else if (args.at(ai + 1) == "pslogistc" || args.at(ai + 1) == "pslog")
-                    lossType = pslogistic;
+                else if (args.at(ai + 1) == "pwLogistc" || args.at(ai + 1) == "pwLog")
+                    lossType = pwLogistic;
                 else
                     throw std::invalid_argument("Unknown loss type: " + args.at(ai + 1));
             }

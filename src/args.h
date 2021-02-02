@@ -76,7 +76,7 @@ enum SetUtilityType {
 enum LossType {
     logistic,
     squaredHinge,
-    pslogistic
+    pwLogistic
 };
 
 enum OFOType {

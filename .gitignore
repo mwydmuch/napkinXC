@@ -20,10 +20,11 @@ nxc
 # Docs
 docs/*/*
 
-# Experiments
-/data
+# Experiments and examples
+data
 /models*
 /results*
+eurlex-model
 
 # Misc
 .idea

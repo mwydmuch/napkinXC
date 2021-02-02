@@ -99,7 +99,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
         for(int i = rStart; i < rStop; ++i) binProblemData.emplace_back(binLabels[i], binFeatures, features.cols(), binWeights);
 
         if(!labelsWeights.empty()) {
-            std::cerr << "Setting inv ps weights for training!\n";
+            Log(CERR) << "Setting inv ps weights for training ...\n";
             for (int i = 0; i < range; ++i) binProblemData[i].invPs = labelsWeights[i + rStart];
         }
 

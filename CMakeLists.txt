@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.12)
 project(napkinXC
-    VERSION 0.4.4
+    VERSION 0.5.0
     DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
     HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
     LANGUAGES C CXX)
@@ -41,8 +41,6 @@ configure_file(
     ${SRC_DIR}/version.h.in
     ${SRC_DIR}/version.h
 )
-
-
 
 # Gather napkinXC source files
 file(GLOB SOURCES

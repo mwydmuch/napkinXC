@@ -157,9 +157,9 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
     }
     else if (args.lossType == squaredHinge)
         gradFunc = &squaredHingeGrad;
-    else if (args.lossType == pslogistic) {
-        lossFunc = &psLogisticLoss;
-        gradFunc = &psLogisticGrad;
+    else if (args.lossType == pwLogistic) {
+        lossFunc = &pwLogisticLoss;
+        gradFunc = &pwLogisticGrad;
     }
     else
         throw std::invalid_argument("Unknown loss function type");
@@ -187,9 +187,10 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 
             double pred = dotVectors(features, W, wSize);
             double grad = gradFunc(label, pred, problemData.invPs);
-            loss += lossFunc(label, pred, problemData.invPs);
             updateFunc(W, G, features, grad, t, args);
 
+            // Report loss
+//            loss += lossFunc(label, pred, problemData.invPs);
 //            int iter = e * examples + r;
 //            if(iter % 10000 == 9999)
 //                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";

@@ -61,7 +61,7 @@ setup(
     src_dir="python",
     packages=['napkinxc'],
     ext_module_hint=r"pybind11_add_module",
-    configure_opts=['-DPYTHON=ON', '-DEXE=OFF'],
+    configure_opts=['-DPYTHON=ON', '-DEXE=OFF', '-DBACKWARD=OFF'],
     include_package_data=True,
     #parallel=max(cpu_count(), 1) # Unknown distribution option: 'parallel'
 )

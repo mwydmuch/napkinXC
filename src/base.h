@@ -147,15 +147,13 @@ private:
             return -2 * std::max(1.0 - v, 0.0) * _label;
     }
 
-    static double psLogisticGrad(double label, double pred, double w){
+    static double pwLogisticGrad(double label, double pred, double w){
         return (1.0 / (1.0 + std::exp(-pred))) - w * label;
-        //return -(2 * w * label + 2 * label - 1) / (std::exp(pred) + 1) - label + 1;
     }
 
-    static double psLogisticLoss(double label, double pred, double w){
+    static double pwLogisticLoss(double label, double pred, double w){
         double prob = (1.0 / (1.0 + std::exp(-pred)));
-        return -label * w * log(prob) + (label * (1 - 1/w) - 1/w + 1/w * label) * w * log(1 - prob);
-        //return -(2 * w - 1) * label * std::log(prob) - (1 - label) * std::log(1 - prob);
+        return -label * w * log(prob) + (label - 1/w) * w * log(1 - prob);
     }
 
     void saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero);

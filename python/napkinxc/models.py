@@ -89,7 +89,7 @@ class Model():
         :type labels_weights: list[float], ndarray, optional
         :return: list[list[int]] - list of list predicted labels
         """
-        self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
 
     def predict_proba(self, X, top_k=0, threshold=0, labels_weights=None):
@@ -107,7 +107,7 @@ class Model():
         :type labels_weights: list[float], ndarray, optional
         :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
         """
-        self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
 
     def predict_for_file(self, path, top_k=0, threshold=0, labels_weights=None):
@@ -125,7 +125,7 @@ class Model():
         :type labels_weights: list[float], ndarray, optional
         :return: list[list[int]] - list of list predicted labels
         """
-        self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict_for_file(path, top_k, threshold)
 
     def predict_proba_for_file(self, path, top_k=0, threshold=0, labels_weights=None):
@@ -143,7 +143,7 @@ class Model():
         :type labels_weights: list[float], ndarray, optional
         :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
         """
-        self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict_proba_for_file(path, top_k, threshold)
 
     def ofo(self, X, Y, type='micro', a=10, b=20, epochs=1):
@@ -236,9 +236,13 @@ class Model():
         if top_k == 0 and threshold == 0:
             print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
 
+        if not isinstance(top_k, int):
+            raise TypeError("Unsupported top_k type, should be int")
+
         if isinstance(threshold, (list, ndarray)):
             self._model.set_thresholds(threshold)
-        elif not isinstance(threshold, float):
+            threshold = 0
+        elif not isinstance(threshold, (float, int)):
             raise TypeError("Unsupported threshold type, should be float, or list of floats, or Numpy vector (1d array)")
 
         if isinstance(labels_weights, (list, ndarray)):
@@ -246,6 +250,7 @@ class Model():
         elif labels_weights is not None:
             raise TypeError("Unsupported labels_weights type, should be list of floats, or Numpy vector (1d array)")
 
+        return threshold
 
 class PLT(Model):
     """

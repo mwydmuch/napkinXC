@@ -76,6 +76,7 @@ enum SetUtilityType {
 enum LossType {
     logistic,
     squaredHinge,
+    pwLogistic
 };
 
 enum OFOType {
@@ -159,6 +160,7 @@ public:
     int topK;
     double threshold;
     std::string thresholds;
+    std::string labelsWeights;
     bool ensMissingScores;
 
     void save(std::ostream& out) override;
@@ -188,6 +190,9 @@ public:
     double ofoTopLabels;
     double ofoA;
     double ofoB;
+
+    double psA;
+    double psB;
 
     // Args for testPredictionTime command
     std::string batchSizes;

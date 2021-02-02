@@ -228,10 +228,11 @@ def inverse_propensity(Y, A=0.55, B=1.5):
     :return: ndarray with propensity scores for each label
     """
     if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
-        m = Y.shape[0]
+        n, m = Y.shape
         freqs = np.sum(Y, axis=0)
 
     elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
+        n = len(Y)
         m = max([max(y) for y in Y if len(y)])
         freqs = np.zeros(m + 1)
         for y in Y:
@@ -240,8 +241,8 @@ def inverse_propensity(Y, A=0.55, B=1.5):
     else:
         raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of list of ints")
 
-    C = (log(m) - 1.0) * (B + 1) ** A
-    inv_ps = 1.0 + C * (freqs + B) ** -A
+    C = (log(n) - 1) * (B + 1) ** A
+    inv_ps = 1 + C * (freqs + B) ** -A
     return inv_ps
 
 
@@ -255,8 +256,8 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
         Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
-    :param inv_ps: Propensity scores for each label.
-    :type inv_ps: ndarray, list
+    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :type inv_ps: ndarray, list, dict
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
     :return: ndarray with values of PSP at 1-k places.
@@ -265,13 +266,27 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
     Y_true = _get_Y_iterator(Y_true)
     Y_pred = _get_Y_iterator(Y_pred, ranking=True)
 
-    if not isinstance(inv_ps, np.ndarray):
+    def _get_top_ps_dict(t):
+        return np.array(sorted([inv_ps.get(t_i, 0) for t_i in t], reverse=True))
+
+    def _get_top_ps_np(t):
+        t = [t_i for t_i in t if t_i < inv_ps.shape[0]]
+        return -np.sort(-inv_ps[t])
+
+    if isinstance(inv_ps, dict):
+        _get_top_ps = _get_top_ps_dict
+    elif isinstance(inv_ps, list):
         inv_ps = np.array(inv_ps)
+        _get_top_ps = _get_top_ps_np
+    elif isinstance(inv_ps, np.ndarray):
+        _get_top_ps = _get_top_ps_np
+    else:
+        raise TypeError("Unsupported data type for inv_ps, should be Numpy vector (1d array), or list, or dict")
 
     sum = np.zeros(k)
     best_sum = np.zeros(k)
     for t, p in zip(Y_true, Y_pred):
-        top_ps = -np.sort(-inv_ps[t])
+        top_ps = _get_top_ps(t)
         psp_at_i = 0
         best_psp_at_i = 0
         for i, p_i in enumerate(p[:k]):
@@ -402,4 +417,4 @@ def _get_Y_iterator(Y, ranking=False):
         return _Y_list_iterator(Y)
 
     else:
-        raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of list of ints")
+        raise TypeError("Unsupported data type, should be Numpy matrix (2d array), or Scipy CSR matrix, or list of list of ints")

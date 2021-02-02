@@ -189,7 +189,17 @@ public:
     }
 
     void unload(){
-        if(model->isLoaded()) model->unload();
+        if(model != nullptr && model->isLoaded()) model->unload();
+    }
+
+    void setThresholds(std::vector<double> thresholds){
+        load();
+        model->setThresholds(thresholds);
+    }
+
+    void setLabelsWeights(std::vector<double> weights){
+        load();
+        model->setLabelsWeights(weights);
     }
 
     std::vector<std::vector<int>> predict(py::object inputFeatures, int featuresDataType, int topK, double threshold){
@@ -207,28 +217,6 @@ public:
         });
 
         return pred;
-    }
-
-    std::vector<std::vector<int>> predictWithThresholds(py::object inputFeatures, int featuresDataType, int topK, std::vector<double> thresholds){
-        auto predWithProba = predictProbaWithThresholds(inputFeatures, featuresDataType, topK, thresholds);
-        return dropProbaHelper(predWithProba);
-    }
-
-    std::vector<std::vector<std::pair<int, double>>> predictProbaWithThresholds(py::object inputFeatures, int featuresDataType, int topK, std::vector<double> thresholds){
-        std::vector<std::vector<Prediction>> pred;
-        runAsInterruptable([&] {
-            load();
-            SRMatrix<Feature> features;
-            readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
-            args.printArgs("predict");
-
-            args.topK = topK;
-            model->setThresholds(thresholds);
-            pred = model->predictBatchWithThresholds(features, args);
-        });
-
-        // This is only safe because it's struct with two fields casted to pair, don't do this with tuples!
-        return reinterpret_cast<std::vector<std::vector<std::pair<int, double>>>&>(pred);
     }
 
     std::vector<double> ofo(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType) {
@@ -501,12 +489,12 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("fit_on_file", &CPPModel::fitOnFile)
     .def("load", &CPPModel::load)
     .def("unload", &CPPModel::unload)
+    .def("set_thresholds", &CPPModel::setThresholds)
+    .def("set_labels_weights", &CPPModel::setLabelsWeights)
     .def("predict", &CPPModel::predict)
     .def("predict_proba", &CPPModel::predictProba)
     .def("predict_for_file", &CPPModel::predictForFile)
     .def("predict_proba_for_file", &CPPModel::predictProbaForFile)
-    .def("predict_with_thresholds", &CPPModel::predictWithThresholds)
-    .def("predict_proba_with_thresholds", &CPPModel::predictProbaWithThresholds)
     .def("ofo", &CPPModel::ofo)
     .def("test", &CPPModel::test)
     .def("test_on_file", &CPPModel::testOnFile)

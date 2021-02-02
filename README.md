@@ -1,24 +1,24 @@
 # napkinXC 
-[![PyPI version](https://badge.fury.io/py/napkinxc.svg)](https://badge.fury.io/py/napkinxc) 
-[![Build Status](https://travis-ci.com/mwydmuch/napkinXC.svg?branch=master)](https://travis-ci.com/mwydmuch/napkinXC) 
+![C++ build](https://github.com/mwydmuch/napkinXC/workflows/C++%20build/badge.svg)
+![Python build](https://github.com/mwydmuch/napkinXC/workflows/Python%20build/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/napkinxc/badge/?version=latest)](https://napkinxc.readthedocs.io/en/latest/?badge=latest)
-[![License](https://img.shields.io/github/license/mwydmuch/napkinXC.svg)](https://github.com/mwydmuch/napkinXC/blob/master/LICENSE)
+[![PyPI version](https://badge.fury.io/py/napkinxc.svg)](https://badge.fury.io/py/napkinxc) 
 
 napkinXC is an extremely simple and fast library for extreme multi-class and multi-label classification.
-It allows to train a classifier for very large datasets in few lines of code with minimal resources.
+It allows training a classifier for very large datasets in just a few lines of code with minimal resources.
 
 Right now, napkinXC implements the following features both in Python and C++:
 - Probabilistic Label Trees (PLTs) and Online Probabilistic Label Trees (OPLTs),
 - Hierarchical softmax (HSM),
 - Binary Relevance (BR),
 - One Versus Rest (OVR),
-- fast online prediction of top-k labels or labels above the given threshold,
-- hierarchical k-means clustering for tree building and other tree building methods,
+- fast online prediction of top-k labels or labels above one given threshold or separate threshold for each label,
+- hierarchical k-means clustering for tree building and other tree-building methods,
 - support for predefined hierarchies,
 - LIBLINEAR, SGD, and AdaGrad solvers for base classifiers,
 - efficient ensembles tree-based model,
 - helpers to download and load data from [XML Repository](http://manikvarma.org/downloads/XC/XMLRepository.html),
-- helpers to measure performance.
+- helpers to measure performance (precision@k, recall@k, nDCG@k, propensity scored precision@k, and many more).
 
 Please note that this library is still under development and also serves as a base for experiments. 
 Some of the experimental features may not be documented. 
@@ -31,10 +31,10 @@ All contributions to the project are welcome!
 
 Coming soon:
 
-- Possibility to use any type of binary classifier from Python.
-- Efficient prediction with different threshold for each label.
-- Improved dataset loading in Python.
-- More datasets from XML Repository.
+- Possibility to use any binary classifier from Python.
+- Efficient prediction with a different threshold for each label (available in the master version).
+- Improved dataset loading in Python (available in the master version).
+- Raw versions of datasets from XML Repository.
 
 
 ## Python Quick Start and Documentation

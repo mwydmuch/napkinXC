@@ -71,9 +71,9 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     double pred = predictValue(features);
     double grad;
     if(args.lossType == logistic)
-        grad = logisticGrad(label, pred);
+        grad = logisticGrad(label, pred, 0);
     else
-        grad = squaredHingeGrad(label, pred);
+        grad = squaredHingeGrad(label, pred, 0);
 
     if (args.optimizerType == sgd) {
         if (mapW != nullptr)
@@ -95,61 +95,26 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
 //    }
 }
 
-void Base::trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
-                          std::vector<double>* instancesWeights, int positiveLabels, Args& args) {
-
-    int labelsCount = 0;
-    int* labels = NULL;
-    double* labelsWeights = NULL;
-    int negativeLabels = static_cast<int>(binLabels.size()) - positiveLabels;
-
-    // Apply some weighting for very unbalanced data
-    if (args.inbalanceLabelsWeighting) {
-        labelsCount = 2;
-        labels = new int[2];
-        labels[0] = 0;
-        labels[1] = 1;
-
-        labelsWeights = new double[2];
-        if (negativeLabels > positiveLabels) {
-            labelsWeights[0] = 1.0;
-            labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabels) / positiveLabels);
-        } else {
-            labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabels) / negativeLabels);
-            labelsWeights[1] = 1.0;
-        }
-    }
-
+void Base::trainLiblinear(ProblemData& problemData, Args& args) {
     double cost = args.cost;
-    if(args.autoCLog)
-        cost *= 1.0 + log(static_cast<double>(r) / binFeatures.size());
+    if (args.autoCLog)
+        cost *= 1.0 + log(static_cast<double>(problemData.r) / problemData.binFeatures.size());
     if (args.autoCLin)
-        cost *= static_cast<double>(r) / binFeatures.size();
+        cost *= static_cast<double>(problemData.r) / problemData.binFeatures.size();
 
-    auto y = binLabels.data();
-    auto x = binFeatures.data();
-    int l = static_cast<int>(binLabels.size());
-
-    bool deleteInstanceWeights = false;
-    if (instancesWeights == nullptr) {
-        instancesWeights = new std::vector<double>(l);
-        std::fill(instancesWeights->begin(), instancesWeights->end(), 1.0);
-        deleteInstanceWeights = true;
-    }
-
-    problem P = {.l = l,
-                 .n = n,
-                 .y = y,
-                 .x = x,
+    problem P = {.l = static_cast<int>(problemData.binLabels.size()),
+                 .n = problemData.n,
+                 .y = problemData.binLabels.data(),
+                 .x = problemData.binFeatures.data(),
                  .bias = -1,
-                 .W = instancesWeights->data()};
+                 .W = problemData.instancesWeights.data()};
 
     parameter C = {.solver_type = args.solverType,
                    .eps = args.eps,
                    .C = cost,
-                   .nr_weight = labelsCount,
-                   .weight_label = labels,
-                   .weight = labelsWeights,
+                   .nr_weight = problemData.labelsCount,
+                   .weight_label = problemData.labels,
+                   .weight = problemData.labelsWeights,
                    .p = 0,
                    .init_sol = NULL,
                    .max_iter = args.maxIter};
@@ -160,17 +125,17 @@ void Base::trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vec
     model* M = train_liblinear(&P, &C);
 
     assert(M->nr_class <= 2);
-    assert(M->nr_feature == n);
+    assert(M->nr_feature == problemData.n);
 
     // Set base's attributes
-    wSize = n + 1;
+    wSize = problemData.n + 1;
     firstClass = M->label[0];
     classCount = M->nr_class;
 
     // Copy weights
     W = new Weight[wSize];
     W[0] = 0;
-    for (int i = 0; i < n; ++i) W[i + 1] = M->w[i];
+    for (int i = 0; i < problemData.n; ++i) W[i + 1] = M->w[i]; // Shift by -1
 
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
                 args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
@@ -178,20 +143,24 @@ void Base::trainLiblinear(int n, int r, std::vector<double>& binLabels, std::vec
     // Delete LibLinear model
     free_model_content(M);
     free(M);
-    delete[] labels;
-    delete[] labelsWeights;
-    if(deleteInstanceWeights) delete instancesWeights;
 }
 
-void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, Args& args) {
-    setupOnlineTraining(args, n, true);
+void Base::trainOnline(ProblemData& problemData, Args& args) {
+    setupOnlineTraining(args, problemData.n, true);
 
     // Set loss function
-    double (*gradFunc)(double, double);
-    if (args.lossType == logistic)
+    double (*lossFunc)(double, double, double);
+    double (*gradFunc)(double, double, double);
+    if (args.lossType == logistic) {
+        lossFunc = &logisticLoss;
         gradFunc = &logisticGrad;
+    }
     else if (args.lossType == squaredHinge)
         gradFunc = &squaredHingeGrad;
+    else if (args.lossType == pwLogistic) {
+        lossFunc = &pwLogisticLoss;
+        gradFunc = &pwLogisticGrad;
+    }
     else
         throw std::invalid_argument("Unknown loss function type");
 
@@ -204,57 +173,77 @@ void Base::trainOnline(int n, std::vector<double>& binLabels, std::vector<Featur
     else
         throw std::invalid_argument("Unknown online update function type");
 
-    const int examples = binFeatures.size();
+    const int examples = problemData.binFeatures.size();
+    double loss = 0;
     for (int e = 0; e < args.epochs; ++e)
         for (int r = 0; r < examples; ++r) {
-
-            double label = binLabels[r];
-            Feature* features = binFeatures[r];
+            double label = problemData.binLabels[r];
+            Feature* features = problemData.binFeatures[r];
 
             if (args.tmax != -1 && args.tmax < t) break;
 
             ++t;
-            if (binLabels[r] == firstClass) ++firstClassCount;
+            if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
-            //double pred = predictValue(binFeatures[r]);
             double pred = dotVectors(features, W, wSize);
-            double grad = gradFunc(label, pred);
+            double grad = gradFunc(label, pred, problemData.invPs);
             updateFunc(W, G, features, grad, t, args);
+
+            // Report loss
+//            loss += lossFunc(label, pred, problemData.invPs);
+//            int iter = e * examples + r;
+//            if(iter % 10000 == 9999)
+//                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";
         }
 
     finalizeOnlineTraining(args);
 }
 
-void Base::train(int n, int r, std::vector<double>& binLabels, std::vector<Feature*>& binFeatures,
-                 std::vector<double>* instancesWeights, Args& args) {
+void Base::train(ProblemData& problemData, Args& args) {
 
-    if(instancesWeights != nullptr && args.optimizerType != liblinear)
-        throw std::invalid_argument("Selected optimizer type does not support training with weights");
-
-    if (binLabels.empty()) {
+    if (problemData.binLabels.empty()) {
         firstClass = 0;
         classCount = 0;
         return;
     }
 
-    int positiveLabels = std::count(binLabels.begin(), binLabels.end(), 1.0);
-    if (positiveLabels == 0 || positiveLabels == binLabels.size()) {
-        firstClass = static_cast<int>(binLabels[0]);
+    assert(problemData.binLabels.size() == problemData.binFeatures.size());
+    assert(problemData.instancesWeights.size() >= problemData.binLabels.size());
+
+    int positiveLabels = std::count(problemData.binLabels.begin(), problemData.binLabels.end(), 1.0);
+    if (positiveLabels == 0 || positiveLabels == problemData.binLabels.size()) {
+        firstClass = static_cast<int>(problemData.binLabels[0]);
         classCount = 1;
         return;
     }
 
-    assert(binLabels.size() == binFeatures.size());
-    if (instancesWeights != nullptr) assert(instancesWeights->size() == binLabels.size());
+    // Apply some weighting for very unbalanced data
+    if (args.inbalanceLabelsWeighting) {
+        problemData.labelsCount = 2;
+        problemData.labels = new int[2];
+        problemData.labels[0] = 0;
+        problemData.labels[1] = 1;
+        problemData.labelsWeights = new double[2];
 
-    if (args.optimizerType == liblinear)
-        trainLiblinear(n, r, binLabels, binFeatures, instancesWeights, positiveLabels, args);
-    else
-        trainOnline(n, binLabels, binFeatures, args);
+        int negativeLabels = static_cast<int>(problemData.binLabels.size()) - positiveLabels;
+        if (negativeLabels > positiveLabels) {
+            problemData.labelsWeights[0] = 1.0;
+            problemData.labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabels) / positiveLabels);
+        } else {
+            problemData.labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabels) / negativeLabels);
+            problemData.labelsWeights[1] = 1.0;
+        }
+    }
+
+    if (args.optimizerType == liblinear) trainLiblinear(problemData, args);
+    else trainOnline(problemData, args);
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
     if (sparseSize(nonZeroW) < denseSize(wSize)) toSparse();
+
+    delete[] problemData.labels;
+    delete[] problemData.labelsWeights;
 }
 
 void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {

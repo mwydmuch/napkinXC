@@ -87,8 +87,11 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
         }
     }
 
-    trainBasesWithSameFeatures(joinPath(output, "weights.bin"), features.cols(), binLabels, features.allRows(), nullptr,
-                               args);
+    // Train bases
+    std::vector<ProblemData> binProblemData;
+    std::vector<double> binWeights(features.rows(), 1);
+    for(int i = 0; i < size; ++i) binProblemData.emplace_back(binLabels[i], features.allRows(), features.cols(), binWeights);
+    trainBases(joinPath(output, "weights.bin"), binProblemData, args);
 }
 
 void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {

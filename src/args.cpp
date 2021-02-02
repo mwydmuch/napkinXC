@@ -136,6 +136,9 @@ Args::Args() {
     ofoA = 10;
     ofoB = 20;
 
+    psA = 0.55;
+    psB = 1.5;
+
     // Args for testPredictionTime command
     batchSizes = "100,1000,10000";
     batches = 10;
@@ -294,6 +297,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     lossType = logistic;
                 else if (args.at(ai + 1) == "squaredHinge" || args.at(ai + 1) == "l2")
                     lossType = squaredHinge;
+                else if (args.at(ai + 1) == "pwLogistc" || args.at(ai + 1) == "pwLog")
+                    lossType = pwLogistic;
                 else
                     throw std::invalid_argument("Unknown loss type: " + args.at(ai + 1));
             }
@@ -410,6 +415,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--thresholds")
                 thresholds = std::string(args.at(ai + 1));
+            else if (args[ai] == "--labelsWeights")
+                labelsWeights = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensMissingScores")
                 ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
 
@@ -496,9 +503,12 @@ void Args::printArgs(std::string command) {
         }
     }
 
+    if(!labelsWeights.empty()) Log(CERR) << "\n  Label weights: " << labelsWeights;
+
     if (command == "test" || command == "predict") {
         if(thresholds.empty()) Log(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
         else Log(CERR) << "\n  Thresholds: " << thresholds;
+        if(!labelsWeights.empty()) Log(CERR) << "\n  Labels' weights: " << labelsWeights;
         if (modelType == svbopMips || modelType == brMips) {
             Log(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
             if(modelType == svbopMips) Log(CERR) << ", k: " << svbopMipsK;

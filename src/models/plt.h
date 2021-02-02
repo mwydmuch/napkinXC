@@ -28,9 +28,14 @@
 
 // Additional node information for prediction with thresholds
 struct TreeNodeThrExt {
-    std::vector<int> labels;
     double th;
-    int thLabel;
+    int label;
+};
+
+// Additional node information for prediction with weights
+struct TreeNodeWeightsExt {
+    double weight;
+    int label;
 };
 
 // This is virtual class for all PLT based models: HSM, Batch PLT, Online PLT
@@ -43,7 +48,7 @@ public:
 
     void setThresholds(std::vector<double> th) override;
     void updateThresholds(UnorderedMap<int, double> thToUpdate) override;
-    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void setLabelsWeights(std::vector<double> lw) override;
 
     void load(Args& args, std::string infile) override;
     void unload() override;
@@ -57,13 +62,18 @@ protected:
     Tree* tree;
     std::vector<Base*> bases;
 
-    // For prediction with thresholds
-    std::vector<TreeNodeThrExt> nodesThr;
+    std::vector<std::vector<int>> nodesLabels;
+    std::vector<TreeNodeThrExt> nodesThr; // For prediction with thresholds
+    std::vector<TreeNodeWeightsExt> nodesWeights; // For prediction with labels weights
+
+    void calculateNodesLabels();
+    void setNodeThreshold(TreeNode* n);
+    void setNodeWeight(TreeNode* n);
 
     virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,
-                                  std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
-                                  SRMatrix<Feature>& features, Args& args);
+                                  std::vector<std::vector<double>>& binWeights,
+                                  SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
 
@@ -73,20 +83,23 @@ protected:
                                    UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative);
 
     // Helper methods for prediction
-    virtual Prediction predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold);
+    virtual Prediction predictNextLabel(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
+                                        TopKQueue<TreeNodeValue>& nQueue, Feature* features);
     virtual Prediction predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features);
 
     virtual inline double predictForNode(TreeNode* node, Feature* features){
         return bases[node->index]->predictProbability(features);
     }
 
-    inline static void addToQueue(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value,
-                                  double threshold) {
-        if (value >= threshold) nQueue.push({node, value}, node->label > -1);
+    inline void addToQueue(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
+                           TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double prob){
+        double value = calculateValue(node, prob);
+        if (ifAddToQueue(node, prob)) nQueue.push({node, prob, value}, node->label > -1);
+
     }
 
     inline void addToQueueThresholds(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value) {
-        if (value >= nodesThr[node->index].th) nQueue.push({node, value}, node->label > -1);
+        if (value >= nodesThr[node->index].th) nQueue.push({node, value, value}, node->label > -1);
     }
 
     // Additional statistics

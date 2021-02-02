@@ -10,10 +10,10 @@ def load_libsvm(file):
     Y = []
     with open(file) as f:
         for row in f:
-            yi, xi = row.split(' ', 1)
-            X.append(xi)
-            if len(yi):
-                Y.append(yi.split(','))
+            y, x = row.split(' ', 1)
+            X.append(x)
+            if len(y):
+                Y.append(y.split(','))
             else:
                 Y.append([])
 
@@ -23,10 +23,10 @@ def load_libsvm(file):
 
 def save_libsvm(X, Y, file):
     with open(file, "w") as f:
-        for xi, yi in zip(X, Y):
-            f.write(','.join([str(y) for y in sorted(yi)]))
+        for x, y in zip(X, Y):
+            f.write(','.join([str(y_i) for y_i in sorted(y)]))
             f.write(' ')
-            f.write(xi)
+            f.write(x)
 
 
 def remap_files(files, mapping):

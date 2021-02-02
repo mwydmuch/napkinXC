@@ -39,21 +39,31 @@
 #include "types.h"
 #include "version.h"
 
-
-// TODO: refactor this as load/save vector
-std::vector<double> loadThresholds(std::string infile){
-    std::vector<double> thresholds;
-    std::ifstream thresholdsIn(infile);
-    double t;
-    while (thresholdsIn >> t) thresholds.push_back(t);
-    return thresholds;
+std::vector<double> loadVec(std::string infile){
+    std::vector<double> vec;
+    std::ifstream in(infile);
+    double v;
+    while (in >> v) vec.push_back(v);
+    return vec;
 }
 
-void saveThresholds(std::vector<double>& thresholds, std::string outfile){
+void saveVec(std::vector<double>& vec, std::string outfile){
     std::ofstream out(outfile);
-    for(auto t : thresholds)
-        out << t << "\n";
+    for(auto v : vec)
+        out << v << "\n";
     out.close();
+}
+
+void loadVecs(std::shared_ptr<Model> model, Args& args){
+    std::vector<std::vector<Prediction>> predictions;
+    if (!args.thresholds.empty()) { // Using thresholds if provided
+        std::vector<double> thresholds = loadVec(args.thresholds);
+        model->setThresholds(thresholds);
+    }
+    if (!args.labelsWeights.empty()) { // Using labelsWeights if provided
+        std::vector<double> labelsWeights = loadVec(args.labelsWeights);
+        model->setLabelsWeights(labelsWeights);
+    }
 }
 
 void train(Args& args) {
@@ -76,6 +86,7 @@ void train(Args& args) {
 
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = Model::factory(args);
+    loadVecs(model, args);
     model->train(labels, features, args, args.output);
     model->printInfo();
 
@@ -119,13 +130,8 @@ void test(Args& args) {
     auto resAfterModel = getResources();
 
     // Predict for test set
-    std::vector<std::vector<Prediction>> predictions;
-    if (!args.thresholds.empty()) { // Using thresholds if provided
-        std::vector<double> thresholds = loadThresholds(args.thresholds);
-        model->setThresholds(thresholds);
-        predictions = model->predictBatchWithThresholds(features, args);
-    } else
-        predictions = model->predictBatch(features, args);
+    loadVecs(model, args);
+    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
 
     auto resAfterPrediction = getResources();
 
@@ -168,7 +174,7 @@ void test(Args& args) {
 void predict(Args& args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
-    args.printArgs();
+    args.printArgs("predict");
 
     // Load model
     std::shared_ptr<Model> model = Model::factory(args);
@@ -189,31 +195,20 @@ void predict(Args& args) {
         SRMatrix<Feature> features;
         readData(labels, features, args);
 
-        if (!args.thresholds.empty()) { // Using thresholds if provided
-            std::vector<double> thresholds = loadThresholds(args.thresholds);
-            model->setThresholds(thresholds);
-        }
+        loadVecs(model, args);
 
         if(args.threads > 1) {
-            std::vector<std::vector<Prediction>> predictions;
-            if (!args.thresholds.empty())
-                predictions = model->predictBatchWithThresholds(features, args);
-            else
-                predictions = model->predictBatch(features, args);
+            std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
 
             for (const auto &p : predictions) {
                 for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
                 Log(COUT) << "\n";
             }
-        } else { // For 1 thread predict and immediately save to file
+        } else { // For 1 thread predict and immediately output
             for(int r = 0; r < features.rows(); ++r){
                 printProgress(r, features.rows());
                 std::vector<Prediction> prediction;
-
-                if (!args.thresholds.empty())
-                    model->predictWithThresholds(prediction, features[r], args);
-                else
-                    model->predict(prediction, features[r], args);
+                model->predict(prediction, features[r], args);
 
                 for (const auto &l : prediction) Log(COUT) << l.label << ":" << l.value << " ";
                 Log(COUT) << "\n";
@@ -238,7 +233,7 @@ void ofo(Args& args) {
     auto resAfterData = getResources();
 
     std::vector<double> thresholds = model->ofo(features, labels, args);
-    saveThresholds(thresholds, args.thresholds);
+    saveVec(thresholds, args.thresholds);
 
     auto resAfterFo = getResources();
 

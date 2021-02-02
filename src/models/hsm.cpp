@@ -39,7 +39,7 @@ HSM::HSM() {
 }
 
 void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                           std::vector<std::vector<double>*>* binWeights, SRMatrix<Label>& labels,
+                           std::vector<std::vector<double>>& binWeights, SRMatrix<Label>& labels,
                            SRMatrix<Feature>& features, Args& args) {
     Log(CERR) << "Assigning data points to nodes ...\n";
 
@@ -70,8 +70,8 @@ void HSM::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
             addNodesLabelsAndFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
             if (args.pickOneLabelWeighting) {
                 double w = 1.0 / rSize;
-                for (const auto& n : nPositive) (*binWeights)[n->index]->push_back(w);
-                for (const auto& n : nNegative) (*binWeights)[n->index]->push_back(w);
+                for (const auto& n : nPositive) binWeights[n->index].push_back(w);
+                for (const auto& n : nNegative) binWeights[n->index].push_back(w);
             }
 
             nodeUpdateCount += nPositive.size() + nNegative.size();
@@ -119,7 +119,9 @@ void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
     pathLength += path.size();
 }
 
-Prediction HSM::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* features, double threshold) {
+Prediction HSM::predictNextLabel(
+    std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
+    TopKQueue<TreeNodeValue>& nQueue, Feature* features) {
 
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
@@ -128,8 +130,8 @@ Prediction HSM::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
         if (!nVal.node->children.empty()) {
             if (nVal.node->children.size() == 2) {
                 double value = bases[nVal.node->children[0]->index]->predictProbability(features);
-                addToQueue(nQueue, nVal.node->children[0], nVal.value * value, threshold);
-                addToQueue(nQueue, nVal.node->children[1], nVal.value * (1.0 - value), threshold);
+                addToQueue(ifAddToQueue, calculateValue, nQueue, nVal.node->children[0], nVal.value * value);
+                addToQueue(ifAddToQueue, calculateValue, nQueue, nVal.node->children[1], nVal.value * (1.0 - value));
                 ++nodeEvaluationCount;
             } else {
                 double sum = 0;
@@ -141,7 +143,7 @@ Prediction HSM::predictNextLabel(TopKQueue<TreeNodeValue>& nQueue, Feature* feat
                 }
 
                 for (int i = 0; i < nVal.node->children.size(); ++i)
-                    addToQueue(nQueue, nVal.node->children[i], nVal.value * values[i] / sum, threshold);
+                    addToQueue(ifAddToQueue, calculateValue, nQueue, nVal.node->children[i], nVal.value * values[i] / sum);
 
                 nodeEvaluationCount += nVal.node->children.size();
             }

@@ -63,6 +63,8 @@ struct IntFeature {
 struct Prediction {
     int label;
     double value; // labels's value/probability/loss
+    Prediction(){ label = 0; value = 0; }
+    Prediction(int label, double value): label(label), value(value) {}
 
     bool operator<(const Prediction& r) const { return value < r.value; }
 

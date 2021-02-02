@@ -34,8 +34,6 @@ public:
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
 
-    void predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
-
     void load(Args& args, std::string infile) override;
     void unload() override;
 
@@ -43,7 +41,10 @@ public:
 
 protected:
     std::vector<Base*> bases;
-
+    virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
+                                  std::vector<Feature*>& binFeatures,
+                                  std::vector<double>& binWeights,
+                                  SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args);
     virtual std::vector<Prediction> predictForAllLabels(Feature* features, Args& args);
     static size_t calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 };

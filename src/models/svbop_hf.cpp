@@ -34,14 +34,23 @@ void SVBOPHF::predict(std::vector<Prediction>& prediction, Feature* features, Ar
 
     double value = bases[tree->root->index]->predictProbability(features);
     assert(value == 1);
-    nQueue.push({tree->root, value});
+    nQueue.push({tree->root, value, value});
     ++dataPointCount;
 
     std::shared_ptr<SetUtility> u = SetUtility::factory(args, outputSize());
 
+    // Set functions
+    std::function<bool(TreeNode*, double)> ifAddToQueue = [&] (TreeNode* node, double prob) {
+        return true;
+    };
+
+    std::function<double(TreeNode*, double)> calculateValue = [&] (TreeNode* node, double prob) {
+        return prob;
+    };
+
     double P = 0, bestU = 0;
     while (!nQueue.empty()) {
-        auto p = predictNextLabel(nQueue, features, 0.0);
+        auto p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features);
         P += p.value;
         double U = u->g(prediction.size() + 1) * P;
         if (bestU < U) {

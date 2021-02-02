@@ -42,11 +42,30 @@ void BR::unload() {
     bases.shrink_to_fit();
 }
 
+void BR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<double>& binWeights,
+                          SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
+    int rows = labels.rows();
+
+    binWeights.resize(rows, 1);
+    binFeatures.reserve(rows);
+    for (auto &bl: binLabels) bl.resize(rows, 0);
+
+    for (int r = 0; r < rows; ++r) {
+        printProgress(r, rows);
+
+        int rSize = labels.size(r);
+        auto rLabels = labels[r];
+
+        binFeatures.push_back(features[r]);
+        for (int i = 0; i < rSize; ++i)
+            if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart][r] = 1;
+    }
+}
+
 void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
     // Check data
-    int rows = features.rows();
+    int rows = labels.rows();
     int lCols = labels.cols();
-    assert(rows == labels.rows());
 
     std::ofstream out(joinPath(output, "weights.bin"));
     int size = lCols;
@@ -57,7 +76,8 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 
     assert(lCols < range * parts);
     std::vector<std::vector<double>> binLabels(range);
-    for (int i = 0; i < binLabels.size(); ++i) binLabels[i].reserve(rows);
+    std::vector<Feature*> binFeatures;
+    std::vector<double> binWeights;
 
     for (int p = 0; p < parts; ++p) {
         if (parts > 1)
@@ -67,23 +87,27 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 
         int rStart = p * range;
         int rStop = (p + 1) * range;
+        for (auto &bl: binLabels) std::fill(bl.begin(), bl.end(), 0);
 
-        for (int r = 0; r < rows; ++r) {
-            printProgress(r, rows);
-
-            int rSize = labels.size(r);
-            auto rLabels = labels.row(r);
-
-            for (auto &l : binLabels) l.push_back(0.0);
-            for (int i = 0; i < rSize; ++i)
-                if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart].back() = 1.0;
-        }
+        assignDataPoints(binLabels, binFeatures, binWeights, labels, features, rStart, rStop, args);
 
         unsigned long long usedMem = range * (rows * sizeof(double) + sizeof(void*));
         Log(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 
-        trainBasesWithSameFeatures(out, features.cols(), binLabels, features.allRows(), nullptr, args);
+        // Train bases
+        std::vector<ProblemData> binProblemData;
+        for(int i = rStart; i < rStop; ++i) binProblemData.emplace_back(binLabels[i], binFeatures, features.cols(), binWeights);
+
+        if(!labelsWeights.empty()) {
+            Log(CERR) << "Setting inv ps weights for training ...\n";
+            for (int i = 0; i < range; ++i) binProblemData[i].invPs = labelsWeights[i + rStart];
+        }
+
+        trainBases(joinPath(output, "weights.bin"), binProblemData, args);
+
         for (auto& l : binLabels) l.clear();
+        binFeatures.clear();
+        binWeights.clear();
     }
 
     out.close();
@@ -92,11 +116,22 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
     prediction = predictForAllLabels(features, args);
 
+    if(!thresholds.empty()){
+        int j = 0;
+        for(int i = 0; i < prediction.size(); ++i){
+            if(prediction[i].value > thresholds[i])
+                prediction[j++] = prediction[i];
+        }
+        prediction.resize(j - 1);
+    }
+
+    if(!labelsWeights.empty())
+        for(auto &p : prediction) p.value *= labelsWeights[p.label];
+
     sort(prediction.rbegin(), prediction.rend());
     if (args.threshold > 0) {
         int i = 0;
-        while (prediction[i++].value > args.threshold)
-            ;
+        while (prediction[i++].value > args.threshold);
         prediction.resize(i - 1);
     }
     if (args.topK > 0) prediction.resize(args.topK);
@@ -105,15 +140,9 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& a
 std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
-    for (int i = 0; i < bases.size(); ++i) prediction.push_back({i, bases[i]->predictProbability(features)});
-    return prediction;
-}
+    for (int i = 0; i < bases.size(); ++i) prediction.emplace_back(i, bases[i]->predictProbability(features));
 
-void BR::predictWithThresholds(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    std::vector<Prediction> tmpPrediction = predictForAllLabels(features, args);
-    for (auto& p : tmpPrediction)
-        if (p.value >= thresholds[p.label]) prediction.push_back(p);
-    if (args.topK > 0) prediction.resize(args.topK);
+    return prediction;
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args& args) {

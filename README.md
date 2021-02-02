@@ -13,6 +13,7 @@ Right now, napkinXC implements the following features both in Python and C++:
 - Binary Relevance (BR),
 - One Versus Rest (OVR),
 - fast online prediction of top-k labels or labels above one given threshold or separate threshold for each label,
+- efficient online F-measure optimization (OFO) procedure,
 - hierarchical k-means clustering for tree building and other tree-building methods,
 - support for predefined hierarchies,
 - LIBLINEAR, SGD, and AdaGrad solvers for base classifiers,
@@ -21,7 +22,7 @@ Right now, napkinXC implements the following features both in Python and C++:
 - helpers to measure performance (precision@k, recall@k, nDCG@k, propensity scored precision@k, and many more).
 
 Please note that this library is still under development and also serves as a base for experiments. 
-Some of the experimental features may not be documented. 
+Some of the experimental features may not be documented.
 
 The napkinXC is distributed under MIT license. 
 All contributions to the project are welcome!
@@ -32,7 +33,6 @@ All contributions to the project are welcome!
 Coming soon:
 
 - Possibility to use any binary classifier from Python.
-- Efficient prediction with a different threshold for each label (available in the master version).
 - Improved dataset loading in Python (available in the master version).
 - Raw versions of datasets from XML Repository.
 
@@ -67,7 +67,7 @@ Y_pred = plt.predict(X_test, top_k=1)
 print(precision_at_k(Y_test, Y_pred, k=1)) 
 ```
 
-More examples can be found under `python/examples` directory.
+More examples can be found under [`python/examples`](https://github.com/mwydmuch/napkinXC/tree/master/python/examples) directory.
 
 
 ## Executable
@@ -168,8 +168,8 @@ See documentation for more details.
 
 This library implements methods from following papers:
 
-- [Probabilistic Label Trees for Extreme Multi-label Classification](https://arxiv.org/pdf/2009.11218.pdf)
-- [Online Probabilistic Label Trees](https://arxiv.org/abs/1906.08129)
+- [Probabilistic Label Trees for Extreme Multi-label Classification](https://arxiv.org/abs/2009.11218)
+- [Online Probabilistic Label Trees](https://arxiv.org/abs/2007.04451)
 - [Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification](https://arxiv.org/abs/1906.08129)
 
 Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, 

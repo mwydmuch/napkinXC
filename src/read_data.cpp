@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2019-2020 by Marek Wydmuch
+ Copyright (c) 2019-2021 by Marek Wydmuch
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -108,7 +108,6 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
 }
 
 // Reads line in LibSvm format label,label,... feature(:value) feature(:value) ...
-// TODO: rewrite this using split?
 void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures) {
     // Trim leading spaces
     size_t nextPos, pos = line.find_first_not_of(' ');
@@ -117,17 +116,15 @@ void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Featur
         // Label
         if ((pos == 0 || line[pos - 1] == ',') &&
             (line[nextPos] == ',' || line[nextPos] == ' ')) // || nextPos == std::string::npos))
-            lLabels.push_back(std::stoi(line.substr(pos, nextPos - pos)));
+            lLabels.emplace_back(std::strtol(&line[pos], NULL, 10));
 
         // Feature index
-        else if (line[pos - 1] == ' ' && line[nextPos] == ':') {
-            int index = std::stoi(line.substr(pos, nextPos - pos));
-            lFeatures.push_back({index, 1.0});
-        }
+        else if (line[pos - 1] == ' ' && line[nextPos] == ':')
+            lFeatures.emplace_back(std::strtol(&line[pos], NULL, 10), 1.0);
 
         // Feature value
         else if (line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
-            lFeatures.back().value = std::stof(line.substr(pos, nextPos - pos));
+            lFeatures.back().value = std::strtod(&line[pos], NULL);
 
         if (nextPos == std::string::npos) break;
         pos = nextPos + 1;
@@ -136,12 +133,12 @@ void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Featur
 
 void prepareFeaturesVector(std::vector<Feature> &lFeatures, double bias) {
     // Add bias feature (bias feature has index 1)
-    lFeatures.push_back({1, bias});
+    lFeatures.emplace_back(1, bias);
 }
 
 void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashSize, double featuresThreshold) {
     //Shift index by 2 because LibLinear ignore feature 0 and feature 1 is reserved for bias
-    assert(lFeatures.size() >= 1);
+    assert(!lFeatures.empty());
     shift(lFeatures.begin() + 1, lFeatures.end(), 2);
 
     // Hash features
@@ -151,7 +148,7 @@ void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashS
             lHashed[hash(lFeatures[j].index) % hashSize] += lFeatures[j].value;
 
         lFeatures.erase (lFeatures.begin() + 1, lFeatures.end()); // Keep bias feature
-        for (const auto& f : lHashed) lFeatures.push_back({f.first + 2, f.second});
+        for (const auto& f : lHashed) lFeatures.emplace_back(f.first + 2, f.second);
     }
 
     // Norm row

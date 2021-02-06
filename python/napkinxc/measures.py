@@ -371,7 +371,7 @@ def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5):
 
 def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
     """
-    Calculate Propensity normalized Scored Discounted Cumulative Gain (PSnDCG) at 1-k places.
+    Calculate Propensity Scored normalized Discounted Cumulative Gain (PSnDCG) at 1-k places.
 
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
@@ -385,7 +385,7 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
     :type k: int, optional
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
-    :return: ndarray with values of PSDCG at 1-k places.
+    :return: ndarray with values of PSnDCG at 1-k places.
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)

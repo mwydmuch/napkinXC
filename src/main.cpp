@@ -318,15 +318,13 @@ void testPredictionTime(Args& args) {
 }
 
 void printHelp() {
-    std::cout << R"HELP(Usage: nxc [command] [args ...]
-
-Usage: nxc <command> <args>
+    std::cout << R"HELP(Usage: nxc [command] [arg...]
 
 Commands:
     train                   Train model on given input data
     test                    Test model on given input data
     predict                 Predict for given data
-    ofo                     Use online f-measure optimalization
+    ofo                     Use online f-measure optimization
     version                 Print napkinXC version
     help                    Print help
 
@@ -334,7 +332,7 @@ Args:
     General:
     -i, --input             Input dataset, required
     -o, --output            Output (model) dir, required
-    -m, --model             Model type (default = plt):
+    -m, --model             Model type (default = plt)
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
     -t, --threads           Number of threads to use (default = 0)
@@ -346,19 +344,21 @@ Args:
     --verbose               Verbose level (default = 2)
 
     Base classifiers:
-    --optimizer             Optimizer used for training binary classifiers (default = libliner)
+    --optim, --optimizer    Optimizer used for training binary classifiers (default = libliner)
                             Optimizers: liblinear, sgd, adagrad, fobos
     --bias                  Value of the bias features (default = 1)
-    --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 1)
+    --inbalanceLabelsWeighting      Increase the weight of minority labels in base classifiers (default = 0)
     --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
+    --loss
 
     LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
-    -s, --liblinearSolver   LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
-                            Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
-                                               L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
     -c, --liblinearC        LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
                             smaller values specify stronger regularization (default = 10.0)
     --eps, --liblinearEps   LIBLINEAR tolerance of termination criterion (default = 0.1)
+    --solver, --liblinearSolver     LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
+                                    Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
+                                                       L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
+    --maxIter, --liblinearMaxIter   Maximum number of iterations for LIBLINEAR (default = 100)
 
     SGD/AdaGrad:
     -l, --lr, --eta         Step size (learning rate) for online optimizers (default = 1.0)
@@ -393,7 +393,7 @@ Args:
     --gamma
 
     Test:
-    --measures              Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")
+    --measures              Evaluate test using set of measures (default = "p@1,p@3,p@5")
                             Measures: acc (accuracy), p (precision), r (recall), c (coverage), hl (hamming loos)
                                       p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
 

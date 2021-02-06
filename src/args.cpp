@@ -55,15 +55,15 @@ Args::Args() {
 
     // Training options
     eps = 0.1;
-    cost = 16.0;
+    cost = 10.0;
     maxIter = 100;
     autoCLin = false;
     autoCLog = false;
 
-    solverType = L2R_LR_DUAL;
-    solverName = "L2R_LR_DUAL";
     lossType = logistic;
     lossName = "logistic";
+    solverType = L2R_LR_DUAL;
+    solverName = "L2R_LR_DUAL";
     inbalanceLabelsWeighting = false;
     pickOneLabelWeighting = false;
     optimizerName = "liblinear";
@@ -127,7 +127,7 @@ Args::Args() {
 
 
     // Measures for test command
-    measures = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5";
+    measures = "p@1,p@3,p@5";
 
     // Args for OFO command
     ofoType = micro;
@@ -285,7 +285,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 eps = std::stof(args.at(ai + 1));
             else if (args[ai] == "-c" || args[ai] == "-C" || args[ai] == "--cost" || args[ai] == "--liblinearC")
                 cost = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--maxIter")
+            else if (args[ai] == "--maxIter" || args[ai] == "--liblinearMaxIter")
                 maxIter = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--inbalanceLabelsWeighting")
                 inbalanceLabelsWeighting = std::stoi(args.at(ai + 1)) != 0;
@@ -320,7 +320,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     solverType = L1R_L2LOSS_SVC;
                 else
                     throw std::invalid_argument("Unknown solver type: " + args.at(ai + 1));
-            } else if (args[ai] == "--optimizer") {
+            } else if (args[ai] == "--optim" || args[ai] == "--optimizer") {
                 optimizerName = args.at(ai + 1);
                 if (args.at(ai + 1) == "liblinear")
                     optimizerType = liblinear;
@@ -443,16 +443,31 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 //        throw std::invalid_argument("Empty input or model path");
 
     // Change default values for specific cases + parameters warnings
+    if (optimizerType == liblinear) {
+        if (countArgs(args, {"-s", "--solver", "--liblinearSolver"}) and countArg(args, "--loss"))
+            Log(CERR) << "Warning: Default solver for " << lossName << " will be overridden by " << solverName << " solver!\n";
+        else{
+            if(lossType == logistic){
+                solverType = L2R_LR_DUAL;
+                solverName = "L2R_LR_DUAL";
+            }
+            if(lossType == squaredHinge){
+                solverType = L2R_L2LOSS_SVC_DUAL;
+                solverName = "L2R_L2LOSS_SVC_DUAL";
+            }
+        }
+    }
+
     if (modelType == oplt && optimizerType == liblinear) {
-        if (count(args.begin(), args.end(), "optimizer"))
+        if (countArgs(args, {"--optim", "--optimizer"}))
             Log(CERR) << "Online PLT does not support " << optimizerName << " optimizer! Changing to AdaGrad.\n";
         optimizerType = adagrad;
         optimizerName = "adagrad";
     }
 
     if (modelType == oplt && resume && (treeType != onlineRandom || treeType != onlineBestScore)) {
-        if (count(args.begin(), args.end(), "treeType"))
-            Log(CERR) << "Resuming training for Online PLT does not support " << treeTypeName
+        if (countArg(args, "--treeType"))
+            Log(CERR) << "Warning: Resuming training for Online PLT does not support " << treeTypeName
                       << " tree type! Changing to onlineBestScore.\n";
         treeType = onlineBestScore;
         treeTypeName = "onlineBestScore";
@@ -460,13 +475,11 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 
     // If only threshold used set topK to 0, otherwise display warning
     if (threshold > 0) {
-        if (count(args.begin(), args.end(), "topK"))
+        if (countArg(args, "--topK"))
             Log(CERR) << "Warning: Top K and threshold prediction are used at the same time!\n";
         else
             topK = 0;
     }
-
-    // Warnings about arguments overrides while testing / predicting
 }
 
 void Args::printArgs(std::string command) {
@@ -526,6 +539,17 @@ void Args::printArgs(std::string command) {
 
     Log(CERR) << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
               << "\n  Seed: " << seed << "\n";
+}
+
+int Args::countArg(const std::vector<std::string>& args, std::string to_count){
+    return std::count(args.begin(), args.end(), to_count);
+}
+
+int Args::countArgs(const std::vector<std::string>& args, std::vector<std::string> to_count){
+    int count = 0;
+    for(const auto &tc: to_count)
+        count += std::count(args.begin(), args.end(), tc);
+    return count;
 }
 
 void Args::save(std::ostream& out) {

@@ -65,8 +65,8 @@ def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
-    :param zero_division: Value to add when there is a zero division.
-    :type zero_division: float {0, 1}
+    :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
+    :type zero_division: float, optional
     :return: ndarray with values of recall at 1-k places.
     """
     _check_k(k)
@@ -124,7 +124,7 @@ def coverage_at_k(Y_true, Y_pred, k=5):
 
 def dcg_at_k(Y_true, Y_pred, k=5):
     """
-    Calculate DCG at 1-k places.
+    Calculate Discounted Cumulative Gain (DCG) at 1-k places.
 
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
@@ -151,9 +151,9 @@ def dcg_at_k(Y_true, Y_pred, k=5):
     return sum / count
 
 
-def ndcg_at_k(Y_true, Y_pred, k=5):
+def ndcg_at_k(Y_true, Y_pred, k=5, zero_division=0):
     """
-    Calculate nDCG at 1-k places.
+    Calculate normalized Discounted Cumulative Gain (nDCG) at 1-k places.
 
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
@@ -163,6 +163,8 @@ def ndcg_at_k(Y_true, Y_pred, k=5):
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
+    :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
+    :type zero_division: float, optional
     :return: ndarray with values of nDCG at 1-k places.
     """
     _check_k(k)
@@ -172,13 +174,19 @@ def ndcg_at_k(Y_true, Y_pred, k=5):
     sum = np.zeros(k)
     count = 0
     for t, p in zip(Y_true, Y_pred):
+        count += 1
         dcg_at_i = 0
         norm_at_i = 0
+        norm_len = min(k, len(t))
+        if norm_len == 0:
+            sum += zero_division
+            continue
         for i, p_i in enumerate(p[:k]):
-            norm_at_i += 1 / log2(i + 2)
-            dcg_at_i += 1 / log2(i + 2) if p_i in t else 0
+            _log_i = 1 / log2(i + 2)
+            if i < norm_len:
+                norm_at_i += _log_i
+            dcg_at_i += 1 * _log_i if p_i in t else 0
             sum[i] += dcg_at_i / norm_at_i
-        count += 1
     return sum / count
 
 
@@ -192,7 +200,7 @@ def hamming_loss(Y_true, Y_pred):
     :type Y_pred: ndarray, csr_matrix, list[list|set[int|str]], list[list|set[tuple[int|str, float]]
     :return: value of hamming loss
     """
-    
+
     Y_true = _get_Y_iterator(Y_true)
     Y_pred = _get_Y_iterator(Y_pred)
 
@@ -213,15 +221,15 @@ def inverse_propensity(Y, A=0.55, B=1.5):
     :type Y: ndarray, csr_matrix, list of lists of ints or tuples (idx, score)
     :param A: A value, typical values:
 
-        - 0.5: ``WikiLSHTC-325K``
-        - 0.6: ``Amazon-670K``
+        - 0.5: ``WikiLSHTC-325K`` and ``WikipediaLarge-500K``
+        - 0.6: ``Amazon-670K`` and ``Amazon-3M``
         - 0.55: otherwise
 
     :type A: float, optional
     :param B: B value, typical values:
 
-        - 0.4: ``WikiLSHTC-325K``
-        - 2.6: ``Amazon-670K``
+        - 0.4: ``WikiLSHTC-325K`` and ``WikipediaLarge-500K``
+        - 2.6: ``Amazon-670K`` and ``Amazon-3M``
         - 1.5: otherwise
 
     :type B: float, optional
@@ -229,7 +237,7 @@ def inverse_propensity(Y, A=0.55, B=1.5):
     """
     if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
         n, m = Y.shape
-        freqs = np.sum(Y, axis=0)
+        freqs = np.ravel(np.sum(Y, axis=0))
 
     elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
         n = len(Y)
@@ -265,28 +273,12 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
     Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    def _get_top_ps_dict(t):
-        return np.array(sorted([inv_ps.get(t_i, 0) for t_i in t], reverse=True))
-
-    def _get_top_ps_np(t):
-        t = [t_i for t_i in t if t_i < inv_ps.shape[0]]
-        return -np.sort(-inv_ps[t])
-
-    if isinstance(inv_ps, dict):
-        _get_top_ps = _get_top_ps_dict
-    elif isinstance(inv_ps, list):
-        inv_ps = np.array(inv_ps)
-        _get_top_ps = _get_top_ps_np
-    elif isinstance(inv_ps, np.ndarray):
-        _get_top_ps = _get_top_ps_np
-    else:
-        raise TypeError("Unsupported data type for inv_ps, should be Numpy vector (1d array), or list, or dict")
+    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
 
     sum = np.zeros(k)
     best_sum = np.zeros(k)
     for t, p in zip(Y_true, Y_pred):
-        top_ps = _get_top_ps(t)
+        top_ps = _top_ps(inv_ps, t)
         psp_at_i = 0
         best_psp_at_i = 0
         for i, p_i in enumerate(p[:k]):
@@ -295,6 +287,133 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
                 best_psp_at_i += top_ps[i]
             sum[i] += psp_at_i / (i + 1)
             best_sum[i] += best_psp_at_i / (i + 1)
+    return sum / best_sum
+
+
+def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
+    """
+    Calculate Propensity Scored Recall (PSR) at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
+    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :type inv_ps: ndarray, list, dict
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
+    :type zero_division: float, optional
+    :return: ndarray with values of PSR at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
+
+    sum = np.zeros(k)
+    best_sum = np.zeros(k)
+    for t, p in zip(Y_true, Y_pred):
+        if len(t) == 0:
+            sum += zero_division
+            best_sum += zero_division
+            continue
+        psr_at_i = 0
+        best_psr_at_i = 0
+        top_ps = _top_ps(inv_ps, t)
+        for i, p_i in enumerate(p[:k]):
+            psr_at_i += inv_ps[p_i] if p_i in t else 0
+            if i < top_ps.shape[0]:
+                best_psr_at_i += top_ps[i]
+            sum[i] += psr_at_i / len(t)
+            best_sum[i] += best_psr_at_i / len(t)
+    return sum / best_sum
+
+
+def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5):
+    """
+    Calculate Propensity Scored Discounted Cumulative Gain (PSDCG) at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
+    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :type inv_ps: ndarray, list, dict
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :return: ndarray with values of PSDCG at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
+
+    sum = np.zeros(k)
+    best_sum = np.zeros(k)
+    for t, p in zip(Y_true, Y_pred):
+        psdcg_at_i = 0
+        best_psdcg_at_i = 0
+        top_ps = _top_ps(inv_ps, t)
+        for i, p_i in enumerate(p[:k]):
+            _log_i = 1 / log2(i + 2)
+            psdcg_at_i += inv_ps[p_i] * _log_i if p_i in t else 0
+            if i < top_ps.shape[0]:
+                best_psdcg_at_i += top_ps[i] * _log_i
+            sum[i] += psdcg_at_i / (i + 1)
+            best_sum[i] += best_psdcg_at_i / (i + 1)
+    return sum / best_sum
+
+
+def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
+    """
+    Calculate Propensity normalized Scored Discounted Cumulative Gain (PSnDCG) at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
+    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :type inv_ps: ndarray, list, dict
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
+    :type zero_division: float, optional
+    :return: ndarray with values of PSDCG at 1-k places.
+    """
+    _check_k(k)
+    Y_true = _get_Y_iterator(Y_true)
+    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
+
+    sum = np.zeros(k)
+    best_sum = np.zeros(k)
+    for t, p in zip(Y_true, Y_pred):
+        psdcg_at_i = 0
+        best_psdcg_at_i = 0
+        norm_at_i = 0
+        norm_len = min(k, len(t))
+        if norm_len == 0:
+            sum += zero_division
+            best_sum += zero_division
+            continue
+
+        top_ps = _top_ps(inv_ps, t)
+        for i, p_i in enumerate(p[:k]):
+            _log_i = 1 / log2(i + 2)
+            if i < norm_len:
+                norm_at_i += _log_i
+            psdcg_at_i += inv_ps[p_i] * _log_i if p_i in t else 0
+            if i < top_ps.shape[0]:
+                best_psdcg_at_i += top_ps[i] * _log_i
+            sum[i] += psdcg_at_i / norm_at_i
+            best_sum[i] += best_psdcg_at_i / norm_at_i
     return sum / best_sum
 
 
@@ -308,8 +427,8 @@ def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):
     :type Y_pred: ndarray, csr_matrix, list[list|set[int|str]], list[list|set[tuple[int|str, float]]
     :param average: determines the type of performed averaging {``micro``, ``macro``, ``sample``}
     :type average: str
-    :param zero_division: Value to add when there is a zero division.
-    :type zero_division: float {0, 1}
+    :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
+    :type zero_division: float, optional
     :return: value of F1-measure
     """
 
@@ -379,21 +498,24 @@ def _check_k(k):
 
 
 def _Y_np_iterator(Y, ranking=False):
+    rows = Y.shape[0]
     if ranking:
-        for i in range(0, Y.shape[0]):
+        for i in range(0, rows):
             yield (-Y[i]).argsort()
     else:
-        for i in range(0, Y.shape[0]):
+        for i in range(0, rows):
             yield Y[i].nonzero()[0]
 
 
 def _Y_csr_matrix_iterator(Y, ranking=False):
+    rows = Y.shape[0]
     if ranking:
-        for i in range(0, Y.shape[0]):
-            ranking = (-Y[i].data).argsort()
-            yield Y[i].indices[ranking]
+        for i in range(0, rows):
+            y = Y[i]
+            ranking = (-y.data).argsort()
+            yield y.indices[ranking]
     else:
-        for i in range(0, Y.shape[0]):
+        for i in range(0, rows):
             yield Y[i].indices
 
 
@@ -418,3 +540,26 @@ def _get_Y_iterator(Y, ranking=False):
 
     else:
         raise TypeError("Unsupported data type, should be Numpy matrix (2d array), or Scipy CSR matrix, or list of list of ints")
+
+
+def _top_ps_dict(inv_ps, t):
+    return np.array(sorted([inv_ps.get(t_i, 0) for t_i in t], reverse=True))
+
+
+def _top_ps_np(inv_ps, t):
+    t = [t_i for t_i in t if t_i < inv_ps.shape[0]]
+    return -np.sort(-inv_ps[t])
+
+
+def _get_top_ps_func(inv_ps):
+    if isinstance(inv_ps, dict):
+        _top_ps = _top_ps_dict
+    elif isinstance(inv_ps, list):
+        inv_ps = np.array(inv_ps)
+        _top_ps = _top_ps_np
+    elif isinstance(inv_ps, np.ndarray):
+        _top_ps = _top_ps_np
+    else:
+        raise TypeError("Unsupported data type for inv_ps, should be Numpy vector (1d array), or list, or dict")
+
+    return inv_ps, _top_ps

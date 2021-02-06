@@ -24,6 +24,7 @@ import warnings
 import re
 from sys import stdout
 from os import makedirs, path, remove
+import numpy as np
 from scipy.sparse import csr_matrix
 from ._napkinxc import _load_libsvm_file
 
@@ -236,6 +237,54 @@ def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbos
     download_dataset(dataset, subset=subset, format=format, root=root, verbose=verbose)
 
     return _load_file(file_path, dataset_meta['file_format'])
+
+
+def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
+    """
+    Converts matrix-like object to Scipy csr_matrix.
+
+    :param X: matrix-like object to convert to csr_matrix: ndarray or list of lists of ints or tuples
+    :type X: ndarray, list[list[int|str]], list[list[tuple[int|str, float]]
+    :param shape:
+    :type shape:
+    :param sort_indices:
+    :type sort_indices:
+    :param dtype:
+    :type dtype:
+    :return: csr_matrix
+    """
+    if isinstance(X, list) and isinstance(X[0], list):
+        size = 0
+        for x in X:
+            size += len(x)
+
+        indptr = np.zeros(len(X) + 1, dtype=np.int32)
+        indices = np.zeros(size, dtype=np.int32)
+        data = np.ones(size, dtype=dtype)
+        cells = 0
+
+        if isinstance(X[0][0], int):
+            for row, x in enumerate(X):
+                indptr[row] = cells
+                indices[cells:cells + len(x)] = sorted(x) if sort_indices else x
+                cells += len(x)
+            indptr[len(X)] = cells
+
+        elif isinstance(X[0][0], tuple):
+            for row, x in enumerate(X):
+                indptr[row] = cells
+                x = sorted(x) if sort_indices else x
+                for x_i in x:
+                    indices[cells] = x_i[0]
+                    data[cells] = x_i[1]
+                    cells += 1
+            indptr[len(X)] = cells
+
+        return csr_matrix((data, indices, indptr), shape=shape)
+    elif isinstance(X, np.ndarray):
+        return csr_matrix(X, dtype=dtype, shape=shape)
+    else:
+        raise TypeError('Cannot convert X to csr_matrix')
 
 
 # Helpers

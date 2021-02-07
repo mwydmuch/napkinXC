@@ -28,15 +28,16 @@ def precision_at_k(Y_true, Y_pred, k=5):
     """
     Calculate precision at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
-    :return: ndarray with values of precision at 1-k places.
+    :return: Values of precision at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -57,17 +58,18 @@ def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
     """
     Calculate recall at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
-    :return: ndarray with values of recall at 1-k places.
+    :return: Values of recall at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -91,15 +93,16 @@ def coverage_at_k(Y_true, Y_pred, k=5):
     """
     Calculate coverage at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
-    :return: ndarray with values of coverage at 1-k places.
+    :return: Values of coverage at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -126,15 +129,16 @@ def dcg_at_k(Y_true, Y_pred, k=5):
     """
     Calculate Discounted Cumulative Gain (DCG) at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
-    :return: ndarray with values of DCG at 1-k places.
+    :return: Values of DCG at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -155,17 +159,18 @@ def ndcg_at_k(Y_true, Y_pred, k=5, zero_division=0):
     """
     Calculate normalized Discounted Cumulative Gain (nDCG) at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
-    :return: ndarray with values of nDCG at 1-k places.
+    :return: Values of nDCG at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -194,11 +199,12 @@ def hamming_loss(Y_true, Y_pred):
     """
     Calculate unnormalized hamming loss - average number of misclassified labels.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
-    :param Y_pred: Predicted labels provided as a matrix with scores or list of lists of labels or tuples of labels with scores (idx, score).
+    :param Y_pred: Predicted labels provided as a matrix with scores or list of lists of labels or tuples of labels with scores (label, score).
     :type Y_pred: ndarray, csr_matrix, list[list|set[int|str]], list[list|set[tuple[int|str, float]]
-    :return: value of hamming loss
+    :return: Value of hamming loss.
+    :rtype: float
     """
 
     Y_true = _get_Y_iterator(Y_true)
@@ -217,23 +223,26 @@ def inverse_propensity(Y, A=0.55, B=1.5):
     """
     Calculate inverse propensity as proposed in Jain et al. 2016.
 
-    :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels
-    :type Y: ndarray, csr_matrix, list of lists of ints or tuples (idx, score)
-    :param A: A value, typical values:
+    :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
+    :type Y: ndarray, csr_matrix, list[list[tuple[int|str, float]]
+    :param A: Dataset specific parameter, typical values:
 
         - 0.5: ``WikiLSHTC-325K`` and ``WikipediaLarge-500K``
         - 0.6: ``Amazon-670K`` and ``Amazon-3M``
         - 0.55: otherwise
 
+        Defaults to 0.55
     :type A: float, optional
-    :param B: B value, typical values:
+    :param B: Dataset specific parameter, typical values:
 
         - 0.4: ``WikiLSHTC-325K`` and ``WikipediaLarge-500K``
         - 2.6: ``Amazon-670K`` and ``Amazon-3M``
         - 1.5: otherwise
 
+        Defaults to 1.5
     :type B: float, optional
-    :return: ndarray with propensity scores for each label
+    :return: Array with the inverse propensity for all labels
+    :rtype: ndarray
     """
     if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
         n, m = Y.shape
@@ -258,17 +267,18 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
     """
     Calculate Propensity Scored Precision (PSP) at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
     :type inv_ps: ndarray, list, dict
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
-    :return: ndarray with values of PSP at 1-k places.
+    :return: Values of PSP at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -294,10 +304,10 @@ def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
     """
     Calculate Propensity Scored Recall (PSR) at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
@@ -306,7 +316,8 @@ def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
     :type k: int, optional
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
-    :return: ndarray with values of PSR at 1-k places.
+    :return: Values of PSR at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -336,17 +347,18 @@ def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5):
     """
     Calculate Propensity Scored Discounted Cumulative Gain (PSDCG) at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
     :type inv_ps: ndarray, list, dict
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
-    :return: ndarray with values of PSDCG at 1-k places.
+    :return: Values of PSDCG at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -373,10 +385,10 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
     """
     Calculate Propensity Scored normalized Discounted Cumulative Gain (PSnDCG) at 1-k places.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred:
-        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (idx, score)..
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
     :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
@@ -385,7 +397,8 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
     :type k: int, optional
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
-    :return: ndarray with values of PSnDCG at 1-k places.
+    :return: Values of PSnDCG at 1-k places.
+    :rtype: ndarray
     """
     _check_k(k)
     Y_true = _get_Y_iterator(Y_true)
@@ -421,15 +434,16 @@ def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):
     """
     Calculate F1 measure, also known as balanced F-score or F-measure.
 
-    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
-    :param Y_pred: Predicted labels provided as a matrix with scores or list of lists of labels or tuples of labels with scores (idx, score).
+    :param Y_pred: Predicted labels provided as a matrix with scores or list of lists of labels or tuples of labels with scores (label, score).
     :type Y_pred: ndarray, csr_matrix, list[list|set[int|str]], list[list|set[tuple[int|str, float]]
-    :param average: determines the type of performed averaging {``micro``, ``macro``, ``sample``}
+    :param average: Determines the type of performed averaging {``'micro'``, ``'macro'``, ``'sample'``}, default to ``'micro'``
     :type average: str
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
-    :return: value of F1-measure
+    :return: Value of F1-measure.
+    :rtype: float
     """
 
     Y_true = _get_Y_iterator(Y_true)

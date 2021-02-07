@@ -38,11 +38,10 @@ class Model():
         """
         Fit the model to the given training data.
 
-        :param X: training data points
-        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
-        :param Y: target labels
-        :type Y: list of lists or tuples
-        :return: None
+        :param X: Training data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
+        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
         """
         self._model.fit(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
 
@@ -50,25 +49,20 @@ class Model():
         """
         Fit the model to the training data in the given file in multi-label svmlight/libsvm format.
 
-        :param path: path to the file
+        :param path: Path to the file.
         :type path: str
-        :return: None
         """
         self._model.fitOnFile(path)
 
     def load(self):
         """
-        Load the model to RAM
-
-        :return: None
+        Load the model to RAM.
         """
         self._model.load()
 
     def unload(self):
         """
         Unload the model from RAM.
-
-        :return: None
         """
         self._model.unload()
 
@@ -76,18 +70,19 @@ class Model():
         """
         Predict labels for data points in X.
 
-        :param X: data points
-        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
-        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
+        :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
+        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :param top_k: Predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
-        :param threshold: predict labels with probability above the threshold in case of single value
+        :param threshold: Predict labels with probability above the threshold in case of single value
             or above the specific threshold for each label in case of list or array of values,
             if 0, the option is ignored, defaults to 0
         :type threshold: float, list[float], ndarray, optional
-        :param labels_weights: predict labels according to their weights multiplied by probability
+        :param labels_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
         :type labels_weights: list[float], ndarray, optional
-        :return: list[list[int]] - list of list predicted labels
+        :return: List of lists with predicted labels.
+        :rtype: list[list[int]]
         """
         threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
@@ -96,16 +91,19 @@ class Model():
         """
         Predict labels with probability estimates for data points in X.
 
-        :param X: data points
-        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
-        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
-        :type top_k: int, optional
-        :param threshold: predict labels with probability above the threshold, defaults to 0
-        :type threshold: float, optional
-        :param labels_weights: predict labels according to their weights multiplied by probability
+        :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
+        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :param top_k: Predict top-k labels, if 0, the option is ignored, defaults to 0
+        :type top_k: int
+        :param threshold: Predict labels with probability above the threshold in case of single value
+            or above the specific threshold for each label in case of list or array of values,
+            if 0, the option is ignored, defaults to 0
+        :type threshold: float, list[float], ndarray, optional
+        :param labels_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
         :type labels_weights: list[float], ndarray, optional
-        :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
+        :return: List of list of tuples (label id, probability) with predicted labels
+        :rtype: list[list[tuple[int, float]]
         """
         threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
@@ -114,16 +112,19 @@ class Model():
         """
         Predict labels for data points in the given file in multi-label svmlight/libsvm format.
 
-        :param path: path to the file
+        :param path: Path to the file
         :type path: str
-        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
-        :type top_k: int, optional
-        :param threshold: predict labels with probability above the threshold, defaults to 0
-        :type threshold: float, optional
-        :param labels_weights: predict labels according to their weights multiplied by probability
+        :param top_k: Predict top-k labels, if 0, the option is ignored, defaults to 0
+        :type top_k: int
+        :param threshold: Predict labels with probability above the threshold in case of single value
+            or above the specific threshold for each label in case of list or array of values,
+            if 0, the option is ignored, defaults to 0
+        :type threshold: float, list[float], ndarray, optional
+        :param labels_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
         :type labels_weights: list[float], ndarray, optional
-        :return: list[list[int]] - list of list predicted labels
+        :return: List of lists with predicted labels.
+        :rtype: list[list[int]]
         """
         threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict_for_file(path, top_k, threshold)
@@ -132,16 +133,19 @@ class Model():
         """
         Predict labels with probability estimates for data points in the given file in multi-label svmlight/libsvm format.
 
-        :param path: path to the file
+        :param path: Path to the file.
         :type path: str
-        :param top_k: predict top-k labels, if 0, the option is ignored, defaults to 0
-        :type top_k: int, optional
-        :param threshold: predict labels with probability above the threshold, defaults to 0
-        :type threshold: float, optional
-        :param labels_weights: predict labels according to their weights multiplied by probability
+        :param top_k: Predict top-k labels, if 0, the option is ignored, defaults to 0
+        :type top_k: int
+        :param threshold: Predict labels with probability above the threshold in case of single value
+            or above the specific threshold for each label in case of list or array of values,
+            if 0, the option is ignored, defaults to 0
+        :type threshold: float, list[float], ndarray, optional
+        :param labels_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
         :type labels_weights: list[float], ndarray, optional
-        :return: list[list[tuple[int, float]] - list of list of tuples (label idx, probability)
+        :return: List of list of tuples (label id, probability) with predicted labels
+        :rtype: list[list[tuple[int, float]]
         """
         threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict_proba_for_file(path, top_k, threshold)
@@ -150,19 +154,20 @@ class Model():
         """
         Perform Online F-measure Optimization procedure on the given data to find optimal thresholds.
 
-        :param X: data points
-        :type X: ndarray, csr_matrix, list of lists of tuples (idx, value)
-        :param Y: target labels
-        :type Y: list of lists or tuples
-        :param type: type of OFO procedure {``micro``, ``macro``}, default to ``micro``
+        :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
+        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
+        :param type: Type of OFO procedure {``'micro'``, ``'macro'``}, default to ``'micro'``
         :type type: str
-        :param a: a parameter of OFO procedure, defaults to 10
+        :param a: Parameter of OFO procedure, defaults to 10
         :type a: int
-        :param b: b parameter of OFO procedure, defaults to 20
+        :param b: Parameter of OFO procedure, defaults to 20
         :type b: int
-        :param epochs: number of training epochs for online optimizers, defaults to 1
+        :param epochs: Number of OFO epochs, defaults to 1
         :type epochs: int, optional
-        :return: single float threshold in case of type == ``micro`` and list[float] of thresholds in case of type == ``macro``
+        :return: Single threshold in case of ``type='micro'`` and list of thresholds in case of ``type='macro'``
+        :rtype: float, list[float]
         """
         self.set_params(ofo_type=type, ofo_a=a, ofo_b=b, epochs=epochs)
         thr = self._model.ofo(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
@@ -174,8 +179,9 @@ class Model():
         """
         Get parameters of this model.
 
-        :param deep: ignored, added for Scikit-learn compatibility, defaults to False
-        :return: mapping of string to any
+        :param deep: Ignored, added for Scikit-learn compatibility, defaults to False
+        :return: Mapping of string to any
+        :rtype: dict
         """
         return self._params
 
@@ -183,8 +189,9 @@ class Model():
         """
         Set parameters for this model.
 
-        :param: \*\*params: parameter names with their new values
+        :param: \*\*params: Parameter names with their new values.
         :return: self
+        :rtype: Model
         """
         if 'model' in self._params and 'model' in params:
             params.pop('model')  # do not allow for changing model param
@@ -252,6 +259,7 @@ class Model():
 
         return threshold
 
+
 class PLT(Model):
     """
     Probabilistic Labels Trees (PLTs) model with linear node estimators, using CPP core.
@@ -280,6 +288,8 @@ class PLT(Model):
                  weights_threshold=0.1,
                  liblinear_c=10,
                  liblinear_eps=0.1,
+                 liblinear_solver=None,
+                 liblinear_max_iter=100,
                  eta=1.0,
                  epochs=1,
                  adagrad_eps=0.001,
@@ -293,49 +303,64 @@ class PLT(Model):
         """
         Construct a Probabilistic Labels Trees model.
 
-        :param output: directory where the model will be stored
+        :param output: Directory where the model will be stored
         :type output: str
-        :param tree_type: tree type to construct {``hierarchicalKmeans``, ``balancedRandom``, ``completeKaryRandom``, ``huffman``}, defaults to ``hierarchicalKmeans``
+        :param tree_type: Tree type to construct {``'hierarchicalKmeans'``, ``'balancedRandom'``, ``'completeKaryRandom'``, ``'huffman'``}, defaults to ``'hierarchicalKmeans'``
         :type tree_type: str, optional
-        :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
+        :param arity: Arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
-        :param max_leaves: maximum degree of pre-leaf nodes, defaults to 100
+        :param max_leaves: Maximum degree of pre-leaf nodes, defaults to 100
         :type max_leaves: int, optional
-        :param kmeans_eps: tolerance of termination criterion of the k-means clustering used in hierarchical k-means tree building procedure, defaults to 0.0001
+        :param kmeans_eps: Tolerance of termination criterion of the k-means clustering used in hierarchical k-means tree building procedure, defaults to 0.0001
         :type kmeans_eps: float, optional
-        :param kmeans_balanced: use balanced k-means clustering, defaults to True
+        :param kmeans_balanced: Use balanced k-means clustering, defaults to True
         :type kmeans_balanced: bool, optional
-        :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, defaults to 0
         :type features_threshold: float, optional
-        :param norm: unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, defaults to True
         :type norm: bool, optional
-        :param bias: value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training node classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
+        :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
-        :param loss: loss optimized while training node classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
+        :param loss: Loss optimized while training node classifiers {``'log'`` (alias ``'logistic'``), ``'l2'`` (alias ``'squaredHinge'``)}, defaults to ``'log'``
         :type loss: str, optional
-        :param weights_threshold: threshold value for pruning weights, defaults to 0.1
+        :param weights_threshold: Threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional
-        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
+        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, makes effect only if ``optimizer='liblinear'``, defaults to 10.0
         :type liblinear_c: float, optional
-        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
+        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, makes effect only if ``optimizer='liblinear'``, defaults to 0.1
         :type liblinear_eps: float, optional
-        :param eta: step size (learning rate) for online optimizers, defaults to 1.0
+        :param liblinear_solver: Override LIBLINEAR solver set by loss parameter (default for ``loss='log'``: ``'L2R_LR_DUAL'``, for ``loss='l2'``: ``'L2R_L2LOSS_SVC_DUAL'``), makes effect only if ``optimizer='liblinear'``.
+            Available solvers:
+
+            - ``'L2R_LR_DUAL'``
+            - ``'L2R_LR'``
+            - ``'L1R_LR'``
+            - ``'L2R_L2LOSS_SVC_DUAL'``
+            - ``'L2R_L2LOSS_SVC'``
+            - ``'L2R_L1LOSS_SVC_DUAL'``
+            - ``'L1R_L2LOSS_SVC'``
+
+            ``L2R_LR_DUAL`` and ``L2R_L2LOSS_SVC_DUAL`` usually work the best in XC setting, defaults to None
+        :type liblinear_solver: str, optional
+        :param liblinear_max_iter: Limits number of iteration by LIBLINEAR, makes effect only if ``optimizer='liblinear'``, defaults to 100
+        :type liblinear_max_iter: int, optional
+        :param eta: Step size (learning rate) for online optimizers, defaults to 1.0
         :type eta: float, optional
-        :param epochs: number of training epochs for online optimizers, defaults to 1
+        :param epochs: Number of training epochs for online optimizers, defaults to 1
         :type epochs: int, optional
-        :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
+        :param adagrad_eps: Defines starting step size for AdaGrad, defaults to 0.001
         :type adagrad_eps: float, optional
-        :param ensemble: number of trees in the ensemble, defaults to 1
+        :param ensemble: Number of trees in the ensemble, defaults to 1
         :type ensemble: int, optional
-        :param seed: seed, if None use current system time, defaults to None
+        :param seed: Seed, If None use current system time, defaults to None
         :type seed: int, optional
-        :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
+        :param threads: Number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
         :type threads: int, optional
-        :param verbose: if True print progress, defaults to False
+        :param verbose: If True print progress, defaults to False
         :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())
@@ -371,6 +396,8 @@ class HSM(Model):
                  weights_threshold=0.1,
                  liblinear_c=10,
                  liblinear_eps=0.1,
+                 liblinear_solver=None,
+                 liblinear_max_iter=100,
                  eta=1.0,
                  epochs=1,
                  adagrad_eps=0.001,
@@ -384,49 +411,64 @@ class HSM(Model):
         """
         Construct a Hierarchical Softmax model.
 
-        :param output: directory where the model will be stored
+        :param output: Directory where the model will be stored
         :type output: str
-        :param tree_type: tree type to construct {``hierarchicalKmeans``, ``balancedRandom``, ``completeKaryRandom``, ``huffman``}, defaults to ``hierarchicalKmeans``
+        :param tree_type: Tree type to construct {``'hierarchicalKmeans'``, ``'balancedRandom'``, ``'completeKaryRandom'``, ``'huffman'``}, defaults to ``'hierarchicalKmeans'``
         :type tree_type: str, optional
-        :param arity: arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
+        :param arity: Arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
-        :param max_leaves: maximum degree of pre-leaf nodes, defaults to 100
+        :param max_leaves: Maximum degree of pre-leaf nodes, defaults to 100
         :type max_leaves: int, optional
-        :param kmeans_eps: tolerance of termination criterion of the k-means clustering used in hierarchical k-means tree building procedure, defaults to 0.0001
+        :param kmeans_eps: Tolerance of termination criterion of the k-means clustering used in hierarchical k-means tree building procedure, defaults to 0.0001
         :type kmeans_eps: float, optional
-        :param kmeans_balanced: use balanced k-means clustering, defaults to True
+        :param kmeans_balanced: Use balanced k-means clustering, defaults to True
         :type kmeans_balanced: bool, optional
-        :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, defaults to 0
         :type features_threshold: float, optional
-        :param norm: unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, defaults to True
         :type norm: bool, optional
-        :param bias: value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training binary classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
+        :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
-        :param loss: loss optimized while training binary classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
+        :param loss: Loss optimized while training node classifiers {``'log'`` (alias ``'logistic'``), ``'l2'`` (alias ``'squaredHinge'``)}, defaults to ``'log'``
         :type loss: str, optional
-        :param weights_threshold: threshold value for pruning weights, defaults to 0.1
+        :param weights_threshold: Threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional
-        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
+        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, makes effect only if ``optimizer='liblinear'``, defaults to 10.0
         :type liblinear_c: float, optional
-        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
+        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, makes effect only if ``optimizer='liblinear'``, defaults to 0.1
         :type liblinear_eps: float, optional
-        :param eta: step size (learning rate) for online optimizers, defaults to 1.0
+        :param liblinear_solver: Override LIBLINEAR solver set by loss parameter (default for ``loss='log'``: ``'L2R_LR_DUAL'``, for ``loss='l2'``: ``'L2R_L2LOSS_SVC_DUAL'``), makes effect only if ``optimizer='liblinear'``.
+            Available solvers:
+
+            - ``'L2R_LR_DUAL'``
+            - ``'L2R_LR'``
+            - ``'L1R_LR'``
+            - ``'L2R_L2LOSS_SVC_DUAL'``
+            - ``'L2R_L2LOSS_SVC'``
+            - ``'L2R_L1LOSS_SVC_DUAL'``
+            - ``'L1R_L2LOSS_SVC'``
+
+            ``L2R_LR_DUAL`` and ``L2R_L2LOSS_SVC_DUAL`` usually work the best in XC setting, defaults to None
+        :type liblinear_solver: str, optional
+        :param liblinear_max_iter: Limits number of iteration by LIBLINEAR, makes effect only if ``optimizer='liblinear'``, defaults to 100
+        :type liblinear_max_iter: int, optional
+        :param eta: Step size (learning rate) for online optimizers, defaults to 1.0
         :type eta: float, optional
-        :param epochs: number of training epochs for online optimizers, defaults to 1
+        :param epochs: Number of training epochs for online optimizers, defaults to 1
         :type epochs: int, optional
-        :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
+        :param adagrad_eps: Defines starting step size for AdaGrad, defaults to 0.001
         :type adagrad_eps: float, optional
-        :param ensemble: number of trees in the ensemble, defaults to 1
+        :param ensemble: Number of trees in the ensemble, defaults to 1
         :type ensemble: int, optional
-        :param seed: seed, if None use current system time, defaults to None
+        :param seed: Seed, If None use current system time, defaults to None
         :type seed: int, optional
-        :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
+        :param threads: Number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
         :type threads: int, optional
-        :param verbose: if True print progress, defaults to False
+        :param verbose: If True print progress, defaults to False
         :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())
@@ -441,6 +483,7 @@ class BR(Model):
 
     def __init__(self,
                  output,
+
                  # Features params
                  hash=None,
                  features_threshold=0,
@@ -453,6 +496,8 @@ class BR(Model):
                  weights_threshold=0.1,
                  liblinear_c=10,
                  liblinear_eps=0.1,
+                 liblinear_solver=None,
+                 liblinear_max_iter=100,
                  eta=1.0,
                  epochs=1,
                  adagrad_eps=0.001,
@@ -464,35 +509,50 @@ class BR(Model):
         """
         Construct a Binary Relevance model.
 
-        :param output: directory where the model will be stored
-        :type output: str, optional
-        :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param output: Directory where the model will be stored
+        :type output: str
+        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, defaults to 0
         :type features_threshold: float, optional
-        :param norm: unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, defaults to True
         :type norm: bool, optional
-        :param bias: value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training binary classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
+        :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
-        :param loss: loss optimized while training binary classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
+        :param loss: Loss optimized while training node classifiers {``'log'`` (alias ``'logistic'``), ``'l2'`` (alias ``'squaredHinge'``)}, defaults to ``'log'``
         :type loss: str, optional
-        :param weights_threshold: threshold value for pruning weights, defaults to 0.1
+        :param weights_threshold: Threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional
-        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
+        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, makes effect only if ``optimizer='liblinear'``, defaults to 10.0
         :type liblinear_c: float, optional
-        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
+        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, makes effect only if ``optimizer='liblinear'``, defaults to 0.1
         :type liblinear_eps: float, optional
-        :param eta: step size (learning rate) for online optimizers, defaults to 1.0
+        :param liblinear_solver: Override LIBLINEAR solver set by loss parameter (default for ``loss='log'``: ``'L2R_LR_DUAL'``, for ``loss='l2'``: ``'L2R_L2LOSS_SVC_DUAL'``), makes effect only if ``optimizer='liblinear'``.
+            Available solvers:
+
+            - ``'L2R_LR_DUAL'``
+            - ``'L2R_LR'``
+            - ``'L1R_LR'``
+            - ``'L2R_L2LOSS_SVC_DUAL'``
+            - ``'L2R_L2LOSS_SVC'``
+            - ``'L2R_L1LOSS_SVC_DUAL'``
+            - ``'L1R_L2LOSS_SVC'``
+
+            ``L2R_LR_DUAL`` and ``L2R_L2LOSS_SVC_DUAL`` usually work the best in XC setting, defaults to None
+        :type liblinear_solver: str, optional
+        :param liblinear_max_iter: Limits number of iteration by LIBLINEAR, makes effect only if ``optimizer='liblinear'``, defaults to 100
+        :type liblinear_max_iter: int, optional
+        :param eta: Step size (learning rate) for online optimizers, defaults to 1.0
         :type eta: float, optional
-        :param epochs: number of training epochs for online optimizers, defaults to 1
+        :param epochs: Number of training epochs for online optimizers, defaults to 1
         :type epochs: int, optional
-        :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
+        :param adagrad_eps: Defines starting step size for AdaGrad, defaults to 0.001
         :type adagrad_eps: float, optional
-        :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
+        :param threads: Number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
         :type threads: int, optional
-        :param verbose: if True print progress, defaults to False
+        :param verbose: If True print progress, defaults to False
         :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())
@@ -507,6 +567,7 @@ class OVR(Model):
 
     def __init__(self,
                  output,
+
                  # Features params
                  hash=None,
                  features_threshold=0,
@@ -519,6 +580,8 @@ class OVR(Model):
                  weights_threshold=0.1,
                  liblinear_c=10,
                  liblinear_eps=0.1,
+                 liblinear_solver=None,
+                 liblinear_max_iter=100,
                  eta=1.0,
                  epochs=1,
                  adagrad_eps=0.001,
@@ -530,35 +593,50 @@ class OVR(Model):
         """
         Construct a One Versus Rest model.
 
-        :param output: directory where the model will be stored
+        :param output: Directory where the model will be stored
         :type output: str
-        :param hash: hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, defaults to 0
         :type features_threshold: float, optional
-        :param norm: unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, defaults to True
         :type norm: bool, optional
-        :param bias: value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, defaults to 1.0
         :type bias: float, optional
-        :param optimizer: optimizer used for training node classifiers {``liblinear``, ``sgd``, ``adagrad``}, defaults to ``liblinear``
+        :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
-        :param loss: loss optimized while training node classifiers {``logistic``, ``l2`` (squared hinge)}, defaults to ``logistic``
+        :param loss: Loss optimized while training node classifiers {``'log'`` (alias ``'logistic'``), ``'l2'`` (alias ``'squaredHinge'``)}, defaults to ``'log'``
         :type loss: str, optional
-        :param weights_threshold: threshold value for pruning weights, defaults to 0.1
+        :param weights_threshold: Threshold value for pruning weights, defaults to 0.1
         :type weights_threshold: float, optional
-        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, defaults to 10.0
+        :param liblinear_c: LIBLINEAR cost co-efficient, inverse regularization strength, smaller values specify stronger regularization, makes effect only if ``optimizer='liblinear'``, defaults to 10.0
         :type liblinear_c: float, optional
-        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, defaults to 0.1
+        :param liblinear_eps: LIBLINEAR tolerance of termination criterion, makes effect only if ``optimizer='liblinear'``, defaults to 0.1
         :type liblinear_eps: float, optional
-        :param eta: step size (learning rate) for online optimizers, defaults to 1.0
+        :param liblinear_solver: Override LIBLINEAR solver set by loss parameter (default for ``loss='log'``: ``'L2R_LR_DUAL'``, for ``loss='l2'``: ``'L2R_L2LOSS_SVC_DUAL'``), makes effect only if ``optimizer='liblinear'``.
+            Available solvers:
+
+            - ``'L2R_LR_DUAL'``
+            - ``'L2R_LR'``
+            - ``'L1R_LR'``
+            - ``'L2R_L2LOSS_SVC_DUAL'``
+            - ``'L2R_L2LOSS_SVC'``
+            - ``'L2R_L1LOSS_SVC_DUAL'``
+            - ``'L1R_L2LOSS_SVC'``
+
+            ``L2R_LR_DUAL`` and ``L2R_L2LOSS_SVC_DUAL`` usually work the best in XC setting, defaults to None
+        :type liblinear_solver: str, optional
+        :param liblinear_max_iter: Limits number of iteration by LIBLINEAR, makes effect only if ``optimizer='liblinear'``, defaults to 100
+        :type liblinear_max_iter: int, optional
+        :param eta: Step size (learning rate) for online optimizers, defaults to 1.0
         :type eta: float, optional
-        :param epochs: number of training epochs for online optimizers, defaults to 1
+        :param epochs: Number of training epochs for online optimizers, defaults to 1
         :type epochs: int, optional
-        :param adagrad_eps: defines starting step size for AdaGrad, defaults to 0.001
+        :param adagrad_eps: Defines starting step size for AdaGrad, defaults to 0.001
         :type adagrad_eps: float, optional
-        :param threads: number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
+        :param threads: Number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
         :type threads: int, optional
-        :param verbose: if True print progress, defaults to False
+        :param verbose: If True print progress, defaults to False
         :type verbose: bool, optional
         """
         all_params = Model._get_init_params(locals())

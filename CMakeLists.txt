@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.12)
 project(napkinXC
-    VERSION 0.5.0
+    VERSION 0.5.1
     DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
     HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
     LANGUAGES C CXX)
@@ -97,7 +97,7 @@ if (PYTHON)
     git_clone(PROJECT_NAME pybind11
             GIT_URL https://github.com/pybind/pybind11.git
             #GIT_BRANCH master # To use master version
-            GIT_TAG v2.6.0
+            GIT_TAG v2.6.2
             DIRECTORY ${ROOT_DIR})
 
     add_subdirectory("pybind11")

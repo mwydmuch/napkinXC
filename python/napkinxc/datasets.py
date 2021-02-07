@@ -24,6 +24,7 @@ import warnings
 import re
 from sys import stdout
 from os import makedirs, path, remove
+import numpy as np
 from scipy.sparse import csr_matrix
 from ._napkinxc import _load_libsvm_file
 
@@ -120,7 +121,7 @@ DATASETS = {
     },
     'amazon-3m': {
         'name': 'Amazon-3M',
-        'formats': ['tf-idf'],
+        'formats': ['bow'],
         'subsets': ['train', 'test'],
         'tf-idf': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE', # XMLC repo url
@@ -133,13 +134,10 @@ DATASETS = {
 
 
 # Create datasets aliases
-#DATASETS['eurlex'] = DATASETS['eurlex-4k']
-#DATASETS['amazoncat'] = DATASETS['amazoncat-13k']
 DATASETS['wiki10'] = DATASETS['wiki10-31k']
 DATASETS['deliciouslarge'] = DATASETS['deliciouslarge-200k']
 DATASETS['wikilshtc'] = DATASETS['wikilshtc-325k']
 DATASETS['wikipedialarge'] = DATASETS['wikipedialarge-500k']
-#DATASETS['amazon'] = DATASETS['amazon-670k']
 
 
 # Main functions for downloading and loading datasets
@@ -159,7 +157,7 @@ def load_libsvm_file(file):
     It automatically detects header used in format of datasets from
     `The Extreme Classification Repository <https://manikvarma.github.io/downloads/XC/XMLRepository.html>`_,
 
-    :param file: path to a file to load
+    :param file: Path to a file to load
     :type file: str
     :return: (csr_matrix, list[list[int]]) - tuple of features matrix and labels
     """
@@ -167,31 +165,31 @@ def load_libsvm_file(file):
     return csr_matrix((data, indices, indptr)), labels
 
 
-def download_dataset(dataset, subset='train', format='tf-idf', root='./data', verbose=False):
+def download_dataset(dataset, subset='train', format='bow', root='./data', verbose=False):
     """
     Downloads the dataset from the internet and puts it in root directory.
     If dataset is already downloaded, it is not downloaded again.
 
-    :param dataset: name of the dataset to load, case insensitive, available datasets:
+    :param dataset: Name of the dataset to load, case insensitive, available datasets:
 
-        - ``Eurlex-4K``,
-        - ``AmazonCat-13K``,
-        - ``AmazonCat-14K``,
-        - ``Wiki10-31K``, alias: ``Wiki10``
-        - ``DeliciousLarge-200K``, alias: ``DeliciousLarge``
-        - ``WikiLSHTC-325K``, alias: ``WikiLSHTC``
-        - ``WikipediaLarge-500K``, alias: ``WikipediaLarge``
-        - ``Amazon-670K``
-        - ``Amazon-3M``
+        - ``'Eurlex-4K'``,
+        - ``'AmazonCat-13K'``,
+        - ``'AmazonCat-14K'``,
+        - ``'Wiki10-31K'``, alias: ``'Wiki10'``
+        - ``'DeliciousLarge-200K'``, alias: ``'DeliciousLarge'``
+        - ``'WikiLSHTC-325K'``, alias: ``'WikiLSHTC'``
+        - ``'WikipediaLarge-500K'``, alias: ``'WikipediaLarge'``
+        - ``'Amazon-670K'``
+        - ``'Amazon-3M'``
 
     :type dataset: str
-    :param subset: subset of dataset to load into features matrix and labels {``train``, ``test``, ``all``}, defaults to ``train``
+    :param subset: Subset of dataset to load into features matrix and labels {``'train'``, ``'test'``, ``'all'``}, defaults to ``'train'``
     :type subset: str, optional
-    :param format: format of dataset to load {``bow`` (bag-of-words, in many cases with tf-idf weights)}, defaults to ``bow``
+    :param format: Format of dataset to load {``'tf-idf'`` (tf-idf weights)}, defaults to ``'tf-idf'``
     :type format: str, optional
-    :param root: location of datasets directory, defaults to ``./data``
+    :param root: Location of datasets directory, defaults to ``'./data'``
     :type root: str, optional
-    :param verbose: if True print downloading and loading progress, defaults to False
+    :param verbose: If True print downloading and loading progress, defaults to False
     :type verbose: bool, optional
     """
     dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
@@ -208,34 +206,84 @@ def load_dataset(dataset, subset='train', format='tf-idf', root='./data', verbos
     If dataset is already downloaded, it is not downloaded again.
     Then loads requested datasets into features matrix and labels.
 
-    :param dataset: name of the dataset to load, case insensitive, available datasets:
+    :param dataset: Name of the dataset to load, case insensitive, available datasets:
 
-        - ``Eurlex-4K``,
-        - ``AmazonCat-13K``,
-        - ``AmazonCat-14K``,
-        - ``Wiki10-31K``, alias: ``Wiki10``
-        - ``DeliciousLarge-200K``, alias: ``DeliciousLarge``
-        - ``WikiLSHTC-325K``, alias: ``WikiLSHTC``
-        - ``WikipediaLarge-500K``, alias: ``WikipediaLarge``
-        - ``Amazon-670K``
-        - ``Amazon-3M``
+        - ``'Eurlex-4K'``,
+        - ``'AmazonCat-13K'``,
+        - ``'AmazonCat-14K'``,
+        - ``'Wiki10-31K'``, alias: ``'Wiki10'``
+        - ``'DeliciousLarge-200K'``, alias: ``'DeliciousLarge'``
+        - ``'WikiLSHTC-325K'``, alias: ``'WikiLSHTC'``
+        - ``'WikipediaLarge-500K'``, alias: ``'WikipediaLarge'``
+        - ``'Amazon-670K'``
+        - ``'Amazon-3M'``
 
     :type dataset: str
-    :param subset: subset of dataset to load into features matrix and labels {``train``, ``test``, ``all``}, defaults to ``train``
+    :param subset: Subset of dataset to load into features matrix and labels {``'train'``, ``'test'``, ``'all'``}, defaults to ``'train'``
     :type subset: str, optional
-    :param format: format of dataset to load {``bow`` (bag-of-words, in many cases with tf-idf weights)}, defaults to ``bow``
+    :param format: Format of dataset to load {``'tf-idf'`` (tf-idf weights)}, defaults to ``'tf-idf'``
     :type format: str, optional
-    :param root: location of datasets directory, defaults to ``./data``
+    :param root: Location of datasets directory, defaults to ``'./data'``
     :type root: str, optional
-    :param verbose: if True print downloading and loading progress, defaults to False
+    :param verbose: If True print downloading and loading progress, defaults to False
     :type verbose: bool, optional
-    :return: (csr_matrix, list[list[int]]) - tuple of features matrix and labels
+    :return: Tuple of features matrix and labels.
+    :rtype: (csr_matrix, list[list[int]])
     """
     dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
     file_path = path.join(root, dataset_meta[subset])
     download_dataset(dataset, subset=subset, format=format, root=root, verbose=verbose)
 
     return _load_file(file_path, dataset_meta['file_format'])
+
+
+def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
+    """
+    Converts matrix-like object to Scipy csr_matrix.
+
+    :param X: Matrix-like object to convert to csr_matrix: ndarray or list of lists of ints or tuples of ints and floats (idx, value).
+    :type X: ndarray, list[list[int|str]], list[list[tuple[int, float]]
+    :param shape:
+    :type shape:
+    :param sort_indices:
+    :type sort_indices:
+    :param dtype:
+    :type dtype:
+    :return: X as csr_matrix.
+    :rtype: csr_matrix
+    """
+    if isinstance(X, list) and isinstance(X[0], (list, tuple, set)):
+        size = 0
+        for x in X:
+            size += len(x)
+
+        indptr = np.zeros(len(X) + 1, dtype=np.int32)
+        indices = np.zeros(size, dtype=np.int32)
+        data = np.ones(size, dtype=dtype)
+        cells = 0
+
+        if isinstance(X[0][0], int):
+            for row, x in enumerate(X):
+                indptr[row] = cells
+                indices[cells:cells + len(x)] = sorted(x) if sort_indices else x
+                cells += len(x)
+            indptr[len(X)] = cells
+
+        elif isinstance(X[0][0], tuple):
+            for row, x in enumerate(X):
+                indptr[row] = cells
+                x = sorted(x) if sort_indices else x
+                for x_i in x:
+                    indices[cells] = x_i[0]
+                    data[cells] = x_i[1]
+                    cells += 1
+            indptr[len(X)] = cells
+
+        return csr_matrix((data, indices, indptr), shape=shape)
+    elif isinstance(X, np.ndarray):
+        return csr_matrix(X, dtype=dtype, shape=shape)
+    else:
+        raise TypeError('Cannot convert X to csr_matrix')
 
 
 # Helpers
@@ -263,17 +311,17 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
     """
     Downloads a shared file from google drive into a given folder and optionally unzips it.
 
-    :param url: file url to download
+    :param url: File url to download
     :type url: str
-    :param dest_path: the destination where to save the downloaded file
+    :param dest_path: The destination where to save the downloaded file
     :type dest_path: str
-    :param overwrite: if True force redownload and overwrite, defaults to False
+    :param overwrite: If True force redownload and overwrite, defaults to False
     :type overwrite: bool
-    :param unzip: if True unzip a file, optional, defaults to False
+    :param unzip: If True unzip a file, optional, defaults to False
     :type unzip: bool
-    :param delete_zip: if True and unzips is True delete archive file after unziping, defaults to False
+    :param delete_zip: If True and unzips is True delete archive file after unziping, defaults to False
     :type delete_zip: bool
-    :param verbose: if True print downloading progress, defaults to False
+    :param verbose: If True print downloading progress, defaults to False
     :type verbose: bool
     :return: None
     """

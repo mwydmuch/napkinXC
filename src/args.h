@@ -92,6 +92,10 @@ public:
     inline int getSeed() { return rngSeeder(); };
     void parseArgs(const std::vector<std::string>& args, bool keepArgs = true);
     void printArgs(std::string command = "");
+    int countArg(const std::vector<std::string>& args, std::string to_count);
+    int countArgs(const std::vector<std::string>& args, std::vector<std::string> to_count);
+    void save(std::ostream& out) override;
+    void load(std::istream& in) override;
 
     // Threading, memory and seed options
     int seed;
@@ -162,9 +166,6 @@ public:
     std::string thresholds;
     std::string labelsWeights;
     bool ensMissingScores;
-
-    void save(std::ostream& out) override;
-    void load(std::istream& in) override;
 
     // Mips options
     bool mipsDense;

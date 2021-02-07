@@ -55,25 +55,23 @@ if __name__ == "__main__":
     if len(sys.argv) > 3:
         inv_ps = load_inv_ps_file(sys.argv[3])
 
-    max_k = 10
+    max_k = 5
 
-    r = precision_at_k(true, pred, k=max_k)
-    for k in range(max_k):
-        print("P@{}: {}".format(k + 1, r[k]))
+    measures = {
+        "P": {"func": precision_at_k, "inv_ps": False},
+        "R": {"func": recall_at_k, "inv_ps": False},
+        "nDCG": {"func": ndcg_at_k, "inv_ps": False},
+        "PSP": {"func": psprecision_at_k, "inv_ps": True},
+        "PSR": {"func": psrecall_at_k, "inv_ps": True},
+        "PSnDCG": {"func": psndcg_at_k, "inv_ps": True}
+    }
 
-    r = recall_at_k(true, pred, k=max_k)
-    for k in range(max_k):
-        print("R@{}: {}".format(k + 1, r[k]))
-
-    r = coverage_at_k(true, pred, k=max_k)
-    for k in range(max_k):
-        print("C@{}: {}".format(k + 1, r[k]))
-
-    r = ndcg_at_k(true, pred, k=max_k)
-    for k in range(max_k):
-        print("nDCG@{}: {}".format(k + 1, r[k]))
-
-    if inv_ps is not None:
-        r = psprecision_at_k(true, pred, inv_ps=inv_ps, k=max_k)
-        for k in range(max_k):
-            print("PSP@{}: {}".format(k + 1, r[k]))
+    for m, v in measures.items():
+        r = None
+        if v["inv_ps"] and inv_ps is not None:
+            r = v["func"](true, pred, inv_ps, k=max_k)
+        else:
+            r = v["func"](true, pred, k=max_k)
+        if r is not None:
+            for k in range(max_k):
+                print("{}@{}: {}".format(m, k + 1, r[k]))

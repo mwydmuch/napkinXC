@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2018-2020 by Marek Wydmuch, Kalina Jasinska-Kobus, Robert Istvan Busa-Fekete
+ Copyright (c) 2018-2021 by Marek Wydmuch, Kalina Jasinska-Kobus, Robert Istvan Busa-Fekete
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -85,7 +85,6 @@ protected:
     // Helper methods for prediction
     virtual Prediction predictNextLabel(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
                                         TopKQueue<TreeNodeValue>& nQueue, Feature* features);
-    virtual Prediction predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features);
 
     virtual inline double predictForNode(TreeNode* node, Feature* features){
         return bases[node->index]->predictProbability(features);
@@ -96,10 +95,6 @@ protected:
         double value = calculateValue(node, prob);
         if (ifAddToQueue(node, prob)) nQueue.push({node, prob, value}, node->label > -1);
 
-    }
-
-    inline void addToQueueThresholds(TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double value) {
-        if (value >= nodesThr[node->index].th) nQueue.push({node, value, value}, node->label > -1);
     }
 
     // Additional statistics

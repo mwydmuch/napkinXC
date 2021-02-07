@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2018-2020 by Marek Wydmuch
+ Copyright (c) 2018-2021 by Marek Wydmuch
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -338,22 +338,25 @@ Args:
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
     -t, --threads           Number of threads to use (default = 0)
-                            Note: -1 to use #cpus - 1, 0 to use #cpus
+                            Note: set to -1 to use #cpus - 1, 0 to use #cpus
     --hash                  Size of features space (default = 0)
-                            Note: 0 to disable hashing
+                            Note: set to 0 to disable hashing
     --featuresThreshold     Prune features below given threshold (default = 0.0)
     --seed                  Seed (default = system time)
     --verbose               Verbose level (default = 2)
 
     Base classifiers:
     --optimizer             Optimizer used for training binary classifiers (default = libliner)
-                            Optimizers: liblinear, sgd, adagrad, fobos
+                            Optimizers: liblinear, sgd, adagrad
     --bias                  Value of the bias features (default = 1)
     --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 1)
     --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
+    --loss                  Loss function to optimize in base classifier (default = log)
+                            Losses: log, l2 (squared hinge loss)
 
     LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
     -s, --liblinearSolver   LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
+                            Overrides default solver set by loss parameter.
                             Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
                                                L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
     -c, --liblinearC        LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
@@ -381,7 +384,8 @@ Args:
     Prediction:
     --topK                  Predict top-k labels (default = 5)
     --threshold             Predict labels with probability above the threshold (default = 0)
-    --thresholds            Path to a file with threshold for each label
+    --thresholds            Path to a file with threshold for each label, one threshold per line
+    --labelsWeights         Path to a file with weight for each label, one weight per line
     --setUtility            Type of set-utility function for prediction using svbopFull, svbopHf, svbopMips models.
                             Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
                             See: https://arxiv.org/abs/1906.08129

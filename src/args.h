@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2018-2020 by Marek Wydmuch
+ Copyright (c) 2018-2021 by Marek Wydmuch
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal

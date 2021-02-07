@@ -1,6 +1,5 @@
 /*
- Copyright (c) 2018 by Marek Wydmuch
- Copyright (c) 2019-2020 by Marek Wydmuch, Kalina Jasinska-Kobus
+ Copyright (c) 2018-2021 by Marek Wydmuch, Kalina Jasinska-Kobus
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal

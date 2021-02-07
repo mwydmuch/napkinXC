@@ -1,4 +1,4 @@
-# Copyright (c) 2020 by Marek Wydmuch
+# Copyright (c) 2020-2021 by Marek Wydmuch
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -184,8 +184,8 @@ def ndcg_at_k(Y_true, Y_pred, k=5):
 
 def hamming_loss(Y_true, Y_pred):
     """
-    Calculate unnormalized hamming loss - average number of misclassified labels.
-
+    Calculate unnormalized (to avoid very small numbers because of large number of labels) hamming loss - average number of misclassified labels.
+    
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred: Predicted labels provided as a matrix with scores or list of lists of labels or tuples of labels with scores (idx, score).

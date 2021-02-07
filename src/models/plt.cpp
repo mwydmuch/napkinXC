@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2018-2020 by Marek Wydmuch, Kalina Jasinska-Kobus, Robert Istvan Busa-Fekete
+ Copyright (c) 2018-2021 by Marek Wydmuch, Kalina Jasinska-Kobus, Robert Istvan Busa-Fekete
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -289,22 +289,6 @@ void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
             n = n->parent;
         }
     }
-}
-
-Prediction PLT::predictNextLabelWithThresholds(TopKQueue<TreeNodeValue>& nQueue, Feature* features) {
-    while (!nQueue.empty()) {
-        TreeNodeValue nVal = nQueue.top();
-        nQueue.pop();
-
-        if (!nVal.node->children.empty()) {
-            for (const auto& child : nVal.node->children)
-                addToQueueThresholds(nQueue, child, nVal.value * predictForNode(child, features));
-            nodeEvaluationCount += nVal.node->children.size();
-        }
-        if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
-    }
-
-    return {-1, 0};
 }
 
 double PLT::predictForLabel(Label label, Feature* features, Args& args) {

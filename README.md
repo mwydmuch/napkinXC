@@ -101,7 +101,9 @@ Args:
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
     -t, --threads           Number of threads to use (default = 0)
-                            Note: set to -1 to use #cpus - 1, 0 to use #cpus
+                            Note: set to -1 to use a number of available CPUs - 1, 0 to use a number of available CPUs
+    --memLimit              Maximum amount of memory (in G) available for training (defualt = 0)
+                            Note: set to 0 to set limit to amount of available memory
     --hash                  Size of features space (default = 0)
                             Note: set to 0 to disable hashing
     --featuresThreshold     Prune features below given threshold (default = 0.0)

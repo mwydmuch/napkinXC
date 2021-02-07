@@ -504,6 +504,7 @@ class BR(Model):
 
                  # Other
                  threads=0,
+                 mem_limit=0,
                  verbose=0,
                  **kwargs):
         """
@@ -552,6 +553,8 @@ class BR(Model):
         :type adagrad_eps: float, optional
         :param threads: Number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
         :type threads: int, optional
+        :param mem_limit: Maximum amount of memory (in G) available for training, if 0 use amount of available memory, defaults to 0
+        :type mem_limit: float
         :param verbose: If True print progress, defaults to False
         :type verbose: bool, optional
         """
@@ -588,6 +591,7 @@ class OVR(Model):
 
                  # Other
                  threads=0,
+                 mem_limit=0,
                  verbose=0,
                  **kwargs):
         """
@@ -636,6 +640,8 @@ class OVR(Model):
         :type adagrad_eps: float, optional
         :param threads: Number of threads used for training and prediction, if 0 use number of available CPUs, if -1 use number of available CPUs - 1, defaults to 0
         :type threads: int, optional
+        :param mem_limit: Maximum amount of memory (in G) available for training, if 0 use amount of available memory, defaults to 0
+        :type mem_limit: float
         :param verbose: If True print progress, defaults to False
         :type verbose: bool, optional
         """

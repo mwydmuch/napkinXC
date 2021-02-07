@@ -353,15 +353,13 @@ public:
     inline int cols() const { return n; }
     inline int cells() const { return c; }
 
-    // Number of cells + -1 cells * size of type + size of vectors
+    // (Number of cells + number of -1 cells) * size of type T + ~size of vector<T>
     inline unsigned long long mem() { return (c + n) * sizeof(T) + m * (sizeof(int) + sizeof(T*)); }
 
     void clear();
     void dump(std::string outfile);
     void save(std::ostream& out);
     void load(std::istream& in);
-
-
 
 private:
     int m;              // Row count

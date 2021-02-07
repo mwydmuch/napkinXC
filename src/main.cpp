@@ -399,7 +399,6 @@ Args:
     --measures              Evaluate test using set of measures (default = "p@1,p@3,p@5")
                             Measures: acc (accuracy), p (precision), r (recall), c (coverage), hl (hamming loos)
                                       p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
-
     )HELP";
 }
 

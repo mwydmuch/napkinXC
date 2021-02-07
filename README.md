@@ -16,10 +16,10 @@ Right now, napkinXC implements the following features both in Python and C++:
 - efficient online F-measure optimization (OFO) procedure,
 - hierarchical k-means clustering for tree building and other tree-building methods,
 - support for predefined hierarchies,
-- LIBLINEAR, SGD, and AdaGrad solvers for base classifiers,
-- efficient ensembles tree-based model,
+- LIBLINEAR, AdaGrad, SGD optimizers for base classifiers,
+- ensembles of PLTs and HSMs,
 - helpers to download and load data from [XML Repository](http://manikvarma.org/downloads/XC/XMLRepository.html),
-- helpers to measure performance (precision@k, recall@k, nDCG@k, propensity scored precision@k, and many more).
+- helpers to measure performance (precision@k, recall@k, nDCG@k, propensity scored precision@k, and more).
 
 Please note that this library is still under development and also serves as a base for experiments.
 API may not be compatible between releases and some of the experimental features may not be documented.
@@ -34,7 +34,6 @@ All contributions to the project are welcome!
 Coming soon:
 
 - Possibility to use any binary classifier from Python.
-- Improved dataset loading in Python (available in the master version).
 - Raw versions of datasets from XML Repository.
 
 
@@ -102,26 +101,28 @@ Args:
                             Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
     --ensemble              Number of models in ensemble (default = 1)
     -t, --threads           Number of threads to use (default = 0)
-                            Note: -1 to use #cpus - 1, 0 to use #cpus
+                            Note: set to -1 to use #cpus - 1, 0 to use #cpus
     --hash                  Size of features space (default = 0)
-                            Note: 0 to disable hashing
+                            Note: set to 0 to disable hashing
     --featuresThreshold     Prune features below given threshold (default = 0.0)
     --seed                  Seed (default = system time)
     --verbose               Verbose level (default = 2)
 
     Base classifiers:
-    --optim, --optimizer    Optimizer used for training binary classifiers (default = libliner)
-                            Optimizers: liblinear, sgd, adagrad, fobos
+    --optim, --optimizer    Optimizer used for training binary classifiers (default = liblinear)
+                            Optimizers: liblinear, sgd, adagrad
     --bias                  Value of the bias features (default = 1)
     --inbalanceLabelsWeighting      Increase the weight of minority labels in base classifiers (default = 0)
     --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
-    --loss                      
+    --loss                  Loss function to optimize in base classifier (default = log)
+                            Losses: log (alias logistic), l2 (alias squaredHinge)
 
     LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
     -c, --liblinearC        LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
                             smaller values specify stronger regularization (default = 10.0)
     --eps, --liblinearEps   LIBLINEAR tolerance of termination criterion (default = 0.1)
     --solver, --liblinearSolver     LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
+                                    Overrides default solver set by loss parameter.
                                     Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
                                                        L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, L1R_L2LOSS_SVC
     --maxIter, --liblinearMaxIter   Maximum number of iterations for LIBLINEAR (default = 100)
@@ -147,7 +148,8 @@ Args:
     Prediction:
     --topK                  Predict top-k labels (default = 5)
     --threshold             Predict labels with probability above the threshold (default = 0)
-    --thresholds            Path to a file with threshold for each label
+    --thresholds            Path to a file with threshold for each label, one threshold per line
+    --labelsWeights         Path to a file with weight for each label, one weight per line
     --setUtility            Type of set-utility function for prediction using svbopFull, svbopHf, svbopMips models.
                             Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
                             See: https://arxiv.org/abs/1906.08129

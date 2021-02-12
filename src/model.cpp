@@ -328,7 +328,7 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
     }
 }
 
-std::vector<Base*> Model::loadBases(std::string infile, bool resume) {
+std::vector<Base*> Model::loadBases(std::string infile, bool resume, bool loadDense) {
     Log(CERR) << "Loading base estimators ...\n";
 
     double nonZeroSum = 0;
@@ -343,7 +343,7 @@ std::vector<Base*> Model::loadBases(std::string infile, bool resume) {
     for (int i = 0; i < size; ++i) {
         printProgress(i, size);
         auto b = new Base();
-        b->load(in, resume);
+        b->load(in, resume, loadDense);
 
         nonZeroSum += b->getNonZeroW();
         memSize += b->size();

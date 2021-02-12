@@ -177,7 +177,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
             else if (args[ai] == "--resume")
                 resume = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--loadDense")
-                resume = std::stoi(args.at(ai + 1)) != 0;
+                loadDense = std::stoi(args.at(ai + 1)) != 0;
 
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")

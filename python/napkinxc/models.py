@@ -262,7 +262,7 @@ class Model():
 
 class PLT(Model):
     """
-    Probabilistic Labels Trees (PLTs) model with linear node estimators, using CPP core.
+    Probabilistic Labels Trees (PLTs) (multi-label) classifier with linear node estimators, using CPP core.
     """
 
     def __init__(self,
@@ -370,7 +370,7 @@ class PLT(Model):
 
 class HSM(Model):
     """
-    Hierarchical Softmax model with linear node estimators, using CPP core.
+    Hierarchical Softmax (multi-class) classifier with linear node estimators, using CPP core.
     """
 
     def __init__(self,
@@ -389,6 +389,7 @@ class HSM(Model):
                  features_threshold=0,
                  norm=True,
                  bias=1.0,
+                 pick_one_label_weighting=False,
 
                  # Base (node) classifiers params
                  optimizer='liblinear',
@@ -478,7 +479,7 @@ class HSM(Model):
 
 class BR(Model):
     """
-    Binary Relevance model with linear node estimators, using CPP core
+    Binary Relevance (multi-label) classifier with linear estimators, using CPP core
     """
 
     def __init__(self,
@@ -565,7 +566,7 @@ class BR(Model):
 
 class OVR(Model):
     """
-    One Versus Rest model with linear node estimators, using CPP core.
+    One Versus Rest (multi-class) classifier with linear estimators, using CPP core.
     """
 
     def __init__(self,
@@ -576,6 +577,7 @@ class OVR(Model):
                  features_threshold=0,
                  norm=True,
                  bias=1.0,
+                 pick_one_label_weighting=False,
 
                  # Base classifiers params
                  optimizer='liblinear',
@@ -595,7 +597,7 @@ class OVR(Model):
                  verbose=0,
                  **kwargs):
         """
-        Construct a One Versus Rest model.
+        Construct a Multi-class One Versus Rest model.
 
         :param output: Directory where the model will be stored
         :type output: str
@@ -607,6 +609,8 @@ class OVR(Model):
         :type norm: bool, optional
         :param bias: Value of the bias features, defaults to 1.0
         :type bias: float, optional
+        :param pick_one_label_weighting: Allows to use multi-label data by transforming it into multi-class, defaults to False
+        :type pick_one_label_weighting: bool, optional
         :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
         :param loss: Loss optimized while training node classifiers {``'log'`` (alias ``'logistic'``), ``'l2'`` (alias ``'squaredHinge'``)}, defaults to ``'log'``

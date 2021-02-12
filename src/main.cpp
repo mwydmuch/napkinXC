@@ -345,6 +345,9 @@ Args:
     --seed                  Seed (default = system time)
     --verbose               Verbose level (default = 2)
 
+    OVR and HSM:
+    --pickOneLabelWeighting Allows to use multi-label data by transforming it into multi-class (default = 0)
+
     Base classifiers:
     --optim, --optimizer    Optimizer used for training binary classifiers (default = liblinear)
                             Optimizers: liblinear, sgd, adagrad
@@ -369,7 +372,7 @@ Args:
     --epochs                Number of training epochs for online optimizers (default = 1)
     --adagradEps            Defines starting step size for AdaGrad (default = 0.001)
 
-    Tree:
+    Tree (PLT and HSM):
     -a, --arity             Arity of tree nodes (default = 2)
     --maxLeaves             Maximum degree of pre-leaf nodes. (default = 100)
     --tree                  File with tree structure

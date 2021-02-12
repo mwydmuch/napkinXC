@@ -313,7 +313,7 @@ void PLT::load(Args& args, std::string infile) {
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
-    bases = loadBases(joinPath(infile, "weights.bin"));
+    bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadDense);
     assert(bases.size() == tree->nodes.size());
     m = tree->getNumberOfLeaves();
 

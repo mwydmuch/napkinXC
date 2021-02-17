@@ -112,6 +112,7 @@ private:
 
     int wSize;
     int nonZeroW;
+    int nonZeroG;
     int classCount;
     int firstClass;
     int firstClassCount;

@@ -272,7 +272,11 @@ void Base::finalizeOnlineTraining(Args& args) {
         if (firstClassCount == 0) firstClass = 1 - firstClass;
     }
     */
-
+    if(mapW != nullptr)
+        nonZeroW = mapW->size();
+    else
+        nonZeroW = wSize;
+    nonZeroG = nonZeroW;
     pruneWeights(args.weightsThreshold);
 }
 
@@ -455,11 +459,11 @@ void Base::save(std::ostream& out, bool saveGrads) {
         else if(mapW != nullptr) saveVec(out, mapW, wSize, nonZeroW);
         else if(sparseW != nullptr) saveVec(out, sparseW, wSize, nonZeroW);
 
-        bool grads = (saveGrads && (G != nullptr || mapG != nullptr));
+        int grads = (saveGrads && (G != nullptr || mapG != nullptr));
         saveVar(out, grads);
         if(grads){
-            if (G != nullptr) saveVec(out, G, wSize, nonZeroW);
-            else if (mapG != nullptr) saveVec(out, mapG, wSize, nonZeroW);
+            if (G != nullptr) saveVec(out, G, wSize, nonZeroG);
+            else if (mapG != nullptr) saveVec(out, mapG, wSize, nonZeroG);
         }
 
 //        Log(CERR) << "  Save base: classCount: " << classCount << ", firstClass: "
@@ -481,11 +485,17 @@ void Base::load(std::istream& in, bool loadGrads, bool loadDense) {
         if(loadSparse) mapW = loadAsMap(in);
         else W = loadAsDense(in);
 
-        bool grads;
+        int grads;
         loadVar(in, grads);
-        if(grads && loadGrads) {
-            if (loadSparse) mapG = loadAsMap(in);
-            else G = loadAsDense(in);
+        if(grads) {
+            if(loadGrads) {
+                if (loadSparse) mapG = loadAsMap(in);
+                else G = loadAsDense(in);
+            }
+            else {
+                Weight* tmp = loadAsDense(in);
+                delete[] tmp;
+            }
         }
 
 //        Log(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "

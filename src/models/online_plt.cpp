@@ -116,7 +116,7 @@ void OnlinePLT::save(Args& args, std::string output) {
     out.write((char*)&size, sizeof(size));
     for (int i = 0; i < size; ++i) {
         bases[i]->finalizeOnlineTraining(args);
-        bases[i]->save(out);
+        bases[i]->save(out, true);
     }
     out.close();
 
@@ -129,7 +129,7 @@ void OnlinePLT::save(Args& args, std::string output) {
         //TODO: Improve
         if(auxBases[i] != nullptr) {
             auxBases[i]->finalizeOnlineTraining(args);
-            auxBases[i]->save(out);
+            auxBases[i]->save(out, true);
         }
         else {
             auto b = new Base();

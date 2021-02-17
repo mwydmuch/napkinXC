@@ -465,7 +465,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
         optimizerName = "adagrad";
     }
 
-    if (modelType == oplt && resume && (treeType != onlineRandom || treeType != onlineBestScore)) {
+    if (modelType == oplt && resume && (treeType != onlineRandom && treeType != onlineBestScore)) {
         if (countArg(args, "--treeType"))
             Log(CERR) << "Warning: Resuming training for Online PLT does not support " << treeTypeName
                       << " tree type! Changing to onlineBestScore.\n";

@@ -155,8 +155,9 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
     int topK = args.topK;
     double threshold = args.threshold;
 
+    if(topK > 0) prediction.reserve(topK);
     TopKQueue<TreeNodeValue> nQueue(args.topK);
-    //TopKQueue<TreeNodeValue> nQueue(0);
+
 
     // Set functions
     std::function<bool(TreeNode*, double)> ifAddToQueue = [&] (TreeNode* node, double prob) {
@@ -181,6 +182,7 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
             return prob * this->nodesWeights[node->index].weight;
         };
 
+    // Predict for root
     double rootProb = predictForNode(tree->root, features);
     addToQueue(ifAddToQueue, calculateValue, nQueue, tree->root, rootProb);
     ++nodeEvaluationCount;
@@ -342,7 +344,6 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     Log(CERR) << "Training tree ...\n";
 
     // Check data
-    assert(features.rows() == labels.rows());
     //assert(tree->k >= labels.cols());
 
     // Examples selected for each node

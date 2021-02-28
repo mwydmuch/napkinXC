@@ -63,14 +63,7 @@ void BR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vect
 }
 
 void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
-    // Check data
-    int rows = labels.rows();
     int lCols = labels.cols();
-
-    std::ofstream out(joinPath(output, "weights.bin"));
-    int size = lCols;
-    out.write((char*)&size, sizeof(size));
-
     int parts = calculateNumberOfParts(labels, features, args);
     int range = lCols / parts + 1;
 
@@ -80,6 +73,9 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     std::vector<double> binWeights;
     std::vector<ProblemData> binProblemData;
     binWeights.reserve(range);
+
+    std::ofstream out(joinPath(output, "weights.bin"));
+    saveVar(out, lCols);
 
     for (int p = 0; p < parts; ++p) {
         int rStart = p * range;
@@ -105,7 +101,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
             for (int i = 0; i < range; ++i) binProblemData[i].invPs = labelsWeights[i + rStart];
         }
 
-        trainBases(joinPath(output, "weights.bin"), binProblemData, args);
+        trainBases(out, binProblemData, args);
 
         for (auto& l : binLabels) l.clear();
         binFeatures.clear();
@@ -138,6 +134,7 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& a
         prediction.resize(i - 1);
     }
     if (args.topK > 0) prediction.resize(args.topK);
+    prediction.shrink_to_fit();
 }
 
 std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {

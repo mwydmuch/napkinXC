@@ -176,10 +176,10 @@ See documentation for more details.
 
 ## References and acknowledgments
 
-This library implements methods from following papers:
+This library implements methods from following papers (see `experiments` directory for scripts to replicate the results):
 
 - [Probabilistic Label Trees for Extreme Multi-label Classification](https://arxiv.org/abs/2009.11218)
-- [Online Probabilistic Label Trees](https://arxiv.org/abs/2007.04451)
+- [Online probabilistic label trees](https://arxiv.org/abs/2007.04451)
 - [Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification](https://arxiv.org/abs/1906.08129)
 
 Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, 

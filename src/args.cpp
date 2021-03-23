@@ -45,6 +45,7 @@ Args::Args() {
     // Input/output options
     input = "";
     output = ".";
+    prediction = "";
     modelName = "plt";
     modelType = plt;
     hash = 0;
@@ -128,6 +129,7 @@ Args::Args() {
 
     // Measures for test command
     measures = "p@1,p@3,p@5";
+    measuresPrecision = 6;
 
     // Args for OFO command
     ofoType = micro;
@@ -184,6 +186,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 input = std::string(args.at(ai + 1));
             else if (args[ai] == "-o" || args[ai] == "--output")
                 output = std::string(args.at(ai + 1));
+            else if (args[ai] == "--prediction")
+                prediction = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensemble")
                 ensemble = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--onTheTrotPrediction")
@@ -427,6 +431,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));
+            else if (args[ai] == "--measuresPrecision")
+                measuresPrecision = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--autoCLin")
                 autoCLin = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--autoCLog")

@@ -108,6 +108,7 @@ public:
     // Input/output options
     std::string input;
     std::string output;
+    std::string prediction;
     ModelType modelType;
     bool processData;
     double bias;
@@ -185,6 +186,7 @@ public:
 
     // Measures for test command
     std::string measures;
+    int measuresPrecision;
 
     // Args for OFO command
     OFOType ofoType;

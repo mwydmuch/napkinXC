@@ -66,6 +66,13 @@ void loadVecs(std::shared_ptr<Model> model, Args& args){
     }
 }
 
+void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::ofstream& output){
+    for (const auto &p : predictions) {
+        for (const auto &l : p) output << l.label << ":" << l.value << " ";
+        output << "\n";
+    }
+}
+
 void train(Args& args) {
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
@@ -77,7 +84,8 @@ void train(Args& args) {
     // Create data reader and load train data
     readData(labels, features, args);
     Log(COUT) << "Train data statistics:"
-              << "\n  Train data points: " << features.rows() << "\n  Uniq features: " << features.cols() - 2
+              << "\n  Train data points: " << features.rows()
+              << "\n  Uniq features: " << features.cols() - 2
               << "\n  Uniq labels: " << labels.cols()
               << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
               << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
@@ -95,15 +103,15 @@ void train(Args& args) {
     // Print resources
     auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             resAfterTraining.timePoint - resAfterData.timePoint)
-                                            .count()) /
-                    1000;
+                                            .count()) / 1000;
     auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
-    Log(COUT) << "Resources during training:"
-              << "\n  Train real time (s): " << realTime << "\n  Train CPU time (s): " << cpuTime
+    Log(COUT) << "Train resources:"
+              << "\n  Train real time (s): " << realTime
+              << "\n  Train CPU time (s): " << cpuTime
               << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
-              << "\n  Peak of real memory during training (MB): " << resAfterTraining.peakRealMem / 1024
-              << "\n  Peak of virtual memory during training (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
+              << "\n  Train peak of real memory (MB): " << resAfterTraining.peakRealMem / 1024
+              << "\n  Train peak of virtual memory (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
 }
 
 void test(Args& args) {
@@ -135,40 +143,45 @@ void test(Args& args) {
 
     auto resAfterPrediction = getResources();
 
-    // Create measures and calculate scores
-    auto measures = Measure::factory(args, model->outputSize());
-    for (auto& m : measures) m->accumulate(labels, predictions);
-
-    // Print results
-    Log(COUT) << std::setprecision(5) << "Results:\n";
-    for (auto& m : measures){
-        Log(COUT) << "  " << m->getName() << ": " << m->value();
-        //if(m->isMeanMeasure()) Log(COUT) << " ± " << m->stdDev(); // Print std
-        Log(COUT) << "\n";
+    // Output predictions
+    if(!args.prediction.empty()){
+        std::ofstream out(args.prediction);
+        outputPrediction(predictions, out);
+        out.close();
     }
+
+    // Create measures, calculate and print scores
+    if(!args.measures.empty()){
+        auto measures = Measure::factory(args, model->outputSize());
+        for (auto& m : measures) m->accumulate(labels, predictions);
+
+        Log(COUT) << std::setprecision(5) << "Results:\n";
+        for (auto& m : measures){
+            Log(COUT) << "  " << m->getName() << ": " << m->value();
+            //if(m->isMeanMeasure()) Log(COUT) << " ± " << m->stdDev(); // Print std
+            Log(COUT) << "\n";
+        }
+    }
+
+    // Print additional model statistics
     model->printInfo();
 
     // Print resources
-    auto loadRealTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
-            resAfterModel.timePoint - resAfterData.timePoint)
-            .count()) / 1000;
     auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                             resAfterPrediction.timePoint - resAfterModel.timePoint)
                                             .count()) / 1000;
-    auto loadCpuTime = resAfterModel.cpuTime - resAfterData.cpuTime;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
-    Log(COUT) << "Resources during test:"
-              << "\n  Loading real time (s): " << loadRealTime
-              << "\n  Loading CPU time (s): " << loadCpuTime
-              << "\n  Test real time (s): " << realTime << "\n  Test CPU time (s): " << cpuTime
+    Log(COUT) << "Test resources:"
+              << "\n  Test real time (s): " << realTime
+              << "\n  Test CPU time (s): " << cpuTime
               << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
               << "\n  Model real memory size (MB): "
               << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
               << "\n  Model virtual memory size (MB): "
               << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
-              << "\n  Peak of real memory during testing (MB): " << resAfterPrediction.peakRealMem / 1024
-              << "\n  Peak of virtual memory during testing (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
+              << "\n  Test peak of real memory (MB): " << resAfterPrediction.peakRealMem / 1024
+              << "\n  Test peak of virtual memory (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
 }
 
 void predict(Args& args) {

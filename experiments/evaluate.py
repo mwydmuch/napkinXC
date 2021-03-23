@@ -55,6 +55,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 3:
         inv_ps = load_inv_ps_file(sys.argv[3])
 
+    precision = 6
     max_k = 5
 
     measures = {
@@ -74,4 +75,4 @@ if __name__ == "__main__":
             r = v["func"](true, pred, k=max_k)
         if r is not None:
             for k in range(max_k):
-                print("{}@{}: {}".format(m, k + 1, r[k]))
+                print(("{}@{}: {:." + str(precision) + "f}").format(m, k + 1, r[k]))

@@ -82,9 +82,10 @@ if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
         TRAIN_ARGS="${TRAIN_ARGS} --labelsWeights ${INV_PS_FILE}"
     fi
 
-    (time ${ROOT_DIR}/nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE)
-    echo
+    ${ROOT_DIR}/nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE
     echo "Train date: $(date)" | tee -a $TRAIN_RESULT_FILE
+    echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TRAIN_RESULT_FILE
+    echo "Model file size (K): $(du -c ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+' -o)" | tee -a $TRAIN_RESULT_FILE
     rm -f $TRAIN_LOCK_FILE
 fi
 
@@ -105,41 +106,22 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PS_FILE}"
     fi
 
-    echo "Test file results:" | tee -a $TEST_RESULT_FILE
-    if [[ "${TEST_USING_NXC_TEST}" != "0" ]]; then
-        (time ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
-    else
-        PRED_FILE=${MODEL}/test_pred_$(echo "${TEST_ARGS}" | tr " /" "__")
-        PRED_LOCK_FILE=${MODEL}/.test_pred_lock_$(echo "${TEST_ARGS}" | tr " /" "__")
-        if [[ ! -e $PRED_FILE ]] || [[ -e $PRED_LOCK_FILE ]]; then
-            touch $PRED_LOCK_FILE
-            ${ROOT_DIR}/nxc predict -i $TEST_FILE -o $MODEL $TEST_ARGS > $PRED_FILE
-            rm -rf $PRED_LOCK_FILE
-        fi
-
-        python3 ${SCRIPT_DIR}/evaluate.py $TEST_FILE $PRED_FILE $INV_PS_FILE | tee -a $TEST_RESULT_FILE
+    PRED_CONFIG=$(echo "${TEST_ARGS}" | tr " /" "__")
+    PRED_FILE=${MODEL}/pred_${PRED_CONFIG}
+    PRED_LOCK_FILE=${MODEL}/.test_lock_${PRED_CONFIG}
+    PRED_RESULT_FILE=${MODEL}/pred_results_${PRED_CONFIG}
+    if [[ ! -e $PRED_FILE ]] || [[ -e $PRED_LOCK_FILE ]]; then
+        touch $PRED_LOCK_FILE
+        ${ROOT_DIR}/nxc test -i $TEST_FILE -o $MODEL $TEST_ARGS --prediction $PRED_FILE --measures "" | tee -a $PRED_RESULT_FILE
+        rm -rf $PRED_LOCK_FILE
     fi
 
-    if [[ "${TEST_ON_TRAIN}" != "0" ]]; then
-        echo "Train results file:" | tee -a $TEST_RESULT_FILE
-        if [[ "${TEST_USING_NXC_TEST}" != "0" ]]; then
-            (time ${ROOT_DIR}/nxc test -i $TRAIN_FILE -o $MODEL $TEST_ARGS | tee -a $TEST_RESULT_FILE)
-        else
-            PRED_FILE=${MODEL}/train_pred_$(echo "${TEST_ARGS}" | tr " /" "__")
-            PRED_LOCK_FILE=${MODEL}/.train_pred_lock_$(echo "${TEST_ARGS}" | tr " /" "__")
-            if [[ ! -e $PRED_FILE ]] || [[ -e $PRED_LOCK_FILE ]]; then
-                touch $PRED_LOCK_FILE
-                ${ROOT_DIR}/nxc predict -i $TRAIN_FILE -o $MODEL $TEST_ARGS > $PRED_FILE
-                rm -rf $PRED_LOCK_FILE
-            fi
-
-            python3 ${SCRIPT_DIR}/evaluate.py $TEST_FILE $PRED_FILE $INV_PS_FILE | tee -a $TEST_RESULT_FILE
-        fi
+    if [ -e $PRED_RESULT_FILE ]; then
+        cat $PRED_RESULT_FILE >> $TEST_RESULT_FILE
     fi
 
-    echo
-    echo "Model file size: $(du -ch ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+[BMG]' -o)" | tee -a $TEST_RESULT_FILE
-    echo "Model file size (K): $(du -c ${MODEL} | tail -n 1 | grep -E '[0-9\.,]+' -o)" | tee -a $TEST_RESULT_FILE
+    python3 ${SCRIPT_DIR}/evaluate.py $TEST_FILE $PRED_FILE $INV_PS_FILE | tee -a $TEST_RESULT_FILE
+
     echo "Test date: $(date)" | tee -a $TEST_RESULT_FILE
     rm -rf $TEST_LOCK_FILE
 else

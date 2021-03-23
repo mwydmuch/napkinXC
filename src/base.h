@@ -33,6 +33,8 @@
 #include "types.h"
 
 
+//TODO: Refactor base class
+
 struct ProblemData {
     std::vector<double>& binLabels;
     std::vector<Feature*>& binFeatures;
@@ -156,12 +158,14 @@ private:
         return -label * w * log(prob) + (label - 1/w) * w * log(1 - prob);
     }
 
+    void saveVecHeader(std::ostream& out, bool sparse, size_t size, size_t nonZero);
     void saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero);
     void saveVec(std::ostream& out, SparseWeight* V, size_t size, size_t nonZero);
     void saveVec(std::ostream& out, UnorderedMap<int, Weight>* mapV, size_t size, size_t nonZero);
 
     Weight* loadAsDense(std::istream& in);
     UnorderedMap<int, Weight>* loadAsMap(std::istream& in);
+    void skipLoadVec(std::istream& in);
 
     // TODO: Improve
     void forEachW(const std::function<void(Weight&)>& f);

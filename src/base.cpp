@@ -31,6 +31,8 @@
 #include "threads.h"
 
 
+//TODO: Refactor base class
+
 Base::Base() {
     hingeLoss = false;
 
@@ -459,7 +461,7 @@ void Base::save(std::ostream& out, bool saveGrads) {
         else if(mapW != nullptr) saveVec(out, mapW, wSize, nonZeroW);
         else if(sparseW != nullptr) saveVec(out, sparseW, wSize, nonZeroW);
 
-        int grads = (saveGrads && (G != nullptr || mapG != nullptr));
+        bool grads = (saveGrads && (G != nullptr || mapG != nullptr));
         saveVar(out, grads);
         if(grads){
             if (G != nullptr) saveVec(out, G, wSize, nonZeroG);
@@ -485,17 +487,14 @@ void Base::load(std::istream& in, bool loadGrads, bool loadDense) {
         if(loadSparse) mapW = loadAsMap(in);
         else W = loadAsDense(in);
 
-        int grads;
+        bool grads;
         loadVar(in, grads);
         if(grads) {
             if(loadGrads) {
                 if (loadSparse) mapG = loadAsMap(in);
                 else G = loadAsDense(in);
             }
-            else {
-                Weight* tmp = loadAsDense(in);
-                delete[] tmp;
-            }
+            else skipLoadVec(in);
         }
 
 //        Log(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
@@ -562,48 +561,36 @@ Base* Base::copyInverted() {
     return c;
 }
 
-void Base::saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero){
-    bool sparse = sparseSize(nonZero) < denseSize(size) || size == 0;
+void Base::saveVecHeader(std::ostream& out, bool sparse, size_t size, size_t nonZero) {
     saveVar(out, sparse);
-
     saveVar(out, size);
     saveVar(out, nonZero);
+}
+
+void Base::saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero){
+    bool sparse = sparseSize(nonZero) < denseSize(size) || size == 0;
+    saveVecHeader(out, sparse, size, nonZero);
+
     if(sparse){
+        int saved = 0;
         for (int i = 0; i < size; ++i){
             if (V[i] != 0) {
-                out.write((char*)&i, sizeof(i));
-                out.write((char*)&V[i], sizeof(Weight));
+                saveVar(out, i);
+                saveVar(out, V[i]);
+                ++saved;
             }
         }
+        assert(saved == nonZero);
     } else out.write((char*)V, size * sizeof(Weight));
 }
 
 void Base::saveVec(std::ostream& out, SparseWeight* V, size_t size, size_t nonZero){
-    //bool sparse = sparseSize(nonZero) < denseSize(size);
-    bool sparse = true;
-    saveVar(out, sparse);
-
-    saveVar(out, size);
-    saveVar(out, nonZero);
-
-    if(sparse){
-        for (int i = 0; i < nonZero; ++i){
-            if (V[i].second != 0) {
-                out.write((char*)&V[i].first, sizeof(V[i].first));
-                out.write((char*)&V[i].second, sizeof(V[i].second));
-            }
-        }
-    } //else //TODO
+    saveVecHeader(out, true, size, nonZero);
+    for (int i = 0; i < nonZero; ++i) saveVar(out, V[i]);
 }
 
 void Base::saveVec(std::ostream& out, UnorderedMap<int, Weight>* mapV, size_t size, size_t nonZero){
-    //bool sparse = sparseSize(nonZero) < denseSize(size);
-    bool sparse = true;
-    saveVar(out, sparse);
-
-    saveVar(out, size);
-    size_t mapSize = mapV->size();
-    saveVar(out, mapSize);
+    saveVecHeader(out, true, size, mapV->size());
     for(const auto& w : (*mapV)) saveVar(out, w);
 }
 
@@ -616,11 +603,12 @@ Weight* Base::loadAsDense(std::istream& in){
 
     size_t nonZero;
     loadVar(in, nonZero);
+    //std::cerr << "Dense: " << sparse <<  " " << size << " " << nonZero << "\n";
 
     Weight *V = new Weight[size];
-    std::memset(V, 0, size * sizeof(Weight));
-
     if(sparse) {
+        std::memset(V, 0, size * sizeof(Weight));
+
         int index;
         Weight value;
 
@@ -643,6 +631,7 @@ UnorderedMap<int, Weight>* Base::loadAsMap(std::istream& in){
 
     size_t nonZero;
     loadVar(in, nonZero);
+    //std::cerr << "Map: " << sparse <<  " " << size << " " << nonZero << "\n";
 
     auto mapV = new UnorderedMap<int, Weight>();
     mapV->reserve(nonZero);
@@ -666,3 +655,18 @@ UnorderedMap<int, Weight>* Base::loadAsMap(std::istream& in){
 
     return mapV;
 }
+
+void Base::skipLoadVec(std::istream& in){
+    bool sparse;
+    loadVar(in, sparse);
+
+    size_t size;
+    loadVar(in, size);
+
+    size_t nonZero;
+    loadVar(in, nonZero);
+
+    if(sparse) in.seekg(nonZero * (sizeof(int) + sizeof(Weight)), std::ios::cur);
+    else in.seekg(size * sizeof(Weight), std::ios::cur);
+}
+

@@ -114,8 +114,7 @@ void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Featur
 
     while ((nextPos = line.find_first_of(",: ", pos))) {
         // Label
-        if ((pos == 0 || line[pos - 1] == ',') &&
-            (line[nextPos] == ',' || line[nextPos] == ' ')) // || nextPos == std::string::npos))
+        if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' ' || nextPos == std::string::npos))
             lLabels.emplace_back(std::strtol(&line[pos], NULL, 10));
 
         // Feature index

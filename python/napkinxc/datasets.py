@@ -125,7 +125,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1bHtiLVF5EFsVL3qyU7y5e3M-fYHvXsG9', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=11U4qDWKvsR6pCzLvY3APckx-R_ihyMih', # XMLC repo url
             'train': {'X': 'WikiTitles-500K/trn_X_Xf.txt', 'Y': 'WikiTitles-500K/trn_X_Y.txt'},
             'test': {'X': 'WikiTitles-500K/tst_X_Xf.txt', 'Y': 'WikiTitles-500K/tst_X_Y.txt'},
             'file_format': 'XY_sparse',
@@ -438,8 +438,9 @@ def _get_data_meta(dataset, subset='train', format='bow'):
         'wikipedialarge': 'wikipedialarge-500k'
     }
 
-    _dataset = dataset.lower(),
-    _dataset = aliases.get(_dataset, _dataset)
+    _dataset = dataset.lower()
+    if _dataset in aliases:
+        _dataset = aliases[_dataset]
     _format = format
     if _format == 'tf-idf':
         _format = 'bow'
@@ -476,7 +477,7 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
     """
 
     download_url = 'https://drive.google.com/uc?export=download'
-    re_match = re.search('id=([\w\d]+)', url)
+    re_match = re.search('id=([\w\d\-]+)', url)
     file_id = re_match.group(1)
 
     destination_directory = path.dirname(dest_path)

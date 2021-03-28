@@ -5,15 +5,15 @@ import numpy as np
 
 
 def test_load_libsvm():
-
     datasets = {
-        "eurlex-4k": {"file": "data/Eurlex/eurlex_train.txt", "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 5000, "offset": 1}},
-        "amazonCat-13k": {"file": "data/AmazonCat/amazonCat_train.txt", "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 203882, "offset": 1}},
-        "wiki10-31k": {"file": "data/Wiki10/wiki10_train.txt", "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 101938, "offset": 1}}
+        "eurlex-4k": {"file": "data/Eurlex/eurlex_test.txt", "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 5000, "offset": 1}},
+        "amazonCat-13k": {"file": "data/AmazonCat/amazonCat_test.txt", "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 203882, "offset": 1}},
+        "amazonCat-14k": {"file": "data/AmazonCat-14K/amazonCat-14K_test.txt", "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 597540, "offset": 1}},
+        "wiki10-31k": {"file": "data/Wiki10/wiki10_test.txt", "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 101938, "offset": 1}}
     }
 
     for d, v in datasets.items():
-        download_dataset(d, "train")
+        download_dataset(d, subset='test', format='bow')
         print("\n{} time comparison:".format(d))
 
         t_start = time()

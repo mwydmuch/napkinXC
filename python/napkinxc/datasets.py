@@ -255,13 +255,6 @@ DATASETS = {
 }
 
 
-# Create datasets aliases
-DATASETS['wiki10'] = DATASETS['wiki10-31k']
-DATASETS['deliciouslarge'] = DATASETS['deliciouslarge-200k']
-DATASETS['wikilshtc'] = DATASETS['wikilshtc-325k']
-DATASETS['wikipedialarge'] = DATASETS['wikipedialarge-500k']
-
-
 # Main functions for downloading and loading datasets
 def load_libsvm_file(file):
     """
@@ -438,7 +431,15 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
 
 # Helpers
 def _get_data_meta(dataset, subset='train', format='bow'):
-    _dataset = dataset.lower()
+    aliases = {
+        'wiki10': 'wiki10-31k',
+        'deliciouslarge': 'deliciouslarge-200k',
+        'wikilshtc': 'wikilshtc-325k',
+        'wikipedialarge': 'wikipedialarge-500k'
+    }
+
+    _dataset = dataset.lower(),
+    _dataset = aliases.get(_dataset, _dataset)
     _format = format
     if _format == 'tf-idf':
         _format = 'bow'

@@ -65,14 +65,16 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
         lLabels.clear();
         lFeatures.clear();
 
+        if(args.processData) prepareFeaturesVector(lFeatures, args.bias);
+
         try {
-            if(args.processData) prepareFeaturesVector(lFeatures, args.bias);
             readLine(line, lLabels, lFeatures);
-            if(args.processData) processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
         } catch (const std::exception& e) {
             Log(CERR) << "  Failed to read line " << i << ", skipping!\n";
             continue;
         }
+
+        if(args.processData) processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
@@ -117,7 +119,7 @@ void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Featur
             lLabels.emplace_back(std::strtol(&line[pos], NULL, 10));
 
         // Feature index
-        else if (line[pos - 1] == ' ' && line[nextPos] == ':')
+        else if ((pos == 0 || line[pos - 1] == ' ') && line[nextPos] == ':')
             lFeatures.emplace_back(std::strtol(&line[pos], NULL, 10), 1.0);
 
         // Feature value
@@ -136,7 +138,7 @@ void prepareFeaturesVector(std::vector<Feature> &lFeatures, double bias) {
 
 void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashSize, double featuresThreshold) {
     //Shift index by 2 because LibLinear ignore feature 0 and feature 1 is reserved for bias
-    assert(!lFeatures.empty());
+    //assert(!lFeatures.empty());
     shift(lFeatures.begin() + 1, lFeatures.end(), 2);
 
     // Hash features

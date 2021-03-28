@@ -43,13 +43,15 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
     getline(in, line);
 
     auto hTokens = split(line, ' ');
-    if(hTokens.size() == 3) {
+    if(hTokens.size() == 2 || hTokens.size() == 3) {
         hRows = std::stoi(hTokens[0]);
         hFeatures = std::stoi(hTokens[1]);
-        hLabels = std::stoi(hTokens[2]);
         getline(in, line);
         ++i;
-        Log(CERR) << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << "\n";
+        if(hTokens.size() == 3) {
+            hLabels = std::stoi(hTokens[2]);
+            Log(CERR) << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << "\n";
+        } else Log(CERR) << "  Header: rows: " << hRows << ", features: " << hFeatures << "\n";
     }
     if (args.hash) hFeatures = args.hash;
 
@@ -63,16 +65,14 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
         lLabels.clear();
         lFeatures.clear();
 
-        if(args.processData) prepareFeaturesVector(lFeatures, args.bias);
-
         try {
+            if(args.processData) prepareFeaturesVector(lFeatures, args.bias);
             readLine(line, lLabels, lFeatures);
+            if(args.processData) processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
         } catch (const std::exception& e) {
             Log(CERR) << "  Failed to read line " << i << ", skipping!\n";
             continue;
         }
-
-        if(args.processData) processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
@@ -84,14 +84,12 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
 
     // Checks
     assert(labels.rows() == features.rows());
-    if (hRows && hLabels && hFeatures) {
-        if (hRows != features.rows())
-            Log(CERR) << "  Warning: Number of lines does not match number in the file header!\n";
-        if (hLabels < labels.cols())
-            Log(CERR) << "  Warning: Number of labels is bigger then number in the file header!\n";
-        if (hFeatures < features.cols() - 2)
-            Log(CERR) << "  Warning: Number of features is bigger then number in the file header!\n";
-    }
+    if (hRows && hRows != features.rows())
+        Log(CERR) << "  Warning: Number of lines does not match number in the file header!\n";
+    if (hLabels && hFeatures < features.cols() - 2)
+        Log(CERR) << "  Warning: Number of features is bigger then number in the file header!\n";
+    if (hFeatures && hLabels < labels.cols())
+        Log(CERR) << "  Warning: Number of labels is bigger then number in the file header!\n";
 
     // Print data
     /*

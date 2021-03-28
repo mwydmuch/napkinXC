@@ -47,7 +47,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test', 'validation'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGU0VTR1pCejFpWjg', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=1b3mWgaKIAmc9Ae3E0QrokiIFA9Qj1K9r', # XMLC repo url
             'train': 'EURLex-4.3K/train.txt',
             'test': 'EURLex-4.3K/test.txt',
             'validation': 'EURLex-4.3K/validation.txt',
@@ -109,6 +109,28 @@ DATASETS = {
             'file_format': 'libsvm',
         }
     },
+    'wikiseealsotitles-350k': {
+        'name': 'WikiSeeAlsoTitles-350K',
+        'formats': ['bow'],
+        'subsets': ['train', 'test'],
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1bHtiLVF5EFsVL3qyU7y5e3M-fYHvXsG9', # XMLC repo url
+            'train': {'X': 'WikiSeeAlsoTitles-350K/trn_X_Xf.txt', 'Y': 'WikiSeeAlsoTitles-350K/trn_X_Y.txt'},
+            'test': {'X': 'WikiSeeAlsoTitles-350K/tst_X_Xf.txt', 'Y': 'WikiSeeAlsoTitles-350K/tst_X_Y.txt'},
+            'file_format': 'XY_sparse',
+        }
+    },
+    'wikititles-500k': {
+        'name': 'WikiTitles-500K',
+        'formats': ['bow'],
+        'subsets': ['train', 'test'],
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1bHtiLVF5EFsVL3qyU7y5e3M-fYHvXsG9', # XMLC repo url
+            'train': {'X': 'WikiTitles-500K/trn_X_Xf.txt', 'Y': 'WikiTitles-500K/trn_X_Y.txt'},
+            'test': {'X': 'WikiTitles-500K/tst_X_Xf.txt', 'Y': 'WikiTitles-500K/tst_X_Y.txt'},
+            'file_format': 'XY_sparse',
+        }
+    },
     'wikipedialarge-500k': {
         'name': 'WikipediaLarge-500K',
         'formats': ['bow'],
@@ -120,6 +142,17 @@ DATASETS = {
             'file_format': 'libsvm',
         }
     },
+    'amazontitles-670k': {
+        'name': 'AmazonTitles-670K',
+        'formats': ['bow'],
+        'subsets': ['train', 'test'],
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1OKnaLu4SDMOQ69rHdwF8ExKkeF2SZw7z', # XMLC repo url
+            'train': {'X': 'AmazonTitles-670K/trn_X_Xf.txt', 'Y': 'AmazonTitles-670K/trn_X_Y.txt'},
+            'test': {'X': 'AmazonTitles-670K/tst_X_Xf.txt', 'Y': 'AmazonTitles-670K/tst_X_Y.txt'},
+            'file_format': 'XY_sparse',
+        }
+    },
     'amazon-670k': {
         'name': 'Amazon-670K',
         'formats': ['bow'],
@@ -129,6 +162,17 @@ DATASETS = {
             'train': 'Amazon/amazon_train.txt',
             'test': 'Amazon/amazon_test.txt',
             'file_format': 'libsvm',
+        }
+    },
+    'amazontitles-3M': {
+        'name': 'AmazonTitles-3M',
+        'formats': ['bow'],
+        'subsets': ['train', 'test'],
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1PGzippnzIcgVNYZ8qQKVb0GNiARjQxvV', # XMLC repo url
+            'train': {'X': 'AmazonTitles-3M/trn_X_Xf.txt', 'Y': 'AmazonTitles-3M/trn_X_Y.txt'},
+            'test': {'X': 'AmazonTitles-3M/tst_X_Xf.txt', 'Y': 'AmazonTitles-3M/tst_X_Y.txt'},
+            'file_format': 'XY_sparse',
         }
     },
     'amazon-3m': {
@@ -175,7 +219,7 @@ DATASETS = {
             'file_format': 'libsvm',
         }
     },
-    'lf-wikiseealso320k': {
+    'lf-wikiseealso-320k': {
         'name': 'LF-WikiSeeAlso-320K',
         'formats': ['bow'],
         'subsets': ['train', 'test'],
@@ -254,18 +298,20 @@ def download_dataset(dataset, subset='train', format='bow', root='./data', verbo
         - ``'Eurlex-4.3K'``,
         - ``'AmazonCat-13K'``,
         - ``'AmazonCat-14K'``,
-        - ``'Wiki10-31K'``, alias: ``'Wiki10'``
-        - ``'DeliciousLarge-200K'``, alias: ``'DeliciousLarge'``
-        - ``'WikiLSHTC-325K'``, alias: ``'WikiLSHTC'``
-        - ``'WikipediaLarge-500K'``, alias: ``'WikipediaLarge'``
-        - ``'Amazon-670K'``
-        - ``'Amazon-3M'``
+        - ``'Wiki10-31K'`` (alias: ``'Wiki10'``),
+        - ``'DeliciousLarge-200K'`` (alias: ``'DeliciousLarge'``)
+        - ``'WikiLSHTC-325K'`` (alias: ``'WikiLSHTC'``)
+        - ``'WikiSeeAlsoTitles-350K'``,
+        - ``'WikiTitles-500K'``,
+        - ``'WikipediaLarge-500K'`` (alias: ``'WikipediaLarge'``),
+        - ``'Amazon-670K'``,
+        - ``'Amazon-3M'``,
         - ``'LF-AmazonTitles-131K'``,
         - ``'LF-Amazon-131K'``,
         - ``'LF-WikiSeeAlsoTitles-320K'``,
         - ``'LF-WikiSeeAlso-320K'``,
         - ``'LF-WikiTitles-500K'``,
-        - ``'LF-AmazonTitles-1.3M'``,
+        - ``'LF-AmazonTitles-1.3M'``.
 
     :type dataset: str
     :param subset: Subset of dataset to load into features matrix and labels {``'train'``, ``'test'``, ``'validation'``}, defaults to ``'train'``
@@ -279,8 +325,12 @@ def download_dataset(dataset, subset='train', format='bow', root='./data', verbo
     """
     dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
     dataset_dest = path.join(root, dataset.lower() + '_' + format + ".zip")
-    file_path = path.join(root, dataset_meta[subset])
-    if not path.exists(file_path):
+    file_path = dataset_meta[subset]
+    if isinstance(file_path, str):
+        file_path = [file_path]
+    elif isinstance(file_path, dict):
+        file_path = file_path.values()
+    if not all([path.exists(path.join(root, f)) for f in file_path]):
         if 'drive.google.com' in dataset_meta['url']:
             _download_file_from_google_drive(dataset_meta['url'], dataset_dest, unzip=True, overwrite=True, delete_zip=True, verbose=verbose)
 
@@ -297,18 +347,20 @@ def load_dataset(dataset, subset='train', format='bow', root='./data', verbose=F
         - ``'Eurlex-4.3K'``,
         - ``'AmazonCat-13K'``,
         - ``'AmazonCat-14K'``,
-        - ``'Wiki10-31K'``, alias: ``'Wiki10'``
-        - ``'DeliciousLarge-200K'``, alias: ``'DeliciousLarge'``
-        - ``'WikiLSHTC-325K'``, alias: ``'WikiLSHTC'``
-        - ``'WikipediaLarge-500K'``, alias: ``'WikipediaLarge'``
-        - ``'Amazon-670K'``
-        - ``'Amazon-3M'``
+        - ``'Wiki10-31K'`` (alias: ``'Wiki10'``),
+        - ``'DeliciousLarge-200K'`` (alias: ``'DeliciousLarge'``)
+        - ``'WikiLSHTC-325K'`` (alias: ``'WikiLSHTC'``)
+        - ``'WikiSeeAlsoTitles-350K'``,
+        - ``'WikiTitles-500K'``,
+        - ``'WikipediaLarge-500K'`` (alias: ``'WikipediaLarge'``),
+        - ``'Amazon-670K'``,
+        - ``'Amazon-3M'``,
         - ``'LF-AmazonTitles-131K'``,
         - ``'LF-Amazon-131K'``,
         - ``'LF-WikiSeeAlsoTitles-320K'``,
         - ``'LF-WikiSeeAlso-320K'``,
         - ``'LF-WikiTitles-500K'``,
-        - ``'LF-AmazonTitles-1.3M'``,
+        - ``'LF-AmazonTitles-1.3M'``.
 
     :type dataset: str
     :param subset: Subset of dataset to load into features matrix and labels {``'train'``, ``'test'``, ``'validation'``}, defaults to ``'train'``
@@ -322,11 +374,17 @@ def load_dataset(dataset, subset='train', format='bow', root='./data', verbose=F
     :return: Tuple of features matrix and labels.
     :rtype: (csr_matrix, list[list[int]])
     """
-    dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
-    file_path = path.join(root, dataset_meta[subset])
     download_dataset(dataset, subset=subset, format=format, root=root, verbose=verbose)
+    dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
+    file_format = dataset_meta['file_format']
+    file_path = dataset_meta[subset]
 
-    return _load_file(file_path, dataset_meta['file_format'])
+    if file_format == 'libsvm':
+        return load_libsvm_file(path.join(root, file_path))
+    elif file_format == 'XY_sparse':
+        X, _ = load_libsvm_file(path.join(root, file_path['X']))
+        Y, _ = load_libsvm_file(path.join(root, file_path['Y']))
+        return X, Y
 
 
 def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
@@ -388,18 +446,13 @@ def _get_data_meta(dataset, subset='train', format='bow'):
     if _dataset not in DATASETS:
         raise ValueError("Dataset {} is not available".format(dataset))
 
-    if _format not in DATASETS[dataset]['formats']:
+    if _format not in DATASETS[_dataset]['formats']:
         raise ValueError("Format {} is not available for dataset {}".format(format, dataset))
 
-    if subset is not None and subset not in DATASETS[dataset]['subsets']:
+    if subset is not None and subset not in DATASETS[_dataset]['subsets']:
         raise ValueError("Subset {} is not available for dataset {}".format(format, dataset))
 
-    return DATASETS[dataset][format]
-
-
-def _load_file(filepath, format):
-    if format == 'libsvm':
-        return load_libsvm_file(filepath)
+    return DATASETS[_dataset][format]
 
 
 def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=False, delete_zip=False, verbose=False):

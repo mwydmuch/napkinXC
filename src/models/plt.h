@@ -45,6 +45,8 @@ public:
 
     void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
+    std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
+    std::vector<std::vector<Prediction>> predictWithBeamSearch(SRMatrix<Feature>& features, Args& args);
 
     void setThresholds(std::vector<double> th) override;
     void updateThresholds(UnorderedMap<int, double> thToUpdate) override;
@@ -56,7 +58,10 @@ public:
     void printInfo() override;
 
     // For Python PLT Framework
-    std::vector<std::vector<std::pair<int, int>>> assignDataPoints(SRMatrix<Label>& labels);
+    void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output);
+    std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels);
+    std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels);
+
 
 protected:
     Tree* tree;
@@ -74,13 +79,11 @@ protected:
                                   std::vector<std::vector<Feature*>>& binFeatures,
                                   std::vector<std::vector<double>>& binWeights,
                                   SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
-
     static void addNodesLabelsAndFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                                   UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, Feature* features);
-    static void addNodesDataPoints(std::vector<std::vector<std::pair<int, int>>>& nodesDataPoints, int row,
-                                   UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative);
+                                          UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, Feature* features);
 
     // Helper methods for prediction
     virtual Prediction predictNextLabel(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,

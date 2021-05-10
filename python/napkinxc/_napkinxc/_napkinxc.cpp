@@ -29,6 +29,7 @@
 #include "read_data.h"
 #include "measure.h"
 #include "model.h"
+#include "plt.h"
 #include "resources.h"
 #include "types.h"
 #include "version.h"
@@ -284,6 +285,46 @@ public:
         return results;
     }
 
+    void buildTree(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
+        if(args.modelType == plt || args.modelType == hsm) {
+            runAsInterruptable([&] {
+                model = Model::factory(args);
+                auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+
+                SRMatrix<Label> labels;
+                SRMatrix<Feature> features;
+                readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
+                readLabelsMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+
+                makeDir(args.output);
+                args.saveToFile(joinPath(args.output, "args.bin"));
+                treeModel->buildTree(labels, features, args, args.output);
+            });
+        }
+    }
+
+    std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels){
+        std::vector<std::vector<std::pair<int, double>>> nodesToUpdate;
+        if(args.modelType == plt || args.modelType == hsm) {
+            runAsInterruptable([&] {
+                auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+                nodesToUpdate = treeModel->getNodesToUpdate(labels);
+            });
+        }
+        return nodesToUpdate;
+    }
+
+    std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels){
+        std::vector<std::vector<std::pair<int, double>>> nodesUpdates;
+        if(args.modelType == plt || args.modelType == hsm) {
+            runAsInterruptable([&] {
+                auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+                nodesUpdates = treeModel->getNodesToUpdate(labels);
+            });
+        }
+        return nodesUpdates;
+    }
+
     double callPythonFunction(std::function<double(py::object)> pyFunc, py::object pyArg){
         return pyFunc(pyArg);
     }
@@ -498,6 +539,9 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("ofo", &CPPModel::ofo)
     .def("test", &CPPModel::test)
     .def("test_on_file", &CPPModel::testOnFile)
+    .def("build_tree", &CPPModel::buildTree)
+    .def("get_nodes_to_update", &CPPModel::getNodesToUpdate)
+    .def("get_nodes_updates", &CPPModel::getNodesUpdates)
     //.def("call_python_function", &CPPModel::callPythonFunction)
     //.def("call_python_object_method", &CPPModel::callPythonObjectMethod)
     .def("test_data_load", &CPPModel::testDataLoad);

@@ -305,7 +305,16 @@ class PLT(Model):
 
         :param output: Directory where the model will be stored
         :type output: str
-        :param tree_type: Tree type to construct {``'hierarchicalKmeans'``, ``'balancedRandom'``, ``'completeKaryRandom'``, ``'huffman'``}, defaults to ``'hierarchicalKmeans'``
+        :param tree_type: Tree type to construct. Available solvers:
+
+            - ``'hierarchicalKmeans'``
+            - ``'balancedInOrder'``
+            - ``'balancedRandom'``
+            - ``'completeKaryInOrder'``
+            - ``'completeKaryRandom'``
+            - ``'huffman'``
+
+            Defaults to ``'hierarchicalKmeans'``
         :type tree_type: str, optional
         :param arity: Arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
@@ -367,6 +376,15 @@ class PLT(Model):
         all_params.update({"model": "plt"})
         super(PLT, self).__init__(**all_params)
 
+    def build_tree(self, X, Y):
+        self._model.build_tree(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
+
+    def get_nodes_to_update(self, Y):
+        return self._model.get_nodes_to_update(Y)
+
+    def get_nodes_updates(self, Y):
+        return self._model.get_nodes_updates(Y)
+
 
 class HSM(Model):
     """
@@ -414,7 +432,16 @@ class HSM(Model):
 
         :param output: Directory where the model will be stored
         :type output: str
-        :param tree_type: Tree type to construct {``'hierarchicalKmeans'``, ``'balancedRandom'``, ``'completeKaryRandom'``, ``'huffman'``}, defaults to ``'hierarchicalKmeans'``
+        :param tree_type: Tree type to construct. Available solvers:
+
+            - ``'hierarchicalKmeans'``
+            - ``'balancedInOrder'``
+            - ``'balancedRandom'``
+            - ``'completeKaryInOrder'``
+            - ``'completeKaryRandom'``
+            - ``'huffman'``
+
+            Defaults to ``'hierarchicalKmeans'``
         :type tree_type: str, optional
         :param arity: Arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
@@ -475,6 +502,7 @@ class HSM(Model):
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "hsm"})
         super(HSM, self).__init__(**all_params)
+
 
 
 class BR(Model):

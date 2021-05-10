@@ -79,6 +79,11 @@ enum LossType {
     pwLogistic
 };
 
+enum TreeSearchType{
+    exact,
+    beam
+};
+
 enum OFOType {
     micro,
     macro,
@@ -104,6 +109,7 @@ public:
     bool saveGrads;
     bool resume;
     bool loadDense;
+    int loadDenseTop;
 
     // Input/output options
     std::string input;
@@ -166,6 +172,8 @@ public:
     double threshold;
     std::string thresholds;
     std::string labelsWeights;
+    TreeSearchType treeSearchType;
+    int beamSearchWidth;
     bool ensMissingScores;
 
     // Mips options
@@ -211,6 +219,7 @@ private:
     std::string modelName;
     std::string setUtilityName;
     std::string ofoTypeName;
+    std::string treeSearchName;
 
     std::vector<std::string> parsedArgs;
 };

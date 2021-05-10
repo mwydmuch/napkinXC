@@ -158,6 +158,19 @@ private:
     int k;
 };
 
+//// Abstract vector type
+//template <typename T> class AbstractVector {
+//public:
+//    virtual AbstractVector();
+//    virtual ~AbstractVector();
+//
+//    void save(std::ostream& out) const;
+//    void load(std::istream& in);
+//
+//private:
+//    size_t s;   // Size
+//};
+
 // Simple dense vector
 template <typename T> class Vector {
 public:

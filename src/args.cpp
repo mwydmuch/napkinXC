@@ -41,6 +41,7 @@ Args::Args() {
     saveGrads = false;
     resume = false;
     loadDense = false;
+    loadDenseTop = 5;
 
     // Input/output options
     input = "";
@@ -108,7 +109,11 @@ Args::Args() {
     topK = 5;
     threshold = 0.0;
     thresholds = "";
+    labelsWeights = "";
     ensMissingScores = true;
+    treeSearchName = "exact";
+    treeSearchType = exact;
+    beamSearchWidth = 10;
 
     // Mips options
     mipsDense = false;
@@ -423,7 +428,16 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 labelsWeights = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensMissingScores")
                 ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
-
+            else if (args[ai] == "--treeSearchType") {
+                treeSearchName = args.at(ai + 1);
+                if (args.at(ai + 1) == "exact")
+                    treeSearchType = exact;
+                else if (args.at(ai + 1) == "beam")
+                    treeSearchType = beam;
+                else
+                    throw std::invalid_argument("Unknown tree search type: " + args.at(ai + 1));
+            } else if (args[ai] == "--beamSearchWidth")
+                beamSearchWidth = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--batchSizes")
                 batchSizes = args.at(ai + 1);
             else if (args[ai] == "--batches")

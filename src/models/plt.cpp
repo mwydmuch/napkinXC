@@ -127,7 +127,92 @@ std::vector<std::vector<Prediction>> PLT::predictBatch(SRMatrix<Feature>& featur
 }
 
 std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature>& features, Args& args){
-    std::vector<std::vector<Prediction>> prediction;
+    int rows = features.rows();
+    int nodes = tree->nodes.size();
+
+    std::vector<std::vector<Prediction>> prediction(rows);
+    std::vector<std::vector<TreeNodeValue>> levelPredictions(rows);
+    std::vector<std::vector<Prediction>> nodePredictions(nodes);
+
+    auto nextLevelQueue = new std::queue<TreeNode*>();
+    nextLevelQueue->push(tree->root);
+    for(int i = 0; i < rows; ++i) nodePredictions[tree->root->index].emplace_back(i, 1.0);
+
+    int nCount = 0;
+    while(!nextLevelQueue->empty()){
+        printProgress(nCount++, nodes);
+
+        auto levelQueue = nextLevelQueue;
+        nextLevelQueue = new std::queue<TreeNode*>();
+
+        // Predict for level
+        while(!levelQueue->empty()){
+            auto n = levelQueue->front();
+            levelQueue->pop();
+            int nIdx = n->index;
+
+            if(!nodePredictions[nIdx].empty()){
+                bases[nIdx]->toDense();
+
+                for(auto &e : nodePredictions[nIdx]){
+                    int rIdx = e.label;
+                    double prob = bases[nIdx]->predictProbability(features[rIdx]) * e.value;
+                    double value = prob;
+
+                    // Reweight score
+                    if (!labelsWeights.empty()) value *= nodesWeights[nIdx].weight;
+
+                    if(n->label >= 0) prediction[rIdx].emplace_back(n->label, value); // Final prediction
+                    else levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
+                }
+                nodeEvaluationCount += nodePredictions[nIdx].size();
+                nodePredictions[nIdx].clear();
+
+                bases[nIdx]->toSparse();
+            }
+
+            for(auto &c : n->children)
+                nextLevelQueue->push(c);
+        }
+        delete levelQueue;
+
+        // Keep top predictions and prepare next level
+        for(int rIdx = 0; rIdx < rows; ++rIdx){
+            auto &v = levelPredictions[rIdx];
+
+            if(!thresholds.empty()){
+                int j = 0;
+                for(int i = 0; i < v.size(); ++i){
+                    if(v[i].value > nodesThr[v[i].node->index].th)
+                        v[j++] = v[i];
+                }
+                v.resize(j - 1);
+            }
+            else {
+                std::sort(v.rbegin(), v.rend());
+
+                if(args.threshold > 0){
+                    int i = 0;
+                    while (i < v.size() && v[i++].value > args.threshold);
+                    v.resize(i - 1);
+                }
+                else v.resize(std::min(v.size(), (size_t)args.beamSearchWidth));
+            }
+
+            for(auto &nv : v)
+                for(auto &c : nv.node->children)
+                    nodePredictions[c->index].emplace_back(rIdx, nv.value);
+            v.clear();
+        }
+    }
+    delete nextLevelQueue;
+
+    for(int rIdx = 0; rIdx < rows; ++rIdx){
+        auto &v = prediction[rIdx];
+        std::sort(v.rbegin(), v.rend());
+    }
+
+    dataPointCount = rows;
     return prediction;
 }
 
@@ -159,7 +244,7 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
 
     if (!labelsWeights.empty())
         calculateValue = [&] (TreeNode* node, double prob) {
-            return prob * this->nodesWeights[node->index].weight;
+            return prob * nodesWeights[node->index].weight;
         };
 
     // Predict for root
@@ -286,6 +371,16 @@ void PLT::load(Args& args, std::string infile) {
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
     bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadDense);
+
+    std::queue<TreeNode*> nQueue;
+    nQueue.push(tree->root);
+    for(int i = 0; i < args.loadDenseTop; ++i){
+        auto n = nQueue.front();
+        nQueue.pop();
+        bases[n->index]->toDense();
+        for(auto c : n->children) nQueue.push(c);
+    }
+
     assert(bases.size() == tree->nodes.size());
     m = tree->getNumberOfLeaves();
 

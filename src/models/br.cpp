@@ -130,7 +130,7 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& a
     sort(prediction.rbegin(), prediction.rend());
     if (args.threshold > 0) {
         int i = 0;
-        while (prediction[i++].value > args.threshold);
+        while (i < prediction.size() && prediction[i++].value > args.threshold);
         prediction.resize(i - 1);
     }
     if (args.topK > 0) prediction.resize(args.topK);

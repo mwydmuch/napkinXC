@@ -41,7 +41,7 @@ Args::Args() {
     saveGrads = false;
     resume = false;
     loadDense = false;
-    loadDenseTop = 5;
+    loadDenseTop = 15;
 
     // Input/output options
     input = "";
@@ -185,6 +185,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 resume = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--loadDense")
                 loadDense = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--loadDenseTop")
+                loadDenseTop = std::stoi(args.at(ai + 1));
 
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
@@ -437,7 +439,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 else
                     throw std::invalid_argument("Unknown tree search type: " + args.at(ai + 1));
             } else if (args[ai] == "--beamSearchWidth")
-                beamSearchWidth = std::stoi(args.at(ai + 1)) != 0;
+                beamSearchWidth = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--batchSizes")
                 batchSizes = args.at(ai + 1);
             else if (args[ai] == "--batches")

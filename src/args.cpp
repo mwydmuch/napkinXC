@@ -578,11 +578,13 @@ void Args::save(std::ostream& out) {
     std::string version = VERSION;
     saveVar(out, version);
 
+    // Data processing args
     saveVar(out, bias);
     saveVar(out, norm);
     saveVar(out, hash);
-    saveVar(out, weightsThreshold);
+    saveVar(out, featuresThreshold);
 
+    // Model args
     saveVar(out, modelType);
     saveVar(out, modelName);
     saveVar(out, ensemble);
@@ -594,11 +596,13 @@ void Args::load(std::istream& in) {
     if(version != VERSION)
         Log(CERR) << "Warning: Model version (" << version << ") does not match napkinXC version (" << VERSION << "), something may not work correctly!\n";
 
+    // Data processing args
     loadVar(in, bias);
     loadVar(in, norm);
     loadVar(in, hash);
-    loadVar(in, weightsThreshold);
+    loadVar(in, featuresThreshold);
 
+    // Model args
     loadVar(in, modelType);
     loadVar(in, modelName);
     loadVar(in, ensemble);

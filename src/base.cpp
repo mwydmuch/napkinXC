@@ -361,61 +361,72 @@ void Base::clear() {
     t = 0;
 
     clearW();
+    clearG();
 }
 
 void Base::clearW() {
     delete[] W;
     W = nullptr;
-    delete[] G;
-    G = nullptr;
-
     delete mapW;
     mapW = nullptr;
-    delete mapG;
-    mapG = nullptr;
-
     delete[] sparseW;
     sparseW = nullptr;
 }
 
+void Base::clearG() {
+    delete[] G;
+    G = nullptr;
+    delete mapG;
+    mapG = nullptr;
+}
+
 void Base::toMap() {
     if (mapW == nullptr) {
-        mapW = new UnorderedMap<int, Weight>();
+        auto tmpMapW = new UnorderedMap<int, Weight>();
 
-        assert(W != nullptr);
-        for (int i = 0; i < wSize; ++i)
-            if (W[i] != 0) mapW->insert({i, W[i]});
-        delete[] W;
-        W = nullptr;
+        forEachIW([&](const int& i, Weight& w) {
+            if (w != 0) tmpMapW->insert({i, w});
+        });
+
+        clearW();
+        mapW = tmpMapW;
     }
 
     if (mapG == nullptr && G != nullptr) {
-        mapG = new UnorderedMap<int, Weight>();
+        auto tmpMapG = new UnorderedMap<int, Weight>();
 
-        for (int i = 0; i < wSize; ++i)
-            if (G[i] != 0) mapG->insert({i, W[i]});
-        delete[] G;
-        G = nullptr;
+        forEachIG([&](const int& i, Weight& w) {
+            if (w != 0) tmpMapG->insert({i, w});
+        });
+
+        clearG();
+        mapG = tmpMapG;
     }
 }
 
 void Base::toDense() {
     if (W == nullptr) {
-        W = new Weight[wSize];
-        std::memset(W, 0, wSize * sizeof(Weight));
-        assert(mapW != nullptr);
-        for (const auto& w : *mapW) W[w.first] = w.second;
-        delete mapW;
-        mapW = nullptr;
+        auto tmpW = new Weight[wSize];
+        std::memset(tmpW, 0, wSize * sizeof(Weight));
+
+        forEachIW([&](const int& i, Weight& w) {
+            if (w != 0 && i < wSize) tmpW[i] = w;
+        });
+
+        clearW();
+        W = tmpW;
     }
 
     if (G == nullptr && mapG != nullptr) {
-        G = new Weight[wSize];
-        std::memset(G, 0, wSize * sizeof(Weight));
+        auto tmpG = new Weight[wSize];
+        std::memset(tmpG, 0, wSize * sizeof(Weight));
 
-        for (const auto& w : *mapG) G[w.first] = w.second;
-        delete mapG;
-        mapG = nullptr;
+        forEachIG([&](const int& i, Weight& w) {
+            if (w != 0 && i < wSize) tmpG[i] = w;
+        });
+
+        clearG();
+        G = tmpG;
     }
 }
 

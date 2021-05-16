@@ -89,6 +89,7 @@ public:
 
     void clear();
     void clearW();
+    void clearG();
     void toMap();    // From dense weights (W) to sparse weights in hashmap (mapW)
     void toDense();  // From sparse weights (sparseW or mapW) to dense weights (W)
     void toSparse(); // From dense (W) to sparse weights (sparseW)

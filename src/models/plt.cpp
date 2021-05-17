@@ -262,16 +262,20 @@ void PLT::setNodeWeight(TreeNode* n){
 
 void PLT::setThresholds(std::vector<double> th){
     Model::setThresholds(th);
-    calculateNodesLabels();
-    if(tree->t != nodesThr.size()) nodesThr.resize(tree->t);
-    for(auto& n : tree->nodes) setNodeThreshold(n);
+    if(tree) {
+        calculateNodesLabels();
+        if (tree->t != nodesThr.size()) nodesThr.resize(tree->t);
+        for (auto& n : tree->nodes) setNodeThreshold(n);
+    }
 }
 
 void PLT::setLabelsWeights(std::vector<double> lw){
     Model::setLabelsWeights(lw);
-    calculateNodesLabels();
-    if(tree->t != nodesWeights.size()) nodesWeights.resize(tree->t);
-    for(auto& n : tree->nodes) setNodeWeight(n);
+    if(tree) {
+        calculateNodesLabels();
+        if (tree->t != nodesWeights.size()) nodesWeights.resize(tree->t);
+        for (auto& n : tree->nodes) setNodeWeight(n);
+    }
 }
 
 void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
@@ -362,8 +366,6 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     treeSize = tree->nodes.size();
     treeDepth = tree->getTreeDepth();
     assert(treeSize == tree->t);
-    delete tree;
-    tree = nullptr;
 
     // Train bases
     std::vector<ProblemData> binProblemData;
@@ -374,9 +376,10 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
 
     for (auto &pb: binProblemData) {
         pb.r = features.rows();
-        double freq = std::count(pb.binLabels.begin(), pb.binLabels.end(), 1.0);
-        double C = (std::log(pb.binFeatures.size()) - 1) * std::pow(args.psB + 1, args.psA);
-        pb.invPs = 1 + C * std::pow(freq + args.psB, -args.psA);
+        pb.invPs = 1;
     }
+
+    delete tree;
+    tree = nullptr;
     trainBases(joinPath(output, "weights.bin"), binProblemData, args);
 }

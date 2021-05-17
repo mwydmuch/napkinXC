@@ -156,11 +156,19 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
         lossFunc = &logisticLoss;
         gradFunc = &logisticGrad;
     }
-    else if (args.lossType == squaredHinge)
+    else if (args.lossType == squaredHinge) {
         gradFunc = &squaredHingeGrad;
+        hingeLoss = true;
+    }
+    else if (args.lossType == unLogistic) {
+        lossFunc = &unbiasedLogisticLoss;
+        gradFunc = &unbiasedLogisticGrad;
+    }
     else if (args.lossType == pwLogistic) {
         lossFunc = &pwLogisticLoss;
         gradFunc = &pwLogisticGrad;
+        //lossFunc = &asLoss;
+        //gradFunc = &asGrad;
     }
     else
         throw std::invalid_argument("Unknown loss function type");
@@ -187,13 +195,14 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
             double pred = dotVectors(features, W, wSize);
+            //if (pred > 6.5 || pred < -6.5) continue;
             double grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
-            updateFunc(W, G, features, grad, t, args);
+            if (!std::isinf(grad) && !isnan(grad)) updateFunc(W, G, features, grad, t, args);
 
             // Report loss
 //            loss += lossFunc(label, pred, problemData.invPs);
 //            int iter = e * examples + r;
-//            if(iter % 10000 == 9999)
+//            if(iter % 1000 == 999)
 //                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";
         }
 
@@ -238,6 +247,8 @@ void Base::train(ProblemData& problemData, Args& args) {
 
     if (args.optimizerType == liblinear) trainLiblinear(problemData, args);
     else trainOnline(problemData, args);
+
+    // TODO?: Calculate final training loss
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);

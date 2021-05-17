@@ -50,7 +50,7 @@ double ExtremeText::updateNode(TreeNode* node, double label, Vector<XTWeight>& h
     double val = dotVectors(outputW[i], hidden);
     double pred = sigmoid(dotVectors(outputW[i], hidden));
     double grad = label - pred;
-    Log(COUT) << val << " " << pred << " " << grad << "\n";
+    //Log(COUT) << val << " " << pred << " " << grad << "\n";
 
     for(int j = 0; j < dims; ++j){
         gradient[j] += lr * (grad * outputW[i][j] - l2 * gradient[j]);

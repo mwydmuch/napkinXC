@@ -214,7 +214,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     modelType = svbopHf;
                 else if (args.at(ai + 1) == "oplt")
                     modelType = oplt;
-                else if (args.at(ai + 1) == "extremeText")
+                else if (args.at(ai + 1) == "xt" || args.at(ai + 1) == "extremeText")
                     modelType = extremeText;
                 else if (args.at(ai + 1) == "mach")
                     modelType = mach;
@@ -301,8 +301,10 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     lossType = logistic;
                 else if (args.at(ai + 1) == "squaredHinge" || args.at(ai + 1) == "l2")
                     lossType = squaredHinge;
-                else if (args.at(ai + 1) == "pwLogistc" || args.at(ai + 1) == "pwLog")
+                else if (args.at(ai + 1) == "pwLogistic" || args.at(ai + 1) == "pwLog")
                     lossType = pwLogistic;
+                else if (args.at(ai + 1) == "unLogistic" || args.at(ai + 1) == "unLog")
+                    lossType = unLogistic;
                 else
                     throw std::invalid_argument("Unknown loss type: " + args.at(ai + 1));
             }
@@ -334,7 +336,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     optimizerType = adagrad;
                 else
                     throw std::invalid_argument("Unknown optimizer type: " + args.at(ai + 1));
-            } else if (args[ai] == "-l" || args[ai] == "--lr" || args[ai] == "--eta")
+            } else if (args[ai] == "-l" || args[ai] == "--lr" || args[ai] == "--learningRate" || args[ai] == "--eta")
                 eta = std::stof(args.at(ai + 1));
             else if (args[ai] == "--epochs")
                 epochs = std::stoi(args.at(ai + 1));

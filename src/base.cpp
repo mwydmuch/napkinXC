@@ -195,9 +195,9 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
             double pred = dotVectors(features, W, wSize);
-            //if (pred > 6.5 || pred < -6.5) continue;
+            //if (pred > 10 || pred < -10) continue;
             double grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
-            if (!std::isinf(grad) && !isnan(grad)) updateFunc(W, G, features, grad, t, args);
+            if (!std::isinf(grad) && !std::isnan(grad)) updateFunc(W, G, features, grad, t, args);
 
             // Report loss
 //            loss += lossFunc(label, pred, problemData.invPs);

@@ -23,6 +23,7 @@ Datasets
     datasets.download_dataset
     datasets.load_dataset
     datasets.load_libsvm_file
+    datasets.to_csr_matrix
 
 Measures
 --------

@@ -164,7 +164,7 @@ DATASETS = {
             'file_format': 'libsvm',
         }
     },
-    'amazontitles-3M': {
+    'amazontitles-3m': {
         'name': 'AmazonTitles-3M',
         'formats': ['bow'],
         'subsets': ['train', 'test'],
@@ -297,7 +297,9 @@ def download_dataset(dataset, subset='train', format='bow', root='./data', verbo
         - ``'WikiSeeAlsoTitles-350K'``,
         - ``'WikiTitles-500K'``,
         - ``'WikipediaLarge-500K'`` (alias: ``'WikipediaLarge'``),
+        - ``'AmazonTitles-670K'``,
         - ``'Amazon-670K'``,
+        - ``'AmazonTitles-3M'``,
         - ``'Amazon-3M'``,
         - ``'LF-AmazonTitles-131K'``,
         - ``'LF-Amazon-131K'``,
@@ -346,7 +348,9 @@ def load_dataset(dataset, subset='train', format='bow', root='./data', verbose=F
         - ``'WikiSeeAlsoTitles-350K'``,
         - ``'WikiTitles-500K'``,
         - ``'WikipediaLarge-500K'`` (alias: ``'WikipediaLarge'``),
+        - ``'AmazonTitles-670K'``,
         - ``'Amazon-670K'``,
+        - ``'AmazonTitles-3M'``,
         - ``'Amazon-3M'``,
         - ``'LF-AmazonTitles-131K'``,
         - ``'LF-Amazon-131K'``,
@@ -386,12 +390,12 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
 
     :param X: Matrix-like object to convert to csr_matrix: ndarray or list of lists of ints or tuples of ints and floats (idx, value).
     :type X: ndarray, list[list[int|str]], list[list[tuple[int, float]]
-    :param shape:
-    :type shape:
-    :param sort_indices:
-    :type sort_indices:
-    :param dtype:
-    :type dtype:
+    :param shape: Shape of the matrix, if None, shape will be deduce from X, defaults to None
+    :type shape: tuple, optional
+    :param sort_indices: Sort rows' data by indices (idx), defaults to False
+    :type sort_indices: bool, optional
+    :param dtype: Data type of the matrix, defaults to np.float32
+    :type dtype: type, optional
     :return: X as csr_matrix.
     :rtype: csr_matrix
     """

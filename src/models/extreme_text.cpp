@@ -47,8 +47,8 @@ double ExtremeText::updateNode(TreeNode* node, double label, Vector<XTWeight>& h
     size_t i = node->index;
 
     //double pred = 1.0 / (1.0 + std::exp(-dotVectors(outputW[i], hidden)));
-    double val = dotVectors(outputW[i], hidden);
-    double pred = sigmoid(dotVectors(outputW[i], hidden));
+    double val = outputW[i].dot(hidden);
+    double pred = sigmoid(val);
     double grad = label - pred;
     Log(COUT) << val << " " << pred << " " << grad << "\n";
 
@@ -64,12 +64,12 @@ double ExtremeText::update(double lr, Feature* features, Label* labels, int rSiz
 
     // Compute hidden
     double valuesSum = 0;
-    Vector<XTWeight> hidden(dims, 0);
+    Vector<XTWeight> hidden(dims);
     for(Feature* f = features; f->index != -1; ++f){
         valuesSum += f->value;
-        addVector(inputW[f->index], f->value, hidden);
+        inputW[f->index].add(hidden, f->value);
     }
-    divVector(hidden, valuesSum);
+    hidden.div(valuesSum);
 
     // Gather nodes to update
     UnorderedSet<TreeNode*> nPositive;
@@ -78,7 +78,7 @@ double ExtremeText::update(double lr, Feature* features, Label* labels, int rSiz
     getNodesToUpdate(nPositive, nNegative, labels, rSize);
 
     // Compute gradient
-    Vector<XTWeight> gradient(dims, 0);
+    Vector<XTWeight> gradient(dims);
     //double lr = 0.5 * args.eta * std::sqrt(1.0 / ++t);
     double loss = 0.0;
     for (auto &n : nPositive)
@@ -88,9 +88,9 @@ double ExtremeText::update(double lr, Feature* features, Label* labels, int rSiz
         loss += updateNode(n, 0.0, hidden, gradient, lr, args.l2Penalty);
 
     // Update input weights
-    divVector(gradient, valuesSum);
+    gradient.div(valuesSum);
     for(Feature* f = features; f->index != -1; ++f)
-        addVector(gradient, f->value, inputW[f->index]);
+        gradient.add( inputW[f->index], f->value);
 
     return loss;
 }

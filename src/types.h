@@ -31,8 +31,13 @@
 #include <queue>
 
 #include "log.h"
+//#include "misc.h"
 #include "linear.h"
 #include "robin_hood.h"
+
+
+template <typename T> void saveVar(std::ostream& out, T& var);
+template <typename T> void loadVar(std::istream& in, T& var);
 
 
 typedef float Weight;
@@ -158,104 +163,391 @@ private:
     int k;
 };
 
-//// Abstract vector type
-//template <typename T> class AbstractVector {
-//public:
-//    virtual AbstractVector();
-//    virtual ~AbstractVector();
-//
-//    void save(std::ostream& out) const;
-//    void load(std::istream& in);
-//
-//private:
-//    size_t s;   // Size
-//};
-
-// Simple dense vector
-template <typename T> class Vector {
+// Abstract vector type
+template <typename T> class AbstractVector {
 public:
-    Vector();
-    Vector(size_t s);
-    Vector(size_t s, T v);
-    ~Vector();
+    // Constructors
+    AbstractVector(): s(0), n0(0){ };
+    AbstractVector(size_t s): s(s), n0(0) { };
 
-    Vector<T>& operator=(Vector<T> v){
-        if (this == &v) return *this;
-        v.s = s;
-        v.d = new T[s];
-        std::copy(d, d + s, v.d);
-        return *this;
-    }
+    AbstractVector(const AbstractVector<T>& vec){
+        s = vec.s;
+        n0 = vec.n0;
+    };
 
-    void resize(size_t newS);
+    virtual ~AbstractVector(){ };
 
-    // Returns data as T*
-    inline T* data() { return d; }
+    // Required to override
+    virtual void initD() = 0;
+    virtual void clearD() = 0;
+    virtual void insertD(int i, T v) = 0;
 
-    // Access row also by [] operator
-    inline T& operator[](const int index) { return d[index]; }
-    inline const T& operator[](const int index) const { return d[index]; }
+    virtual AbstractVector<T>* copy() = 0;
+    virtual void resize(size_t newS) {
+        s = newS;
+    };
+    virtual void reserve(size_t maxN0) {};
 
-    // Returns single row size
-    inline int size() const { return s; }
-    inline unsigned long long mem() { return s * sizeof(T); }
+    virtual inline T at(int index) const = 0;
 
-    friend std::ostream& operator<<(std::ostream& os, const Vector& v) {
-        os << "[ ";
-        for (int i = 0; i < v.s; ++i) {
-            if (i != 0) os << ", ";
-            os << v.d[i];
+    virtual inline T& operator[](int index) = 0;
+    virtual inline const T& operator[](int index) const = 0;
+    virtual void forEachD(const std::function<void(T&)>& func) = 0;
+    virtual void forEachD(const std::function<void(T&)>& func) const = 0;
+    virtual void forEachID(const std::function<void(const int&, T&)>& func) = 0;
+    virtual void forEachID(const std::function<void(const int&, T&)>& func) const = 0;
+
+    virtual unsigned long long mem() const = 0;
+
+    // Basic math operations
+    T dot(AbstractVector<T>& vec) const{
+        T val = 0;
+        vec.forEachID([&](const int& i, T& v) { val += v * at(i); });
+        return val;
+    };
+
+    T dot(Feature* vec) const {
+        T val = 0;
+        for(Feature* f = vec; f->index != -1; ++f) val += f->value * at(f->index);
+        return val;
+    };
+
+    void mul(T scalar){
+        forEachD([&](T& v) { v *= scalar; });
+    };
+
+    void div(T scalar){
+        forEachD([&](T& v) { v /= scalar; });
+    };
+
+    void add(T scalar){
+        forEachD([&](T& v) { v += scalar; });
+    };
+
+    void add(AbstractVector& vec){
+        vec.forEachID([&](const int& i, T& v) { (*this)[i] += v; });
+    };
+
+    void add(AbstractVector& vec, T scalar){
+        vec.forEachID([&](const int& i, T& v) { (*this)[i] += scalar * v; });
+    };
+
+    void invert() {
+        forEachD([&](T& w) { w *= -1; });
+    };
+
+    inline size_t size() const { return s; }
+    inline size_t nonZero() const { return n0; }
+    size_t sparseMem() const { return n0 * (sizeof(int) + sizeof(T)); };
+    size_t denseMem() const { return s * sizeof(T); };
+
+    virtual void save(std::ostream& out) const {
+        bool sparse = sparseMem() < denseMem() || s == 0;
+        saveVar(out, sparse);
+        saveVar(out, s);
+        saveVar(out, n0);
+
+        if(sparse) forEachID([&](const int& i, T& v) {
+                saveVar(out, i);
+                saveVar(out, v);
+            });
+        else {
+            for (int i = 0; i < s; ++i) {
+                T v = at(i);
+                saveVar(out, v);
+            }
         }
-        os << " ]";
-        return os;
-    }
+    };
 
-    void save(std::ostream& out) const;
-    void load(std::istream& in);
-private:
-    size_t s;   // Size
-    T* d;       // Data
+    virtual void load(std::istream& in) {
+        bool sparse;
+        loadVar(in, sparse);
+        loadVar(in, s);
+        loadVar(in, n0);
+
+        clearD();
+        initD();
+        reserve(n0);
+
+        int index;
+        T value;
+        if(sparse) {
+            for (int i = 0; i < n0; ++i) {
+                loadVar(in, index);
+                loadVar(in, value);
+                insertD(index, value);
+            }
+        } else {
+            for (int i = 0; i < s; ++i) {
+                loadVar(in, value);
+                if(value != 0) insertD(i, value);
+            }
+        }
+    };
+
+    static void skipLoad(std::istream& in){
+        bool sparse;
+        size_t s, maxN0, n0;
+        loadVar(in, sparse);
+        loadVar(in, s);
+        loadVar(in, n0);
+        if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(Weight)), std::ios::cur);
+        else in.seekg(s * sizeof(Weight), std::ios::cur);
+    };
+
+protected:
+    size_t s;       // size
+    size_t n0;      // non-zero elements
 };
 
-template <typename T> Vector<T>::Vector() {
-    s = 0;
-    d = nullptr;
-}
+template <typename T> class SparseVector: public AbstractVector<T> {
+    using AbstractVector<T>::s;
+    using AbstractVector<T>::n0;
 
-template <typename T> Vector<T>::Vector(size_t s): s(s) {
-    d = new T[s];
-}
-
-template <typename T> Vector<T>::Vector(size_t s, T v): s(s) {
-    d = new T[s];
-    std::fill(d, d + s, v);
-}
-
-template <typename T> Vector<T>::~Vector(){
-    delete[] d;
-}
-
-template <typename T> void Vector<T>::resize(size_t newS){
-    T* newD = new T[newS];
-    if(d != nullptr){
-        std::copy(d, d + s, newD);
-        delete[] d;
+public:
+    SparseVector(): AbstractVector<T>() { initD(); };
+    SparseVector(size_t s): AbstractVector<T>(s) { initD(); };
+    SparseVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+        initD();
+        vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
+    };
+    ~SparseVector(){
+        clearD();
     }
-    s = newS;
-    d = newD;
-}
 
-template <typename T> void Vector<T>::save(std::ostream& out) const {
-    out.write((char*)&s, sizeof(s));
-    out.write((char*)d, s * sizeof(T));
-}
+    void initD() override {
+        maxN0 = 0;
+    }
 
-template <typename T> void Vector<T>::load(std::istream& in){
-    in.read((char*)&s, sizeof(s));
-    delete[] d;
-    d = new T[s];
-    in.read((char*)d, s * sizeof(T));
-}
+    void clearD() override {
+        delete[] d;
+        d = nullptr;
+    }
+
+    void insertD(int i, T v) override {
+        d[n0++] = {i, v};
+        d[n0].first = -1;
+    }
+
+    AbstractVector<T>* copy() override {
+        auto newVec = new SparseVector<T>(*this);
+        return static_cast<AbstractVector<T>*>(newVec);
+    };
+
+    void reserve(size_t maxN0) override {
+        auto newD = new std::pair<int, T>[maxN0 + 1]();
+        if(d != nullptr){
+            std::copy(d, d + std::min(this->maxN0, maxN0), newD);
+            delete[] d;
+        }
+        d = newD;
+        n0 = std::min(this->maxN0, maxN0);
+        this->maxN0 = maxN0;
+        d[n0 + 1].first = -1;
+    };
+
+    inline T at(int index) const override {
+        auto p = d;
+        while(p->first != -1 && p->first !=index) ++p;
+        if(p->first == -1) return 0;
+        else return p->second;
+    };
+
+    inline T& operator[](int index) override {
+        auto p = d;
+        while(p->first != -1 && p->first !=index) ++p;
+        return p->second;
+    };
+    inline const T& operator[](int index) const override {
+        auto p = d;
+        while(p->first != -1 && p->first !=index) ++p;
+        return p->second;
+    };
+
+    void forEachD(const std::function<void(T&)>& func) override {
+        int i = 0;
+        while(d[i].first != -1) func(d[i++].second);
+    };
+
+    void forEachD(const std::function<void(T&)>& func) const override {
+        int i = 0;
+        while(d[i].first != -1) func(d[i++].second);
+    };
+
+    void forEachID(const std::function<void(const int&, T&)>& func) override {
+        int i = 0;
+        while(d[i].first != -1) func(d[i].first, d[i++].second);
+    };
+
+    void forEachID(const std::function<void(const int&, T&)>& func) const override {
+        int i = 0;
+        while(d[i].first != -1) func(d[i].first, d[i++].second);
+    };
+
+    unsigned long long mem() const override { return n0 * (sizeof(int) + sizeof(T)); };
+
+
+protected:
+    size_t maxN0;
+    std::pair<int, T>* d; // data
+};
+
+
+template <typename T> class MapVector: public AbstractVector<T> {
+    using AbstractVector<T>::s;
+    using AbstractVector<T>::n0;
+
+public:
+    MapVector(): AbstractVector<T>() { initD(); };
+    MapVector(size_t s): AbstractVector<T>(s) { initD(); };
+    MapVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+        initD();
+        vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
+    };
+    ~MapVector(){
+        clearD();
+    }
+
+    void initD() override {
+        d = new UnorderedMap<int, T>();
+    };
+
+    void clearD() override {
+        delete d;
+        d = nullptr;
+    };
+
+    void insertD(int i, T v) override {
+        d->emplace(i, v);
+        n0 = d->size();
+    };
+
+    AbstractVector<T>* copy() override {
+        auto newVec = new MapVector<T>(*this);
+        return static_cast<AbstractVector<T>*>(newVec);
+    };
+
+    void reserve(size_t maxN0) override {
+        d->reserve(maxN0);
+    };
+
+    inline T at(int index) const override {
+        auto v = d->find(index);
+        if (v != d->end()) return v->second;
+        else return 0;
+    };
+    inline T& operator[](int index) override { return (*d)[index]; }
+    inline const T& operator[](int index) const override { return (*d)[index]; };
+
+    void forEachD(const std::function<void(T&)>& func) override {
+        for (auto& c : *d) func(c.second);
+    };
+
+    void forEachD(const std::function<void(T&)>& func) const override {
+        for (auto& c : *d) func(c.second);
+    };
+
+    void forEachID(const std::function<void(const int&, T&)>& func) override {
+        for (auto& c : *d) func(c.first, c.second);
+    };
+
+    void forEachID(const std::function<void(const int&, T&)>& func) const override {
+        for (auto& c : *d) func(c.first, c.second);
+    };
+
+    unsigned long long mem() const override { return n0 * (sizeof(int) + sizeof(T)); };
+
+protected:
+    UnorderedMap<int, T>* d; // data
+};
+
+
+
+// Simple dense vector
+template <typename T> class Vector: public AbstractVector<T> {
+    using AbstractVector<T>::s;
+    using AbstractVector<T>::n0;
+
+public:
+    Vector(): AbstractVector<T>() { initD(); };
+    Vector(size_t s): AbstractVector<T>(s) { initD(); };
+    Vector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+        initD();
+        vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
+    };
+    ~Vector(){
+        clearD();
+    }
+
+    void initD() override {
+        d = new T[s]();
+    };
+
+    void clearD() override {
+        delete[] d;
+        d = nullptr;
+    };
+
+    void insertD(int i, T v) override {
+        if(d[i] == 0 && v != 0) ++n0;
+        d[i] = v;
+    };
+
+    AbstractVector<T>* copy() override {
+        auto newVec = new Vector<T>(*this);
+        return static_cast<AbstractVector<T>*>(newVec);
+    };
+
+    void resize(size_t newS) override {
+        auto newD = new T[newS]();
+        if(d != nullptr){
+            std::copy(d, d + std::min(s, newS), newD);
+            delete[] d;
+        }
+        s = newS;
+        d = newD;
+    };
+
+    // Access row also by [] operator
+    inline T at(int index) const override {
+        if(index < s) return d[index];
+        else return 0;
+    };
+
+    inline T& operator[](int index) { return d[index]; }
+    inline const T& operator[](int index) const { return d[index]; }
+
+    void forEachD(const std::function<void(T&)>& func) override {
+        for(int i = 0; i < s; ++i) if(d[i] != 0) func(d[i]);
+    };
+
+    void forEachD(const std::function<void(T&)>& func) const override {
+        for(int i = 0; i < s; ++i) if(d[i] != 0) func(d[i]);
+    };
+
+    void forEachID(const std::function<void(const int&, T&)>& func) override {
+        for(int i = 0; i < s; ++i) if(d[i] != 0) func(i, d[i]);
+    };
+
+    void forEachID(const std::function<void(const int&, T&)>& func) const override {
+        for(int i = 0; i < s; ++i) if(d[i] != 0) func(i, d[i]);
+    };
+
+    unsigned long long mem() const override { return s * sizeof(T); };
+
+//    friend std::ostream& operator<<(std::ostream& os, const Vector& v) {
+//        os << "[ ";
+//        for (int i = 0; i < v.s; ++i) {
+//            if (i != 0) os << ", ";
+//            os << v.d[i];
+//        }
+//        os << " ]";
+//        return os;
+//    };
+
+protected:
+    T* d; // data
+};
 
 
 // Simple dense matrix
@@ -265,8 +557,8 @@ public:
     Matrix(size_t m, size_t n);
 
     // Access row also by [] operator
-    inline Vector<T>& operator[](const int index) { return r[index]; }
-    inline const Vector<T>& operator[](const int index) const { return r[index]; }
+    inline Vector<T>& operator[](int index) { return r[index]; }
+    inline const Vector<T>& operator[](int index) const { return r[index]; }
 
     // Returns size of matrix
     inline int rows() const { return m; }
@@ -315,26 +607,26 @@ public:
     inline void appendRow(const std::vector<T>& row);
     void appendRow(const T* row, const int size);
 
-    inline void replaceRow(const int index, const std::vector<T>& row);
-    void replaceRow(const int index, const T* row, const int size);
+    inline void replaceRow(int index, const std::vector<T>& row);
+    void replaceRow(int index, const T* row, const int size);
     
-    void appendToRow(const int index, const std::vector<T>& row);
-    void appendToRow(const int index, const T* data, const int size = 1);
+    void appendToRow(int index, const std::vector<T>& row);
+    void appendToRow(int index, const T* data, const int size = 1);
 
     // Returns data as T**
     inline T** data() { return r.data(); }
     // inline const T** data() const { return r.data(); }
 
     // Returns row as T*
-    // inline T* row(const int index) { return r[index]; }
-    inline T* row(const int index) const { return r[index]; }
+    // inline T* row(int index) { return r[index]; }
+    inline T* row(int index) const { return r[index]; }
 
     // Returns std::vector<T*>&
     inline std::vector<T*>& allRows() { return r; }
 
     // Access row also by [] operator
-    inline T* operator[](const int index) { return r[index]; }
-    inline const T* operator[](const int index) const { return r[index]; }
+    inline T* operator[](int index) { return r[index]; }
+    inline const T* operator[](int index) const { return r[index]; }
 
     // Compare matrices with == operator
     inline bool operator==(const SRMatrix<T>& rm){
@@ -359,7 +651,7 @@ public:
     inline std::vector<int>& allSizes() { return s; }
 
     // Returns single row size
-    inline int size(const int index) const { return s[index]; }
+    inline int size(int index) const { return s[index]; }
 
     // Returns size of matrix
     inline int rows() const { return m; }
@@ -421,11 +713,11 @@ template <typename T> void SRMatrix<T>::appendRow(const T* row, const int size) 
 }
 
 // Data should be sorted
-template <typename T> inline void SRMatrix<T>::replaceRow(const int index, const std::vector<T>& row) {
+template <typename T> inline void SRMatrix<T>::replaceRow(int index, const std::vector<T>& row) {
     replaceRow(index, row.data(), row.size());
 }
 
-template <typename T> void SRMatrix<T>::replaceRow(const int index, const T* row, const int size) {
+template <typename T> void SRMatrix<T>::replaceRow(int index, const T* row, const int size) {
     c += size - s[index];
     s[index] = size;
     delete[] r[index];
@@ -433,11 +725,11 @@ template <typename T> void SRMatrix<T>::replaceRow(const int index, const T* row
     updateN(row, size);
 }
 
-template <typename T> inline void SRMatrix<T>::appendToRow(const int index, const std::vector<T>& data) {
+template <typename T> inline void SRMatrix<T>::appendToRow(int index, const std::vector<T>& data) {
     appendToRow(index, data.data(), data.size());
 }
 
-template <typename T> inline void SRMatrix<T>::appendToRow(const int index, const T* data, const int size) {
+template <typename T> inline void SRMatrix<T>::appendToRow(int index, const T* data, const int size) {
     int rSize = s[index];
     T* newRow = new T[s[index] + size + 1];
     std::memcpy(newRow, r[index], rSize * sizeof(T));

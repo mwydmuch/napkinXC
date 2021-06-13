@@ -40,8 +40,7 @@ Args::Args() {
     memLimit = getSystemMemory();
     saveGrads = false;
     resume = false;
-    loadDense = false;
-    loadDenseTop = 15;
+    loadAs = map;
 
     // Input/output options
     input = "";
@@ -183,11 +182,15 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 saveGrads = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--resume")
                 resume = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--loadDense")
-                loadDense = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--loadDenseTop")
-                loadDenseTop = std::stoi(args.at(ai + 1));
-
+            else if (args[ai] == "--loadAs") {
+                representationName = args.at(ai + 1);
+                if (args.at(ai + 1) == "dense")
+                    loadAs = dense;
+                else if (args.at(ai + 1) == "map")
+                    loadAs = map;
+                else if (args.at(ai + 1) == "sparse")
+                    loadAs = sparse;
+            }
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
                 input = std::string(args.at(ai + 1));
@@ -513,6 +516,7 @@ void Args::printArgs(std::string command) {
     if (ensemble > 1) Log(CERR) << ", ensemble: " << ensemble;
 
     if (command == "train") {
+        // Base binary models related
         Log(CERR) << "\n  Base models optimizer: " << optimizerName;
         if (optimizerType == liblinear)
             Log(CERR) << "\n    Solver: " << solverName << ", eps: " << eps << ", cost: " << cost << ", max iter: " << maxIter;
@@ -521,6 +525,7 @@ void Args::printArgs(std::string command) {
         if (optimizerType == adagrad) Log(CERR) << ", AdaGrad eps " << adagradEps;
         Log(CERR) << ", weights threshold: " << weightsThreshold;
 
+        // Tree related
         if (modelType == plt || modelType == hsm || modelType == oplt || modelType == svbopHf) {
             if (treeStructure.empty()) {
                 Log(CERR) << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
@@ -541,13 +546,20 @@ void Args::printArgs(std::string command) {
     if(!labelsWeights.empty()) Log(CERR) << "\n  Label weights: " << labelsWeights;
 
     if (command == "test" || command == "predict") {
+        if (modelType == plt || modelType == hsm || modelType == oplt || modelType == svbopHf) {
+            Log(CERR) << "\n  Tree search type: " << treeSearchName;
+            if(treeSearchType == beam && threshold <= 0 && thresholds.empty())
+                Log(CERR) << ", beam search width: " << beamSearchWidth;
+        }
+
         if(thresholds.empty()) Log(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
         else Log(CERR) << "\n  Thresholds: " << thresholds;
-        if(!labelsWeights.empty()) Log(CERR) << "\n  Labels' weights: " << labelsWeights;
+
         if (modelType == svbopMips || modelType == brMips) {
             Log(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
             if(modelType == svbopMips) Log(CERR) << ", k: " << svbopMipsK;
         }
+
         if (modelType == svbopFull || modelType == svbopHf || modelType == svbopMips) {
             Log(CERR) << "\n  Set utility: " << setUtilityName;
             if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) Log(CERR) << ", alpha: " << alpha;

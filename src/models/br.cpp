@@ -151,7 +151,7 @@ double BR::predictForLabel(Label label, Feature* features, Args& args) {
 
 void BR::load(Args& args, std::string infile) {
     Log(CERR) << "Loading weights ...\n";
-    bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadDense);
+    bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadAs);
     m = bases.size();
 
     loaded = true;

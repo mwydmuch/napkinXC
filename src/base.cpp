@@ -45,9 +45,6 @@ Base::Base() {
 
     W = nullptr;
     G = nullptr;
-    mapW = nullptr;
-    mapG = nullptr;
-    sparseW = nullptr;
 }
 
 Base::Base(Args& args): Base(){
@@ -76,17 +73,10 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     else
         grad = squaredHingeGrad(label, pred, 0);
 
-    if (args.optimizerType == sgd) {
-        if (mapW != nullptr)
-            updateSGD((*mapW), (*mapG), features, grad, t, args);
-        else if (W != nullptr)
-            updateSGD(W, G, features, grad, t, args);
-    } else if (args.optimizerType == adagrad) {
-        if (mapW != nullptr)
-            updateAdaGrad((*mapW), (*mapG), features, grad, t, args);
-        else if (W != nullptr)
-            updateAdaGrad(W, G, features, grad, t, args);
-    }
+    if (args.optimizerType == sgd)
+        updateSGD(W, G, features, grad, t, args);
+    else if (args.optimizerType == adagrad)
+        updateAdaGrad(W, G, features, grad, t, args);
     else throw std::invalid_argument("Unknown optimizer type");
 
     // Check if we should change sparse W to dense W
@@ -134,9 +124,8 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
     classCount = M->nr_class;
 
     // Copy weights
-    W = new Weight[wSize];
-    W[0] = 0;
-    for (int i = 0; i < problemData.n; ++i) W[i + 1] = M->w[i]; // Shift by -1
+    W = new Vector<Weight>((size_t)wSize);
+    for (int i = 0; i < problemData.n; ++i) W->insertD(i + 1, M->w[i]); // Shift by -1
 
     hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
                 args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
@@ -166,11 +155,11 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
         throw std::invalid_argument("Unknown loss function type");
 
     // Set update function
-    void (*updateFunc)(Weight*&, Weight*&, Feature*, double, int, Args&);
+    void (*updateFunc)(AbstractVector<Weight>*, AbstractVector<Weight>*, Feature*, double, int, Args&);
     if(args.optimizerType == sgd)
-        updateFunc = &updateSGD<Weight*>;
+        updateFunc = &updateSGD;
     else if (args.optimizerType == adagrad)
-        updateFunc = &updateAdaGrad<Weight*>;
+        updateFunc = &updateAdaGrad;
     else
         throw std::invalid_argument("Unknown online update function type");
 
@@ -186,7 +175,7 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             ++t;
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
-            double pred = dotVectors(features, W, wSize);
+            double pred = W->dot(features);
             double grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
             updateFunc(W, G, features, grad, t, args);
 
@@ -241,7 +230,7 @@ void Base::train(ProblemData& problemData, Args& args) {
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
-    if (sparseSize(nonZeroW) < denseSize(wSize)) toSparse();
+    //if(W->sparseMem() < W->denseMem()) W = new SparseVector<Weight>(*W);
 
     delete[] problemData.labels;
     delete[] problemData.labelsWeights;
@@ -250,15 +239,11 @@ void Base::train(ProblemData& problemData, Args& args) {
 void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
     wSize = n;
     if (wSize != 0 && startWithDenseW) {
-        W = new Weight[wSize];
-        std::memset(W, 0, wSize * sizeof(Weight));
-        if (args.optimizerType == adagrad) {
-            G = new Weight[wSize];
-            std::memset(G, 0, wSize * sizeof(Weight));
-        }
+        W = new Vector<Weight>(wSize);
+        if (args.optimizerType == adagrad) G = new Vector<Weight>(wSize);
     } else {
-        mapW = new UnorderedMap<int, Weight>();
-        if (args.optimizerType == adagrad) mapG = new UnorderedMap<int, Weight>();
+        W = new MapVector<Weight>(wSize);
+        if (args.optimizerType == adagrad) G = new MapVector<Weight>(wSize);
     }
 
     classCount = 2;
@@ -274,30 +259,14 @@ void Base::finalizeOnlineTraining(Args& args) {
         if (firstClassCount == 0) firstClass = 1 - firstClass;
     }
     */
-    if(mapW != nullptr)
-        nonZeroW = mapW->size();
-    else
-        nonZeroW = wSize;
+    nonZeroW = W->nonZero();
     nonZeroG = nonZeroW;
     pruneWeights(args.weightsThreshold);
 }
 
 double Base::predictValue(Feature* features) {
     if (classCount < 2) return static_cast<double>((1 - 2 * firstClass) * -10);
-    double val = 0;
-
-    if (mapW) { // Sparse features dot sparse weights in hash map
-        Feature* f = features;
-        while (f->index != -1) {
-            auto w = mapW->find(f->index);
-            if (w != mapW->end()) val += w->second * f->value;
-            ++f;
-        }
-    } else if (W)
-        val = dotVectors(features, W, wSize); // Sparse features dot dense weights
-    else
-        throw std::runtime_error("Prediction using sparse features and sparse weights is not supported!");
-
+    double val = W->dot(features);
     if (firstClass == 0) val *= -1;
 
     return val;
@@ -312,43 +281,6 @@ double Base::predictProbability(Feature* features) {
         val = 1.0 / (1.0 + std::exp(-val)); // Probability
     return val;
 }
-
-void Base::forEachW(const std::function<void(Weight&)>& func) {
-    if (W != nullptr)
-        for (int i = 0; i < wSize; ++i) func(W[i]);
-    else if (mapW != nullptr)
-        for (auto& w : *mapW) func(w.second);
-    else if (sparseW != nullptr)
-        for (int i = 0; i < nonZeroW; ++i) func(sparseW[i].second);
-}
-
-void Base::forEachG(const std::function<void(Weight&)>& func) {
-    if (G != nullptr)
-        for (int i = 0; i < wSize; ++i) func(G[i]);
-    else if (mapG != nullptr)
-        for (auto& w : *mapG) func(w.second);
-//    else if (sparseG != nullptr)
-//        for (int i = 0; i < nonZeroW; ++i) func(sparseG[i].second);
-}
-
-void Base::forEachIW(const std::function<void(const int&, Weight&)>& func) {
-    if (W != nullptr)
-        for (int i = 0; i < wSize; ++i) func(i, W[i]);
-    else if (mapW != nullptr)
-        for (auto& w : *mapW) func(w.first, w.second);
-    else if (sparseW != nullptr)
-        for (int i = 0; i < nonZeroW; ++i) func(sparseW[i].first, sparseW[i].second);
-}
-
-void Base::forEachIG(const std::function<void(const int&, Weight&)>& func) {
-    if (G != nullptr)
-        for (int i = 0; i < wSize; ++i) func(i, G[i]);
-    else if (mapG != nullptr)
-        for (auto& w : *mapG) func(w.first, w.second);
-//    else if (sparseG != nullptr)
-//        for (int i = 0; i < nonZeroW; ++i) func(sparseG[i].first, sparseW[i].second);
-}
-
 
 void Base::clear() {
     hingeLoss = false;
@@ -365,93 +297,19 @@ void Base::clear() {
 }
 
 void Base::clearW() {
-    delete[] W;
+    delete W;
     W = nullptr;
-    delete mapW;
-    mapW = nullptr;
-    delete[] sparseW;
-    sparseW = nullptr;
 }
 
 void Base::clearG() {
-    delete[] G;
+    delete G;
     G = nullptr;
-    delete mapG;
-    mapG = nullptr;
-}
-
-void Base::toMap() {
-    if (mapW == nullptr) {
-        auto tmpMapW = new UnorderedMap<int, Weight>();
-
-        forEachIW([&](const int& i, Weight& w) {
-            if (w != 0) tmpMapW->insert({i, w});
-        });
-
-        clearW();
-        mapW = tmpMapW;
-    }
-
-    if (mapG == nullptr && G != nullptr) {
-        auto tmpMapG = new UnorderedMap<int, Weight>();
-
-        forEachIG([&](const int& i, Weight& w) {
-            if (w != 0) tmpMapG->insert({i, w});
-        });
-
-        clearG();
-        mapG = tmpMapG;
-    }
-}
-
-void Base::toDense() {
-    if (W == nullptr) {
-        auto tmpW = new Weight[wSize];
-        std::memset(tmpW, 0, wSize * sizeof(Weight));
-
-        forEachIW([&](const int& i, Weight& w) {
-            if (w != 0 && i < wSize) tmpW[i] = w;
-        });
-
-        clearW();
-        W = tmpW;
-    }
-
-    if (G == nullptr && mapG != nullptr) {
-        auto tmpG = new Weight[wSize];
-        std::memset(tmpG, 0, wSize * sizeof(Weight));
-
-        forEachIG([&](const int& i, Weight& w) {
-            if (w != 0 && i < wSize) tmpG[i] = w;
-        });
-
-        clearG();
-        G = tmpG;
-    }
-}
-
-void Base::toSparse() {
-    if (sparseW == nullptr) {
-        auto tmpSparseW = new SparseWeight[nonZeroW];
-        auto sW = tmpSparseW;
-
-        forEachIW([&](const int& i, Weight& w) {
-            if (w != 0) {
-                sW->first = i;
-                sW->second = w;
-                ++sW;
-            }
-        });
-
-        clearW();
-        sparseW = tmpSparseW;
-    }
 }
 
 void Base::pruneWeights(double threshold) {
     nonZeroW = 0;
 
-    forEachIW([&](const int& i, Weight& w) {
+    W->forEachID([&](const int& i, Weight& w) {
         if (i == 1 || (w != 0 && fabs(w) >= threshold)) ++nonZeroW; // Do not prune bias feature
         else w = 0;
     });
@@ -465,47 +323,49 @@ void Base::save(std::ostream& out, bool saveGrads) {
         // Decide on optimal file coding
 
         out.write((char*)&hingeLoss, sizeof(hingeLoss));
-        out.write((char*)&wSize, sizeof(wSize));
-        out.write((char*)&nonZeroW, sizeof(nonZeroW));
+        //out.write((char*)&wSize, sizeof(wSize));
+        //out.write((char*)&nonZeroW, sizeof(nonZeroW));
 
-        if(W != nullptr) saveVec(out, W, wSize, nonZeroW);
-        else if(mapW != nullptr) saveVec(out, mapW, wSize, nonZeroW);
-        else if(sparseW != nullptr) saveVec(out, sparseW, wSize, nonZeroW);
-
-        bool grads = (saveGrads && (G != nullptr || mapG != nullptr));
+        if(W != nullptr) W->save(out);
+        bool grads = (saveGrads && G != nullptr);
         saveVar(out, grads);
-        if(grads){
-            if (G != nullptr) saveVec(out, G, wSize, nonZeroG);
-            else if (mapG != nullptr) saveVec(out, mapG, wSize, nonZeroG);
-        }
-
-//        Log(CERR) << "  Save base: classCount: " << classCount << ", firstClass: "
-//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
+        if(grads) G->save(out);
     }
 }
 
-void Base::load(std::istream& in, bool loadGrads, bool loadDense) {
+void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
     in.read((char*)&classCount, sizeof(classCount));
     in.read((char*)&firstClass, sizeof(firstClass));
 
     if (classCount > 1) {
         in.read((char*)&hingeLoss, sizeof(hingeLoss));
-        in.read((char*)&wSize, sizeof(wSize));
-        in.read((char*)&nonZeroW, sizeof(nonZeroW));
+        //in.read((char*)&wSize, sizeof(wSize));
+        //in.read((char*)&nonZeroW, sizeof(nonZeroW));
 
         //TODO: Improve this
-        bool loadSparse = (!loadDense && (wSize == 0 || (mapSize(nonZeroW) < denseSize(wSize) && wSize > 50000)));
-        if(loadSparse) mapW = loadAsMap(in);
-        else W = loadAsDense(in);
+        bool loadSparse = true;
+        if(loadSparse && loadAs == map){
+            W = new MapVector<Weight>();
+            G = new MapVector<Weight>();
+        }
+        else if(loadSparse && loadAs == sparse){
+            W = new SparseVector<Weight>();
+            G = new SparseVector<Weight>();
+        }
+        else{
+            W = new Vector<Weight>();
+            G = new Vector<Weight>();
+        }
+        W->load(in);
 
         bool grads;
         loadVar(in, grads);
         if(grads) {
-            if(loadGrads) {
-                if (loadSparse) mapG = loadAsMap(in);
-                else G = loadAsDense(in);
+            if(loadGrads) G->load(in);
+            else{
+                G->skipLoad(in);
+                delete G;
             }
-            else skipLoadVec(in);
         }
 
 //        Log(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
@@ -515,48 +375,28 @@ void Base::load(std::istream& in, bool loadGrads, bool loadDense) {
 
 size_t Base::size() {
     size_t size = sizeof(Base);
-    if (W) size += denseSize(wSize);
-    if (mapW) size += mapSize(mapW->size());
-    if (sparseW) size += sparseSize(nonZeroW);
-    if (G) size += denseSize(wSize);
-    if (mapG) size += mapSize(mapG->size());
+    if (W) size += W->size();
+    if (G) size += G->size();
     return size;
 }
 
 void Base::printWeights() {
-    forEachIW([&](const int& i, Weight& w) { Log(CERR) << i << ":" << w << " "; });
+    W->forEachID([&](const int& i, Weight& w) { Log(CERR) << i << ":" << w << " "; });
     Log(CERR) << "\n";
-}
-
-void Base::invertWeights() {
-    forEachW([&](Weight& w) { w *= -1; });
 }
 
 void Base::setFirstClass(int first){
     if(firstClass != first){
-        invertWeights();
+        W->invert();
+        if(G != nullptr) G->invert();
         firstClass = first;
     }
 }
 
 Base* Base::copy() {
     Base* copy = new Base();
-    if (W) {
-        copy->W = new Weight[wSize];
-        std::memcmp(copy->W, W, wSize * sizeof(Weight));
-    }
-    if (G) {
-        copy->G = new Weight[wSize];
-        std::memcmp(copy->G, G, wSize * sizeof(Weight));
-    }
-
-    if (mapW) copy->mapW = new UnorderedMap<int, Weight>(mapW->begin(), mapW->end());
-    if (mapG) copy->mapG = new UnorderedMap<int, Weight>(mapG->begin(), mapG->end());
-
-    if (sparseW) {
-        copy->sparseW = new SparseWeight[nonZeroW];
-        std::memcmp(copy->sparseW, sparseW, (nonZeroW) * sizeof(SparseWeight));
-    }
+    if (W) copy->W = W->copy();
+    if (G) copy->G = G->copy();
 
     copy->firstClass = firstClass;
     copy->classCount = classCount;
@@ -568,116 +408,63 @@ Base* Base::copy() {
 
 Base* Base::copyInverted() {
     Base* c = copy();
-    c->invertWeights();
+    c->W->invert();
+    if(c->G != nullptr) c->G->invert();
     return c;
 }
 
-void Base::saveVecHeader(std::ostream& out, bool sparse, size_t size, size_t nonZero) {
-    saveVar(out, sparse);
-    saveVar(out, size);
-    saveVar(out, nonZero);
-}
-
-void Base::saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero){
-    bool sparse = sparseSize(nonZero) < denseSize(size) || size == 0;
-    saveVecHeader(out, sparse, size, nonZero);
-
-    if(sparse){
-        int saved = 0;
-        for (int i = 0; i < size; ++i){
-            if (V[i] != 0) {
-                saveVar(out, i);
-                saveVar(out, V[i]);
-                ++saved;
-            }
-        }
-        assert(saved == nonZero);
-    } else out.write((char*)V, size * sizeof(Weight));
-}
-
-void Base::saveVec(std::ostream& out, SparseWeight* V, size_t size, size_t nonZero){
-    saveVecHeader(out, true, size, nonZero);
-    for (int i = 0; i < nonZero; ++i) saveVar(out, V[i]);
-}
-
-void Base::saveVec(std::ostream& out, UnorderedMap<int, Weight>* mapV, size_t size, size_t nonZero){
-    saveVecHeader(out, true, size, mapV->size());
-    for(const auto& w : (*mapV)) saveVar(out, w);
-}
-
-Weight* Base::loadAsDense(std::istream& in){
-    bool sparse;
-    loadVar(in, sparse);
-
-    size_t size;
-    loadVar(in, size);
-
-    size_t nonZero;
-    loadVar(in, nonZero);
-    //std::cerr << "Dense: " << sparse <<  " " << size << " " << nonZero << "\n";
-
-    Weight *V = new Weight[size];
-    if(sparse) {
-        std::memset(V, 0, size * sizeof(Weight));
-
-        int index;
-        Weight value;
-
-        for(int i = 0; i < nonZero; ++i){
-            loadVar(in, index);
-            loadVar(in, value);
-            V[index] = value;
-        }
-    } else in.read((char *) V, size * sizeof(Weight));
-
-    return V;
-}
-
-UnorderedMap<int, Weight>* Base::loadAsMap(std::istream& in){
-    bool sparse;
-    loadVar(in, sparse);
-
-    size_t size;
-    loadVar(in, size);
-
-    size_t nonZero;
-    loadVar(in, nonZero);
-    //std::cerr << "Map: " << sparse <<  " " << size << " " << nonZero << "\n";
-
-    auto mapV = new UnorderedMap<int, Weight>();
-    mapV->reserve(nonZero);
-
-    if(sparse) {
-        int index;
-        Weight value;
-
-        for (int i = 0; i < nonZero; ++i) {
-            loadVar(in, index);
-            loadVar(in, value);
-            mapV->insert({index, value});
-        }
-    } else {
-        Weight value;
-        for (int i = 0; i < size; ++i) {
-            loadVar(in, value);
-            if(value != 0) mapV->insert({i, value});
-        }
+void Base::to(RepresentationType type) {
+    if(W != nullptr){
+        AbstractVector<Weight>* newW;
+        if(type == dense) newW = new Vector<Weight>(*W);
+        else if(type == map) newW = new MapVector<Weight>(*W);
+        else if(type == sparse) newW = new SparseVector<Weight>(*W);
+        delete W;
+        W = newW;
     }
-
-    return mapV;
+    if(G != nullptr){
+        AbstractVector<Weight>* newG;
+        if(type == dense) newG = new Vector<Weight>(*G);
+        else if(type == map) newG = new MapVector<Weight>(*G);
+        else if(type == sparse) newG = new SparseVector<Weight>(*G);
+        delete G;
+        G = newG;
+    }
 }
 
-void Base::skipLoadVec(std::istream& in){
-    bool sparse;
-    loadVar(in, sparse);
-
-    size_t size;
-    loadVar(in, size);
-
-    size_t nonZero;
-    loadVar(in, nonZero);
-
-    if(sparse) in.seekg(nonZero * (sizeof(int) + sizeof(Weight)), std::ios::cur);
-    else in.seekg(size * sizeof(Weight), std::ios::cur);
+void Base::toMap() {
+    to(map);
 }
 
+void Base::toDense() {
+    to(dense);
+}
+
+void Base::toSparse() {
+    to(sparse);
+}
+
+void Base::updateSGD(AbstractVector<Weight>* W, AbstractVector<Weight>* G, Feature* features, double grad, int t, Args& args) {
+    double eta = args.eta;
+    double lr = eta * sqrt(1.0 / t);
+    Feature* f = features;
+    while (f->index != -1) {
+        (*W)[f->index] -= lr * grad * f->value;
+        ++f;
+    }
+}
+
+void Base::updateAdaGrad(AbstractVector<Weight>* W, AbstractVector<Weight>* G, Feature* features, double grad, int t, Args& args) {
+    double eta = args.eta;
+    double eps = args.adagradEps;
+    Feature* f = features;
+    while (f->index != -1) {
+        (*G)[f->index] += f->value * f->value * grad * grad;
+        double lr = eta * std::sqrt(1.0 / (eps + (*G)[f->index]));
+        (*W)[f->index] -= lr * (grad * f->value);
+        ++f;
+        // TODO: add correct regularization
+        //double reg = l2 * W[f->index];
+        //W[f->index] -= lr * (grad * f->value + reg);
+    }
+}

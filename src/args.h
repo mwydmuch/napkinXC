@@ -79,6 +79,12 @@ enum LossType {
     pwLogistic
 };
 
+enum RepresentationType{
+    dense,
+    map,
+    sparse
+};
+
 enum TreeSearchType{
     exact,
     beam
@@ -108,8 +114,7 @@ public:
     unsigned long long memLimit; // TODO: Implement this for some models
     bool saveGrads;
     bool resume;
-    bool loadDense;
-    int loadDenseTop;
+    RepresentationType loadAs;
 
     // Input/output options
     std::string input;
@@ -220,6 +225,7 @@ private:
     std::string setUtilityName;
     std::string ofoTypeName;
     std::string treeSearchName;
+    std::string representationName;
 
     std::vector<std::string> parsedArgs;
 };

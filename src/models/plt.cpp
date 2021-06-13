@@ -127,6 +127,8 @@ std::vector<std::vector<Prediction>> PLT::predictBatch(SRMatrix<Feature>& featur
 }
 
 std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature>& features, Args& args){
+    Log(CERR) << "Starting prediction in 1 thread ...\n";
+
     int rows = features.rows();
     int nodes = tree->nodes.size();
 
@@ -201,7 +203,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
 
             for(auto &nv : v)
                 for(auto &c : nv.node->children)
-                    nodePredictions[c->index].emplace_back(rIdx, nv.value);
+                    nodePredictions[c->index].emplace_back(rIdx, nv.prob);
             v.clear();
         }
     }
@@ -370,16 +372,9 @@ void PLT::load(Args& args, std::string infile) {
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
-    bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadDense);
 
-    std::queue<TreeNode*> nQueue;
-    nQueue.push(tree->root);
-    for(int i = 0; i < args.loadDenseTop; ++i){
-        auto n = nQueue.front();
-        nQueue.pop();
-        bases[n->index]->toDense();
-        for(auto c : n->children) nQueue.push(c);
-    }
+    if(args.treeSearchType == beam) args.loadAs = sparse;
+    bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadAs);
 
     assert(bases.size() == tree->nodes.size());
     m = tree->getNumberOfLeaves();

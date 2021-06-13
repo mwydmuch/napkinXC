@@ -75,7 +75,7 @@ protected:
     static void trainBases(std::ofstream& out, std::vector<ProblemData>& problemsData, Args& args);
 
     static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results, bool saveGrads=false);
-    static std::vector<Base*> loadBases(std::string infile, bool resume=false, bool loadDense=false);
+    static std::vector<Base*> loadBases(std::string infile, bool resume=false, RepresentationType loadAs=map);
 
 private:
     static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,

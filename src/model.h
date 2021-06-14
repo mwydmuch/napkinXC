@@ -30,6 +30,7 @@
 #include "args.h"
 #include "base.h"
 #include "types.h"
+#include "misc.h"
 
 class Model {
 public:

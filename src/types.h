@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2018-2020 by Marek Wydmuch
+ Copyright (c) 2018-2021 by Marek Wydmuch
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -30,14 +30,9 @@
 #include <vector>
 #include <queue>
 
-#include "log.h"
-//#include "misc.h"
 #include "linear.h"
+#include "save_load.h"
 #include "robin_hood.h"
-
-
-template <typename T> void saveVar(std::ostream& out, T& var);
-template <typename T> void loadVar(std::istream& in, T& var);
 
 
 typedef float Weight;
@@ -168,8 +163,7 @@ template <typename T> class AbstractVector {
 public:
     // Constructors
     AbstractVector(): s(0), n0(0){ };
-    AbstractVector(size_t s): s(s), n0(0) { };
-
+    explicit AbstractVector(size_t s): s(s), n0(0) { };
     AbstractVector(const AbstractVector<T>& vec){
         s = vec.s;
         n0 = vec.n0;
@@ -200,15 +194,15 @@ public:
     virtual unsigned long long mem() const = 0;
 
     // Basic math operations
-    T dot(AbstractVector<T>& vec) const{
+    virtual T dot(AbstractVector<T>& vec) const{
         T val = 0;
         vec.forEachID([&](const int& i, T& v) { val += v * at(i); });
         return val;
     };
 
-    T dot(Feature* vec) const {
+    virtual T dot(Feature* vec) const {
         T val = 0;
-        for(Feature* f = vec; f->index != -1; ++f) val += f->value * at(f->index);
+        for(auto f = vec; f->index != -1; ++f) val += f->value * at(f->index);
         return val;
     };
 
@@ -236,16 +230,24 @@ public:
         forEachD([&](T& w) { w *= -1; });
     };
 
+    void prune(T threshold){
+        n0 = 0;
+        forEachID([&](const int& i, Weight& w) {
+            if (w != 0 && fabs(w) >= threshold) ++n0;
+            else w = 0;
+        });
+    };
+
     inline size_t size() const { return s; }
     inline size_t nonZero() const { return n0; }
     size_t sparseMem() const { return n0 * (sizeof(int) + sizeof(T)); };
     size_t denseMem() const { return s * sizeof(T); };
 
     virtual void save(std::ostream& out) const {
-        bool sparse = sparseMem() < denseMem() || s == 0;
-        saveVar(out, sparse);
         saveVar(out, s);
         saveVar(out, n0);
+        bool sparse = sparseMem() < denseMem() || s == 0; // Select more optimal coding
+        saveVar(out, sparse);
 
         if(sparse) forEachID([&](const int& i, T& v) {
                 saveVar(out, i);
@@ -260,19 +262,24 @@ public:
     };
 
     virtual void load(std::istream& in) {
+        clearD(); // Clear prev data
+
+        // Load header
+        loadVar(in, s);
+        size_t n0ToLoad;
+        loadVar(in, n0ToLoad);
         bool sparse;
         loadVar(in, sparse);
-        loadVar(in, s);
-        loadVar(in, n0);
 
-        clearD();
+        // Allocate new vec
         initD();
-        reserve(n0);
+        reserve(n0ToLoad);
 
+        // Load and insert data
         int index;
         T value;
         if(sparse) {
-            for (int i = 0; i < n0; ++i) {
+            for (int i = 0; i < n0ToLoad; ++i) {
                 loadVar(in, index);
                 loadVar(in, value);
                 insertD(index, value);
@@ -283,16 +290,18 @@ public:
                 if(value != 0) insertD(i, value);
             }
         }
+
+        assert(n0 == n0ToLoad);
     };
 
     static void skipLoad(std::istream& in){
+        size_t s, n0;
         bool sparse;
-        size_t s, maxN0, n0;
-        loadVar(in, sparse);
         loadVar(in, s);
         loadVar(in, n0);
-        if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(Weight)), std::ios::cur);
-        else in.seekg(s * sizeof(Weight), std::ios::cur);
+        loadVar(in, sparse);
+        if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(T)), std::ios::cur);
+        else in.seekg(s * sizeof(T), std::ios::cur);
     };
 
 protected:
@@ -300,34 +309,54 @@ protected:
     size_t n0;      // non-zero elements
 };
 
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const AbstractVector<T>& vec) {
+    os << "{ ";
+    vec.forEachID([&](const int& i, T& v) {
+        os << "(" << i << ", " << v << ") ";
+    });
+    os << "}";
+    return os;
+}
+
 template <typename T> class SparseVector: public AbstractVector<T> {
     using AbstractVector<T>::s;
     using AbstractVector<T>::n0;
 
 public:
     SparseVector(): AbstractVector<T>() { initD(); };
-    SparseVector(size_t s): AbstractVector<T>(s) { initD(); };
+    explicit SparseVector(size_t s): AbstractVector<T>(s) { initD(); };
+    SparseVector(size_t s, size_t maxN0): AbstractVector<T>(s) {
+        initD();
+        reserve(maxN0);
+    };
     SparseVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
         initD();
+        reserve(n0);
+        n0 = 0;
         vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
     };
     ~SparseVector(){
         clearD();
-    }
+    };
 
     void initD() override {
+        d = nullptr;
         maxN0 = 0;
-    }
+    };
 
     void clearD() override {
         delete[] d;
         d = nullptr;
-    }
+        n0 = 0;
+    };
 
     void insertD(int i, T v) override {
+        //std::cout << n0 << " " << maxN0 << " " << i << " " << v << "\n";
+        if(n0 >= maxN0) reserve(2 * maxN0);
         d[n0++] = {i, v};
         d[n0].first = -1;
-    }
+    };
 
     AbstractVector<T>* copy() override {
         auto newVec = new SparseVector<T>(*this);
@@ -336,56 +365,55 @@ public:
 
     void reserve(size_t maxN0) override {
         auto newD = new std::pair<int, T>[maxN0 + 1]();
+        this->maxN0 = maxN0;
         if(d != nullptr){
-            std::copy(d, d + std::min(this->maxN0, maxN0), newD);
+            std::copy(d, d + std::min(this->n0, maxN0), newD);
             delete[] d;
         }
         d = newD;
-        n0 = std::min(this->maxN0, maxN0);
-        this->maxN0 = maxN0;
-        d[n0 + 1].first = -1;
+        n0 = std::min(this->n0, maxN0);
+        d[n0].first = -1;
     };
 
     inline T at(int index) const override {
         auto p = d;
-        while(p->first != -1 && p->first !=index) ++p;
+        while(p->first != -1 && p->first != index) ++p;
         if(p->first == -1) return 0;
         else return p->second;
     };
 
     inline T& operator[](int index) override {
         auto p = d;
-        while(p->first != -1 && p->first !=index) ++p;
+        while(p->first != -1 && p->first != index) ++p;
         return p->second;
     };
+
     inline const T& operator[](int index) const override {
         auto p = d;
-        while(p->first != -1 && p->first !=index) ++p;
+        while(p->first != -1 && p->first != index) ++p;
         return p->second;
     };
 
     void forEachD(const std::function<void(T&)>& func) override {
-        int i = 0;
-        while(d[i].first != -1) func(d[i++].second);
+        for(auto p = d; p->first != -1; ++p) func(p->second);
     };
 
     void forEachD(const std::function<void(T&)>& func) const override {
-        int i = 0;
-        while(d[i].first != -1) func(d[i++].second);
+        for(auto p = d; p->first != -1; ++p) func(p->second);
     };
 
     void forEachID(const std::function<void(const int&, T&)>& func) override {
-        int i = 0;
-        while(d[i].first != -1) func(d[i].first, d[i++].second);
+        for(auto p = d; p->first != -1; ++p) func(p->first, p->second);
     };
 
     void forEachID(const std::function<void(const int&, T&)>& func) const override {
-        int i = 0;
-        while(d[i].first != -1) func(d[i].first, d[i++].second);
+        for(auto p = d; p->first != -1; ++p) func(p->first, p->second);
     };
 
-    unsigned long long mem() const override { return n0 * (sizeof(int) + sizeof(T)); };
-
+    unsigned long long mem() const override { return estimateMem(s, n0); };
+    static unsigned long long estimateMem(size_t s, size_t n0){
+        return sizeof(SparseVector<T>) + n0 * (sizeof(int) + sizeof(T));
+    }
 
 protected:
     size_t maxN0;
@@ -400,6 +428,10 @@ template <typename T> class MapVector: public AbstractVector<T> {
 public:
     MapVector(): AbstractVector<T>() { initD(); };
     MapVector(size_t s): AbstractVector<T>(s) { initD(); };
+    MapVector(size_t s, size_t maxN0): AbstractVector<T>(s) {
+        initD();
+        reserve(maxN0);
+    };
     MapVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
         initD();
         vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
@@ -415,10 +447,12 @@ public:
     void clearD() override {
         delete d;
         d = nullptr;
+        n0 = 0;
     };
 
     void insertD(int i, T v) override {
-        d->emplace(i, v);
+        //d->emplace(i, v);
+        (*d)[i] = v;
         n0 = d->size();
     };
 
@@ -455,12 +489,22 @@ public:
         for (auto& c : *d) func(c.first, c.second);
     };
 
-    unsigned long long mem() const override { return n0 * (sizeof(int) + sizeof(T)); };
+    unsigned long long mem() const override {
+        unsigned long long mem = sizeof(MapVector);
+        if(d != nullptr) mem += d->mask() * (2 * sizeof(int) + sizeof(T));
+        return mem;
+    };
+    static unsigned long long estimateMem(size_t s, size_t n0){
+        unsigned long long mem = sizeof(MapVector);
+        size_t mapSize = sizeof(uint64_t);
+        while(mapSize < n0) mapSize *= 2;
+        mem += mapSize * (2 * sizeof(int) + sizeof(T));
+        return mem;
+    }
 
 protected:
     UnorderedMap<int, T>* d; // data
 };
-
 
 
 // Simple dense vector
@@ -471,6 +515,7 @@ template <typename T> class Vector: public AbstractVector<T> {
 public:
     Vector(): AbstractVector<T>() { initD(); };
     Vector(size_t s): AbstractVector<T>(s) { initD(); };
+    Vector(size_t s, size_t maxN0): AbstractVector<T>(s) { initD(); };
     Vector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
         initD();
         vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
@@ -486,6 +531,19 @@ public:
     void clearD() override {
         delete[] d;
         d = nullptr;
+        n0 = 0;
+    };
+
+    T dot(AbstractVector<T>& vec) const override {
+        T val = 0;
+        vec.forEachID([&](const int& i, T& v) { val += v * d[i]; });
+        return val;
+    };
+
+    T dot(Feature* vec) const override {
+        T val = 0;
+        for(auto f = vec; f->index != -1; ++f) val += f->value * d[f->index];
+        return val;
     };
 
     void insertD(int i, T v) override {
@@ -514,8 +572,8 @@ public:
         else return 0;
     };
 
-    inline T& operator[](int index) { return d[index]; }
-    inline const T& operator[](int index) const { return d[index]; }
+    inline T& operator[](int index) override { return d[index]; }
+    inline const T& operator[](int index) const override { return d[index]; }
 
     void forEachD(const std::function<void(T&)>& func) override {
         for(int i = 0; i < s; ++i) if(d[i] != 0) func(d[i]);
@@ -533,7 +591,10 @@ public:
         for(int i = 0; i < s; ++i) if(d[i] != 0) func(i, d[i]);
     };
 
-    unsigned long long mem() const override { return s * sizeof(T); };
+    unsigned long long mem() const override { return estimateMem(s, n0); };
+    static unsigned long long estimateMem(size_t s, size_t n0){
+        return sizeof(Vector<T>) + s * sizeof(T);
+    }
 
 //    friend std::ostream& operator<<(std::ostream& os, const Vector& v) {
 //        os << "[ ";

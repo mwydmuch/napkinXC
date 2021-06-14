@@ -105,8 +105,8 @@ void SVBOPInvertedIndex::load(Args& args, std::string infile) {
 
     size_t dim = 0;
     for (int i = 0; i < m; ++i) {
-        if (bases[i]->getWSize() > dim)
-            dim = bases[i]->getWSize();
+        if (bases[i]->getW()->size() > dim)
+            dim = bases[i]->getW()->size();
     }
 
     Log(CERR) << "Building inverted index for " << dim << " features ...\n";

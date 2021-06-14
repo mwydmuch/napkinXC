@@ -80,22 +80,11 @@ public:
     inline AbstractVector<Weight>* getW() { return W; };
     inline AbstractVector<Weight>* getG() { return G; };
 
-    inline int getWSize() { return wSize; }
-    inline int getNonZeroW() { return nonZeroW; }
-
-    size_t size();
+    unsigned long long mem();
     inline int getFirstClass() { return firstClass; }
-
     void clear();
-    void clearW();
-    void clearG();
 
-    RepresentationType getRepresentationType();
-    void to(RepresentationType type);
-    void toMap();    // From dense weights (W) to sparse weights in hashmap (mapW)
-    void toDense();  // From sparse weights (sparseW or mapW) to dense weights (W)
-    void toSparse(); // From dense (W) to sparse weights (sparseW)
-
+    void to(RepresentationType type); // Change representation type of base classifier
     void pruneWeights(double threshold);
     void setFirstClass(int first);
 
@@ -108,54 +97,18 @@ public:
     bool isDummy() { return (classCount < 2); }
     void setDummy() { clear(); }
 
-    // Used for debug
-    void printWeights();
-
 private:
     std::mutex updateMtx;
-    bool hingeLoss;
+    LossType lossType;
 
-    int wSize;
-    int nonZeroW;
-    int nonZeroG;
     int classCount;
     int firstClass;
     int firstClassCount;
     int t;
 
-    // Weights
+    // Weights (parameters)
     AbstractVector<Weight>* W;
     AbstractVector<Weight>* G;
 
-    static void updateSGD(AbstractVector<Weight>* W, AbstractVector<Weight>* G, Feature* features, double grad, int t, Args& args);
-    static void updateAdaGrad(AbstractVector<Weight>* W, AbstractVector<Weight>* G, Feature* features, double grad, int t, Args& args);
-
-    static double logisticLoss(double label, double pred, double w){
-        double prob = (1.0 / (1.0 + std::exp(-pred)));
-        return -label * std::log(prob) - (1 - label) * std::log(1 - prob);
-    }
-
-    static double logisticGrad(double label, double pred, double w){
-        return (1.0 / (1.0 + std::exp(-pred))) - label;
-    }
-
-    static double squaredHingeGrad(double label, double pred, double w){
-        double _label = 2 * label - 1;
-        double v = _label * pred;
-        // return v > 1 ? 0.0 : -_label; // hinge grad
-        if(v > 1.0)
-            return 0.0;
-        else
-            return -2 * std::max(1.0 - v, 0.0) * _label;
-    }
-
-    static double pwLogisticGrad(double label, double pred, double w){
-        return (1.0 / (1.0 + std::exp(-pred))) - w * label;
-    }
-
-    static double pwLogisticLoss(double label, double pred, double w){
-        double prob = (1.0 / (1.0 + std::exp(-pred)));
-        return -label * w * log(prob) + (label - 1/w) * w * log(1 - prob);
-    }
+    void vecTo(AbstractVector<Weight>*, RepresentationType type);
 };
-

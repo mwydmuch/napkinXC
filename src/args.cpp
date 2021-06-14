@@ -27,9 +27,12 @@
 #include <iostream>
 
 #include "args.h"
+#include "linear.h"
 #include "log.h"
+#include "misc.h"
 #include "resources.h"
 #include "version.h"
+
 
 Args::Args() {
     parsedArgs = std::vector<std::string>();
@@ -471,12 +474,12 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
     if (optimizerType == liblinear) {
         if (countArgs(args, {"-s", "--solver", "--liblinearSolver"}) and countArg(args, "--loss"))
             Log(CERR) << "Warning: Default solver for " << lossName << " will be overridden by " << solverName << " solver!\n";
-        else{
+        else {
             if(lossType == logistic){
                 solverType = L2R_LR_DUAL;
                 solverName = "L2R_LR_DUAL";
             }
-            if(lossType == squaredHinge){
+            else if(lossType == squaredHinge){
                 solverType = L2R_L2LOSS_SVC_DUAL;
                 solverName = "L2R_L2LOSS_SVC_DUAL";
             }

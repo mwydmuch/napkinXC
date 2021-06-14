@@ -26,6 +26,7 @@
 
 #include "base.h"
 #include "linear.h"
+#include "online_optimization.h"
 #include "log.h"
 #include "misc.h"
 #include "threads.h"
@@ -34,10 +35,7 @@
 //TODO: Refactor base class
 
 Base::Base() {
-    hingeLoss = false;
-
-    wSize = 0;
-    nonZeroW = 0;
+    lossType = logistic;
     classCount = 0;
     firstClass = 0;
     firstClassCount = 0;
@@ -74,9 +72,9 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
         grad = squaredHingeGrad(label, pred, 0);
 
     if (args.optimizerType == sgd)
-        updateSGD(W, G, features, grad, t, args);
+        updateSGD(*W, *G, features, grad, t, args);
     else if (args.optimizerType == adagrad)
-        updateAdaGrad(W, G, features, grad, t, args);
+        updateAdaGrad(*W, *G, features, grad, t, args);
     else throw std::invalid_argument("Unknown optimizer type");
 
     // Check if we should change sparse W to dense W
@@ -119,16 +117,16 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
     assert(M->nr_feature == problemData.n);
 
     // Set base's attributes
-    wSize = problemData.n + 1;
     firstClass = M->label[0];
     classCount = M->nr_class;
 
     // Copy weights
-    W = new Vector<Weight>((size_t)wSize);
-    for (int i = 0; i < problemData.n; ++i) W->insertD(i + 1, M->w[i]); // Shift by -1
+    W = new Vector<Weight>(problemData.n + 1);
+    for (int i = 0; i < problemData.n; ++i) W->insertD(i + 1, M->w[i]); // Shift by 1
 
-    hingeLoss = args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
-                args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC;
+    if(args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
+        args.solverType == L2R_L1LOSS_SVC_DUAL || args.solverType == L1R_L2LOSS_SVC)
+        lossType = squaredHinge;
 
     // Delete LibLinear model
     free_model_content(M);
@@ -136,17 +134,26 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
 }
 
 void Base::trainOnline(ProblemData& problemData, Args& args) {
-    setupOnlineTraining(args, problemData.n, true);
+    delete W;
+    delete G;
+    classCount = 2;
+    firstClass = 1;
+    t = 0;
+
+    Vector<Weight>* _W = new Vector<Weight>(problemData.n);
+    Vector<Weight>* _G = nullptr;
 
     // Set loss function
+    lossType = args.lossType;
     double (*lossFunc)(double, double, double);
     double (*gradFunc)(double, double, double);
     if (args.lossType == logistic) {
         lossFunc = &logisticLoss;
         gradFunc = &logisticGrad;
     }
-    else if (args.lossType == squaredHinge)
+    else if (args.lossType == squaredHinge) {
         gradFunc = &squaredHingeGrad;
+    }
     else if (args.lossType == pwLogistic) {
         lossFunc = &pwLogisticLoss;
         gradFunc = &pwLogisticGrad;
@@ -155,11 +162,14 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
         throw std::invalid_argument("Unknown loss function type");
 
     // Set update function
-    void (*updateFunc)(AbstractVector<Weight>*, AbstractVector<Weight>*, Feature*, double, int, Args&);
-    if(args.optimizerType == sgd)
+    void (*updateFunc)(Vector<Weight>&, Vector<Weight>&, Feature*, double, int, Args&);
+    if(args.optimizerType == sgd) {
         updateFunc = &updateSGD;
-    else if (args.optimizerType == adagrad)
+    }
+    else if (args.optimizerType == adagrad){
         updateFunc = &updateAdaGrad;
+        _G = new Vector<Weight>(problemData.n);
+    }
     else
         throw std::invalid_argument("Unknown online update function type");
 
@@ -175,9 +185,9 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             ++t;
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
-            double pred = W->dot(features);
+            double pred = _W->dot(features);
             double grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
-            updateFunc(W, G, features, grad, t, args);
+            updateFunc(*_W, *_G, features, grad, t, args);
 
             // Report loss
 //            loss += lossFunc(label, pred, problemData.invPs);
@@ -186,7 +196,9 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 //                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";
         }
 
-    finalizeOnlineTraining(args);
+    W = _W;
+    G = _G;
+    //finalizeOnlineTraining(args);
 }
 
 void Base::train(ProblemData& problemData, Args& args) {
@@ -230,20 +242,25 @@ void Base::train(ProblemData& problemData, Args& args) {
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
-    //if(W->sparseMem() < W->denseMem()) W = new SparseVector<Weight>(*W);
+    if(W->sparseMem() < W->denseMem()){
+        auto newW = new SparseVector<Weight>(*W);
+        delete W;
+        W = newW;
+    }
 
     delete[] problemData.labels;
     delete[] problemData.labelsWeights;
 }
 
 void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
-    wSize = n;
-    if (wSize != 0 && startWithDenseW) {
-        W = new Vector<Weight>(wSize);
-        if (args.optimizerType == adagrad) G = new Vector<Weight>(wSize);
+    lossType = args.lossType;
+
+    if (n != 0 && startWithDenseW) {
+        W = new Vector<Weight>(n);
+        if (args.optimizerType == adagrad) G = new Vector<Weight>(n);
     } else {
-        W = new MapVector<Weight>(wSize);
-        if (args.optimizerType == adagrad) G = new MapVector<Weight>(wSize);
+        W = new MapVector<Weight>(n);
+        if (args.optimizerType == adagrad) G = new MapVector<Weight>(n);
     }
 
     classCount = 2;
@@ -259,8 +276,6 @@ void Base::finalizeOnlineTraining(Args& args) {
         if (firstClassCount == 0) firstClass = 1 - firstClass;
     }
     */
-    nonZeroW = W->nonZero();
-    nonZeroG = nonZeroW;
     pruneWeights(args.weightsThreshold);
 }
 
@@ -274,7 +289,7 @@ double Base::predictValue(Feature* features) {
 
 double Base::predictProbability(Feature* features) {
     double val = predictValue(features);
-    if (hingeLoss)
+    if (lossType == squaredHinge)
         //val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
         val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2));
     else
@@ -283,50 +298,35 @@ double Base::predictProbability(Feature* features) {
 }
 
 void Base::clear() {
-    hingeLoss = false;
-
-    wSize = 0;
-    nonZeroW = 0;
     classCount = 0;
     firstClass = 0;
     firstClassCount = 0;
     t = 0;
-
-    clearW();
-    clearG();
-}
-
-void Base::clearW() {
     delete W;
     W = nullptr;
-}
-
-void Base::clearG() {
     delete G;
     G = nullptr;
 }
 
 void Base::pruneWeights(double threshold) {
-    nonZeroW = 0;
-
-    W->forEachID([&](const int& i, Weight& w) {
-        if (i == 1 || (w != 0 && fabs(w) >= threshold)) ++nonZeroW; // Do not prune bias feature
-        else w = 0;
-    });
+    Weight bias = W->at(1); // Do not prune bias feature
+    W->prune(threshold);
+    W->insertD(1, bias);
 }
 
 void Base::save(std::ostream& out, bool saveGrads) {
-    out.write((char*)&classCount, sizeof(classCount));
-    out.write((char*)&firstClass, sizeof(firstClass));
+    saveVar(out, classCount);
+    saveVar(out, firstClass);
+    saveVar(out, lossType);
 
     if (classCount > 1) {
-        // Decide on optimal file coding
+        // Save main weights vector size to estimate optimal representation
+        size_t s = W->size();
+        size_t n0 = W->nonZero();
+        saveVar(out, s);
+        saveVar(out, n0);
 
-        out.write((char*)&hingeLoss, sizeof(hingeLoss));
-        //out.write((char*)&wSize, sizeof(wSize));
-        //out.write((char*)&nonZeroW, sizeof(nonZeroW));
-
-        if(W != nullptr) W->save(out);
+        W->save(out);
         bool grads = (saveGrads && G != nullptr);
         saveVar(out, grads);
         if(grads) G->save(out);
@@ -334,21 +334,26 @@ void Base::save(std::ostream& out, bool saveGrads) {
 }
 
 void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
-    in.read((char*)&classCount, sizeof(classCount));
-    in.read((char*)&firstClass, sizeof(firstClass));
+    loadVar(in, classCount);
+    loadVar(in, firstClass);
+    loadVar(in, lossType);
 
     if (classCount > 1) {
-        in.read((char*)&hingeLoss, sizeof(hingeLoss));
-        //in.read((char*)&wSize, sizeof(wSize));
-        //in.read((char*)&nonZeroW, sizeof(nonZeroW));
+        size_t s;
+        size_t n0;
+        loadVar(in, s);
+        loadVar(in, n0);
 
-        //TODO: Improve this
-        bool loadSparse = true;
+        // Decide on optimal representation in case of map
+        size_t denseSize = Vector<Weight>::estimateMem(s, n0);
+        size_t mapSize = MapVector<Weight>::estimateMem(s, n0);
+        bool loadSparse = (mapSize < denseSize || s == 0);
+
         if(loadSparse && loadAs == map){
             W = new MapVector<Weight>();
             G = new MapVector<Weight>();
         }
-        else if(loadSparse && loadAs == sparse){
+        else if(loadAs == sparse){
             W = new SparseVector<Weight>();
             G = new SparseVector<Weight>();
         }
@@ -373,18 +378,6 @@ void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
     }
 }
 
-size_t Base::size() {
-    size_t size = sizeof(Base);
-    if (W) size += W->size();
-    if (G) size += G->size();
-    return size;
-}
-
-void Base::printWeights() {
-    W->forEachID([&](const int& i, Weight& w) { Log(CERR) << i << ":" << w << " "; });
-    Log(CERR) << "\n";
-}
-
 void Base::setFirstClass(int first){
     if(firstClass != first){
         W->invert();
@@ -400,8 +393,7 @@ Base* Base::copy() {
 
     copy->firstClass = firstClass;
     copy->classCount = classCount;
-    copy->wSize = wSize;
-    copy->nonZeroW = nonZeroW;
+    copy->lossType = lossType;
 
     return copy;
 }
@@ -414,57 +406,28 @@ Base* Base::copyInverted() {
 }
 
 void Base::to(RepresentationType type) {
-    if(W != nullptr){
-        AbstractVector<Weight>* newW;
-        if(type == dense) newW = new Vector<Weight>(*W);
-        else if(type == map) newW = new MapVector<Weight>(*W);
-        else if(type == sparse) newW = new SparseVector<Weight>(*W);
-        delete W;
-        W = newW;
-    }
-    if(G != nullptr){
-        AbstractVector<Weight>* newG;
-        if(type == dense) newG = new Vector<Weight>(*G);
-        else if(type == map) newG = new MapVector<Weight>(*G);
-        else if(type == sparse) newG = new SparseVector<Weight>(*G);
-        delete G;
-        G = newG;
-    }
+    vecTo(W, type);
+    vecTo(G, type);
 }
 
-void Base::toMap() {
-    to(map);
+unsigned long long Base::mem(){
+    unsigned long long totalMem = sizeof(Base);
+    if(W != nullptr) totalMem += W->mem();
+    if(G != nullptr) totalMem += G->mem();
+    return totalMem;
 }
 
-void Base::toDense() {
-    to(dense);
-}
+void Base::vecTo(AbstractVector<Weight>* vec, RepresentationType type){
+    if(vec == nullptr) return;
 
-void Base::toSparse() {
-    to(sparse);
-}
+    AbstractVector<Weight>* newVec = nullptr;
+    if(type == dense && dynamic_cast<Vector<Weight>*>(vec) == nullptr) newVec = new Vector<Weight>(*vec);
+    else if(type == map && dynamic_cast<MapVector<Weight>*>(vec) == nullptr) newVec = new MapVector<Weight>(*vec);
+    else if(type == sparse && dynamic_cast<SparseVector<Weight>*>(vec) == nullptr) newVec = new SparseVector<Weight>(*vec);
+    else throw std::invalid_argument("Unknown representation type");
 
-void Base::updateSGD(AbstractVector<Weight>* W, AbstractVector<Weight>* G, Feature* features, double grad, int t, Args& args) {
-    double eta = args.eta;
-    double lr = eta * sqrt(1.0 / t);
-    Feature* f = features;
-    while (f->index != -1) {
-        (*W)[f->index] -= lr * grad * f->value;
-        ++f;
-    }
-}
-
-void Base::updateAdaGrad(AbstractVector<Weight>* W, AbstractVector<Weight>* G, Feature* features, double grad, int t, Args& args) {
-    double eta = args.eta;
-    double eps = args.adagradEps;
-    Feature* f = features;
-    while (f->index != -1) {
-        (*G)[f->index] += f->value * f->value * grad * grad;
-        double lr = eta * std::sqrt(1.0 / (eps + (*G)[f->index]));
-        (*W)[f->index] -= lr * (grad * f->value);
-        ++f;
-        // TODO: add correct regularization
-        //double reg = l2 * W[f->index];
-        //W[f->index] -= lr * (grad * f->value + reg);
+    if(newVec != nullptr){
+        delete vec;
+        vec = newVec;
     }
 }

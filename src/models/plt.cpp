@@ -154,7 +154,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
             int nIdx = n->index;
 
             if(!nodePredictions[nIdx].empty()){
-                bases[nIdx]->toDense();
+                bases[nIdx]->to(dense);
 
                 for(auto &e : nodePredictions[nIdx]){
                     int rIdx = e.label;
@@ -170,7 +170,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
 
-                bases[nIdx]->toSparse();
+                bases[nIdx]->to(sparse);
             }
 
             for(auto &c : n->children)

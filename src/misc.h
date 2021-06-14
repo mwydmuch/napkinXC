@@ -283,34 +283,8 @@ std::vector<std::string> split(std::string text, char d = ',');
 // String to lower
 std::string toLower(std::string text);
 
+// Print mem
 std::string formatMem(size_t mem);
-
-
-// Files utils
-class FileHelper {
-public:
-    void saveToFile(std::string outfile);
-    virtual void save(std::ostream& out) = 0;
-    void loadFromFile(std::string infile);
-    virtual void load(std::istream& in) = 0;
-};
-
-template <typename T> inline void saveVar(std::ostream& out, T& var) { out.write((char*)&var, sizeof(var)); }
-
-template <typename T> inline void loadVar(std::istream& in, T& var) { in.read((char*)&var, sizeof(var)); }
-
-inline void saveVar(std::ostream& out, std::string& var) {
-    size_t size = var.size();
-    out.write((char*)&size, sizeof(size));
-    out.write((char*)&var[0], size);
-}
-
-inline void loadVar(std::istream& in, std::string& var) {
-    size_t size;
-    in.read((char*)&size, sizeof(size));
-    var.resize(size);
-    in.read((char*)&var[0], size);
-}
 
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2);

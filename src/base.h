@@ -28,6 +28,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cmath>
+#include <mutex>
 
 #include "args.h"
 #include "types.h"
@@ -110,5 +111,5 @@ private:
     AbstractVector<Weight>* W;
     AbstractVector<Weight>* G;
 
-    void vecTo(AbstractVector<Weight>*, RepresentationType type);
+    AbstractVector<Weight>* vecTo(AbstractVector<Weight>*, RepresentationType type);
 };

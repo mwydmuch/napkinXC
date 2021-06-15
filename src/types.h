@@ -30,6 +30,7 @@
 #include <vector>
 #include <queue>
 
+#include "args.h"
 #include "linear.h"
 #include "save_load.h"
 #include "robin_hood.h"
@@ -200,8 +201,8 @@ public:
         return val;
     };
 
-    virtual T dot(Feature* vec) const {
-        T val = 0;
+    virtual double dot(Feature* vec) const {
+        double val = 0;
         for(auto f = vec; f->index != -1; ++f) val += f->value * at(f->index);
         return val;
     };
@@ -303,6 +304,8 @@ public:
         if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(T)), std::ios::cur);
         else in.seekg(s * sizeof(T), std::ios::cur);
     };
+
+    virtual RepresentationType type() const = 0;
 
 protected:
     size_t s;       // size
@@ -415,6 +418,10 @@ public:
         return sizeof(SparseVector<T>) + n0 * (sizeof(int) + sizeof(T));
     }
 
+    RepresentationType type() const override {
+        return sparse;
+    }
+
 protected:
     size_t maxN0;
     std::pair<int, T>* d; // data
@@ -502,6 +509,10 @@ public:
         return mem;
     }
 
+    RepresentationType type() const override {
+        return map;
+    }
+
 protected:
     UnorderedMap<int, T>* d; // data
 };
@@ -540,8 +551,8 @@ public:
         return val;
     };
 
-    T dot(Feature* vec) const override {
-        T val = 0;
+    double dot(Feature* vec) const override {
+        double val = 0;
         for(auto f = vec; f->index != -1; ++f) val += f->value * d[f->index];
         return val;
     };
@@ -594,6 +605,10 @@ public:
     unsigned long long mem() const override { return estimateMem(s, n0); };
     static unsigned long long estimateMem(size_t s, size_t n0){
         return sizeof(Vector<T>) + s * sizeof(T);
+    }
+
+    RepresentationType type() const override {
+        return dense;
     }
 
 //    friend std::ostream& operator<<(std::ostream& os, const Vector& v) {

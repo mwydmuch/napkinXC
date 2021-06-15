@@ -281,7 +281,8 @@ void Base::finalizeOnlineTraining(Args& args) {
 
 double Base::predictValue(Feature* features) {
     if (classCount < 2) return static_cast<double>((1 - 2 * firstClass) * -10);
-    double val = W->dot(features);
+    auto _W = dynamic_cast<Vector<Weight>*>(W);
+    double val = _W->dot(features);
     if (firstClass == 0) val *= -1;
 
     return val;
@@ -406,8 +407,16 @@ Base* Base::copyInverted() {
 }
 
 void Base::to(RepresentationType type) {
-    vecTo(W, type);
-    vecTo(G, type);
+    auto _W = vecTo(W, type);
+    if(_W != nullptr){
+        delete W;
+        W = _W;
+    }
+    auto _G = vecTo(G, type);
+    if(_G != nullptr){
+        delete G;
+        G = _G;
+    }
 }
 
 unsigned long long Base::mem(){
@@ -417,17 +426,13 @@ unsigned long long Base::mem(){
     return totalMem;
 }
 
-void Base::vecTo(AbstractVector<Weight>* vec, RepresentationType type){
-    if(vec == nullptr) return;
+AbstractVector<Weight>* Base::vecTo(AbstractVector<Weight>* vec, RepresentationType type){
+    if(vec == nullptr || vec->type() == type) return vec;
 
     AbstractVector<Weight>* newVec = nullptr;
-    if(type == dense && dynamic_cast<Vector<Weight>*>(vec) == nullptr) newVec = new Vector<Weight>(*vec);
-    else if(type == map && dynamic_cast<MapVector<Weight>*>(vec) == nullptr) newVec = new MapVector<Weight>(*vec);
-    else if(type == sparse && dynamic_cast<SparseVector<Weight>*>(vec) == nullptr) newVec = new SparseVector<Weight>(*vec);
+    if(type == dense) newVec = new Vector<Weight>(*vec);
+    else if(type == map) newVec = new MapVector<Weight>(*vec);
+    else if(type == sparse) newVec = new SparseVector<Weight>(*vec);
     else throw std::invalid_argument("Unknown representation type");
-
-    if(newVec != nullptr){
-        delete vec;
-        vec = newVec;
-    }
+    return newVec;
 }

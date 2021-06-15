@@ -29,11 +29,6 @@ endif()
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# Add more aggressive optimization for Release build TODO: improve this
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
-endif(CMAKE_BUILD_TYPE MATCHES Release)
-
 # Configure file
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 

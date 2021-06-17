@@ -198,7 +198,6 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 
     W = newW;
     G = newG;
-    //finalizeOnlineTraining(args);
 }
 
 void Base::train(ProblemData& problemData, Args& args) {
@@ -269,7 +268,7 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 }
 
 void Base::finalizeOnlineTraining(Args& args) {
-    // Because aux bases needs previous weights, TODO: Change this later
+    // Because aux bases needs previous weights
     /*
     if (firstClassCount == t || firstClassCount == 0) {
         classCount = 1;
@@ -277,6 +276,8 @@ void Base::finalizeOnlineTraining(Args& args) {
     }
     */
     pruneWeights(args.weightsThreshold);
+    W->checkD(); // TODO: Move it somewhere else
+    if(G != nullptr) G->checkD();
 }
 
 double Base::predictValue(Feature* features) {

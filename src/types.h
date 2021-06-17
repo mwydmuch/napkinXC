@@ -176,6 +176,8 @@ public:
     virtual void initD() = 0;
     virtual void clearD() = 0;
     virtual void insertD(int i, T v) = 0;
+    virtual void checkD() {};
+
 
     virtual AbstractVector<T>* copy() = 0;
     virtual void resize(size_t newS) {
@@ -460,6 +462,12 @@ public:
     void insertD(int i, T v) override {
         //d->emplace(i, v);
         (*d)[i] = v;
+        n0 = d->size();
+    };
+
+    void checkD() override {
+        int s = 0;
+        forEachID([&](const int& i, T& v) { if(i > s) s = i; });
         n0 = d->size();
     };
 

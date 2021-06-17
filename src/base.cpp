@@ -140,8 +140,8 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
     firstClass = 1;
     t = 0;
 
-    Vector<Weight>* _W = new Vector<Weight>(problemData.n);
-    Vector<Weight>* _G = nullptr;
+    Vector<Weight>* newW = new Vector<Weight>(problemData.n);
+    Vector<Weight>* newG = nullptr;
 
     // Set loss function
     lossType = args.lossType;
@@ -168,7 +168,7 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
     }
     else if (args.optimizerType == adagrad){
         updateFunc = &updateAdaGrad;
-        _G = new Vector<Weight>(problemData.n);
+        newG = new Vector<Weight>(problemData.n);
     }
     else
         throw std::invalid_argument("Unknown online update function type");
@@ -185,9 +185,9 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             ++t;
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
-            double pred = _W->dot(features);
+            double pred = newW->dot(features);
             double grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
-            updateFunc(*_W, *_G, features, grad, t, args);
+            updateFunc(*newW, *newG, features, grad, t, args);
 
             // Report loss
 //            loss += lossFunc(label, pred, problemData.invPs);
@@ -196,8 +196,8 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 //                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";
         }
 
-    W = _W;
-    G = _G;
+    W = newW;
+    G = newG;
     //finalizeOnlineTraining(args);
 }
 
@@ -281,8 +281,7 @@ void Base::finalizeOnlineTraining(Args& args) {
 
 double Base::predictValue(Feature* features) {
     if (classCount < 2) return static_cast<double>((1 - 2 * firstClass) * -10);
-    auto _W = dynamic_cast<Vector<Weight>*>(W);
-    double val = _W->dot(features);
+    double val = W->dot(features);
     if (firstClass == 0) val *= -1;
 
     return val;
@@ -348,13 +347,15 @@ void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
         // Decide on optimal representation in case of map
         size_t denseSize = Vector<Weight>::estimateMem(s, n0);
         size_t mapSize = MapVector<Weight>::estimateMem(s, n0);
-        bool loadSparse = (mapSize < denseSize || s == 0);
+        size_t sparseSize = SparseVector<Weight>::estimateMem(s, n0);
+        bool loadMap = (mapSize < denseSize || s == 0);
+        bool loadSparse = (sparseSize < denseSize || s == 0);
 
-        if(loadSparse && loadAs == map){
+        if(loadAs == map && loadMap){
             W = new MapVector<Weight>();
             G = new MapVector<Weight>();
         }
-        else if(loadAs == sparse){
+        else if(loadAs == sparse && loadSparse){
             W = new SparseVector<Weight>();
             G = new SparseVector<Weight>();
         }
@@ -368,14 +369,15 @@ void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
         loadVar(in, grads);
         if(grads) {
             if(loadGrads) G->load(in);
-            else{
-                G->skipLoad(in);
-                delete G;
-            }
+            else G->skipLoad(in);
+        }
+        if(!grads || !loadGrads) {
+            delete G;
+            G = nullptr;
         }
 
 //        Log(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
-//                  << firstClass << ", weights: " << nonZeroW << "/" << wSize << "\n";
+//                  << firstClass << ", non-zero weights: " << n0 << "/" << s << "\n";
     }
 }
 
@@ -407,16 +409,21 @@ Base* Base::copyInverted() {
 }
 
 void Base::to(RepresentationType type) {
-    auto _W = vecTo(W, type);
-    if(_W != nullptr){
+    auto newW = vecTo(W, type);
+    if(newW != nullptr){
         delete W;
-        W = _W;
+        W = newW;
     }
-    auto _G = vecTo(G, type);
-    if(_G != nullptr){
+    auto newG = vecTo(G, type);
+    if(newG != nullptr){
         delete G;
-        G = _G;
+        G = newG;
     }
+}
+
+RepresentationType Base::getType() {
+    if(W != nullptr) return W->type();
+    else return dense;
 }
 
 unsigned long long Base::mem(){
@@ -428,8 +435,7 @@ unsigned long long Base::mem(){
 
 AbstractVector<Weight>* Base::vecTo(AbstractVector<Weight>* vec, RepresentationType type){
     if(vec == nullptr || vec->type() == type) return vec;
-
-    AbstractVector<Weight>* newVec = nullptr;
+    AbstractVector<Weight>* newVec;
     if(type == dense) newVec = new Vector<Weight>(*vec);
     else if(type == map) newVec = new MapVector<Weight>(*vec);
     else if(type == sparse) newVec = new SparseVector<Weight>(*vec);

@@ -508,6 +508,11 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
         else
             topK = 0;
     }
+
+    if(treeSearchType == beam && !countArg(args, "--loadAs")){
+        loadAs = sparse;
+        representationName = "sparse";
+    }
 }
 
 void Args::printArgs(std::string command) {
@@ -554,7 +559,7 @@ void Args::printArgs(std::string command) {
             if(treeSearchType == beam && threshold <= 0 && thresholds.empty())
                 Log(CERR) << ", beam search width: " << beamSearchWidth;
         }
-
+        Log(CERR) << "\n  Base classifiers representation: " << representationName << " vector";
         if(thresholds.empty()) Log(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
         else Log(CERR) << "\n  Thresholds: " << thresholds;
 

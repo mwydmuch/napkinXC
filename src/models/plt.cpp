@@ -153,8 +153,13 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
             levelQueue->pop();
             int nIdx = n->index;
 
+            std::cerr << "\nnIdx: " << nIdx << "\n";
+
             if(!nodePredictions[nIdx].empty()){
-                bases[nIdx]->to(dense);
+                std::cerr << "from initial base\n";
+                auto base = bases[nIdx];
+                auto type = base->getType();
+                if(type == sparse) base->to(dense);
 
                 for(auto &e : nodePredictions[nIdx]){
                     int rIdx = e.label;
@@ -170,7 +175,8 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
 
-                bases[nIdx]->to(sparse);
+                std::cerr << "back to initial base\n";
+                if(type != base->getType()) base->to(type);
             }
 
             for(auto &c : n->children)
@@ -372,8 +378,6 @@ void PLT::load(Args& args, std::string infile) {
 
     tree = new Tree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
-
-    if(args.treeSearchType == beam) args.loadAs = sparse;
     bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadAs);
 
     assert(bases.size() == tree->nodes.size());

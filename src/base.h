@@ -86,6 +86,7 @@ public:
     void clear();
 
     void to(RepresentationType type); // Change representation type of base classifier
+    RepresentationType getType();
     void pruneWeights(double threshold);
     void setFirstClass(int first);
 

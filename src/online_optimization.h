@@ -46,13 +46,22 @@ double squaredHingeGrad(double label, double pred, double w){
     else return -2 * std::max(1.0 - v, 0.0) * _label;
 }
 
-double pwLogisticGrad(double label, double pred, double w){
-    return (1.0 / (1.0 + std::exp(-pred))) - w * label;
+double unbiasedLogisticLoss(double label, double pred, double w){
+    double prob = (1.0 / (1.0 + std::exp(-pred)));
+    return -label * w * std::log(prob) - (1 - label * w) * std::log(1 - prob);
+}
+
+double unbiasedLogisticGrad(double label, double pred, double w){
+    return 1 / (1 + std::exp(-pred)) - label * w;
 }
 
 double pwLogisticLoss(double label, double pred, double w){
     double prob = (1.0 / (1.0 + std::exp(-pred)));
-    return -label * w * log(prob) + (label - 1/w) * w * log(1 - prob);
+    return -(2 * w - 1) * label * std::log(prob) - (1 - label) * std::log(1 - prob);
+}
+
+double pwLogisticGrad(double label, double pred, double w){
+    return -(2 * (label * w - label * 0.5) / (1.0 + std::exp(-pred))) - label + 1;
 }
 
 template <typename T>

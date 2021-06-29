@@ -56,8 +56,7 @@ set(DEPENDENCIES)
 
 # Include backward.cpp
 if (BACKWARD)
-    list(APPEND SOURCES ${SRC_DIR}/backward/backward.cpp)
-    list(APPEND INCLUDES ${SRC_DIR}/backward)
+    add_subdirectory(${SRC_DIR}/backward)
 endif ()
 
 # MIPS extension files
@@ -100,7 +99,12 @@ if (PYTHON)
 endif ()
 
 if (EXE)
-    add_executable(nxc ${SOURCES})
+    if (BACKWARD)
+        add_executable(nxc ${SOURCES} ${BACKWARD_ENABLE})
+        add_backward(nxc)
+    else()
+        add_executable(nxc ${SOURCES})
+    endif()
     target_include_directories(nxc PUBLIC ${INCLUDES})
     target_link_libraries(nxc PUBLIC ${LIBRARIES})
 

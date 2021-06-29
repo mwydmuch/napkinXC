@@ -153,7 +153,6 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
     }
     else if (args.lossType == squaredHinge) {
         gradFunc = &squaredHingeGrad;
-        hingeLoss = true;
     }
     else if (args.lossType == unLogistic) {
         lossFunc = &unbiasedLogisticLoss;

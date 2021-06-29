@@ -46,43 +46,6 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
                                  const SRMatrix<Feature>& features, int threads = 1, bool norm = false,
                                  bool weightedFeatures = false);
 
-// Math utils
-template <typename T, typename U> inline T argMax(const UnorderedMap<T, U>& map) {
-    auto pMax = std::max_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
-        return p1.second < p2.second;
-    });
-    return pMax.first;
-}
-
-template <typename T, typename U> inline T argMin(const UnorderedMap<T, U>& map) {
-    auto pMin = std::min_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
-        return p1.second < p2.second;
-    });
-    return pMin.first;
-}
-
-template <typename T, typename U> inline T max(const UnorderedMap<T, U>& map) {
-    auto pMax = std::max_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
-        return p1.first < p2.first;
-    });
-    return pMax.first;
-}
-
-template <typename T, typename U> inline T min(const UnorderedMap<T, U>& map) {
-    auto pMin = std::min_element(map.begin(), map.end(), [](const std::pair<T, U>& p1, const std::pair<T, U>& p2) {
-        return p1.first < p2.first;
-    });
-    return pMin.first;
-}
-
-
-template <typename T> inline size_t argMax(const std::vector<T>& vector) {
-    return std::distance(vector.begin(), std::max_element(vector.begin(), vector.end()));
-}
-
-template <typename T> inline size_t argMin(const std::vector<T>& vector) {
-    return std::distance(vector.begin(), std::min_element(vector.begin(), vector.end()));
-}
 
 // Sparse vector dot dense vector
 template <typename T> inline double dotVectors(Feature* vector1, T* vector2, const size_t size) {
@@ -283,39 +246,8 @@ std::vector<std::string> split(std::string text, char d = ',');
 // String to lower
 std::string toLower(std::string text);
 
+// Print mem
 std::string formatMem(size_t mem);
-
-inline size_t denseSize(size_t size) { return size * sizeof(Weight); }
-
-inline size_t mapSize(size_t size) { return size * (sizeof(int) + sizeof(int) + sizeof(Weight)); }
-
-inline size_t sparseSize(size_t size) { return size * (sizeof(int) + sizeof(Weight)); }
-
-// Files utils
-class FileHelper {
-public:
-    void saveToFile(std::string outfile);
-    virtual void save(std::ostream& out) = 0;
-    void loadFromFile(std::string infile);
-    virtual void load(std::istream& in) = 0;
-};
-
-template <typename T> inline void saveVar(std::ostream& out, T& var) { out.write((char*)&var, sizeof(var)); }
-
-template <typename T> inline void loadVar(std::istream& in, T& var) { in.read((char*)&var, sizeof(var)); }
-
-inline void saveVar(std::ostream& out, std::string& var) {
-    size_t size = var.size();
-    out.write((char*)&size, sizeof(size));
-    out.write((char*)&var[0], size);
-}
-
-inline void loadVar(std::istream& in, std::string& var) {
-    size_t size;
-    in.read((char*)&size, sizeof(size));
-    var.resize(size);
-    in.read((char*)&var[0], size);
-}
 
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2);

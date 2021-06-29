@@ -148,7 +148,7 @@ void OnlinePLT::save(Args& args, std::string output) {
 void OnlinePLT::load(Args& args, std::string infile){
     PLT::load(args, infile);
     if(args.resume){
-        auxBases = loadBases(joinPath(infile, "aux_weights.bin"), args.resume, args.loadDense);
+        auxBases = loadBases(joinPath(infile, "aux_weights.bin"), args.resume, args.loadAs);
 
         //TODO: Improve
         /*

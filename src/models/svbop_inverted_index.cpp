@@ -105,8 +105,8 @@ void SVBOPInvertedIndex::load(Args& args, std::string infile) {
 
     size_t dim = 0;
     for (int i = 0; i < m; ++i) {
-        if (bases[i]->getWSize() > dim)
-            dim = bases[i]->getWSize();
+        if (bases[i]->getW()->size() > dim)
+            dim = bases[i]->getW()->size();
     }
 
     Log(CERR) << "Building inverted index for " << dim << " features ...\n";
@@ -116,13 +116,8 @@ void SVBOPInvertedIndex::load(Args& args, std::string infile) {
         printProgress(i, m);
         if (!bases[i]->isDummy()) {
             bases[i]->setFirstClass(1);
-            if (bases[i]->getMapW() != nullptr) {
-                for (auto f: (*bases[i]->getMapW()))
-                    R[f.first].push_back({i, f.second});
-            } else {
-                for (int f = 0; f < bases[i]->getWSize(); ++f)
-                    if (bases[i]->getW()[f] != 0)
-                        R[f].push_back({i, bases[i]->getW()[f]});
+            if (bases[i]->getW() != nullptr) {
+                bases[i]->getW()->forEachID([&](const int& i, Weight& v) { R[i].push_back({i, v}); });
             }
         }
     }

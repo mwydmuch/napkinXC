@@ -33,8 +33,10 @@
 #include "args.h"
 #include "base.h"
 #include "misc.h"
-#include "models/kmeans.h"
+#include "save_load.h"
+#include "kmeans.h"
 #include "types.h"
+
 
 // Tree node
 struct TreeNode {
@@ -49,11 +51,12 @@ struct TreeNode {
 
 // For prediction in tree based models / Huffman trees building
 struct TreeNodeValue {
+    TreeNodeValue(): node(nullptr), prob(0), value(0) {};
     TreeNodeValue(TreeNode* node, double value): node(node), prob(value), value(value) {};
     TreeNodeValue(TreeNode* node, double prob, double value): node(node), prob(prob), value(value) {};
 
     TreeNode* node;
-    double prob; // Node's probability
+    double prob; // Node's estimated probability
     double value; // Node's probability/value/loss, used for tree search
 
     bool operator<(const TreeNodeValue& r) const { return value < r.value; }

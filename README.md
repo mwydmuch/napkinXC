@@ -13,13 +13,14 @@ Right now, napkinXC implements the following features both in Python and C++:
 - Binary Relevance (BR),
 - One Versus Rest (OVR),
 - fast online prediction of top-k labels or labels above one given threshold or separate threshold for each label,
+- fast online prediction with labels weight, e.g., propensity scores,
 - efficient online F-measure optimization (OFO) procedure,
 - hierarchical k-means clustering for tree building and other tree-building methods,
 - support for predefined hierarchies,
 - LIBLINEAR, AdaGrad, SGD optimizers for base classifiers,
 - ensembles of PLTs and HSMs,
 - helpers to download and load data from [XML Repository](http://manikvarma.org/downloads/XC/XMLRepository.html),
-- helpers to measure performance (precision@k, recall@k, nDCG@k, propensity scored precision@k, and more).
+- helpers to measure performance (precision@k, recall@k, nDCG@k, propensity-scored precision@k, and more).
 
 Please note that this library is still under development and also serves as a base for experiments.
 API may not be compatible between releases and some of the experimental features may not be documented.

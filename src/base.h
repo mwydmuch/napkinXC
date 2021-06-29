@@ -107,7 +107,7 @@ private:
     int firstClass;
     int firstClassCount;
     int t;
-
+    
     // Weights (parameters)
     AbstractVector<Weight>* W;
     AbstractVector<Weight>* G;

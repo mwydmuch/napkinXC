@@ -76,7 +76,9 @@ enum SetUtilityType {
 enum LossType {
     logistic,
     squaredHinge,
-    pwLogistic
+    unLogistic,
+    pwLogistic,
+    asymteric,
 };
 
 enum RepresentationType{

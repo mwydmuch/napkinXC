@@ -18,10 +18,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-import requests
-import zipfile
-import warnings
+import gzip
+import json
 import re
+import requests
+import warnings
+import zipfile
 from sys import stdout
 from os import makedirs, path, remove
 import numpy as np
@@ -37,8 +39,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGU0VTR1pCejFpWjg', # XMLC repo url
-            'train': 'Eurlex/eurlex_train.txt',
-            'test': 'Eurlex/eurlex_test.txt',
+            'dir': 'Eurlex',
+            'train': 'eurlex_train.txt',
+            'test': 'eurlex_test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -48,32 +51,53 @@ DATASETS = {
         'subsets': ['train', 'test', 'validation'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1b3mWgaKIAmc9Ae3E0QrokiIFA9Qj1K9r', # XMLC repo url
-            'train': 'EURLex-4.3K/train.txt',
-            'test': 'EURLex-4.3K/test.txt',
-            'validation': 'EURLex-4.3K/validation.txt',
+            'dir': 'EURLex-4.3K',
+            'train': 'train.txt',
+            'test': 'test.txt',
+            'validation': 'validation.txt',
             'file_format': 'libsvm',
         }
     },
     'amazoncat-13k': {
         'name': 'AmazonCat-13K',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc', # XMLC repo url
-            'train': 'AmazonCat/amazonCat_train.txt',
-            'test': 'AmazonCat/amazonCat_test.txt',
+            'dir': 'AmazonCat',
+            'train': 'amazonCat_train.txt',
+            'test': 'amazonCat_test.txt',
             'file_format': 'libsvm',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=17rVRDarPwlMpb3l5zof9h34FlwbpTu4l', # XMLC repo url
+            'dir': 'AmazonCat-13K.raw',
+            'train': 'trn.json.gz',
+            'test': 'tst.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title', 'content'],
+            'labels_field': 'target_ind'
         }
     },
     'amazoncat-14k': {
         'name': 'AmazonCat-14K',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDFqU2E5U0dxS00', # XMLC repo url
-            'train': 'AmazonCat-14K/amazonCat-14K_train.txt',
-            'test': 'AmazonCat-14K/amazonCat-14K_test.txt',
+            'dir': 'AmazonCat-14K',
+            'train': 'amazonCat-14K_train.txt',
+            'test': 'amazonCat-14K_test.txt',
             'file_format': 'libsvm',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=1vy1N-lDdDfuoo0CNwFE11hb3INCpJHFx', # XMLC repo url
+            'dir': 'AmazonCat-14K.raw',
+            'train': 'trn.json.gz',
+            'test': 'tst.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title', 'content'],
+            'labels_field': 'target_ind'
         }
     },
     'wiki10-31k': {
@@ -82,8 +106,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDdOeGliWF9EOTA', # XMLC repo url
-            'train': 'Wiki10/wiki10_train.txt',
-            'test': 'Wiki10/wiki10_test.txt',
+            'dir': 'Wiki10',
+            'train': 'wiki10_train.txt',
+            'test': 'wiki10_test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -93,8 +118,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGR3lBWWYyVlhDLWM', # XMLC repo url
-            'train': 'DeliciousLarge/deliciousLarge_train.txt',
-            'test': 'DeliciousLarge/deliciousLarge_test.txt',
+            'dir': 'DeliciousLarge',
+            'train': 'deliciousLarge_train.txt',
+            'test': 'deliciousLarge_test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -104,86 +130,157 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGSHE1SWx4TVRva3c', # XMLC repo url
-            'train': 'WikiLSHTC/wikiLSHTC_train.txt',
-            'test': 'WikiLSHTC/wikiLSHTC_test.txt',
+            'dir': 'WikiLSHTC',
+            'train': 'wikiLSHTC_train.txt',
+            'test': 'wikiLSHTC_test.txt',
             'file_format': 'libsvm',
         }
     },
     'wikiseealsotitles-350k': {
         'name': 'WikiSeeAlsoTitles-350K',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1bHtiLVF5EFsVL3qyU7y5e3M-fYHvXsG9', # XMLC repo url
-            'train': {'X': 'WikiSeeAlsoTitles-350K/trn_X_Xf.txt', 'Y': 'WikiSeeAlsoTitles-350K/trn_X_Y.txt'},
-            'test': {'X': 'WikiSeeAlsoTitles-350K/tst_X_Xf.txt', 'Y': 'WikiSeeAlsoTitles-350K/tst_X_Y.txt'},
+            'dir': 'WikiSeeAlsoTitles-350K',
+            'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
+            'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=1sxPHzlnotUKjbtVRe0GuXGfSI7YhBSdc', # XMLC repo url
+            'dir': 'WikiSeeAlsoTItles-350K',
+            'train': 'trn.json.gz', # Type is there on purpose
+            'test': 'tst.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title', 'content'],
+            'labels_field': 'target_ind'
         }
     },
     'wikititles-500k': {
         'name': 'WikiTitles-500K',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=11U4qDWKvsR6pCzLvY3APckx-R_ihyMih', # XMLC repo url
-            'train': {'X': 'WikiTitles-500K/trn_X_Xf.txt', 'Y': 'WikiTitles-500K/trn_X_Y.txt'},
-            'test': {'X': 'WikiTitles-500K/tst_X_Xf.txt', 'Y': 'WikiTitles-500K/tst_X_Y.txt'},
+            'dir': 'WikiTitles-500K',
+            'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
+            'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=1YStqoa6_5Qxd9FpExTNt-_tcXUhYXUFM', # Marek Wydmuch's reupload
+            'dir': 'Wikipedia-500K.raw',
+            'train': 'trn.raw.json.gz',
+            'test': 'tst.raw.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title'],
+            'labels_field': 'target_ind'
         }
     },
     'wikipedialarge-500k': {
         'name': 'WikipediaLarge-500K',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGRmEzVDVkNjBMR3c', # XMLC repo url
-            'train': 'WikipediaLarge-500K/WikipediaLarge-500K_train.txt',
-            'test': 'WikipediaLarge-500K/WikipediaLarge-500K_test.txt',
+            'dir': 'WikipediaLarge-500K',
+            'train': 'WikipediaLarge-500K_train.txt',
+            'test': 'WikipediaLarge-500K_test.txt',
             'file_format': 'libsvm',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=1YStqoa6_5Qxd9FpExTNt-_tcXUhYXUFM', # Marek Wydmuch's reupload
+            'dir': 'Wikipedia-500K.raw',
+            'train': 'trn.raw.json.gz',
+            'test': 'tst.raw.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title', 'content'],
+            'labels_field': 'target_ind'
         }
     },
     'amazontitles-670k': {
         'name': 'AmazonTitles-670K',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1OKnaLu4SDMOQ69rHdwF8ExKkeF2SZw7z', # XMLC repo url
-            'train': {'X': 'AmazonTitles-670K/trn_X_Xf.txt', 'Y': 'AmazonTitles-670K/trn_X_Y.txt'},
-            'test': {'X': 'AmazonTitles-670K/tst_X_Xf.txt', 'Y': 'AmazonTitles-670K/tst_X_Y.txt'},
+            'dir': 'AmazonTitles-670K',
+            'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
+            'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=1FPqD8Wns7NXTSYDAcK4ZsqUUGABLyZMn', # XMLC repo url
+            'dir': 'AmazonTitles-670K',
+            'train': 'trn.json.gz',
+            'test': 'tst.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title'],
+            'labels_field': 'target_ind'
         }
     },
     'amazon-670k': {
         'name': 'Amazon-670K',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdUJwRzltS1dvUVk', # XMLC repo url
-            'train': 'Amazon/amazon_train.txt',
-            'test': 'Amazon/amazon_test.txt',
+            'dir': 'Amazon',
+            'train': 'amazon_train.txt',
+            'test': 'amazon_test.txt',
             'file_format': 'libsvm',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=16FIzX3TnlsqbrwSJJ2gDih69laezfZWR', # XMLC repo url
+            'dir': 'Amazon-670K.raw',
+            'train': 'trn.raw.json.gz',
+            'test': 'tst.raw.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title', 'content'],
+            'labels_field': 'target_ind'
         }
     },
     'amazontitles-3m': {
         'name': 'AmazonTitles-3M',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1PGzippnzIcgVNYZ8qQKVb0GNiARjQxvV', # XMLC repo url
-            'train': {'X': 'AmazonTitles-3M/trn_X_Xf.txt', 'Y': 'AmazonTitles-3M/trn_X_Y.txt'},
-            'test': {'X': 'AmazonTitles-3M/tst_X_Xf.txt', 'Y': 'AmazonTitles-3M/tst_X_Y.txt'},
+            'dir': 'AmazonTitles-3M',
+            'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
+            'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=1m0MMApC0vPpjEfI35SAaBGqKDsYypVXs', # XMLC repo url
+            'dir': 'AmazonTitles-3M',
+            'train': 'trn.json.gz',
+            'test': 'tst.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title'],
+            'labels_field': 'target_ind'
         }
     },
     'amazon-3m': {
         'name': 'Amazon-3M',
-        'formats': ['bow'],
+        'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE', # XMLC repo url
-            'train': 'Amazon-3M/amazon-3M_train.txt',
-            'test': 'Amazon-3M/amazon-3M_test.txt',
+            'dir': 'Amazon-3M',
+            'train': 'amazon-3M_train.txt',
+            'test': 'amazon-3M_test.txt',
             'file_format': 'libsvm',
+        },
+        'raw': {
+            'url': 'https://drive.google.com/uc?export=download&id=1gsabsx8KR2N9jJz16jTcA0QASXsNuKnN', # XMLC repo url
+            'dir': 'Amazon-3M.raw',
+            'train': 'trn.json.gz',
+            'test': 'tst.json.gz',
+            'file_format': 'jsonlines',
+            'features_fields': ['title', 'content'],
+            'labels_field': 'target_ind'
         }
     },
     'lf-amazontitles-131k': {
@@ -192,8 +289,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1VlfcdJKJA99223fLEawRmrXhXpwjwJKn', # XMLC repo url
-            'train': 'LF-AmazonTitles-131K/train.txt',
-            'test': 'LF-AmazonTitles-131K/test.txt',
+            'dir': 'LF-AmazonTitles-131K',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -203,8 +301,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1YNGEifTHu4qWBmCaLEBfjx07qRqw9DVW', # XMLC repo url
-            'train': 'LF-Amazon-131K/train.txt',
-            'test': 'LF-Amazon-131K/test.txt',
+            'dir': 'LF-Amazon-131K',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -214,8 +313,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1edWtizAFBbUzxo9Z2wipGSEA9bfy5mdX', # XMLC repo url
-            'train': 'LF-WikiSeeAlsoTitles-320K/train.txt',
-            'test': 'LF-WikiSeeAlsoTitles-320K/test.txt',
+            'dir': 'LF-WikiSeeAlsoTitles-320K',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -225,8 +325,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1N8C_RL71ErX6X92ew9h8qRuTWJ9LywE8', # XMLC repo url
-            'train': 'LF-WikiSeeAlso-320K/train.txt',
-            'test': 'LF-WikiSeeAlso-320K/test.txt',
+            'dir': 'LF-WikiSeeAlso-320K',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -236,8 +337,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1qa1HTTD509J5r4yNAH-Aq6wArljgg4mx', # XMLC repo url
-            'train': 'LF-WikiTitles-500K/train.txt',
-            'test': 'LF-WikiTitles-500K/test.txt',
+            'dir': 'LF-WikiTitles-500K',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -247,8 +349,9 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             'url': 'https://drive.google.com/uc?export=download&id=1Davc6BIfoTIAS3mP1mUY5EGcGr2zN2pO', # XMLC repo url
-            'train': 'LF-AmazonTitles-1.3M/train.txt',
-            'test': 'LF-AmazonTitles-1.3M/test.txt',
+            'dir': 'LF-AmazonTitles-1.3M',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -274,10 +377,43 @@ def load_libsvm_file(file):
 
     :param file: Path to a file to load
     :type file: str
-    :return: (csr_matrix, list[list[int]]) - tuple of features matrix and labels
+    :return:  Features matrix and labels
+    :rtype: (csr_matrix, list[list[int]])
     """
     labels, indptr, indices, data = _load_libsvm_file(file)
     return csr_matrix((data, indices, indptr)), labels
+
+
+def load_json_lines_file(file, features_fields=['title', 'content'], labels_field='target_ind', gzip_file=None):
+    """
+    :param file: Path to a JSON lines file to load
+    :type file: str
+    :param features_fields: list of fields of JSON line that contain features, fields will be concatenated in the specified order, defaults to ['title', 'content']
+    :type features_fields: list[str], optional
+    :param labels_field: field name that contains labels, defaults to 'target_ind'
+    :type labels_field: str, optional
+    :param gzip_file: If True, read file as gzip file, if None, decide based on file extension, defaults to None
+    :type gzip_file: bool, optional
+    :return: Raw text of documents and labels
+    :rtype: (list[str], list[list[int|str]])
+    """
+
+    X = []
+    Y = []
+    if gzip_file == True or file[-3:] == '.gz':
+        f = gzip.open(file, 'rb')
+    else:
+        f = open(file, 'r')
+    for line in f:
+        data = json.loads(line)
+        if not all(f in data for f in features_fields):
+            raise ValueError("Not all features fields {} are not in {}".format(features_fields, data))
+        if not labels_field in data:
+            raise ValueError("Labels field {} is not not in {}".format(labels_field, data))
+        X.append(' '.join([data[f] for f in features_fields]))
+        Y.append(data[labels_field])
+
+    return X, Y
 
 
 def download_dataset(dataset, subset='train', format='bow', root='./data', verbose=False):
@@ -287,13 +423,13 @@ def download_dataset(dataset, subset='train', format='bow', root='./data', verbo
 
     :param dataset: Name of the dataset to load, case insensitive, available datasets:
 
-        - ``'Eurlex-4K'``,
-        - ``'Eurlex-4.3K'``,
+        - ``'Eurlex-4K'`` (``'bow'`` format only),
+        - ``'Eurlex-4.3K'`` (``'bow'`` format only),
         - ``'AmazonCat-13K'``,
         - ``'AmazonCat-14K'``,
-        - ``'Wiki10-31K'`` (alias: ``'Wiki10'``),
-        - ``'DeliciousLarge-200K'`` (alias: ``'DeliciousLarge'``)
-        - ``'WikiLSHTC-325K'`` (alias: ``'WikiLSHTC'``)
+        - ``'Wiki10-31K'`` (alias: ``'Wiki10'``, ``'bow'`` format only),
+        - ``'DeliciousLarge-200K'`` (alias: ``'DeliciousLarge'``, ``'bow'`` format only)
+        - ``'WikiLSHTC-325K'`` (alias: ``'WikiLSHTC'``, ``'bow'`` format only)
         - ``'WikiSeeAlsoTitles-350K'``,
         - ``'WikiTitles-500K'``,
         - ``'WikipediaLarge-500K'`` (alias: ``'WikipediaLarge'``),
@@ -301,17 +437,17 @@ def download_dataset(dataset, subset='train', format='bow', root='./data', verbo
         - ``'Amazon-670K'``,
         - ``'AmazonTitles-3M'``,
         - ``'Amazon-3M'``,
-        - ``'LF-AmazonTitles-131K'``,
-        - ``'LF-Amazon-131K'``,
-        - ``'LF-WikiSeeAlsoTitles-320K'``,
-        - ``'LF-WikiSeeAlso-320K'``,
-        - ``'LF-WikiTitles-500K'``,
-        - ``'LF-AmazonTitles-1.3M'``.
+        - ``'LF-AmazonTitles-131K'`` (for now ``'bow'`` format only),
+        - ``'LF-Amazon-131K'`` (for now ``'bow'`` format only),
+        - ``'LF-WikiSeeAlsoTitles-320K'`` (for now ``'bow'`` format only),
+        - ``'LF-WikiSeeAlso-320K'`` (for now ``'bow'`` format only),
+        - ``'LF-WikiTitles-500K'`` (for now ``'bow'`` format only),
+        - ``'LF-AmazonTitles-1.3M'`` (for now ``'bow'`` format only).
 
     :type dataset: str
     :param subset: Subset of dataset to load into features matrix and labels {``'train'``, ``'test'``, ``'validation'``}, defaults to ``'train'``
     :type subset: str, optional
-    :param format: Format of dataset to load {``'bow'`` (bag-of-words/tf-idf weights, alias ``'tf-idf'``)}, defaults to ``'bow'``
+    :param format: Format of dataset to load {``'bow'`` (bag-of-words/tf-idf weights, alias ``'tf-idf'``), ``'raw'`` (raw text)}, defaults to ``'bow'``
     :type format: str, optional
     :param root: Location of datasets directory, defaults to ``'./data'``
     :type root: str, optional
@@ -320,12 +456,14 @@ def download_dataset(dataset, subset='train', format='bow', root='./data', verbo
     """
     dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
     dataset_dest = path.join(root, dataset.lower() + '_' + format + ".zip")
+    data_dir = path.join(root, dataset_meta['dir'])
     file_path = dataset_meta[subset]
+
     if isinstance(file_path, str):
         file_path = [file_path]
     elif isinstance(file_path, dict):
         file_path = file_path.values()
-    if not all([path.exists(path.join(root, f)) for f in file_path]):
+    if not all(path.exists(path.join(data_dir, f)) for f in file_path):
         if 'drive.google.com' in dataset_meta['url']:
             _download_file_from_google_drive(dataset_meta['url'], dataset_dest, unzip=True, overwrite=True, delete_zip=True, verbose=verbose)
 
@@ -338,13 +476,13 @@ def load_dataset(dataset, subset='train', format='bow', root='./data', verbose=F
 
     :param dataset: Name of the dataset to load, case insensitive, available datasets:
 
-        - ``'Eurlex-4K'``,
-        - ``'Eurlex-4.3K'``,
+        - ``'Eurlex-4K'`` (``'bow'`` format only),
+        - ``'Eurlex-4.3K'`` (``'bow'`` format only),
         - ``'AmazonCat-13K'``,
         - ``'AmazonCat-14K'``,
-        - ``'Wiki10-31K'`` (alias: ``'Wiki10'``),
-        - ``'DeliciousLarge-200K'`` (alias: ``'DeliciousLarge'``)
-        - ``'WikiLSHTC-325K'`` (alias: ``'WikiLSHTC'``)
+        - ``'Wiki10-31K'`` (alias: ``'Wiki10'``, ``'bow'`` format only),
+        - ``'DeliciousLarge-200K'`` (alias: ``'DeliciousLarge'``, ``'bow'`` format only)
+        - ``'WikiLSHTC-325K'`` (alias: ``'WikiLSHTC'``, ``'bow'`` format only)
         - ``'WikiSeeAlsoTitles-350K'``,
         - ``'WikiTitles-500K'``,
         - ``'WikipediaLarge-500K'`` (alias: ``'WikipediaLarge'``),
@@ -352,36 +490,41 @@ def load_dataset(dataset, subset='train', format='bow', root='./data', verbose=F
         - ``'Amazon-670K'``,
         - ``'AmazonTitles-3M'``,
         - ``'Amazon-3M'``,
-        - ``'LF-AmazonTitles-131K'``,
-        - ``'LF-Amazon-131K'``,
-        - ``'LF-WikiSeeAlsoTitles-320K'``,
-        - ``'LF-WikiSeeAlso-320K'``,
-        - ``'LF-WikiTitles-500K'``,
-        - ``'LF-AmazonTitles-1.3M'``.
+        - ``'LF-AmazonTitles-131K'`` (for now ``'bow'`` format only),
+        - ``'LF-Amazon-131K'`` (for now ``'bow'`` format only),
+        - ``'LF-WikiSeeAlsoTitles-320K'`` (for now ``'bow'`` format only),
+        - ``'LF-WikiSeeAlso-320K'`` (for now ``'bow'`` format only),
+        - ``'LF-WikiTitles-500K'`` (for now ``'bow'`` format only),
+        - ``'LF-AmazonTitles-1.3M'`` (for now ``'bow'`` format only).
 
     :type dataset: str
     :param subset: Subset of dataset to load into features matrix and labels {``'train'``, ``'test'``, ``'validation'``}, defaults to ``'train'``
     :type subset: str, optional
-    :param format: Format of dataset to load {``'bow'`` (bag-of-words/tf-idf weights, alias ``'tf-idf'``)}, defaults to ``'bow'``
+    :param format: Format of dataset to load {``'bow'`` (bag-of-words/tf-idf weights, alias ``'tf-idf'``), ``'raw'`` (raw text)}, defaults to ``'bow'``
     :type format: str, optional
     :param root: Location of datasets directory, defaults to ``'./data'``
     :type root: str, optional
     :param verbose: If True print downloading and loading progress, defaults to False
     :type verbose: bool, optional
     :return: Tuple of features matrix and labels.
-    :rtype: (csr_matrix, list[list[int]])
+    :rtype: (csr_matrix, list[list[int]]) or (list[str], list[list[str]])
     """
     download_dataset(dataset, subset=subset, format=format, root=root, verbose=verbose)
     dataset_meta = _get_data_meta(dataset, subset=subset, format=format)
     file_format = dataset_meta['file_format']
+    data_dir = path.join(root, dataset_meta['dir'])
     file_path = dataset_meta[subset]
 
     if file_format == 'libsvm':
-        return load_libsvm_file(path.join(root, file_path))
+        return load_libsvm_file(path.join(data_dir, file_path))
     elif file_format == 'XY_sparse':
-        X, _ = load_libsvm_file(path.join(root, file_path['X']))
-        Y, _ = load_libsvm_file(path.join(root, file_path['Y']))
+        X, _ = load_libsvm_file(path.join(data_dir, file_path['X']))
+        Y, _ = load_libsvm_file(path.join(data_dir, file_path['Y']))
         return X, Y
+    elif file_format == 'jsonlines':
+        return load_json_lines_file(path.join(data_dir, file_path), features_fields=dataset_meta['features_fields'], labels_field=dataset_meta['labels_field'])
+    else:
+        raise ValueError("File format {} is not supported".format(file_format))
 
 
 def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):

@@ -43,6 +43,7 @@ def test_compare_napkinxc_with_xclib():
         "PSnDCG@k": {"nxc": psndcg_at_k, "xclib": psndcg, "inv_ps": True}
     }
 
+    print("\n")
     for m, v in measures.items():
         print("\n{} time comparison:".format(m))
         t_start = time()

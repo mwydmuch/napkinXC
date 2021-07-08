@@ -1,9 +1,13 @@
-# CMake
+# C++ & CMake
 **/CMakeCache.txt
 **/CMakeFiles
 **/CMakeScripts
 **/cmake_install.cmake
 **/Makefile
+*.cbp
+*.a
+*.so
+*.dylib
 
 # Python
 /dist
@@ -12,7 +16,6 @@
 /src/version.h
 /src/nmslib
 *.pyc
-*.so
 
 # Cpp
 nxc
@@ -29,4 +32,3 @@ eurlex-model
 # Misc
 .idea
 .DS_Store
-*.cbp

@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.12)
 project(napkinXC
-    VERSION 0.5.2
+    VERSION 0.6.0
     DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
     HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
     LANGUAGES C CXX)
@@ -29,11 +29,6 @@ endif()
 # Add threads
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-
-# Add more aggressive optimization for Release build TODO: improve this
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -O3")
-endif(CMAKE_BUILD_TYPE MATCHES Release)
 
 # Configure file
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -62,8 +57,7 @@ set(DEPENDENCIES)
 
 # Include backward.cpp
 if (BACKWARD)
-    list(APPEND SOURCES ${SRC_DIR}/backward/backward.cpp)
-    list(APPEND INCLUDES ${SRC_DIR}/backward)
+    add_subdirectory(${SRC_DIR}/backward)
 endif ()
 
 # MIPS extension files
@@ -106,7 +100,12 @@ if (PYTHON)
 endif ()
 
 if (EXE)
-    add_executable(nxc ${SOURCES})
+    if (BACKWARD)
+        add_executable(nxc ${SOURCES} ${BACKWARD_ENABLE})
+        add_backward(nxc)
+    else()
+        add_executable(nxc ${SOURCES})
+    endif()
     target_include_directories(nxc PUBLIC ${INCLUDES})
     target_link_libraries(nxc PUBLIC ${LIBRARIES})
 

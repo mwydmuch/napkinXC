@@ -25,7 +25,7 @@
 #include <random>
 #include <string>
 
-#include "misc.h"
+#include "save_load.h"
 
 // All tree tree types
 enum ModelType {
@@ -81,6 +81,17 @@ enum LossType {
     asymteric,
 };
 
+enum RepresentationType{
+    dense,
+    map,
+    sparse
+};
+
+enum TreeSearchType{
+    exact,
+    beam
+};
+
 enum OFOType {
     micro,
     macro,
@@ -105,7 +116,7 @@ public:
     unsigned long long memLimit; // TODO: Implement this for some models
     bool saveGrads;
     bool resume;
-    bool loadDense;
+    RepresentationType loadAs;
 
     // Input/output options
     std::string input;
@@ -168,6 +179,8 @@ public:
     double threshold;
     std::string thresholds;
     std::string labelsWeights;
+    TreeSearchType treeSearchType;
+    int beamSearchWidth;
     bool ensMissingScores;
 
     // Mips options
@@ -213,6 +226,8 @@ private:
     std::string modelName;
     std::string setUtilityName;
     std::string ofoTypeName;
+    std::string treeSearchName;
+    std::string representationName;
 
     std::vector<std::string> parsedArgs;
 };

@@ -48,7 +48,7 @@ protected:
     Feature* computeHidden(Feature* features);
 
     inline double predictForNode(TreeNode* node, Feature* features) override {
-        return 1.0 / (1.0 + std::exp(-dotVectors(features, outputW[node->index])));
+        return 1.0 / (1.0 + std::exp(-outputW[node->index].dot(features)));
     };
 
     static void trainThread(int threadId, ExtremeText* model, SRMatrix<Label>& labels,

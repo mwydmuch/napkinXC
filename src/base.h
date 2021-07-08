@@ -28,6 +28,7 @@
 #include <unordered_map>
 #include <vector>
 #include <cmath>
+#include <mutex>
 
 #include "args.h"
 #include "types.h"
@@ -77,27 +78,20 @@ public:
     double predictValue(Feature* features);
     double predictProbability(Feature* features);
 
-    inline Weight* getW() { return W; }
-    inline UnorderedMap<int, Weight>* getMapW() { return mapW; }
-    inline SparseWeight* getSparseW() { return sparseW; }
+    inline AbstractVector<Weight>* getW() { return W; };
+    inline AbstractVector<Weight>* getG() { return G; };
 
-    inline int getWSize() { return wSize; }
-    inline int getNonZeroW() { return nonZeroW; }
-
-    size_t size();
+    unsigned long long mem();
     inline int getFirstClass() { return firstClass; }
-
     void clear();
-    void clearW();
-    void toMap();    // From dense weights (W) to sparse weights in hashmap (mapW)
-    void toDense();  // From sparse weights (sparseW or mapW) to dense weights (W)
-    void toSparse(); // From dense (W) to sparse weights (sparseW)
+
+    void to(RepresentationType type); // Change representation type of base classifier
+    RepresentationType getType();
     void pruneWeights(double threshold);
-    void invertWeights();
     void setFirstClass(int first);
 
     void save(std::ostream& out, bool saveGrads=false);
-    void load(std::istream& in, bool loadGrads=false, bool loadDense=false);
+    void load(std::istream& in, bool loadGrads=false, RepresentationType loadAs=map);
 
     Base* copy();
     Base* copyInverted();
@@ -105,104 +99,18 @@ public:
     bool isDummy() { return (classCount < 2); }
     void setDummy() { clear(); }
 
-    // Used for debug
-    void printWeights();
-
 private:
     std::mutex updateMtx;
-    bool hingeLoss;
+    LossType lossType;
 
-    int wSize;
-    int nonZeroW;
-    int nonZeroG;
     int classCount;
     int firstClass;
     int firstClassCount;
     int t;
+    
+    // Weights (parameters)
+    AbstractVector<Weight>* W;
+    AbstractVector<Weight>* G;
 
-    // Weights //TODO: Change this to one type of Vector object
-    Weight* W;
-    Weight* G;
-    UnorderedMap<int, Weight>* mapW;
-    UnorderedMap<int, Weight>* mapG;
-    SparseWeight* sparseW;
-
-    template <typename T> static void updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args);
-    template <typename T> static void updateAdaGrad(T& W, T& G, Feature* features, double grad, int t, Args& args);
-
-    static double logisticLoss(double label, double pred, double w){
-        double prob = (1.0 / (1.0 + std::exp(-pred)));
-        return -label * std::log(prob) - (1 - label) * std::log(1 - prob);
-    }
-
-    static double logisticGrad(double label, double pred, double w){
-        return (1.0 / (1.0 + std::exp(-pred))) - label;
-    }
-
-    static double squaredHingeGrad(double label, double pred, double w){
-        double _label = 2 * label - 1;
-        double v = _label * pred;
-        if(v > 1.0)
-            return 0.0;
-        else
-            return -2 * std::max(1.0 - v, 0.0) * _label;
-    }
-
-    static double unbiasedLogisticGrad(double label, double pred, double w){
-        return 1 / (1 + std::exp(-pred)) - label * w;
-    }
-
-    static double unbiasedLogisticLoss(double label, double pred, double w){
-        double prob = (1.0 / (1.0 + std::exp(-pred)));
-        return -label * w * std::log(prob) - (1 - label * w) * std::log(1 - prob);
-    }
-
-    static double pwLogisticGrad(double label, double pred, double w){
-        return -(2 * (label * w - label * 0.5) / (1.0 + std::exp(-pred))) - label + 1;
-    }
-
-    static double pwLogisticLoss(double label, double pred, double w){
-        double prob = (1.0 / (1.0 + std::exp(-pred)));
-        return -(2 * w - 1) * label * std::log(prob) - (1 - label) * std::log(1 - prob);
-    }
-
-    void saveVecHeader(std::ostream& out, bool sparse, size_t size, size_t nonZero);
-    void saveVec(std::ostream& out, Weight* V, size_t size, size_t nonZero);
-    void saveVec(std::ostream& out, SparseWeight* V, size_t size, size_t nonZero);
-    void saveVec(std::ostream& out, UnorderedMap<int, Weight>* mapV, size_t size, size_t nonZero);
-
-    Weight* loadAsDense(std::istream& in);
-    UnorderedMap<int, Weight>* loadAsMap(std::istream& in);
-    void skipLoadVec(std::istream& in);
-
-    // TODO: Improve
-    void forEachW(const std::function<void(Weight&)>& f);
-    void forEachIW(const std::function<void(const int&, Weight&)>& f);
-    void forEachG(const std::function<void(Weight&)>& f);
-    void forEachIG(const std::function<void(const int&, Weight&)>& f);
+    AbstractVector<Weight>* vecTo(AbstractVector<Weight>*, RepresentationType type);
 };
-
-template <typename T> void Base::updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args) {
-    double eta = args.eta;
-    double lr = eta * sqrt(1.0 / t);
-    Feature* f = features;
-    while (f->index != -1) {
-        W[f->index] -= lr * grad * f->value;
-        ++f;
-    }
-}
-
-template <typename T> void Base::updateAdaGrad(T& W, T& G, Feature* features, double grad, int t, Args& args) {
-    double eta = args.eta;
-    double eps = args.adagradEps;
-    Feature* f = features;
-    while (f->index != -1) {
-        G[f->index] += f->value * f->value * grad * grad;
-        double lr = eta * std::sqrt(1.0 / (eps + G[f->index]));
-        W[f->index] -= lr * (grad * f->value);
-        ++f;
-        // TODO: add correct regularization
-        //double reg = l2 * W[f->index];
-        //W[f->index] -= lr * (grad * f->value + reg);
-    }
-}

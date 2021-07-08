@@ -275,6 +275,8 @@ class PLT(Model):
                  kmeans_eps=0.0001,
                  kmeans_balanced=True,
                  #tree_structure=None, #TODO
+                 tree_search_type='exact',
+                 beam_search_width=10,
 
                  # Features params
                  hash=None,
@@ -305,7 +307,16 @@ class PLT(Model):
 
         :param output: Directory where the model will be stored
         :type output: str
-        :param tree_type: Tree type to construct {``'hierarchicalKmeans'``, ``'balancedRandom'``, ``'completeKaryRandom'``, ``'huffman'``}, defaults to ``'hierarchicalKmeans'``
+        :param tree_type: Tree type to construct. Available tree types:
+
+            - ``'hierarchicalKmeans'``
+            - ``'balancedInOrder'``
+            - ``'balancedRandom'``
+            - ``'completeKaryInOrder'``
+            - ``'completeKaryRandom'``
+            - ``'huffman'``
+
+            Defaults to ``'hierarchicalKmeans'``
         :type tree_type: str, optional
         :param arity: Arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
@@ -315,13 +326,17 @@ class PLT(Model):
         :type kmeans_eps: float, optional
         :param kmeans_balanced: Use balanced k-means clustering, defaults to True
         :type kmeans_balanced: bool, optional
-        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param tree_search_type: Tree search algorithm used for prediction {``'exact'``, ``'beam'``}, defaults to ``'exact'``
+        :type tree_search_type: str, optional
+        :param beam_search_width: Width of the tree beam search, makes effect only if ``tree_search_type='beam'``, defaults to 10
+        :type beam_search_width: int, optional
+        :param hash: Hash features to a space of given size, value of this argument is saved with model weights, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: Prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, value of this argument is saved with model weights, defaults to 0
         :type features_threshold: float, optional
-        :param norm: Unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, value of this argument is saved with model weights, defaults to True
         :type norm: bool, optional
-        :param bias: Value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, value of this argument is saved with model weights, defaults to 1.0
         :type bias: float, optional
         :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
@@ -367,8 +382,41 @@ class PLT(Model):
         all_params.update({"model": "plt"})
         super(PLT, self).__init__(**all_params)
 
+    def build_tree(self, X, Y):
+        """
+        Build the tree for the given data (without training node classifiers)
 
-class HSM(Model):
+        :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
+        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
+        """
+        self._model.build_tree(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
+
+    def get_nodes_to_update(self, Y):
+        """
+        Based on the current tree, get list of updates for each set of labels in Y.
+
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
+        :return: List of lists of nodes and their updates (0 - negative  or 1 - positive) for each set of labels in Y.
+        :rtype: list[list[tuple[int, float]]]
+        """
+        return self._model.get_nodes_to_update(Y)
+
+    def get_nodes_updates(self, Y):
+        """
+        Based on the current tree, get list of updates for each node for dataset Y.
+
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
+        :return: List of lists of examples and their updates (0 - negative  or 1 - positive) for each node in the current tree.
+        :rtype: list[list[tuple[int, float]]]
+        """
+        return self._model.get_nodes_updates(Y)
+
+
+class HSM(PLT):
     """
     Hierarchical Softmax (multi-class) classifier with linear node estimators, using CPP core.
     """
@@ -414,7 +462,16 @@ class HSM(Model):
 
         :param output: Directory where the model will be stored
         :type output: str
-        :param tree_type: Tree type to construct {``'hierarchicalKmeans'``, ``'balancedRandom'``, ``'completeKaryRandom'``, ``'huffman'``}, defaults to ``'hierarchicalKmeans'``
+        :param tree_type: Tree type to construct. Available tree types:
+
+            - ``'hierarchicalKmeans'``
+            - ``'balancedInOrder'``
+            - ``'balancedRandom'``
+            - ``'completeKaryInOrder'``
+            - ``'completeKaryRandom'``
+            - ``'huffman'``
+
+            Defaults to ``'hierarchicalKmeans'``
         :type tree_type: str, optional
         :param arity: Arity of tree nodes, k for k-means clustering used in hierarchical k-means tree building procedure, defaults to 2
         :type arity: int, optional
@@ -424,13 +481,13 @@ class HSM(Model):
         :type kmeans_eps: float, optional
         :param kmeans_balanced: Use balanced k-means clustering, defaults to True
         :type kmeans_balanced: bool, optional
-        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param hash: Hash features to a space of given size, value of this argument is saved with model weights, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: Prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, value of this argument is saved with model weights, defaults to 0
         :type features_threshold: float, optional
-        :param norm: Unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, value of this argument is saved with model weights, defaults to True
         :type norm: bool, optional
-        :param bias: Value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, value of this argument is saved with model weights, defaults to 1.0
         :type bias: float, optional
         :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
@@ -477,6 +534,7 @@ class HSM(Model):
         super(HSM, self).__init__(**all_params)
 
 
+
 class BR(Model):
     """
     Binary Relevance (multi-label) classifier with linear estimators, using CPP core
@@ -513,13 +571,13 @@ class BR(Model):
 
         :param output: Directory where the model will be stored
         :type output: str
-        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param hash: Hash features to a space of given size, value of this argument is saved with model weights, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: Prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, value of this argument is saved with model weights, defaults to 0
         :type features_threshold: float, optional
-        :param norm: Unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, value of this argument is saved with model weights, defaults to True
         :type norm: bool, optional
-        :param bias: Value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, value of this argument is saved with model weights, defaults to 1.0
         :type bias: float, optional
         :param optimizer: Optimizer used for training node classifiers {``'liblinear'``, ``'sgd'``, ``'adagrad'``}, defaults to ``'liblinear'``
         :type optimizer: str, optional
@@ -564,7 +622,7 @@ class BR(Model):
         super(BR, self).__init__(**all_params)
 
 
-class OVR(Model):
+class OVR(BR):
     """
     One Versus Rest (multi-class) classifier with linear estimators, using CPP core.
     """
@@ -601,13 +659,13 @@ class OVR(Model):
 
         :param output: Directory where the model will be stored
         :type output: str
-        :param hash: Hash features to a space of given size, if None or 0 disable hashing, defaults to None
+        :param hash: Hash features to a space of given size, value of this argument is saved with model weights, if None or 0 disable hashing, defaults to None
         :type hash: int, optional
-        :param features_threshold: Prune features below given threshold, defaults to 0
+        :param features_threshold: Prune features below given threshold, value of this argument is saved with model weights, defaults to 0
         :type features_threshold: float, optional
-        :param norm: Unit norm feature vector, defaults to True
+        :param norm: Unit norm feature vector, value of this argument is saved with model weights, defaults to True
         :type norm: bool, optional
-        :param bias: Value of the bias features, defaults to 1.0
+        :param bias: Value of the bias features, value of this argument is saved with model weights, defaults to 1.0
         :type bias: float, optional
         :param pick_one_label_weighting: Allows to use multi-label data by transforming it into multi-class, defaults to False
         :type pick_one_label_weighting: bool, optional

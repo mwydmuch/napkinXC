@@ -27,6 +27,16 @@ from scipy.sparse import csr_matrix
 def precision_at_k(Y_true, Y_pred, k=5):
     """
     Calculate precision at 1-k places.
+    Precision at k is defined as:
+
+    .. math::
+
+        p@k = \\frac{1}{k} \\sum_{l \\in \\text{rank}_k(\\hat{\\pmb{y}})} y_l \\,,
+
+    where :math:`\\pmb{y} \\in {0, 1}^m` is ground truth label vector,
+    :math:`\\hat{\\pmb{y}} \\in \\mathbb{R}^m` is predicted labels score vector,
+    and :math:`\\text{rank}_k(\\hat{\\pmb{y}})` returns the :math:`k` indices of :math:`\\hat{\\pmb{y}}`
+    with the largest values, ordered in descending order.
 
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
@@ -57,6 +67,16 @@ def precision_at_k(Y_true, Y_pred, k=5):
 def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
     """
     Calculate recall at 1-k places.
+    Recall at k is defined as:
+
+    .. math::
+
+        r@k = \\frac{1}{||\\pmb{y}||_1} \\sum_{l \\in \\text{rank}_k(\\hat{\\pmb{y}})} y_l \\,,
+
+    where :math:`\\pmb{y} \\in {0, 1}^m` is ground truth label vector,
+    :math:`\\hat{\\pmb{y}} \\in \\mathbb{R}^m` is predicted labels score vector,
+    and :math:`\\text{rank}_k(\\hat{\\pmb{y}})` returns the :math:`k` indices of :math:`\\hat{\\pmb{y}}`
+    with the largest values, ordered in descending order.
 
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
@@ -128,6 +148,16 @@ def coverage_at_k(Y_true, Y_pred, k=5):
 def dcg_at_k(Y_true, Y_pred, k=5):
     """
     Calculate Discounted Cumulative Gain (DCG) at 1-k places.
+    DCG at k is defined as:
+
+    .. math::
+
+        DCG@k = \\sum_{i = 1}^{k} \\frac{y_{\\text{rank}_k(\\hat{\\pmb{y}})_i}}{\\log_2(i + 1)} \\,,
+
+    where :math:`\\pmb{y} \\in {0, 1}^m` is ground truth label vector,
+    :math:`\\hat{\\pmb{y}} \\in \\mathbb{R}^m` is predicted labels score vector,
+    and :math:`\\text{rank}_k(\\hat{\\pmb{y}})` returns the :math:`k` indices of :math:`\\hat{\\pmb{y}}`
+    with the largest values, ordered in descending order.
 
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
@@ -198,7 +228,7 @@ def ndcg_at_k(Y_true, Y_pred, k=5, zero_division=0):
 def hamming_loss(Y_true, Y_pred):
     """
     Calculate unnormalized (to avoid very small numbers because of large number of labels) hamming loss - average number of misclassified labels.
-    
+
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
     :param Y_pred: Predicted labels provided as a matrix with scores or list of lists of labels or tuples of labels with scores (label, score).
@@ -222,6 +252,15 @@ def hamming_loss(Y_true, Y_pred):
 def inverse_propensity(Y, A=0.55, B=1.5):
     """
     Calculate inverse propensity as proposed in Jain et al. 2016.
+    Inverse propensity :math:`q_l` of label :math:`l` is calculated as:
+
+    .. math::
+
+        C = (\\log N - 1)(B + 1)^A \\,, \\
+        q_l = 1 + C(N_l + B)^{-A} \\,,
+
+    where :math:`N` is total number of data points, :math:`N_j` is total number of data points for
+    and :math:`A` and :math:`B` are dataset specific parameters.
 
     :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
     :type Y: ndarray, csr_matrix, list[list[tuple[int|str, float]]
@@ -263,9 +302,21 @@ def inverse_propensity(Y, A=0.55, B=1.5):
     return inv_ps
 
 
-def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
+def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True):
     """
     Calculate Propensity Scored Precision (PSP) at 1-k places.
+    This measure can be also called weighted precision.
+    PSP at k is defined as:
+
+    .. math::
+
+        psp@k = \\frac{1}{k} \\sum_{l \\in \\text{rank}_k(\\hat{\\pmb{y}})} q_l \\hat{y_l},
+
+    where :math:`\\pmb{y} \\in {0, 1}^m` is ground truth label vector,
+    :math:`\\hat{\\pmb{y}} \\in \\mathbb{R}^m` is predicted labels score vector,
+    :math:`\\text{rank}_k(\\hat{\\pmb{y}})` returns the :math:`k` indices of :math:`\\hat{\\pmb{y}}`
+    with the largest values, ordered in descending order,
+    and :math:`\\pmb{q}` is vector of inverse propensities.
 
     :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
     :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
@@ -273,10 +324,12 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
         Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
-    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :param inv_ps: Inverse propensity (propensity scores) for each label (label weights). In case of text labels needs to be a dict.
     :type inv_ps: ndarray, list, dict
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
+    :param normalize: Normalize result to [0, 1] range by dividing it by best possible value, commonly used to report results, defaults to True
+    :type normalize: bool, optional
     :return: Values of PSP at 1-k places.
     :rtype: ndarray
     """
@@ -287,6 +340,7 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
 
     sum = np.zeros(k)
     best_sum = np.zeros(k)
+    count = 0
     for t, p in zip(Y_true, Y_pred):
         top_ps = _top_ps(inv_ps, t)
         psp_at_i = 0
@@ -297,10 +351,11 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5):
                 best_psp_at_i += top_ps[i]
             sum[i] += psp_at_i / (i + 1)
             best_sum[i] += best_psp_at_i / (i + 1)
-    return sum / best_sum
+        count += 1
+    return sum / (best_sum if normalize else count)
 
 
-def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
+def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
     """
     Calculate Propensity Scored Recall (PSR) at 1-k places.
 
@@ -310,12 +365,14 @@ def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
         Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
-    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :param inv_ps: Inverse propensity (propensity scores) for each label. In case of text labels needs to be a dict.
     :type inv_ps: ndarray, list, dict
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
+    :param normalize: Normalize result to [0, 1] range by dividing it by best possible value, commonly used to report results, defaults to True
+    :type normalize: bool, optional
     :return: Values of PSR at 1-k places.
     :rtype: ndarray
     """
@@ -326,6 +383,7 @@ def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
 
     sum = np.zeros(k)
     best_sum = np.zeros(k)
+    count = 0
     for t, p in zip(Y_true, Y_pred):
         if len(t) == 0:
             sum += zero_division
@@ -340,10 +398,11 @@ def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
                 best_psr_at_i += top_ps[i]
             sum[i] += psr_at_i / len(t)
             best_sum[i] += best_psr_at_i / len(t)
-    return sum / best_sum
+        count += 1
+    return sum / (best_sum if normalize else count)
 
 
-def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5):
+def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True):
     """
     Calculate Propensity Scored Discounted Cumulative Gain (PSDCG) at 1-k places.
 
@@ -353,10 +412,12 @@ def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5):
         Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
-    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :param inv_ps: Inverse propensity (propensity scores) for each label. In case of text labels needs to be a dict.
     :type inv_ps: ndarray, list, dict
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
+    :param normalize: Normalize result to [0, 1] range by dividing it by best possible value, commonly used to report results, defaults to True
+    :type normalize: bool, optional
     :return: Values of PSDCG at 1-k places.
     :rtype: ndarray
     """
@@ -367,6 +428,7 @@ def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5):
 
     sum = np.zeros(k)
     best_sum = np.zeros(k)
+    count = 0
     for t, p in zip(Y_true, Y_pred):
         psdcg_at_i = 0
         best_psdcg_at_i = 0
@@ -378,10 +440,11 @@ def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5):
                 best_psdcg_at_i += top_ps[i] * _log_i
             sum[i] += psdcg_at_i / (i + 1)
             best_sum[i] += best_psdcg_at_i / (i + 1)
-    return sum / best_sum
+        count += 1
+    return sum / (best_sum if normalize else count)
 
 
-def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
+def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
     """
     Calculate Propensity Scored normalized Discounted Cumulative Gain (PSnDCG) at 1-k places.
 
@@ -391,12 +454,14 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
         Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
         In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
     :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
-    :param inv_ps: Propensity scores for each label. In case of text labels needs to be a dict.
+    :param inv_ps: Inverse propensity (propensity scores) for each label. In case of text labels needs to be a dict.
     :type inv_ps: ndarray, list, dict
     :param k: Calculate at places from 1 to k, defaults to 5
     :type k: int, optional
     :param zero_division: Value to add when there is a zero division, typically set to 0, defaults to 0
     :type zero_division: float, optional
+    :param normalize: Normalize result to [0, 1] range by dividing it by best possible value, commonly used to report results, defaults to True
+    :type normalize: bool, optional
     :return: Values of PSnDCG at 1-k places.
     :rtype: ndarray
     """
@@ -407,6 +472,7 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
 
     sum = np.zeros(k)
     best_sum = np.zeros(k)
+    count = 0
     for t, p in zip(Y_true, Y_pred):
         psdcg_at_i = 0
         best_psdcg_at_i = 0
@@ -427,7 +493,8 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0):
                 best_psdcg_at_i += top_ps[i] * _log_i
             sum[i] += psdcg_at_i / norm_at_i
             best_sum[i] += best_psdcg_at_i / norm_at_i
-    return sum / best_sum
+        count += 1
+    return sum / (best_sum if normalize else count)
 
 
 def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):

@@ -59,12 +59,13 @@ if __name__ == "__main__":
     max_k = 5
 
     measures = {
+        #"HL": {"func": hamming_loss, "inv_ps": False},
         "P": {"func": precision_at_k, "inv_ps": False},
         "R": {"func": recall_at_k, "inv_ps": False},
         "nDCG": {"func": ndcg_at_k, "inv_ps": False},
         "PSP": {"func": psprecision_at_k, "inv_ps": True},
         "PSR": {"func": psrecall_at_k, "inv_ps": True},
-        "PSnDCG": {"func": psndcg_at_k, "inv_ps": True}
+        "PSnDCG": {"func": psndcg_at_k, "inv_ps": True},
     }
 
     for m, v in measures.items():

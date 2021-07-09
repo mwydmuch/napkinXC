@@ -246,7 +246,8 @@ public:
     size_t sparseMem() const { return n0 * (sizeof(int) + sizeof(T)); };
     size_t denseMem() const { return s * sizeof(T); };
 
-    virtual void save(std::ostream& out) const {
+    virtual void save(std::ostream& out) {
+        checkD();
         saveVar(out, s);
         saveVar(out, n0);
         bool sparse = sparseMem() < denseMem() || s == 0; // Select more optimal coding
@@ -335,7 +336,7 @@ public:
         initD();
         reserve(maxN0);
     };
-    SparseVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+    explicit SparseVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
         initD();
         reserve(n0);
         n0 = 0;
@@ -364,7 +365,7 @@ public:
     };
 
     AbstractVector<T>* copy() override {
-        auto newVec = new SparseVector<T>(*this);
+        auto newVec = new SparseVector<T>(*static_cast<AbstractVector<T>*>(this));
         return static_cast<AbstractVector<T>*>(newVec);
     };
 
@@ -436,12 +437,12 @@ template <typename T> class MapVector: public AbstractVector<T> {
 
 public:
     MapVector(): AbstractVector<T>() { initD(); };
-    MapVector(size_t s): AbstractVector<T>(s) { initD(); };
+    explicit MapVector(size_t s): AbstractVector<T>(s) { initD(); };
     MapVector(size_t s, size_t maxN0): AbstractVector<T>(s) {
         initD();
         reserve(maxN0);
     };
-    MapVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+    explicit MapVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
         initD();
         vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
     };
@@ -472,7 +473,7 @@ public:
     };
 
     AbstractVector<T>* copy() override {
-        auto newVec = new MapVector<T>(*this);
+        auto newVec = new MapVector<T>(*static_cast<AbstractVector<T>*>(this));
         return static_cast<AbstractVector<T>*>(newVec);
     };
 
@@ -533,9 +534,9 @@ template <typename T> class Vector: public AbstractVector<T> {
 
 public:
     Vector(): AbstractVector<T>() { initD(); };
-    Vector(size_t s): AbstractVector<T>(s) { initD(); };
+    explicit Vector(size_t s): AbstractVector<T>(s) { initD(); };
     Vector(size_t s, size_t maxN0): AbstractVector<T>(s) { initD(); };
-    Vector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+    explicit Vector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
         initD();
         vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
     };
@@ -551,6 +552,13 @@ public:
         delete[] d;
         d = nullptr;
         n0 = 0;
+    };
+
+    void checkD() override {
+        n0 = s;
+        for(int i = 0; i < s; ++i){
+            if(d[i] == 0) --n0;
+        }
     };
 
     T dot(AbstractVector<T>& vec) const override {
@@ -571,7 +579,7 @@ public:
     };
 
     AbstractVector<T>* copy() override {
-        auto newVec = new Vector<T>(*this);
+        auto newVec = new Vector<T>(*static_cast<AbstractVector<T>*>(this));
         return static_cast<AbstractVector<T>*>(newVec);
     };
 
@@ -649,7 +657,7 @@ public:
     inline int cols() const { return n; }
     inline unsigned long long mem() const { return (m * n) * sizeof(T); }
 
-    void save(std::ostream& out) const;
+    void save(std::ostream& out);
     void load(std::istream& in);
 
 private:
@@ -668,10 +676,10 @@ template <typename T> Matrix<T>::Matrix(size_t m, size_t n): m(m), n(n) {
     for(auto& v : r) v.resize(n);
 }
 
-template <typename T> void Matrix<T>::save(std::ostream& out) const {
+template <typename T> void Matrix<T>::save(std::ostream& out) {
     out.write((char*)&m, sizeof(m));
     out.write((char*)&n, sizeof(n));
-    for(const auto& v : r) v.save(out);
+    for(auto& v : r) v.save(out);
 }
 
 template <typename T> void Matrix<T>::load(std::istream& in){

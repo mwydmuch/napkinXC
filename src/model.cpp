@@ -344,11 +344,10 @@ std::vector<Base*> Model::loadBases(std::string infile, bool resume, Representat
         printProgress(i, size);
         auto b = new Base();
         b->load(in, resume, loadAs);
-        //exit(1);
 
         if(b->getW() != nullptr) nonZeroSum += b->getW()->nonZero();
         memSize += b->mem();
-        //if(b->getMapW() != nullptr) ++sparse;
+        if(b->getType() != dense) ++sparse;
         bases.push_back(b);
     }
     in.close();

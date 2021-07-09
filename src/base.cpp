@@ -267,8 +267,8 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
         W = new Vector<Weight>(n);
         if (args.optimizerType == adagrad) G = new Vector<Weight>(n);
     } else {
-        W = new MapVector<Weight>(n);
-        if (args.optimizerType == adagrad) G = new MapVector<Weight>(n);
+        W = new MapVector<Weight>();
+        if (args.optimizerType == adagrad) G = new MapVector<Weight>();
     }
 
     classCount = 2;
@@ -285,12 +285,10 @@ void Base::finalizeOnlineTraining(Args& args) {
     }
     */
     pruneWeights(args.weightsThreshold);
-    W->checkD(); // TODO: Move it somewhere else
-    if(G != nullptr) G->checkD();
 }
 
 double Base::predictValue(Feature* features) {
-    if (classCount < 2) return static_cast<double>((1 - 2 * firstClass) * -10);
+    if (classCount < 2 || !W) return static_cast<double>((1 - 2 * firstClass) * -10);
     double val = W->dot(features);
     if (firstClass == 0) val *= -1;
 
@@ -393,27 +391,30 @@ void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
 
 void Base::setFirstClass(int first){
     if(firstClass != first){
-        W->invert();
+        if(W != nullptr) W->invert();
         if(G != nullptr) G->invert();
         firstClass = first;
+        firstClassCount = t - firstClassCount;
     }
 }
 
 Base* Base::copy() {
-    Base* copy = new Base();
-    if (W) copy->W = W->copy();
-    if (G) copy->G = G->copy();
+    Base* c = new Base();
+    if (W != nullptr) c->W = W->copy();
+    if (G != nullptr) c->G = G->copy();
 
-    copy->firstClass = firstClass;
-    copy->classCount = classCount;
-    copy->lossType = lossType;
+    c->firstClass = firstClass;
+    c->classCount = classCount;
+    c->lossType = lossType;
+    c->t = t;
+    c->firstClassCount = firstClassCount;
 
-    return copy;
+    return c;
 }
 
 Base* Base::copyInverted() {
     Base* c = copy();
-    c->W->invert();
+    if(c->W != nullptr) c->W->invert();
     if(c->G != nullptr) c->G->invert();
     return c;
 }

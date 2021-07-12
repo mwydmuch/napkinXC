@@ -180,8 +180,9 @@ See documentation for more details.
 This library implements methods from following papers (see `experiments` directory for scripts to replicate the results):
 
 - [Probabilistic Label Trees for Extreme Multi-label Classification](https://arxiv.org/abs/2009.11218)
-- [Online probabilistic label trees](https://arxiv.org/abs/2007.04451)
-- [Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification](https://arxiv.org/abs/1906.08129)
+- [Online probabilistic label trees](http://proceedings.mlr.press/v130/jasinska-kobus21a.html)
+- [Propensity-scored Probabilistic Label Trees](https://dl.acm.org/doi/10.1145/3404835.3463084)
+- [Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification](https://link.springer.com/article/10.1007/s10618-021-00751-x)
 
 Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, 
 that implements approach described in this [NeurIPS paper](http://papers.nips.cc/paper/7872-a-no-regret-generalization-of-hierarchical-softmax-to-extreme-multi-label-classification).

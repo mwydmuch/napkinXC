@@ -234,11 +234,10 @@ public:
     };
 
     void prune(T threshold){
-        n0 = 0;
         forEachID([&](const int& i, Weight& w) {
-            if (w != 0 && fabs(w) >= threshold) ++n0;
-            else w = 0;
+            if (fabs(w) <= threshold) w = 0;
         });
+        checkD();
     };
 
     inline size_t size() const { return s; }
@@ -254,8 +253,10 @@ public:
         saveVar(out, sparse);
 
         if(sparse) forEachID([&](const int& i, T& v) {
-                saveVar(out, i);
-                saveVar(out, v);
+                if(v != 0) {
+                    saveVar(out, i);
+                    saveVar(out, v);
+                }
             });
         else {
             for (int i = 0; i < s; ++i) {
@@ -349,6 +350,7 @@ public:
     void initD() override {
         d = nullptr;
         maxN0 = 0;
+        sorted = true;
     };
 
     void clearD() override {
@@ -359,9 +361,12 @@ public:
 
     void insertD(int i, T v) override {
         //std::cout << n0 << " " << maxN0 << " " << i << " " << v << "\n";
-        if(n0 >= maxN0) reserve(2 * maxN0);
-        d[n0++] = {i, v};
-        d[n0].first = -1;
+        if(i >= s) s = i + 1;
+        if(v != 0) {
+            if(n0 >= maxN0) reserve(2 * maxN0);
+            d[n0++] = {i, v};
+            d[n0].first = -1;
+        }
     };
 
     AbstractVector<T>* copy() override {
@@ -381,10 +386,31 @@ public:
         d[n0].first = -1;
     };
 
+    double dot(Feature* vec) const override {
+        if(sorted) { // Also assumes that vec is sorted
+            auto p = d;
+            double val = 0;
+            for (auto f = vec; f->index != -1; ++f) {
+                while (p->first != -1 && p->first != f->index) ++p;
+                if (p->first == -1) break;
+                else val += f->value * p->second;
+            }
+            return val;
+        } else return AbstractVector<T>::dot(vec);
+    };
+
     inline T at(int index) const override {
+        /*
+        if(sorted){ // Binary search
+
+        } else {
+
+        }
+         */
+        // Linear search
         auto p = d;
-        while(p->first != -1 && p->first != index) ++p;
-        if(p->first == -1) return 0;
+        while (p->first != -1 && p->first != index) ++p;
+        if (p->first == -1) return 0;
         else return p->second;
     };
 
@@ -427,6 +453,7 @@ public:
 
 protected:
     size_t maxN0;
+    size_t sorted;
     std::pair<int, T>* d; // data
 };
 
@@ -461,15 +488,19 @@ public:
     };
 
     void insertD(int i, T v) override {
-        //d->emplace(i, v);
-        (*d)[i] = v;
-        n0 = d->size();
+        if(i >= s) s = i + 1;
+        if(v != 0) {
+            (*d)[i] = v;
+            n0 = d->size();
+        }
     };
 
     void checkD() override {
-        int s = 0;
-        forEachID([&](const int& i, T& v) { if(i > s) s = i; });
-        n0 = d->size();
+        n0 = 0;
+        forEachID([&](const int& i, T& v) {
+            if(i >= s) s = i + 1;
+            if(v != 0) ++n0;
+        });
     };
 
     AbstractVector<T>* copy() override {
@@ -538,7 +569,7 @@ public:
     Vector(size_t s, size_t maxN0): AbstractVector<T>(s) { initD(); };
     explicit Vector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
         initD();
-        vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
+        vec.forEachID([&](const int& i, T& v) { d[i] = v; });
     };
     ~Vector(){
         clearD();

@@ -71,7 +71,10 @@ if [ ! -e $DATASET_PATH ]; then
     if [ ! -e ${DATASET_PATH}.* ]; then
         if [[ $DATASET_LINK == *drive.google.com* ]]; then
             echo "Downloading ${DATASET_PATH}.zip ..."
-            perl ${SCRIPT_DIR}/google_drive_download.pl $DATASET_LINK ${DATASET_PATH}.zip
+            GOOGLE_ID=$(echo ${DATASET_LINK} | grep -o '[^=]*$')
+            curl -c ${DATASET_PATH}.cookie -s -L "https://drive.google.com/uc?export=download&id=${GOOGLE_ID}" > /dev/null
+            curl -Lb ${DATASET_PATH}.cookie "https://drive.google.com/uc?export=download&confirm=$(awk '/download/ {print $NF}' ${DATASET_PATH}.cookie)&id=${GOOGLE_ID}" -o ${DATASET_PATH}.zip
+            rm ${DATASET_PATH}.cookie
         elif [[ $DATASET_LINK == *dropbox.com* ]]; then
             echo "Downloading $(basename ${DATASET_LINK}) ..."
             wget $DATASET_LINK -P $DATA_DIR

@@ -296,9 +296,11 @@ void Base::clear() {
 }
 
 void Base::pruneWeights(double threshold) {
-    Weight bias = W->at(1); // Do not prune bias feature
-    W->prune(threshold);
-    W->insertD(1, bias);
+    if(W != nullptr) {
+        Weight bias = W->at(1); // Do not prune bias feature
+        W->prune(threshold);
+        W->insertD(1, bias);
+    }
 }
 
 void Base::save(std::ostream& out, bool saveGrads) {
@@ -337,7 +339,7 @@ void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
         size_t denseSize = Vector<Weight>::estimateMem(s, n0);
         size_t mapSize = MapVector<Weight>::estimateMem(s, n0);
         size_t sparseSize = SparseVector<Weight>::estimateMem(s, n0);
-        bool loadMap = (mapSize < denseSize || s == 0);
+        bool loadMap = loadGrads || (mapSize < denseSize || s == 0);
         bool loadSparse = (sparseSize < denseSize || s == 0);
 
         if(loadAs == map && loadMap) W = new MapVector<Weight>();

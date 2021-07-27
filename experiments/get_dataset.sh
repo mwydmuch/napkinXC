@@ -9,6 +9,12 @@ if [[ $# -gt 2 ]]; then
 fi
 
 case "$DATASET" in
+    # Small datasets used for debug purposed
+    "yeast") # yeast
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1qcU-jxF7VmHBvwTn0-6MB4FW4ItD-bIp" ;;
+    "mediamill") # mediamill
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1YDlU9GTYSoydU1UYTNT8BpPkRw1BCnFw" ;;
+
     # Multi-label datasets from The Extreme Classification Repository (manikvarma.org/downloads/XC/XMLRepository.html)
     "rcv1x") # RCV1X-2K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdnEzRWZWQWJMRnc" ;;

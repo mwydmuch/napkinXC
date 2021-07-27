@@ -63,12 +63,11 @@ void OnlinePLT::init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     }
 }
 
-void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize,
+void OnlinePLT::update(const int epoch, const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize,
                        Args& args) {
     UnorderedSet<TreeNode *> nPositive;
     UnorderedSet<TreeNode *> nNegative;
-    
-    if (onlineTree) { // Check if example contains a new label
+    if (epoch == 0 && onlineTree) { // Check if example contains a new label
         std::vector<int> newLabels;
         
         if(args.threads == 1) {
@@ -92,7 +91,7 @@ void OnlinePLT::update(const int row, Label* labels, size_t labelsSize, Feature*
     }
 
     // Update positive, negative and aux base estimators
-    if(onlineTree && args.threads > 1) {
+    if(epoch == 0 && onlineTree && args.threads > 1) {
         std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
         getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
     }
@@ -116,7 +115,7 @@ void OnlinePLT::save(Args& args, std::string output) {
     out.write((char*)&size, sizeof(size));
     for (int i = 0; i < size; ++i) {
         bases[i]->finalizeOnlineTraining(args);
-        bases[i]->save(out, true);
+        bases[i]->save(out, args.saveGrads);
     }
     out.close();
 
@@ -129,7 +128,7 @@ void OnlinePLT::save(Args& args, std::string output) {
         //TODO: Improve
         if(auxBases[i] != nullptr) {
             auxBases[i]->finalizeOnlineTraining(args);
-            auxBases[i]->save(out, true);
+            auxBases[i]->save(out, args.saveGrads);
         }
         else {
             auto b = new Base();
@@ -147,6 +146,7 @@ void OnlinePLT::save(Args& args, std::string output) {
 
 void OnlinePLT::load(Args& args, std::string infile){
     PLT::load(args, infile);
+
     if(args.resume){
         auxBases = loadBases(joinPath(infile, "aux_weights.bin"), args.resume, args.loadAs);
 
@@ -278,7 +278,7 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
             auto newBranch = createTreeNode(toExpand, -1, auxBases[toExpand->index]->copy(), new Base(args));
             createTreeNode(newBranch, nl, auxBases[toExpand->index]->copy(), nullptr);
 
-            // Remove aux classifier //TODO: Improve
+            // "Remove" aux classifier
             if (toExpand->children.size() >= args.arity){
                 delete auxBases[toExpand->index];
                 auxBases[toExpand->index] = nullptr;

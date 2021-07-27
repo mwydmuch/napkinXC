@@ -64,12 +64,8 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     ++t;
     if (label == firstClass) ++firstClassCount;
 
-    double pred = predictValue(features);
-    double grad;
-    if(args.lossType == logistic)
-        grad = logisticGrad(label, pred, 0);
-    else
-        grad = squaredHingeGrad(label, pred, 0);
+    double pred = W->dot(features);
+    double grad = gradFunc(label, pred, 0); // Online version doesn't support weights
 
     if (args.optimizerType == sgd)
         updateSGD(*W, *G, features, grad, t, args);
@@ -78,10 +74,12 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
     else throw std::invalid_argument("Unknown optimizer type");
 
     // Check if we should change sparse W to dense W
-//    if (mapW != nullptr && wSize != 0) {
-//        nonZeroW = mapW->size();
-//        if (mapSize() > denseSize()) toDense();
-//    }
+    /*
+    if (mapW != nullptr && wSize != 0) {
+        nonZeroW = mapW->size();
+        if (mapSize() > denseSize()) toDense();
+    }
+     */
 }
 
 void Base::trainLiblinear(ProblemData& problemData, Args& args) {
@@ -144,28 +142,7 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
     Vector<Weight>* newG = nullptr;
 
     // Set loss function
-    lossType = args.lossType;
-    double (*lossFunc)(double, double, double);
-    double (*gradFunc)(double, double, double);
-    if (args.lossType == logistic) {
-        lossFunc = &logisticLoss;
-        gradFunc = &logisticGrad;
-    }
-    else if (args.lossType == squaredHinge) {
-        gradFunc = &squaredHingeGrad;
-    }
-    else if (args.lossType == unLogistic) {
-        lossFunc = &unbiasedLogisticLoss;
-        gradFunc = &unbiasedLogisticGrad;
-    }
-    else if (args.lossType == pwLogistic) {
-        lossFunc = &pwLogisticLoss;
-        gradFunc = &pwLogisticGrad;
-        //lossFunc = &asLoss;
-        //gradFunc = &asGrad;
-    }
-    else
-        throw std::invalid_argument("Unknown loss function type");
+    setLoss(args.lossType);
 
     // Set update function
     void (*updateFunc)(Vector<Weight>&, Vector<Weight>&, Feature*, double, int, Args&);
@@ -261,8 +238,10 @@ void Base::train(ProblemData& problemData, Args& args) {
 }
 
 void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
-    lossType = args.lossType;
+    // Set loss
+    setLoss(args.lossType);
 
+    // Init weights
     if (n != 0 && startWithDenseW) {
         W = new Vector<Weight>(n);
         if (args.optimizerType == adagrad) G = new Vector<Weight>(n);
@@ -342,9 +321,11 @@ void Base::save(std::ostream& out, bool saveGrads) {
 }
 
 void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
+    clear();
     loadVar(in, classCount);
     loadVar(in, firstClass);
     loadVar(in, lossType);
+    setLoss(lossType);
 
     if (classCount > 1) {
         size_t s;
@@ -359,34 +340,46 @@ void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
         bool loadMap = (mapSize < denseSize || s == 0);
         bool loadSparse = (sparseSize < denseSize || s == 0);
 
-        if(loadAs == map && loadMap){
-            W = new MapVector<Weight>();
-            G = new MapVector<Weight>();
-        }
-        else if(loadAs == sparse && loadSparse){
-            W = new SparseVector<Weight>();
-            G = new SparseVector<Weight>();
-        }
-        else{
-            W = new Vector<Weight>();
-            G = new Vector<Weight>();
-        }
+        if(loadAs == map && loadMap) W = new MapVector<Weight>();
+        else if(loadAs == sparse && loadSparse) W = new SparseVector<Weight>();
+        else W = new Vector<Weight>();
         W->load(in);
 
         bool grads;
         loadVar(in, grads);
         if(grads) {
-            if(loadGrads) G->load(in);
-            else G->skipLoad(in);
+            if(loadGrads){
+                if(loadAs == map && loadMap) G = new MapVector<Weight>();
+                else if(loadAs == sparse && loadSparse) G = new SparseVector<Weight>();
+                else G = new Vector<Weight>();
+                G->load(in);
+            }
+            else AbstractVector<Weight>::skipLoad(in);
         }
-        if(!grads || !loadGrads) {
-            delete G;
-            G = nullptr;
-        }
-
 //        Log(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
 //                  << firstClass << ", non-zero weights: " << n0 << "/" << s << "\n";
     }
+}
+
+void Base::setLoss(LossType lossType){
+    this->lossType = lossType;
+    if (lossType == logistic) {
+        lossFunc = &logisticLoss;
+        gradFunc = &logisticGrad;
+    }
+    else if (lossType == squaredHinge) {
+        gradFunc = &squaredHingeGrad;
+    }
+    else if (lossType == unLogistic) {
+        lossFunc = &unbiasedLogisticLoss;
+        gradFunc = &unbiasedLogisticGrad;
+    }
+    else if (lossType == pwLogistic) {
+        lossFunc = &pwLogisticLoss;
+        gradFunc = &pwLogisticGrad;
+    }
+    else
+        throw std::invalid_argument("Unknown loss function type");
 }
 
 void Base::setFirstClass(int first){
@@ -406,6 +399,8 @@ Base* Base::copy() {
     c->firstClass = firstClass;
     c->classCount = classCount;
     c->lossType = lossType;
+    c->lossFunc = lossFunc;
+    c->gradFunc = gradFunc;
     c->t = t;
     c->firstClassCount = firstClassCount;
 
@@ -415,7 +410,8 @@ Base* Base::copy() {
 Base* Base::copyInverted() {
     Base* c = copy();
     if(c->W != nullptr) c->W->invert();
-    if(c->G != nullptr) c->G->invert();
+    // For AdaGrad, G accumulates squares of features and gradients it needs to be always positive
+    //if(c->G != nullptr) c->G->invert();
     return c;
 }
 

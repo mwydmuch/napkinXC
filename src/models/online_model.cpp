@@ -33,7 +33,8 @@ void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<L
     for (int i = 0; i < examples; ++i) {
         if (!threadId) printProgress(i, examples);
         int r = startRow + i % rowsRange;
-        model->update(r, labels.row(r), labels.size(r), features.row(r), features.size(r), args);
+        int e = i / rowsRange;
+        model->update(e, r, labels.row(r), labels.size(r), features.row(r), features.size(r), args);
 
         if(!threadId && logLevel >= CERR_DEBUG && i % (examples / 100) == 0){
             auto res = getResources();

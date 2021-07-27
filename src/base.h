@@ -89,6 +89,7 @@ public:
     RepresentationType getType();
     void pruneWeights(double threshold);
     void setFirstClass(int first);
+    void setLoss(LossType);
 
     void save(std::ostream& out, bool saveGrads=false);
     void load(std::istream& in, bool loadGrads=false, RepresentationType loadAs=map);
@@ -102,12 +103,14 @@ public:
 private:
     std::mutex updateMtx;
     LossType lossType;
+    double (*lossFunc)(double, double, double);
+    double (*gradFunc)(double, double, double);
 
     int classCount;
     int firstClass;
     int firstClassCount;
     int t;
-    
+
     // Weights (parameters)
     AbstractVector<Weight>* W;
     AbstractVector<Weight>* G;

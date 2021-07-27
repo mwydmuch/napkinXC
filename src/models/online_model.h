@@ -31,8 +31,8 @@ public:
 
     virtual void init(Args& args) = 0;
     virtual void init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) = 0;
-    virtual void update(const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize,
-                        Args& args) = 0;
+    virtual void update(const int epoch, const int row, Label* labels, size_t labelsSize, Feature* features,
+                        size_t featuresSize, Args& args) = 0;
     virtual void save(Args& args, std::string output) = 0;
 
 private:

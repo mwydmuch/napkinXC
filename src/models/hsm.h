@@ -31,8 +31,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "label_tree.h"
 #include "plt.h"
-#include "tree.h"
 
 
 class HSM : public BatchPLT { // HSM is multi-class version of PLT

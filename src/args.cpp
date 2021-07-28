@@ -91,6 +91,7 @@ Args::Args() {
     treeType = hierarchicalKmeans;
     treeTypeName = "hierarchicalKmeans";
     maxLeaves = 100;
+    flattenTree = 0;
 
     // K-Means tree options
     kmeansEps = 0.0001;
@@ -367,6 +368,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 arity = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--maxLeaves")
                 maxLeaves = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--flattenTree")
+                flattenTree = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--kmeansEps")
                 kmeansEps = std::stof(args.at(ai + 1));
             else if (args[ai] == "--kmeansBalanced")
@@ -545,6 +548,8 @@ void Args::printArgs(std::string command) {
                 if (treeType == hierarchicalKmeans || treeType == balancedInOrder || treeType == balancedRandom
                     || treeType == onlineBestScore || treeType == onlineRandom)
                     Log(CERR) << ", max leaves: " << maxLeaves;
+                if (flattenTree)
+                    Log(CERR) << ", flatten tree levels: " << flattenTree;
                 if (treeType == onlineBestScore)
                     Log(CERR) << ", alpha: " << onlineTreeAlpha;
             } else {

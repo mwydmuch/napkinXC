@@ -158,6 +158,7 @@ public:
     std::string treeStructure;
     int arity;
     int maxLeaves;
+    int flattenTree;
 
     // K-Means tree options
     double kmeansEps;

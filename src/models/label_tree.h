@@ -69,10 +69,12 @@ struct TreeNodePartition {
     std::vector<Assignation>* partition;
 };
 
-class Tree : public FileHelper {
+class LabelTree : public FileHelper {
 public:
-    Tree();
-    ~Tree();
+    LabelTree();
+    ~LabelTree();
+
+    void clear();
 
     // Build tree structure of given type
     void buildTreeStructure(int labelCount, Args& args);
@@ -91,22 +93,36 @@ public:
     // Simulate simple online tree building
     void buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 
+    // Flatten tree
+    void flattenTree(int levels);
+
+    // Fix tree
+    void reenumerateNodes();
+
     // Custom tree structure
     void loadTreeStructure(std::string file);
     void saveTreeStructure(std::string file);
+    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure);
+    std::vector<std::tuple<int, int, int>> getTreeStructure();
+    void validateTree();
 
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
-    int k; // Number of labels, should be equal to leaves.size()
-    int t; // Number of tree nodes, should be equal to nodes.size()
+    inline TreeNode* getRoot(){ return root; };
+    inline TreeNode* getNode(int index){
+        if(index < nodes.size()) return nodes[index];
+        else return nullptr;
+    };
+    inline size_t size() { return nodes.size(); };
+    inline size_t labelsSize() { return leaves.size(); };
 
     TreeNode* root;                      // Pointer to root node
     std::vector<TreeNode*> nodes;        // Pointers to tree nodes
     UnorderedMap<int, TreeNode*> leaves; // Leaves map;
 
     // Tree utils
-    void printTree(TreeNode* rootNode = nullptr);
+    void printTree(TreeNode* rootNode = nullptr, bool printNodes = false);
     int getNumberOfLeaves(TreeNode* rootNode = nullptr);
     int getTreeDepth(TreeNode* rootNode = nullptr);
     int getNodeDepth(TreeNode* n);

@@ -287,9 +287,9 @@ Prediction PLT::predictNextLabel(
 }
 
 void PLT::calculateNodesLabels(){
-    if(tree->t != nodesLabels.size()){
+    if(tree->size() != nodesLabels.size()){
         nodesLabels.clear();
-        nodesLabels.resize(tree->t);
+        nodesLabels.resize(tree->size());
 
         for (auto& l : tree->leaves) {
             TreeNode* n = l.second;
@@ -327,7 +327,7 @@ void PLT::setThresholds(std::vector<double> th){
     Model::setThresholds(th);
     if(tree) {
         calculateNodesLabels();
-        if (tree->t != nodesThr.size()) nodesThr.resize(tree->t);
+        if (tree->size() != nodesThr.size()) nodesThr.resize(tree->size());
         for (auto& n : tree->nodes) setNodeThreshold(n);
     }
 }
@@ -336,7 +336,7 @@ void PLT::setLabelsWeights(std::vector<double> lw){
     Model::setLabelsWeights(lw);
     if(tree) {
         calculateNodesLabels();
-        if (tree->t != nodesWeights.size()) nodesWeights.resize(tree->t);
+        if (tree->size() != nodesWeights.size()) nodesWeights.resize(tree->size());
         for (auto& n : tree->nodes) setNodeWeight(n);
     }
 }
@@ -380,7 +380,7 @@ double PLT::predictForLabel(Label label, Feature* features, Args& args) {
 void PLT::load(Args& args, std::string infile) {
     Log(CERR) << "Loading " << name << " model ...\n";
 
-    tree = new Tree();
+    tree = new LabelTree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
     bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadAs);
 
@@ -402,7 +402,7 @@ void PLT::printInfo() {
 
 void PLT::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
     delete tree;
-    tree = new Tree();
+    tree = new LabelTree();
     tree->buildTreeStructure(labels, features, args);
     m = tree->getNumberOfLeaves();
 
@@ -411,7 +411,7 @@ void PLT::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& 
     tree->saveTreeStructure(joinPath(output, "tree"));
     treeSize = tree->nodes.size();
     treeDepth = tree->getTreeDepth();
-    assert(treeSize == tree->t);
+    assert(treeSize == tree->size());
 }
 
 std::vector<std::vector<std::pair<int, double>>> PLT::getNodesToUpdate(std::vector<std::vector<Label>>& labels){
@@ -474,15 +474,12 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
 
     Log(CERR) << "Training tree ...\n";
 
-    // Check data
-    //assert(tree->k >= labels.cols());
-
     // Examples selected for each node
-    std::vector<std::vector<double>> binLabels(tree->t);
-    std::vector<std::vector<Feature*>> binFeatures(tree->t);
+    std::vector<std::vector<double>> binLabels(tree->size());
+    std::vector<std::vector<Feature*>> binFeatures(tree->size());
     std::vector<std::vector<double>> binWeights;
 
-    if (type == hsm && args.pickOneLabelWeighting) binWeights.resize(tree->t);
+    if (type == hsm && args.pickOneLabelWeighting) binWeights.resize(tree->size());
     else binWeights.emplace_back(features.rows(), 1);
 
     assignDataPoints(binLabels, binFeatures, binWeights, labels, features, args);

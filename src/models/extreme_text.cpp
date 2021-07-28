@@ -99,7 +99,7 @@ void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
 
     // Create tree
     if (!tree) {
-        tree = new Tree();
+        tree = new LabelTree();
         tree->buildTreeStructure(labels, features, args);
     }
     m = tree->getNumberOfLeaves();
@@ -113,7 +113,7 @@ void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     for(int i = 0; i < inputW.rows(); ++i)
         for(int j = 0; j < inputW.cols(); ++j) inputW[i][j] = dist(rng);
 
-    outputW = Matrix<XTWeight>(tree->t, dims);
+    outputW = Matrix<XTWeight>(tree->size(), dims);
 
     // Iterate over rows
     Log(CERR) << "Training extremeText for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
@@ -138,7 +138,7 @@ void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
 void ExtremeText::load(Args& args, std::string infile) {
     Log(CERR) << "Loading " << name << " model ...\n";
 
-    tree = new Tree();
+    tree = new LabelTree();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
 
     std::ifstream in(joinPath(infile, "XTWeights.bin"));
@@ -149,7 +149,7 @@ void ExtremeText::load(Args& args, std::string infile) {
     assert(inputW.cols() == outputW.cols());
     dims = inputW.cols();
 
-    assert(tree->t == outputW.rows());
+    assert(tree->size() == outputW.rows());
     m = tree->getNumberOfLeaves();
 
     loaded = true;

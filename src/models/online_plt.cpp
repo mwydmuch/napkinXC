@@ -35,12 +35,12 @@ OnlinePLT::~OnlinePLT() {
 }
 
 void OnlinePLT::init(Args& args) {
-    tree = new Tree();
+    tree = new LabelTree();
     onlineTree = true;
 }
 
 void OnlinePLT::init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
-    tree = new Tree();
+    tree = new LabelTree();
 
     if (args.treeType == onlineRandom || args.treeType == onlineBestScore) {
         onlineTree = true;
@@ -48,8 +48,8 @@ void OnlinePLT::init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
         tree->buildTreeStructure(labels, features, args);
         onlineTree = false;
 
-        bases.resize(tree->t);
-        auxBases.resize(tree->t);
+        bases.resize(tree->size());
+        auxBases.resize(tree->size());
         for (auto& b : bases) b = new Base(args);
 
         size_t nonDummyAux = 0;

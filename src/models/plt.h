@@ -23,8 +23,8 @@
 #pragma once
 
 #include "base.h"
+#include "label_tree.h"
 #include "model.h"
-#include "tree.h"
 
 // Additional node information for prediction with thresholds
 struct TreeNodeThrExt {
@@ -62,9 +62,11 @@ public:
     std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels);
     std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels);
 
+    void setTree(LabelTree*t) { tree = t; };
+    LabelTree* getTree() { return tree; };
 
 protected:
-    Tree* tree;
+    LabelTree* tree;
     std::vector<Base*> bases;
 
     std::vector<std::vector<int>> nodesLabels;

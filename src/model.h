@@ -47,8 +47,10 @@ public:
     // Prediction with thresholds and ofo
     virtual void setThresholds(std::vector<double> th);
     virtual void updateThresholds(UnorderedMap<int, double> thToUpdate);
+    std::vector<double> getThresholds(){ return thresholds; };
 
     virtual void setLabelsWeights(std::vector<double> lw);
+    std::vector<double> getLabelsWeights(){ return labelsWeights; };
 
     std::vector<double> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
     double microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);

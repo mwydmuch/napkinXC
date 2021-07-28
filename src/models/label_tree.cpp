@@ -31,18 +31,24 @@
 #include <sstream>
 #include <vector>
 
+#include "label_tree.h"
 #include "threads.h"
-#include "tree.h"
 
-Tree::Tree() {
+LabelTree::LabelTree() {
 
 }
 
-Tree::~Tree() {
+LabelTree::~LabelTree() {
+    clear();
+}
+
+void LabelTree::clear() {
     for (auto n : nodes) delete n;
+    nodes.clear();
+    leaves = UnorderedMap<int, TreeNode*>();
 }
 
-void Tree::buildTreeStructure(int labelCount, Args& args) {
+void LabelTree::buildTreeStructure(int labelCount, Args& args) {
     // Create a tree structure
     Log(CERR) << "Building tree ...\n";
 
@@ -60,7 +66,9 @@ void Tree::buildTreeStructure(int labelCount, Args& args) {
         throw std::invalid_argument("Unknown tree type");
 }
 
-void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+void LabelTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+    clear();
+
     // Load tree structure from file
     if (!args.treeStructure.empty()) loadTreeStructure(args.treeStructure);
 
@@ -90,23 +98,24 @@ void Tree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& featur
     else if (args.treeType != custom)
         throw std::invalid_argument("Unknown tree type");
 
+    if(args.flattenTree) flattenTree(args.flattenTree);
 
-    // Check tree
-    assert(k == leaves.size());
-    assert(t == nodes.size());
+    //printTree();
+    //validateTree();
+    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
-TreeNodePartition Tree::buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args,
+TreeNodePartition LabelTree::buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args,
                                               int seed) {
     kmeans(nPart.partition, labelsFeatures, args.arity, args.kmeansEps, args.kmeansBalanced, seed);
     return nPart;
 }
 
-void Tree::buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
+void LabelTree::buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
     Log(CERR) << "Hierarchical K-Means clustering in " << args.threads << " threads ...\n";
 
     root = createTreeNode();
-    k = labelsFeatures.rows();
+    int k = labelsFeatures.rows();
 
     long seed = args.getSeed();
     std::default_random_engine rng(seed);
@@ -156,39 +165,12 @@ void Tree::buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
 
         delete nPart.partition;
     }
-
-    t = nodes.size();
-    assert(k == leaves.size());
-    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
-void Tree::squashTree(){
-    std::queue<TreeNode*> nQueue;
-    nQueue.push(root);
-
-    while(!nQueue.empty()){
-        auto n = nQueue.front();
-        nQueue.pop();
-        std::vector<TreeNode*> newChildren;
-        for (auto& child : n->children) {
-            if (child->label >= 0)
-                newChildren.push_back(child);
-            for (auto& grandchild : child->children)
-                newChildren.push_back(grandchild);
-        }
-        n->children = newChildren;
-        for (auto& newChild : newChildren){
-            newChild->parent = n;
-            nQueue.push(newChild);
-        }
-    }
-}
-
-void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
+void LabelTree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
     Log(CERR) << "Building Huffman Tree ...\n";
 
-    k = labels.cols();
-
+    int k = labels.cols();
     auto labelsProb = computeLabelsPriors(labels);
 
     std::priority_queue<TreeNodeValue, std::vector<TreeNodeValue>, std::greater<>> probQueue;
@@ -218,16 +200,13 @@ void Tree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
         else
             probQueue.push({parent, aggregatedProb});
     }
-
-    t = nodes.size(); // size of the tree
-    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
-void Tree::buildBalancedTree(int labelCount, bool randomizeOrder, Args& args) {
+void LabelTree::buildBalancedTree(int labelCount, bool randomizeOrder, Args& args) {
     Log(CERR) << "Building balanced Tree ...\n";
 
     root = createTreeNode();
-    k = labelCount;
+    int k = labelCount;
     std::default_random_engine rng(args.seed);
 
     auto partition = new std::vector<Assignation>(k);
@@ -272,19 +251,15 @@ void Tree::buildBalancedTree(int labelCount, bool randomizeOrder, Args& args) {
 
         delete nPart.partition;
     }
-
-    t = nodes.size();
-    assert(k == leaves.size());
-    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
-void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
+void LabelTree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
     Log(CERR) << "Building complete Tree ...\n";
 
     std::default_random_engine rng(args.getSeed());
 
-    k = labelCount;
-    t = static_cast<int>(ceil(static_cast<double>(args.arity * k - 1) / (args.arity - 1)));
+    int k = labelCount;
+    int t = static_cast<int>(ceil(static_cast<double>(args.arity * k - 1) / (args.arity - 1)));
 
     int ti = t - k;
 
@@ -308,11 +283,9 @@ void Tree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& args) {
         TreeNode* parent = nodes[static_cast<int>(floor(static_cast<double>(i - 1) / args.arity))];
         createTreeNode(parent, label);
     }
-
-    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
-void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+void LabelTree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
     Log(CERR) << "Building online tree ...\n";
 
     int nextToExpand = 0;
@@ -354,23 +327,18 @@ void Tree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features,
             }
         }
     }
-
-    t = nodes.size(); // size of the tree
-    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << ", arity: " << args.arity << "\n";
 }
 
-void Tree::loadTreeStructure(std::string file) {
-    Log(CERR) << "Loading Tree structure from: " << file << "...\n";
+void LabelTree::loadTreeStructure(std::string file) {
+    Log(CERR) << "Loading tree structure from: " << file << "...\n";
 
+    std::vector<std::tuple<int, int, int>> treeStructure;
     std::ifstream in(file);
+    int k, t;
     in >> k >> t;
+    treeStructure.reserve(t);
 
     if (k >= t) throw std::invalid_argument("The specified number of labels = " + std::to_string(k) + " is higher than the specified number of nodes = " + std::to_string(t));
-
-    root = createTreeNode();
-    for (int i = 1; i < t; ++i) createTreeNode();
-
-    Log(CERR) << "  Header: nodes: " << t << ", labels: " << k << "\n";
 
     std::string line;
     while (std::getline(in, line)) {
@@ -382,62 +350,148 @@ void Tree::loadTreeStructure(std::string file) {
         std::istringstream lineISS(line);
         lineISS >> parent >> child >> sLabel;
         if (sLabel.size()) label = std::stoi(sLabel);
+        treeStructure.emplace_back(parent, child, label);
+    }
+    in.close();
+    setTreeStructure(treeStructure);
+}
 
-        if (child >= t) throw std::invalid_argument("The node index = " + std::to_string(child) + " is higher than the specified number of nodes = " + std::to_string(t));
-        if (parent >= t) throw std::invalid_argument("The parent index = " + std::to_string(parent) + " is higher than the specified number of nodes = " + std::to_string(t));
-        if (label >= k) throw std::invalid_argument("The label index = " + std::to_string(label) + " is higher than specified number of labels = " + std::to_string(k));
+void LabelTree::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure){
+    int t = treeStructure.size();
+    root = nullptr;
+    for (int i = 0; i < t; ++i) createTreeNode();
 
-        if (parent == -1) {
+    int k = 0;
+    for(auto &tn : treeStructure) {
+        if(std::get<2>(tn) != -1) ++k;
+    }
+
+    clear();
+    nodes.reserve(t);
+    leaves.reserve(k);
+
+    for(auto &tn : treeStructure){
+        int parent = std::get<0>(tn);
+        int child = std::get<1>(tn);
+        int label = std::get<2>(tn);
+
+        if (child >= t) throw std::invalid_argument("The node index = " + std::to_string(child) + " is higher than the number of nodes = " + std::to_string(t));
+        if (parent >= t) throw std::invalid_argument("The parent index = " + std::to_string(parent) + " is higher than the number of nodes = " + std::to_string(t));
+        if (label >= k) throw std::invalid_argument("The label index = " + std::to_string(label) + " is higher than the number of labels = " + std::to_string(k));
+
+        TreeNode* n = nodes[child];
+        if (parent == -1){
+            if(root != nullptr) throw std::invalid_argument("More than one root node");
             root = nodes[child];
-            continue;
+        } else {
+            TreeNode* parentN = nodes[parent];
+            parentN->children.push_back(n);
+            n->parent = parentN;
         }
-
-        TreeNode* parentN = nodes[parent];
-        TreeNode* childN = nodes[child];
-        parentN->children.push_back(childN);
-        childN->parent = parentN;
 
         if (label >= 0) {
             assert(leaves.count(label) == 0);
             assert(label < k);
-            childN->label = label;
-            leaves[childN->label] = childN;
+            n->label = label;
+            leaves[n->label] = n;
         }
     }
-    in.close();
 
-    // Additional validation of a tree
+    validateTree();
+
+    assert(nodes.size() == t);
+    assert(leaves.size() == k);
+}
+
+void LabelTree::saveTreeStructure(std::string file) {
+    Log(CERR) << "Saving tree structure to: " << file << "...\n";
+
+    std::ofstream out(file);
+    out << leaves.size() << " " << nodes.size() << "\n";
+    for (auto& n : nodes) {
+        if (n->parent != nullptr) out << n->parent->index;
+        else out << -1;
+        out << " " << n->index << " ";
+        if (n->label >= 0) out << n->label;
+        // else out << -1;
+        out << "\n";
+    }
+    out.close();
+}
+
+std::vector<std::tuple<int, int, int>> LabelTree::getTreeStructure() {
+    std::vector<std::tuple<int, int, int>> treeStructure;
+    treeStructure.reserve(nodes.size());
+    for (auto& n : nodes) {
+        int parent = -1;
+        if (n->parent != nullptr) parent = n->parent->index;
+        treeStructure.emplace_back(parent, n->index, n->label);
+    }
+
+    return treeStructure;
+}
+
+void LabelTree::validateTree() {
     for (const auto& n : nodes) {
         if (n->parent == nullptr && n != root)
             throw std::invalid_argument("A node without a parent that is not a tree root exists");
         if (n->children.size() == 0 && n->label < 0)
             throw std::invalid_argument("An internal node without children exists");
     }
-
-    assert(nodes.size() == t);
-    assert(leaves.size() == k);
-    Log(CERR) << "  Loaded: nodes: " << nodes.size() << ", labels: " << leaves.size() << "\n";
 }
 
-void Tree::saveTreeStructure(std::string file) {
-    Log(CERR) << "Saving Tree structure to: " << file << "...\n";
+void LabelTree::flattenTree(int levels){
+    Log(CERR) << "Flattening tree structure ...\n";
 
-    std::ofstream out(file);
-    out << k << " " << t << "\n";
-    for (auto& n : nodes) {
-        if (n->parent != nullptr) {
-            out << n->parent->index;
-            // else out << -1
-            out << " " << n->index << " ";
-            if (n->label >= 0) out << n->label;
-            // else out << -1;
-            out << "\n";
+    UnorderedSet<TreeNode*> currentLevel;
+    UnorderedSet<TreeNode*> nextLevel;
+    currentLevel.reserve(leaves.size());
+    for(auto l : leaves) currentLevel.insert(l.second->parent);
+
+    while(currentLevel.size() > 1){
+        for(auto n : currentLevel) {
+            auto nParent = n->parent;
+            for (int i = 0; i < levels; ++i) {
+                if(nParent->parent != nullptr) nParent = nParent->parent; // If root not reached
+                else break;
+            }
+
+            if(!nextLevel.count(nParent)) nParent->children.clear();
+            nParent->children.push_back(n);
+            n->parent = nParent;
+            nextLevel.insert(nParent);
         }
+
+        currentLevel = nextLevel;
+        nextLevel = UnorderedSet<TreeNode*>();
     }
-    out.close();
+
+    reenumerateNodes();
 }
 
-TreeNode* Tree::createTreeNode(TreeNode* parent, int label) {
+void LabelTree::reenumerateNodes(){
+    std::vector<TreeNode*> newNodes;
+    UnorderedSet<TreeNode*> toKeep;
+
+    std::queue<TreeNode*> nQueue;
+    nQueue.push(root);
+
+    while (!nQueue.empty()) {
+        TreeNode* n = nQueue.front();
+        nQueue.pop();
+
+        n->index = newNodes.size();
+        newNodes.push_back(n);
+        toKeep.insert(n);
+
+        for (auto c : n->children) nQueue.push(c);
+    }
+
+    for(auto n : nodes) if(!toKeep.count(n)) delete n;
+    nodes = newNodes;
+}
+
+TreeNode* LabelTree::createTreeNode(TreeNode* parent, int label) {
     TreeNode* n = new TreeNode();
     n->index = nodes.size();
     nodes.push_back(n);
@@ -446,13 +500,15 @@ TreeNode* Tree::createTreeNode(TreeNode* parent, int label) {
     return n;
 }
 
-void Tree::save(std::ostream& out) {
+void LabelTree::save(std::ostream& out) {
     Log(CERR) << "Saving tree ...\n";
 
-    out.write((char*)&k, sizeof(k));
+    int k = leaves.size();
+    int t = nodes.size();
 
-    t = nodes.size();
+    out.write((char*)&k, sizeof(k));
     out.write((char*)&t, sizeof(t));
+
     for (size_t i = 0; i < t; ++i) {
         TreeNode* n = nodes[i];
         out.write((char*)&n->index, sizeof(n->index));
@@ -475,9 +531,10 @@ void Tree::save(std::ostream& out) {
     }
 }
 
-void Tree::load(std::istream& in) {
+void LabelTree::load(std::istream& in) {
     Log(CERR) << "Loading tree ...\n";
 
+    int k, t;
     in.read((char*)&k, sizeof(k));
     in.read((char*)&t, sizeof(t));
     for (size_t i = 0; i < t; ++i) {
@@ -507,7 +564,7 @@ void Tree::load(std::istream& in) {
     Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
-void Tree::printTree(TreeNode* rootNode) {
+void LabelTree::printTree(TreeNode* rootNode, bool printNodes) {
     Log(CERR) << "Tree:";
     if (rootNode == nullptr) rootNode = root;
 
@@ -516,28 +573,32 @@ void Tree::printTree(TreeNode* rootNode) {
     nQueue.push(rootNode);
     nSet.insert(rootNode);
     int depth = 0;
-    Log(CERR) << "\nDepth " << depth << ":";
+    if(printNodes) Log(CERR) << "\nDepth " << depth << ":";
 
     while (!nQueue.empty()) {
         TreeNode* n = nQueue.front();
         nQueue.pop();
 
         if (nSet.count(n->parent)) {
+            if(printNodes) Log(CERR) << "\nDepth " << ++depth << ":";
+            else Log(CERR) << " " << nSet.size();
             nSet.clear();
-            Log(CERR) << "\nDepth " << ++depth << ":";
         }
 
         nSet.insert(n);
-        Log(CERR) << " " << n->index;
-        if (n->parent) Log(CERR) << "(" << n->parent->index << ")";
-        if (n->label >= 0) Log(CERR) << "<" << n->label << ">";
+        if(printNodes) {
+            Log(CERR) << " " << n->index;
+            if (n->parent) Log(CERR) << "(" << n->parent->index << ")";
+            if (n->label >= 0) Log(CERR) << "<" << n->label << ">";
+        }
         for (auto c : n->children) nQueue.push(c);
     }
 
+    if(!printNodes) Log(CERR) << " " << nSet.size();
     Log(CERR) << "\n";
 }
 
-int Tree::getNumberOfLeaves(TreeNode* rootNode) {
+int LabelTree::getNumberOfLeaves(TreeNode* rootNode) {
     if (rootNode == nullptr) // Root node
         return leaves.size();
 
@@ -556,7 +617,7 @@ int Tree::getNumberOfLeaves(TreeNode* rootNode) {
     return lCount;
 }
 
-void Tree::setLabel(TreeNode* n, int label) {
+void LabelTree::setLabel(TreeNode* n, int label) {
     n->label = label;
     if (label >= 0) {
         auto f = leaves.find(label);
@@ -565,7 +626,7 @@ void Tree::setLabel(TreeNode* n, int label) {
     }
 }
 
-int Tree::getTreeDepth(TreeNode* rootNode) {
+int LabelTree::getTreeDepth(TreeNode* rootNode) {
     if (rootNode == nullptr) // Root node
         rootNode = root;
 
@@ -585,7 +646,7 @@ int Tree::getTreeDepth(TreeNode* rootNode) {
     return maxDepth;
 }
 
-int Tree::getNodeDepth(TreeNode* n) {
+int LabelTree::getNodeDepth(TreeNode* n) {
     uint32_t nDepth = 1;
 
     while (n != root) {
@@ -596,7 +657,7 @@ int Tree::getNodeDepth(TreeNode* n) {
     return nDepth;
 }
 
-void Tree::moveSubtree(TreeNode* oldParent, TreeNode* newParent) {
+void LabelTree::moveSubtree(TreeNode* oldParent, TreeNode* newParent) {
     if (oldParent->children.size()) {
         for (auto child : oldParent->children) setParent(child, newParent);
         oldParent->children.clear();
@@ -606,7 +667,7 @@ void Tree::moveSubtree(TreeNode* oldParent, TreeNode* newParent) {
     setParent(newParent, oldParent);
 }
 
-int Tree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2) {
+int LabelTree::distanceBetweenNodes(TreeNode* n1, TreeNode* n2) {
     UnorderedMap<TreeNode*, int> path1;
 
     int i = 0;

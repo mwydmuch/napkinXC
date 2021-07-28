@@ -49,6 +49,8 @@ void LabelTree::clear() {
 }
 
 void LabelTree::buildTreeStructure(int labelCount, Args& args) {
+    clear();
+
     // Create a tree structure
     Log(CERR) << "Building tree ...\n";
 
@@ -357,6 +359,8 @@ void LabelTree::loadTreeStructure(std::string file) {
 }
 
 void LabelTree::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure){
+    clear();
+
     int t = treeStructure.size();
     root = nullptr;
     for (int i = 0; i < t; ++i) createTreeNode();
@@ -366,14 +370,12 @@ void LabelTree::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStru
         if(std::get<2>(tn) != -1) ++k;
     }
 
-    clear();
     nodes.reserve(t);
     leaves.reserve(k);
 
     for(auto &tn : treeStructure){
-        int parent = std::get<0>(tn);
-        int child = std::get<1>(tn);
-        int label = std::get<2>(tn);
+        int parent, child, label;
+        std::tie(parent, child, label) = tn;
 
         if (child >= t) throw std::invalid_argument("The node index = " + std::to_string(child) + " is higher than the number of nodes = " + std::to_string(t));
         if (parent >= t) throw std::invalid_argument("The parent index = " + std::to_string(parent) + " is higher than the number of nodes = " + std::to_string(t));
@@ -532,6 +534,8 @@ void LabelTree::save(std::ostream& out) {
 }
 
 void LabelTree::load(std::istream& in) {
+    clear();
+
     Log(CERR) << "Loading tree ...\n";
 
     int k, t;

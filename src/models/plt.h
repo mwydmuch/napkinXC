@@ -57,13 +57,16 @@ public:
 
     void printInfo() override;
 
-    // For Python PLT Framework
+    void setTree(LabelTree*t) { tree = t; };
+    LabelTree* getTree() { return tree; };
+
+    // Helpers for Python PLT Framework
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output);
     std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels);
     std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels);
 
-    void setTree(LabelTree*t) { tree = t; };
-    LabelTree* getTree() { return tree; };
+    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure);
+    std::vector<std::tuple<int, int, int>> getTreeStructure();
 
 protected:
     LabelTree* tree;

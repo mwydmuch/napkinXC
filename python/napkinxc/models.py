@@ -260,7 +260,73 @@ class Model():
         return threshold
 
 
-class PLT(Model):
+class LabelTreeModel(Model):
+    """
+    Base class for label tree-based models
+    """
+
+    def __init__(self, **params):
+        super(LabelTreeModel, self).__init__(**params)
+
+    def build_tree(self, X, Y):
+        """
+        Build the tree for the given data (without training node classifiers)
+
+        :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
+        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
+        """
+        self._model.build_tree(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
+
+    def get_tree_structure(self):
+        """
+        Return internal label tree structure
+
+        :return: Tree structure, represented as a list of tuples representing nodes,
+            where the first value is an index of a parent node, if equal to -1, then the node is a root node,
+            the second value is an index of the node,
+            and the third, a label assigned to the node, if equal to -1, then no label is assigned to the node.
+        :rtype: list[tuple[int, int, int]]
+        """
+        return self._model.get_tree_structure()
+
+    def set_tree_structure(self, tree_structure):
+        """
+        Set internal label tree structure
+
+        :param tree_structure: Tree structure in format of a list of tuples representing nodes,
+            where the first value is an index of a parent node, if equal to -1, then the node is a root node,
+            the second value is an index of the node,
+            and the third, a label assigned to the node, if equal to -1, then no label is assigned to the node.
+        :type tree_structure: list[tuple[int, int, int]]
+        """
+        self._model.set_tree_structure(tree_structure)
+
+    def get_nodes_to_update(self, Y):
+        """
+        Based on the current tree, get list of updates for each set of labels in Y.
+
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
+        :return: List of lists of nodes and their updates (0 - negative  or 1 - positive) for each set of labels in Y.
+        :rtype: list[list[tuple[int, float]]]
+        """
+        return self._model.get_nodes_to_update(Y)
+
+    def get_nodes_updates(self, Y):
+        """
+        Based on the current tree, get list of updates for each node for dataset Y.
+
+        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
+        :type Y: list[int], list[list|tuple[int]]
+        :return: List of lists of examples and their updates (0 - negative  or 1 - positive) for each node in the current tree.
+        :rtype: list[list[tuple[int, float]]]
+        """
+        return self._model.get_nodes_updates(Y)
+
+
+class PLT(LabelTreeModel):
     """
     Probabilistic Labels Trees (PLTs) (multi-label) classifier with linear node estimators, using CPP core.
     """
@@ -274,7 +340,8 @@ class PLT(Model):
                  max_leaves=100,
                  kmeans_eps=0.0001,
                  kmeans_balanced=True,
-                 #tree_structure=None, #TODO
+                 flatten_tree=0,
+                 tree_structure=None,
                  tree_search_type='exact',
                  beam_search_width=10,
 
@@ -382,41 +449,8 @@ class PLT(Model):
         all_params.update({"model": "plt"})
         super(PLT, self).__init__(**all_params)
 
-    def build_tree(self, X, Y):
-        """
-        Build the tree for the given data (without training node classifiers)
 
-        :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
-        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
-        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
-        :type Y: list[int], list[list|tuple[int]]
-        """
-        self._model.build_tree(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
-
-    def get_nodes_to_update(self, Y):
-        """
-        Based on the current tree, get list of updates for each set of labels in Y.
-
-        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
-        :type Y: list[int], list[list|tuple[int]]
-        :return: List of lists of nodes and their updates (0 - negative  or 1 - positive) for each set of labels in Y.
-        :rtype: list[list[tuple[int, float]]]
-        """
-        return self._model.get_nodes_to_update(Y)
-
-    def get_nodes_updates(self, Y):
-        """
-        Based on the current tree, get list of updates for each node for dataset Y.
-
-        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
-        :type Y: list[int], list[list|tuple[int]]
-        :return: List of lists of examples and their updates (0 - negative  or 1 - positive) for each node in the current tree.
-        :rtype: list[list[tuple[int, float]]]
-        """
-        return self._model.get_nodes_updates(Y)
-
-
-class HSM(PLT):
+class HSM(LabelTreeModel):
     """
     Hierarchical Softmax (multi-class) classifier with linear node estimators, using CPP core.
     """
@@ -430,7 +464,8 @@ class HSM(PLT):
                  max_leaves=100,
                  kmeans_eps=0.0001,
                  kmeans_balanced=True,
-                 #tree_structure=None, #TODO
+                 flatten_tree=0,
+                 tree_structure=None,
 
                  # Features params
                  hash=None,
@@ -532,7 +567,6 @@ class HSM(PLT):
         all_params = Model._get_init_params(locals())
         all_params.update({"model": "hsm"})
         super(HSM, self).__init__(**all_params)
-
 
 
 class BR(Model):

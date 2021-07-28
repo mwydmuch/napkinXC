@@ -306,10 +306,8 @@ public:
     std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels){
         std::vector<std::vector<std::pair<int, double>>> nodesToUpdate;
         if(args.modelType == plt || args.modelType == hsm) {
-            runAsInterruptable([&] {
-                auto treeModel = std::dynamic_pointer_cast<PLT>(model);
-                nodesToUpdate = treeModel->getNodesToUpdate(labels);
-            });
+            auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+            nodesToUpdate = treeModel->getNodesToUpdate(labels);
         }
         return nodesToUpdate;
     }
@@ -317,12 +315,26 @@ public:
     std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels){
         std::vector<std::vector<std::pair<int, double>>> nodesUpdates;
         if(args.modelType == plt || args.modelType == hsm) {
-            runAsInterruptable([&] {
-                auto treeModel = std::dynamic_pointer_cast<PLT>(model);
-                nodesUpdates = treeModel->getNodesToUpdate(labels);
-            });
+            auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+            nodesUpdates = treeModel->getNodesUpdates(labels);
         }
         return nodesUpdates;
+    }
+
+    std::vector<std::tuple<int, int, int>> getTreeStructure(){
+        std::vector<std::tuple<int, int, int>> treeStructure;
+        if(args.modelType == plt || args.modelType == hsm) {
+            auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+            treeStructure = treeModel->getTreeStructure();
+        }
+        return treeStructure;
+    }
+
+    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure){
+        if(args.modelType == plt || args.modelType == hsm) {
+            auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+            treeModel->setTreeStructure(treeStructure);
+        }
     }
 
     double callPythonFunction(std::function<double(py::object)> pyFunc, py::object pyArg){
@@ -542,6 +554,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("build_tree", &CPPModel::buildTree)
     .def("get_nodes_to_update", &CPPModel::getNodesToUpdate)
     .def("get_nodes_updates", &CPPModel::getNodesUpdates)
+    .def("get_tree_structure", &CPPModel::getTreeStructure)
+    .def("set_tree_structure", &CPPModel::setTreeStructure)
     //.def("call_python_function", &CPPModel::callPythonFunction)
     //.def("call_python_object_method", &CPPModel::callPythonObjectMethod)
     .def("test_data_load", &CPPModel::testDataLoad);

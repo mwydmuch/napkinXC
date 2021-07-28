@@ -31,7 +31,6 @@
 
 
 PLT::PLT() {
-    tree = nullptr;
     treeSize = 0;
     treeDepth = 0;
     nodeEvaluationCount = 0;
@@ -46,6 +45,7 @@ void PLT::unload() {
     bases.clear();
     bases.shrink_to_fit();
     delete tree;
+    tree = nullptr;
 }
 
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
@@ -406,7 +406,6 @@ void PLT::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& 
     tree->buildTreeStructure(labels, features, args);
     m = tree->getNumberOfLeaves();
 
-    // Save tree and free it, it is no longer needed
     tree->saveToFile(joinPath(output, "tree.bin"));
     tree->saveTreeStructure(joinPath(output, "tree"));
     treeSize = tree->nodes.size();
@@ -453,7 +452,7 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesUpdates(std::vecto
 
     // Gather examples for each node
     int rows = labels.size();
-    std::vector<std::vector<std::pair<int, double>>> nodesDataPoints(m);
+    std::vector<std::vector<std::pair<int, double>>> nodesDataPoints(tree->size());
 
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
@@ -467,6 +466,16 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesUpdates(std::vecto
     }
 
     return nodesDataPoints;
+}
+
+void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure){
+    if(tree == nullptr) tree = new LabelTree();
+    tree->setTreeStructure(treeStructure);
+}
+
+std::vector<std::tuple<int, int, int>> PLT::getTreeStructure(){
+    if(tree == nullptr) return std::vector<std::tuple<int, int, int>>();
+    else return tree->getTreeStructure();
 }
 
 void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {

@@ -25,9 +25,11 @@ docs/*/*
 
 # Experiments and examples
 data
+test-data
 /models*
 /results*
 eurlex-model
+test-eurlex-model
 
 # Misc
 .idea

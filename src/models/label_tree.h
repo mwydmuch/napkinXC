@@ -109,13 +109,13 @@ public:
     void save(std::ostream& out) override;
     void load(std::istream& in) override;
 
-    inline TreeNode* getRoot(){ return root; };
-    inline TreeNode* getNode(int index){
+    inline TreeNode* getRoot() const { return root; };
+    inline TreeNode* getNode(int index) const {
         if(index < nodes.size()) return nodes[index];
         else return nullptr;
     };
-    inline size_t size() { return nodes.size(); };
-    inline size_t labelsSize() { return leaves.size(); };
+    inline size_t size() const { return nodes.size(); };
+    inline size_t labelsSize() const { return leaves.size(); };
 
     TreeNode* root;                      // Pointer to root node
     std::vector<TreeNode*> nodes;        // Pointers to tree nodes
@@ -133,12 +133,9 @@ public:
     }
     void setLabel(TreeNode* n, int label);
     void moveSubtree(TreeNode* oldParent, TreeNode* newParent);
-    void populateNodeLabels();
     int distanceBetweenNodes(TreeNode* n1, TreeNode* n2);
-    void squashTree();
 
 private:
-    static TreeNodePartition buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures,
-                                                   Args& args, int seed);
+    static TreeNodePartition buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed);
 
 };

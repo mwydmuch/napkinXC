@@ -10,16 +10,20 @@ from napkinxc.models import PLT
 from napkinxc.measures import *
 
 
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-eurlex-model")
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
+
+
 def test_compare_napkinxc_with_xclib():
 
     # Train model and predict
-    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "eurlex-model")
-    X_train, Y_train = load_dataset("eurlex-4k", "train")
-    X_test, Y_test = load_dataset("eurlex-4k", "test")
+    X_train, Y_train = load_dataset("eurlex-4k", "train", root=data_path)
+    X_test, Y_test = load_dataset("eurlex-4k", "test", root=data_path)
     plt = PLT(model_path)
     if not os.path.exists(model_path):
         plt.fit(X_train, Y_train)
     Y_pred = plt.predict_proba(X_test, top_k=5)
+    shutil.rmtree(model_path, ignore_errors=True)
 
     # Prepare dataset
     csr_Y_train = to_csr_matrix(Y_train)

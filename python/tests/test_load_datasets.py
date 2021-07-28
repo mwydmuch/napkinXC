@@ -1,17 +1,19 @@
 from time import time
+import os
 from napkinxc.datasets import *
 
 
-def test_load_bow():
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
+
+
+def test_load_dataset():
     print("\n")
     for d in DATASETS.values():
         for f in d['formats']:
-        #f = 'raw'
-        #if f in d['formats']:
             for s in d['subsets']:
-                download_dataset(d['name'], subset=s, format=f)
+                download_dataset(d['name'], subset=s, format=f, root=data_path)
                 t_start = time()
-                X, Y = load_dataset(d['name'], subset=s, format=f)
+                X, Y = load_dataset(d['name'], subset=s, format=f, root=data_path)
                 len_X = len(X) if isinstance(X, list) else X.shape[0]
                 len_Y = len(Y) if isinstance(Y, list) else Y.shape[0]
                 assert len_X == len_Y

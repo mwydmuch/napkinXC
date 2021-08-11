@@ -75,6 +75,21 @@ struct Prediction {
     }
 };
 
+template <typename T, typename U>
+struct pairFirstComp{
+    bool operator()(std::pair<T, U> const& lhs, std::pair<T, U> const& rhs){
+        return lhs.first < rhs.first;
+    }
+};
+
+
+template <typename T, typename U>
+struct pairSecondComp{
+    bool operator()(std::pair<T, U> const& lhs, std::pair<T, U> const& rhs){
+        return lhs.second < rhs.second;
+    }
+};
+
 
 // Helping out operators
 template <typename T, typename U>
@@ -209,6 +224,12 @@ public:
         return val;
     };
 
+    virtual double dot(Feature* vec, size_t s) const {
+        double val = 0;
+        for(auto f = vec; f->index != -1; ++f) val += f->value * at(f->index);
+        return val;
+    }
+
     void mul(T scalar){
         forEachD([&](T& v) { v *= scalar; });
     };
@@ -342,6 +363,7 @@ public:
         reserve(n0);
         n0 = 0;
         vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
+        sort();
     };
     ~SparseVector(){
         clearD();
@@ -364,6 +386,7 @@ public:
         if(i >= s) s = i + 1;
         if(v != 0) {
             if(n0 >= maxN0) reserve(2 * maxN0);
+            if(v < d[n0].second) sorted = false;
             d[n0++] = {i, v};
             d[n0].first = -1;
         }
@@ -386,32 +409,85 @@ public:
         d[n0].first = -1;
     };
 
-    double dot(Feature* vec) const override {
-        if(sorted) { // Also assumes that vec is sorted
-            auto p = d;
+    double dot(Feature* vec, size_t s) const override {
+        if(sorted) {
             double val = 0;
-            for (auto f = vec; f->index != -1; ++f) {
-                while (p->first != -1 && p->first != f->index) ++p;
-                if (p->first == -1) break;
-                else val += f->value * p->second;
+
+            // Binary-search, assumes that vec is sorted
+            auto p = d;
+            auto f = vec;
+            while(p->first != -1 && f->index != -1){
+                if(p->first == f->index){
+                    val += p->second * f->value;
+                    ++p;
+                    ++f;
+                }
+                else if (p->first < f->index){
+                    p = std::lower_bound(d, d + n0, std::pair<int, T>(f->index, 0), pairFirstComp<int, T>());
+                }
+                else {
+                    f = std::lower_bound(vec, vec + s, Feature(p->first, 0));
+                }
             }
+
+            // Marching pointers implementation, assumes that vec is sorted
+            /*
+            auto p = d;
+            for (auto f = vec; f->index != -1; ++f) {
+                while (p->first != -1 && p->first < f->index) ++p;
+                if (p->first == -1) break;
+                else if(p->first == f->index) val += f->value * p->second;
+            }
+             */
+
+            return val;
+        } else return AbstractVector<T>::dot(vec);
+    };
+
+    double dot(Feature* vec) const override {
+        if(sorted) {
+            double val = 0;
+
+            // Binary-search, assumes that vec is sorted
+            auto p = d;
+            auto f = vec;
+            while(p->first != -1 && f->index != -1){
+                if(p->first == f->index){
+                    val += p->second * f->value;
+                    ++p;
+                    ++f;
+                }
+                else if (p->first < f->index){
+                    p = std::lower_bound(d, d + n0, std::pair<int, T>(f->index, 0), pairFirstComp<int, T>());
+                }
+                else ++f;
+            }
+
+            // Marching pointers implementation, assumes that vec is sorted
+            /*
+            auto p = d;
+            for (auto f = vec; f->index != -1; ++f) {
+                while (p->first != -1 && p->first < f->index) ++p;
+                if (p->first == -1) break;
+                else if(p->first == f->index) val += f->value * p->second;
+            }
+             */
+
             return val;
         } else return AbstractVector<T>::dot(vec);
     };
 
     inline T at(int index) const override {
-        /*
         if(sorted){ // Binary search
-
-        } else {
-
+            auto p = std::lower_bound(d, d + n0, std::pair<int, T>(index, 0), pairFirstComp<int, T>());
+            if(p->first == index) return p->second;
+            else return 0;
+        } else { // Linear search
+            auto p = d;
+            while (p->first != -1 && p->first != index) ++p;
+            if (p->first != -1) return p->second;
+            else return 0;
         }
-         */
-        // Linear search
-        auto p = d;
-        while (p->first != -1 && p->first != index) ++p;
-        if (p->first == -1) return 0;
-        else return p->second;
     };
 
     inline T& operator[](int index) override {
@@ -445,11 +521,27 @@ public:
     unsigned long long mem() const override { return estimateMem(s, n0); };
     static unsigned long long estimateMem(size_t s, size_t n0){
         return sizeof(SparseVector<T>) + n0 * (sizeof(int) + sizeof(T));
-    }
+    };
+
+    void load(std::istream& in) override {
+        AbstractVector<T>::load(in);
+        sort();
+    };
+
+    bool isSorted() {
+        return sorted;
+    };
+
+    void sort() {
+        if(!sorted){
+            std::sort(d, d + n0, pairFirstComp<int, T>());
+            sorted = true;
+        }
+    };
 
     RepresentationType type() const override {
         return sparse;
-    }
+    };
 
 protected:
     size_t maxN0;

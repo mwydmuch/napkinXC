@@ -183,9 +183,19 @@ public:
         });
     }
 
+    void preload(){
+        if(model == nullptr){
+            args.loadFromFile(joinPath(args.output, "args.bin"));
+            model = Model::factory(args);
+        }
+        if(!model->isPreloaded()) model->preload(args, args.output);
+    }
+
     void load(){
-        args.loadFromFile(joinPath(args.output, "args.bin"));
-        if(model == nullptr) model = Model::factory(args);
+        if(model == nullptr){
+            args.loadFromFile(joinPath(args.output, "args.bin"));
+            model = Model::factory(args);
+        }
         if(!model->isLoaded()) model->load(args, args.output);
     }
 
@@ -306,6 +316,7 @@ public:
     std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels){
         std::vector<std::vector<std::pair<int, double>>> nodesToUpdate;
         if(args.modelType == plt || args.modelType == hsm) {
+            preload();
             auto treeModel = std::dynamic_pointer_cast<PLT>(model);
             nodesToUpdate = treeModel->getNodesToUpdate(labels);
         }
@@ -315,6 +326,7 @@ public:
     std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels){
         std::vector<std::vector<std::pair<int, double>>> nodesUpdates;
         if(args.modelType == plt || args.modelType == hsm) {
+            preload();
             auto treeModel = std::dynamic_pointer_cast<PLT>(model);
             nodesUpdates = treeModel->getNodesUpdates(labels);
         }
@@ -324,6 +336,7 @@ public:
     std::vector<std::tuple<int, int, int>> getTreeStructure(){
         std::vector<std::tuple<int, int, int>> treeStructure;
         if(args.modelType == plt || args.modelType == hsm) {
+            preload();
             auto treeModel = std::dynamic_pointer_cast<PLT>(model);
             treeStructure = treeModel->getTreeStructure();
         }
@@ -332,8 +345,11 @@ public:
 
     void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure){
         if(args.modelType == plt || args.modelType == hsm) {
+            model = Model::factory(args);
             auto treeModel = std::dynamic_pointer_cast<PLT>(model);
-            treeModel->setTreeStructure(treeStructure);
+            makeDir(args.output);
+            args.saveToFile(joinPath(args.output, "args.bin"));
+            treeModel->setTreeStructure(treeStructure, args.output);
         }
     }
 

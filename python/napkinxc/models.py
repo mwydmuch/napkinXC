@@ -187,7 +187,7 @@ class Model():
 
     def set_params(self, **params):
         """
-        Set parameters for this model.
+        Set parameters for this model. Should be used only if you know what are you doing.
 
         :param: \*\*params: Parameter names with their new values.
         :return: self
@@ -204,6 +204,8 @@ class Model():
         for k, v in params.items():
             if v is None:
                 continue
+            elif not isinstance(v, (float, int, str, bool)):
+                raise TypeError("Model argument \"{}\" should be float, int, str, bool or None".format(k))
 
             arg_k = ("--" if len(k) > 1 else "-") + Model._to_camelcase(k)
             arg_v = v
@@ -215,6 +217,24 @@ class Model():
         self._model.set_args(params_list)
 
         return self
+
+    # TODO:
+    # def get_weights(self):
+    #     """
+    #
+    #     :return: Sparse matrix with linear classifiers weights
+    #     :rtype: csr_matrix
+    #     """
+    #     indptr, indices, data = self._model.get_weights()
+    #     return csr_matrix((data, indices, indptr))
+    #
+    # def set_weights(self, W):
+    #     """
+    #
+    #     :param W:
+    #     :type W:
+    #     """
+    #     self._model.set_weights(W)
 
     @staticmethod
     def _get_init_params(locals):
@@ -266,7 +286,15 @@ class LabelTreeModel(Model):
     """
 
     def __init__(self, **params):
+        tree_structure = params["tree_structure"]
+        if isinstance(tree_structure, list):
+            params.pop("tree_structure")
+        elif tree_structure is not None and not isinstance(tree_structure, str):
+            raise TypeError("Model argument \"tree_structure\" should be list, str (filepath) or None")
+
         super(LabelTreeModel, self).__init__(**params)
+        if isinstance(tree_structure, list):
+            set_tree_structure(tree_structure)
 
     def build_tree(self, X, Y):
         """

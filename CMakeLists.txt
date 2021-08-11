@@ -15,7 +15,7 @@ set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # Building options
 option(EXE "Build executable" ON)
 option(PYTHON "Build Python binding" OFF)
-option(BACKWARD "Build with backward.cpp" ON)
+option(BACKWARD "Build with backward.cpp" OFF)
 option(MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
 set(PYBIND11_VERSION "v2.6.2" CACHE STRING "Pybind11 version to use")
 

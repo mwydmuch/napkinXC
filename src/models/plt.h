@@ -59,13 +59,15 @@ public:
 
     void setTree(LabelTree*t) { tree = t; };
     LabelTree* getTree() { return tree; };
+    bool isTreeLoaded() { return (tree != nullptr); };
+    void preload(Args& args, std::string infile) override;
 
     // Helpers for Python PLT Framework
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output);
     std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels);
     std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels);
 
-    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure);
+    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output);
     std::vector<std::tuple<int, int, int>> getTreeStructure();
 
 protected:
@@ -106,8 +108,6 @@ protected:
     }
 
     // Additional statistics
-    int treeSize;
-    int treeDepth;
     int nodeEvaluationCount; // Number of visited nodes during training prediction (updated/evaluated classifiers)
     int nodeUpdateCount; // Number of visited nodes during training or prediction
     int dataPointCount; // Data points count

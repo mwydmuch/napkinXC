@@ -57,7 +57,9 @@ public:
     std::vector<double> macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
-    virtual void unload() {};
+    virtual void preload(Args& args, std::string infile) { preloaded = true; };
+    virtual void unload() { preloaded = false; loaded = false; };
+    bool isPreloaded() { return preloaded; };
     bool isLoaded() { return loaded; };
 
     virtual void printInfo() {}
@@ -67,6 +69,7 @@ protected:
     ModelType type;
     std::string name;
     int m; // Output size/number of labels
+    bool preloaded;
     bool loaded;
     std::vector<double> thresholds; // For prediction with thresholds
     std::vector<double> labelsWeights; // For prediction with label weights

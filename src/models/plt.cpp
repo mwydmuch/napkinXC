@@ -31,8 +31,6 @@
 
 
 PLT::PLT() {
-    treeSize = 0;
-    treeDepth = 0;
     nodeEvaluationCount = 0;
     nodeUpdateCount = 0;
     dataPointCount = 0;
@@ -46,6 +44,7 @@ void PLT::unload() {
     bases.shrink_to_fit();
     delete tree;
     tree = nullptr;
+    Model::unload();
 }
 
 void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
@@ -153,10 +152,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
             levelQueue->pop();
             int nIdx = n->index;
 
-            std::cerr << "\nnIdx: " << nIdx << "\n";
-
             if(!nodePredictions[nIdx].empty()){
-                std::cerr << "from initial base\n";
                 auto base = bases[nIdx];
                 auto type = base->getType();
                 if(type == sparse) base->to(dense);
@@ -175,7 +171,6 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
 
-                std::cerr << "back to initial base\n";
                 if(type != base->getType()) base->to(type);
             }
 
@@ -287,6 +282,8 @@ Prediction PLT::predictNextLabel(
 }
 
 void PLT::calculateNodesLabels(){
+    if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
+
     if(tree->size() != nodesLabels.size()){
         nodesLabels.clear();
         nodesLabels.resize(tree->size());
@@ -302,6 +299,8 @@ void PLT::calculateNodesLabels(){
 }
 
 void PLT::setNodeThreshold(TreeNode* n){
+    if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
+
     TreeNodeThrExt& nTh = nodesThr[n->index];
     nTh.th = 1;
     for (auto &l : nodesLabels[n->index]) {
@@ -324,21 +323,21 @@ void PLT::setNodeWeight(TreeNode* n){
 }
 
 void PLT::setThresholds(std::vector<double> th){
+    if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
+
     Model::setThresholds(th);
-    if(tree) {
-        calculateNodesLabels();
-        if (tree->size() != nodesThr.size()) nodesThr.resize(tree->size());
-        for (auto& n : tree->nodes) setNodeThreshold(n);
-    }
+    calculateNodesLabels();
+    if (tree->size() != nodesThr.size()) nodesThr.resize(tree->size());
+    for (auto& n : tree->nodes) setNodeThreshold(n);
 }
 
 void PLT::setLabelsWeights(std::vector<double> lw){
+    if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
+
     Model::setLabelsWeights(lw);
-    if(tree) {
-        calculateNodesLabels();
-        if (tree->size() != nodesWeights.size()) nodesWeights.resize(tree->size());
-        for (auto& n : tree->nodes) setNodeWeight(n);
-    }
+    calculateNodesLabels();
+    if (tree->size() != nodesWeights.size()) nodesWeights.resize(tree->size());
+    for (auto& n : tree->nodes) setNodeWeight(n);
 }
 
 void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
@@ -377,11 +376,17 @@ double PLT::predictForLabel(Label label, Feature* features, Args& args) {
     return value;
 }
 
+void PLT::preload(Args& args, std::string infile){
+    delete tree;
+    tree = new LabelTree();
+    tree->loadFromFile(joinPath(infile, "tree.bin"));
+    preloaded = true;
+}
+
 void PLT::load(Args& args, std::string infile) {
     Log(CERR) << "Loading " << name << " model ...\n";
 
-    tree = new LabelTree();
-    tree->loadFromFile(joinPath(infile, "tree.bin"));
+    preload(args, infile);
     bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadAs);
 
     assert(bases.size() == tree->nodes.size());
@@ -392,8 +397,8 @@ void PLT::load(Args& args, std::string infile) {
 
 void PLT::printInfo() {
     Log(COUT) << name << " additional stats:"
-              << "\n  Tree size: " << (tree != nullptr ? tree->nodes.size() : treeSize)
-              << "\n  Tree depth: " << (tree != nullptr ? tree->getTreeDepth() : treeDepth) << "\n";
+              << "\n  Tree size: " << tree->nodes.size()
+              << "\n  Tree depth: " << tree->getTreeDepth() << "\n";
     if(nodeUpdateCount > 0)
         Log(COUT) << "  Updated estimators / data point: " << static_cast<double>(nodeUpdateCount) / dataPointCount << "\n";
     if(nodeEvaluationCount > 0)
@@ -404,17 +409,14 @@ void PLT::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& 
     delete tree;
     tree = new LabelTree();
     tree->buildTreeStructure(labels, features, args);
-    m = tree->getNumberOfLeaves();
 
+    m = tree->getNumberOfLeaves();
     tree->saveToFile(joinPath(output, "tree.bin"));
-    tree->saveTreeStructure(joinPath(output, "tree"));
-    treeSize = tree->nodes.size();
-    treeDepth = tree->getTreeDepth();
-    assert(treeSize == tree->size());
+    tree->saveTreeStructure(joinPath(output, "tree.txt"));
 }
 
 std::vector<std::vector<std::pair<int, double>>> PLT::getNodesToUpdate(std::vector<std::vector<Label>>& labels){
-    if(!tree) throw std::runtime_error("Tree is not constructed, build a tree first");
+    if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     // Positive and negative nodes
     UnorderedSet<TreeNode*> nPositive;
@@ -442,7 +444,7 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesToUpdate(std::vect
 }
 
 std::vector<std::vector<std::pair<int, double>>> PLT::getNodesUpdates(std::vector<std::vector<Label>>& labels){
-    if(!tree) throw std::runtime_error("Tree is not constructed, build a tree first");
+    if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     // Positive and negative nodes
     UnorderedSet<TreeNode*> nPositive;
@@ -468,9 +470,13 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesUpdates(std::vecto
     return nodesDataPoints;
 }
 
-void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure){
+void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output){
     if(tree == nullptr) tree = new LabelTree();
     tree->setTreeStructure(treeStructure);
+
+    m = tree->getNumberOfLeaves();
+    tree->saveToFile(joinPath(output, "tree.bin"));
+    tree->saveTreeStructure(joinPath(output, "tree.txt"));
 }
 
 std::vector<std::tuple<int, int, int>> PLT::getTreeStructure(){
@@ -496,18 +502,14 @@ void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     // Train bases
     std::vector<ProblemData> binProblemData;
     if (type == hsm && args.pickOneLabelWeighting)
-        for(int i = 0; i < treeSize; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
+        for(int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
     else
-        for (int i = 0; i < treeSize; ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[0]);
+        for (int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[0]);
 
     for (auto &pb: binProblemData) {
         pb.r = features.rows();
         pb.invPs = 1;
     }
-    
-    // Delete tree, it is no longer needed
-    delete tree;
-    tree = nullptr;
     
     trainBases(joinPath(output, "weights.bin"), binProblemData, args);
 }

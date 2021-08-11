@@ -81,7 +81,8 @@ void updateAdaGrad(T& W, T& G, Feature* features, double grad, int t, Args& args
     double eps = args.adagradEps;
     Feature* f = features;
     while (f->index != -1) {
-        G[f->index] += f->value * f->value * grad * grad;
+        Weight& g = G[f->index];
+            G[f->index] += f->value * f->value * grad * grad;
         double lr = eta * std::sqrt(1.0 / (eps + G[f->index]));
         W[f->index] -= lr * (grad * f->value);
         ++f;

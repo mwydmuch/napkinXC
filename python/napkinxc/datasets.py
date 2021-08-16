@@ -33,6 +33,33 @@ from ._napkinxc import _load_libsvm_file
 
 # List of all available datasets
 DATASETS = {
+    # Small datasets, for testing
+    'yeast': {
+        'name': 'yeast',
+        'formats': ['bow'],
+        'subsets': ['train', 'test'],
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1qcU-jxF7VmHBvwTn0-6MB4FW4ItD-bIp', # Marek Wydmuch's upload
+            'dir': 'yeast',
+            'train': 'yeast_train.txt',
+            'test': 'yeast_test.txt',
+            'file_format': 'libsvm',
+        }
+    },
+    'mediamill': {
+        'name': 'mediamill',
+        'formats': ['bow'],
+        'subsets': ['train', 'test'],
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1YDlU9GTYSoydU1UYTNT8BpPkRw1BCnFw', # Marek Wydmuch's upload
+            'dir': 'mediamill',
+            'train': 'mediamill_train.txt',
+            'test': 'mediamill_test.txt',
+            'file_format': 'libsvm',
+        }
+    },
+
+    # XMLC repo datasets
     'eurlex-4k': {
         'name': 'EURLex-4K',
         'formats': ['bow'],

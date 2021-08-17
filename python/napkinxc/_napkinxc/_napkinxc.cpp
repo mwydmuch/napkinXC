@@ -298,7 +298,7 @@ public:
     void buildTree(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
         if(args.modelType == plt || args.modelType == hsm) {
             runAsInterruptable([&] {
-                model = Model::factory(args);
+                if(model == nullptr) model = Model::factory(args);
                 auto treeModel = std::dynamic_pointer_cast<PLT>(model);
 
                 SRMatrix<Label> labels;
@@ -345,7 +345,7 @@ public:
 
     void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure){
         if(args.modelType == plt || args.modelType == hsm) {
-            model = Model::factory(args);
+            if(model == nullptr) model = Model::factory(args);
             auto treeModel = std::dynamic_pointer_cast<PLT>(model);
             makeDir(args.output);
             args.saveToFile(joinPath(args.output, "args.bin"));
@@ -493,7 +493,7 @@ private:
         args.saveToFile(joinPath(args.output, "args.bin"));
 
         // Create and train model (train function also saves model)
-        model = Model::factory(args);
+        if(model == nullptr) model = Model::factory(args);
         model->train(labels, features, args, args.output);
     }
 

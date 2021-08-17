@@ -294,7 +294,7 @@ class LabelTreeModel(Model):
 
         super(LabelTreeModel, self).__init__(**params)
         if isinstance(tree_structure, list):
-            set_tree_structure(tree_structure)
+            self.set_tree_structure(tree_structure)
 
     def build_tree(self, X, Y):
         """

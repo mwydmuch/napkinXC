@@ -157,7 +157,7 @@ void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashS
     if (featuresThreshold > 0) threshold(lFeatures, featuresThreshold);
 
     // Check if it requires sorting
-    if (!std::is_sorted(lFeatures.begin(), lFeatures.end())) sort(lFeatures.begin(), lFeatures.end());
+    if (!std::is_sorted(lFeatures.begin(), lFeatures.end(), IRVPairIndexComp())) sort(lFeatures.begin(), lFeatures.end(), IRVPairIndexComp());
 }
 
 

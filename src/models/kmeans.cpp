@@ -30,7 +30,7 @@
 
 // K-Means clustering with balanced option
 // Partition is returned via reference, calculated for cosine distance
-void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures, int centroids, double eps,
+void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures, int centroids, Real eps,
             bool balanced, int seed) {
 
     int points = partition->size();

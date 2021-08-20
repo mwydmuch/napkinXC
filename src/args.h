@@ -26,78 +26,8 @@
 #include <string>
 
 #include "save_load.h"
-
-// All tree tree types
-enum ModelType {
-    ovr,
-    br,
-    hsm,
-    plt,
-    svbopFull,
-    svbopHf,
-    oplt,
-    extremeText,
-    mach,
-    brMips, // MIPS extension model
-    svbopMips, // MIPS extension model
-    svbopThreshold,
-    svbopFagin,
-    svbopInvertedIndex,
-    pltplus
-};
-
-enum TreeType {
-    hierarchicalKmeans,
-    huffman,
-    completeInOrder,
-    completeRandom,
-    balancedInOrder,
-    balancedRandom,
-    onlineKaryComplete,
-    onlineKaryRandom,
-    onlineRandom,
-    onlineBestScore,
-    custom // custom tree has to be the last one
-};
-
-enum OptimizerType { liblinear, sgd, adagrad };
-
-enum SetUtilityType {
-    uP,
-    uR,
-    uF1,
-    uFBeta,
-    uExp,
-    uLog,
-    uDeltaGamma,
-    uAlpha,
-    uAlphaBeta
-};
-
-enum LossType {
-    logistic,
-    squaredHinge,
-    unLogistic,
-    pwLogistic,
-    asymteric,
-};
-
-enum RepresentationType{
-    dense,
-    map,
-    sparse
-};
-
-enum TreeSearchType{
-    exact,
-    beam
-};
-
-enum OFOType {
-    micro,
-    macro,
-    mixed
-};
+#include "enums.h"
+#include "types.h"
 
 class Args : public FileHelper {
 public:
@@ -126,19 +56,19 @@ public:
     std::string prediction;
     ModelType modelType;
     bool processData;
-    double bias;
+    Real bias;
     bool norm;
     int hash;
-    double featuresThreshold;
+    Real featuresThreshold;
 
     // Training options
     int solverType;
     OptimizerType optimizerType;
     LossType lossType;
-    double eps;
-    double cost;
+    Real eps;
+    Real cost;
     int maxIter;
-    double weightsThreshold;
+    Real weightsThreshold;
     int ensemble;
     bool onTheTrotPrediction;
     bool inbalanceLabelsWeighting;
@@ -147,11 +77,11 @@ public:
     bool autoCLog;
 
     // For online training
-    double eta;
+    Real eta;
     int epochs;
-    double l2Penalty;
+    Real l2Penalty;
     int tmax;
-    double adagradEps;
+    Real adagradEps;
 
     // Tree models
 
@@ -163,12 +93,12 @@ public:
     int flattenTree;
 
     // K-Means tree options
-    double kmeansEps;
+    Real kmeansEps;
     bool kmeansBalanced;
     bool kmeansWeightedFeatures;
 
     // Online tree options
-    double onlineTreeAlpha;
+    Real onlineTreeAlpha;
 
     // extremeText options
     size_t dims;
@@ -179,7 +109,7 @@ public:
 
     // Prediction options
     int topK;
-    double threshold;
+    Real threshold;
     std::string thresholds;
     std::string labelsWeights;
     TreeSearchType treeSearchType;
@@ -194,14 +124,14 @@ public:
     int hnswEfSearch;
 
     // Set utility options
-    double svbopMipsK;
+    Real svbopMipsK;
     int svbopInvIndexK;
 
     SetUtilityType setUtilityType;
-    double alpha;
-    double beta;
-    double delta;
-    double gamma;
+    Real alpha;
+    Real beta;
+    Real delta;
+    Real gamma;
 
     // Measures for test command
     std::string measures;
@@ -209,11 +139,11 @@ public:
 
     // Args for OFO command
     OFOType ofoType;
-    double ofoTopLabels;
-    double ofoA;
-    double ofoB;
+    Real ofoTopLabels;
+    Real ofoA;
+    Real ofoB;
 
-    double psA;
+    Real psA;
     double psB;
 
     // Args for testPredictionTime command

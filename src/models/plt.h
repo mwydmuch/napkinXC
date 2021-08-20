@@ -28,13 +28,13 @@
 
 // Additional node information for prediction with thresholds
 struct TreeNodeThrExt {
-    double th;
+    Real th;
     int label;
 };
 
 // Additional node information for prediction with weights
 struct TreeNodeWeightsExt {
-    double weight;
+    Real weight;
     int label;
 };
 
@@ -44,13 +44,13 @@ public:
     PLT();
 
     void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
-    double predictForLabel(Label label, Feature* features, Args& args) override;
+    Real predictForLabel(Label label, Feature* features, Args& args) override;
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
     std::vector<std::vector<Prediction>> predictWithBeamSearch(SRMatrix<Feature>& features, Args& args);
 
-    void setThresholds(std::vector<double> th) override;
-    void updateThresholds(UnorderedMap<int, double> thToUpdate) override;
-    void setLabelsWeights(std::vector<double> lw) override;
+    void setThresholds(std::vector<Real> th) override;
+    void updateThresholds(UnorderedMap<int, Real> thToUpdate) override;
+    void setLabelsWeights(std::vector<Real> lw) override;
 
     void load(Args& args, std::string infile) override;
     void unload() override;
@@ -64,8 +64,8 @@ public:
 
     // Helpers for Python PLT Framework
     void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output);
-    std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels);
-    std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels);
+    std::vector<std::vector<std::pair<int, Real>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels);
+    std::vector<std::vector<std::pair<int, Real>>> getNodesUpdates(std::vector<std::vector<Label>>& labels);
 
     void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output);
     std::vector<std::tuple<int, int, int>> getTreeStructure();
@@ -82,27 +82,27 @@ protected:
     void setNodeThreshold(TreeNode* n);
     void setNodeWeight(TreeNode* n);
 
-    virtual void assignDataPoints(std::vector<std::vector<double>>& binLabels,
+    virtual void assignDataPoints(std::vector<std::vector<Real>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,
-                                  std::vector<std::vector<double>>& binWeights,
+                                  std::vector<std::vector<Real>>& binWeights,
                                   SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
                           const int* rLabels, const int rSize);
-    static void addNodesLabelsAndFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+    static void addNodesLabelsAndFeatures(std::vector<std::vector<Real>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                                           UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, Feature* features);
 
     // Helper methods for prediction
-    virtual Prediction predictNextLabel(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
+    virtual Prediction predictNextLabel(std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,
                                         TopKQueue<TreeNodeValue>& nQueue, Feature* features, size_t fSize);
 
-    virtual inline double predictForNode(TreeNode* node, Feature* features, size_t fSize){
+    virtual inline Real predictForNode(TreeNode* node, Feature* features, size_t fSize){
         return bases[node->index]->predictProbability(features, fSize);
     }
 
-    inline void addToQueue(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
-                           TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, double prob){
-        double value = calculateValue(node, prob);
+    inline void addToQueue(std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,
+                           TopKQueue<TreeNodeValue>& nQueue, TreeNode* node, Real prob){
+        Real value = calculateValue(node, prob);
         if (ifAddToQueue(node, prob)) nQueue.push({node, prob, value}, node->label > -1);
 
     }

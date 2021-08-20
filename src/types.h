@@ -30,67 +30,75 @@
 #include <vector>
 #include <queue>
 
-#include "args.h"
-#include "linear.h"
-#include "save_load.h"
+#include "enums.h"
 #include "robin_hood.h"
-
+#include "save_load.h"
 
 // Basic types
-
-typedef feature_node Feature;
-typedef int Label;
-typedef float Weight;
-#define UnorderedMap robin_hood::unordered_flat_map
-#define UnorderedSet robin_hood::unordered_flat_set
-
-template<typename T, typename U>
+typedef float Real;
+template<typename T>
 struct IVPair{
-    T index;
-    U value;
+    int index;
+    T value;
 
-    IVPair() { index = 0; value = 0; };
-    IVPair(T index, U value): index(index), value(value) {};
+    IVPair(): index(0), value(0) {}
+    IVPair(int index, float value): index(index), value(value) {}
+    
+    bool operator<(const IVPair<T>& r) const { return value < r.value; };
 
-    friend std::ostream& operator<<(std::ostream& os, const IVPair<T, U>& fn) {
+    friend std::ostream& operator<<(std::ostream& os, const IVPair<T>& fn) {
         os << fn.index << ":" << fn.value;
         return os;
     }
 };
 
-struct Prediction {
+
+typedef IVPair<Real> IRVPair;
+typedef IVPair<int> IIVPair;
+
+typedef IRVPair Feature;
+//typedef IRVPair Prediction;
+
+struct Prediction{
     int label;
-    double value; // labels's value/probability/loss
-    Prediction(){ label = 0; value = 0; }
-    Prediction(int label, double value): label(label), value(value) {}
+    Real value; // labels's value/probability/loss
 
-    bool operator<(const Prediction& r) const { return value < r.value; }
+    Prediction(): label(0), value(0) {}
+    Prediction(int label, double value): label(label), value(value) {};
 
-    friend std::ostream& operator<<(std::ostream& os, const Prediction& p) {
-        os << p.label << ":" << p.value;
+    bool operator<(const Prediction& r) const { return value < r.value; };
+
+    friend std::ostream& operator<<(std::ostream& os, const Prediction& fn) {
+        os << fn.label << ":" << fn.value;
         return os;
     }
 };
 
-
+typedef int Label;
+#define UnorderedMap robin_hood::unordered_flat_map
+#define UnorderedSet robin_hood::unordered_flat_set
 
 
 // Helpers - comperators
-
-template <typename T, typename U>
+template<typename T>
 struct IVPairIndexComp{
-    bool operator()(IVPair<T, U> const& lhs, IVPair<T, U> const& rhs){
+    bool operator()(IVPair<T> const& lhs, IVPair<T> const& rhs){
         return lhs.index < rhs.index;
     }
 };
 
-
-template <typename T, typename U>
+template<typename T>
 struct IVPairValueComp{
-    bool operator()(IVPair<T, U> const& lhs, IVPair<T, U> const& rhs){
+    bool operator()(IVPair<T> const& lhs, IVPair<T> const& rhs){
         return lhs.value < rhs.value;
     }
 };
+
+typedef IVPairIndexComp<Real> IRVPairIndexComp;
+typedef IVPairValueComp<Real> IRVPairValueComp;
+typedef IVPairIndexComp<Real> IIRVPairIndexComp;
+typedef IVPairValueComp<Real> IIVPairValueComp;
+
 
 template <typename T, typename U>
 struct pairFirstComp{
@@ -102,7 +110,7 @@ struct pairFirstComp{
 
 template <typename T, typename U>
 struct pairSecondComp{
-    bool operator()(std::pair<T, U> const& lhs, std::pair<T, U> const& rhs){
+    bool operator()(std::pair<Real, U> const& lhs, std::pair<T, U> const& rhs){
         return lhs.second < rhs.second;
     }
 };
@@ -197,13 +205,13 @@ private:
 // Vectors and matrices
 
 // Abstract vector type
-template <typename T> class AbstractVector {
+class AbstractVector {
 public:
     // Constructors
     AbstractVector(): s(0), n0(0){ };
     explicit AbstractVector(size_t s): s(s), n0(0) { };
     AbstractVector(size_t s, size_t n0): s(s), n0(n0) { };
-    AbstractVector(const AbstractVector<T>& vec){
+    AbstractVector(const AbstractVector& vec){
         s = vec.s;
         n0 = vec.n0;
     };
@@ -213,69 +221,69 @@ public:
     // Required to override
     virtual void initD() = 0;
     virtual void clearD() = 0;
-    virtual void insertD(int i, T v) = 0;
+    virtual void insertD(int i, Real v) = 0;
     virtual void checkD() {};
 
 
-    virtual AbstractVector<T>* copy() = 0;
+    virtual AbstractVector* copy() = 0;
     virtual void resize(size_t newS) {
         s = newS;
     };
     virtual void reserve(size_t maxN0) {};
 
-    virtual inline T at(int index) const = 0;
-    virtual inline T& operator[](int index) = 0;
-    virtual inline const T& operator[](int index) const = 0;
-    virtual void forEachD(const std::function<void(T&)>& func) = 0;
-    virtual void forEachD(const std::function<void(T&)>& func) const = 0;
-    virtual void forEachID(const std::function<void(const int&, T&)>& func) = 0;
-    virtual void forEachID(const std::function<void(const int&, T&)>& func) const = 0;
+    virtual inline Real at(int index) const = 0;
+    virtual inline Real& operator[](int index) = 0;
+    virtual inline const Real& operator[](int index) const = 0;
+    virtual void forEachD(const std::function<void(Real&)>& func) = 0;
+    virtual void forEachD(const std::function<void(Real&)>& func) const = 0;
+    virtual void forEachID(const std::function<void(const int&, Real&)>& func) = 0;
+    virtual void forEachID(const std::function<void(const int&, Real&)>& func) const = 0;
 
     virtual unsigned long long mem() const = 0;
 
     // Basic math operations, general slow implementation
-    virtual T dot(AbstractVector<T>& vec) const{
-        T val = 0;
-        vec.forEachID([&](const int& i, T& v) { val += v * at(i); });
+    virtual Real dot(AbstractVector& vec) const{
+        Real val = 0;
+        vec.forEachID([&](const int& i, Real& v) { val += v * at(i); });
         return val;
     };
 
-    virtual double dot(Feature* vec) const {
-        double val = 0;
+    virtual Real dot(Feature* vec) const {
+        Real val = 0;
         for(auto f = vec; f->index != -1; ++f) val += f->value * at(f->index);
         return val;
     };
 
-    virtual double dot(Feature* vec, size_t s) const {
+    virtual Real dot(Feature* vec, size_t s) const {
         return dot(vec);
     };
 
-    void mul(T scalar){
-        forEachD([&](T& v) { v *= scalar; });
+    void mul(Real scalar){
+        forEachD([&](Real& v) { v *= scalar; });
     };
 
-    void div(T scalar){
-        forEachD([&](T& v) { v /= scalar; });
+    void div(Real scalar){
+        forEachD([&](Real& v) { v /= scalar; });
     };
 
-    void add(T scalar){
-        forEachD([&](T& v) { v += scalar; });
+    void add(Real scalar){
+        forEachD([&](Real& v) { v += scalar; });
     };
 
     void add(AbstractVector& vec){
-        vec.forEachID([&](const int& i, T& v) { (*this)[i] += v; });
+        vec.forEachID([&](const int& i, Real& v) { (*this)[i] += v; });
     };
 
-    void add(AbstractVector& vec, T scalar){
-        vec.forEachID([&](const int& i, T& v) { (*this)[i] += scalar * v; });
+    void add(AbstractVector& vec, Real scalar){
+        vec.forEachID([&](const int& i, Real& v) { (*this)[i] += scalar * v; });
     };
 
     void invert() {
-        forEachD([&](T& w) { w *= -1; });
+        forEachD([&](Real& w) { w *= -1; });
     };
 
-    void prune(T threshold){
-        forEachID([&](const int& i, Weight& w) {
+    void prune(Real threshold){
+        forEachID([&](const int& i, Real& w) {
             if (fabs(w) <= threshold) w = 0;
         });
         checkD();
@@ -283,8 +291,8 @@ public:
 
     inline size_t size() const { return s; }
     inline size_t nonZero() const { return n0; }
-    size_t sparseMem() const { return n0 * (sizeof(int) + sizeof(T)); };
-    size_t denseMem() const { return s * sizeof(T); };
+    size_t sparseMem() const { return n0 * (sizeof(int) + sizeof(Real)); };
+    size_t denseMem() const { return s * sizeof(Real); };
 
     virtual void save(std::ostream& out) {
         checkD();
@@ -293,7 +301,7 @@ public:
         bool sparse = sparseMem() < denseMem() || s == 0; // Select more optimal coding
         saveVar(out, sparse);
 
-        if(sparse) forEachID([&](const int& i, T& v) {
+        if(sparse) forEachID([&](const int& i, Real& v) {
                 if(v != 0) {
                     saveVar(out, i);
                     saveVar(out, v);
@@ -301,7 +309,7 @@ public:
             });
         else {
             for (int i = 0; i < s; ++i) {
-                T v = at(i);
+                Real v = at(i);
                 saveVar(out, v);
             }
         }
@@ -323,7 +331,7 @@ public:
 
         // Load and insert data
         int index;
-        T value;
+        Real value;
         if(sparse) {
             for (int i = 0; i < n0ToLoad; ++i) {
                 loadVar(in, index);
@@ -346,15 +354,15 @@ public:
         loadVar(in, s);
         loadVar(in, n0);
         loadVar(in, sparse);
-        if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(T)), std::ios::cur);
-        else in.seekg(s * sizeof(T), std::ios::cur);
+        if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(Real)), std::ios::cur);
+        else in.seekg(s * sizeof(Real), std::ios::cur);
     };
 
     virtual RepresentationType type() const = 0;
 
-    friend std::ostream& operator<<(std::ostream& os, const AbstractVector<T>& vec) {
+    friend std::ostream& operator<<(std::ostream& os, const AbstractVector& vec) {
         os << "{ ";
-        vec.forEachID([&](const int& i, T& v) {
+        vec.forEachID([&](const int& i, Real& v) {
             os << "(" << i << ", " << v << ") ";
         });
         os << "}";
@@ -367,25 +375,25 @@ protected:
 };
 
 
-template <typename T> class SparseVector: public AbstractVector<T> {
-    using AbstractVector<T>::s;
-    using AbstractVector<T>::n0;
+class SparseVector: public AbstractVector {
+    using AbstractVector::s;
+    using AbstractVector::n0;
 
 public:
-    SparseVector(): AbstractVector<T>() { initD(); };
-    explicit SparseVector(size_t s): AbstractVector<T>(s) { initD(); };
-    SparseVector(size_t s, size_t maxN0): AbstractVector<T>(s) {
+    SparseVector(): AbstractVector() { initD(); };
+    explicit SparseVector(size_t s): AbstractVector(s) { initD(); };
+    SparseVector(size_t s, size_t maxN0): AbstractVector(s) {
         initD();
         reserve(maxN0);
     };
-    explicit SparseVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+    explicit SparseVector(const AbstractVector& vec): AbstractVector(vec) {
         initD();
         reserve(n0);
         n0 = 0;
-        vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
+        vec.forEachID([&](const int& i, Real& v) { insertD(i, v); });
         sort();
     };
-    SparseVector(IVPair<int, T>* data, size_t n0, size_t s, bool sorted): AbstractVector<T>(s, n0), d(data), sorted(sorted) { };
+    SparseVector(IRVPair* data, size_t n0, size_t s, bool sorted): AbstractVector(s, n0), d(data), sorted(sorted) { };
 
     ~SparseVector(){
         clearD();
@@ -403,7 +411,7 @@ public:
         n0 = 0;
     };
 
-    void insertD(int i, T v) override {
+    void insertD(int i, Real v) override {
         //std::cout << n0 << " " << maxN0 << " " << i << " " << v << "\n";
         if(i >= s) s = i + 1;
         if(v != 0) {
@@ -414,13 +422,13 @@ public:
         }
     };
 
-    AbstractVector<T>* copy() override {
-        auto newVec = new SparseVector<T>(*static_cast<AbstractVector<T>*>(this));
-        return static_cast<AbstractVector<T>*>(newVec);
+    AbstractVector* copy() override {
+        auto newVec = new SparseVector(*static_cast<AbstractVector*>(this));
+        return static_cast<AbstractVector*>(newVec);
     };
 
     void reserve(size_t maxN0) override {
-        auto newD = new IVPair<int, T>[maxN0 + 1]();
+        auto newD = new IRVPair[maxN0 + 1]();
         this->maxN0 = maxN0;
         if(d != nullptr){
             std::copy(d, d + std::min(this->n0, maxN0), newD);
@@ -431,12 +439,9 @@ public:
         d[n0].index = -1;
     };
     
-    //template<typename U>
-    //
-
-    double dot(Feature* vec) const override {
+    Real dot(Feature* vec) const override {
         if(sorted) {
-            double val = 0;
+            Real val = 0;
 
             // Binary-search, assumes that vec is sorted
             auto p = d;
@@ -450,7 +455,7 @@ public:
                     ++f;
                 }
                 else if (p->index < f->index){
-                    p = std::lower_bound(p, dEnd, IVPair<int, T>(f->index, 0), IVPairIndexComp<int, T>());
+                    p = std::lower_bound(p, dEnd, IRVPair(f->index, 0), IRVPairIndexComp());
                 }
                 else {
                     ++f;
@@ -471,9 +476,9 @@ public:
         }
     };
 
-    double dot(Feature* vec, size_t s) const override {
+    Real dot(Feature* vec, size_t s) const override {
         if(sorted) {
-            double val = 0;
+            Real val = 0;
 
             // Binary-search, assumes that vec is sorted
             auto p = d;
@@ -487,10 +492,10 @@ public:
                     ++f;
                 }
                 else if (p->index < f->index){
-                    p = std::lower_bound(p, dEnd, IVPair<int, T>(f->index, 0), IVPairIndexComp<int, T>());
+                    p = std::lower_bound(p, dEnd, IRVPair(f->index, 0), IRVPairIndexComp());
                 }
                 else {
-                    f = std::lower_bound(f, vecEnd, Feature(p->index, 0));
+                    f = std::lower_bound(f, vecEnd, Feature(p->index, 0), IRVPairIndexComp());
                 }
             }
 
@@ -505,57 +510,57 @@ public:
             */
 
             return val;
-        } else return AbstractVector<T>::dot(vec);
+        } else return AbstractVector::dot(vec);
     };
 
-    inline T at(int index) const override {
+    inline Real at(int index) const override {
         auto p = find(index);
         if(p->index == index) return p->value;
         else return 0;
     };
 
-    inline T& operator[](int index) override {
-        return const_cast<T&>((*const_cast<const SparseVector<T>*>(this))[index]);
+    inline Real& operator[](int index) override {
+        return const_cast<Real&>((*const_cast<const SparseVector*>(this))[index]);
     };
 
-    inline const T& operator[](int index) const override {
+    inline const Real& operator[](int index) const override {
         auto p = find(index);
         if(p->index == index) return p->value;
         else return 0;
     };
 
-    inline const IVPair<int, T>* find(int index) const {
-        IVPair<int, T>* p = d;
+    inline const IRVPair* find(int index) const {
+        IRVPair* p = d;
         if(sorted) // Binary search
-            p = std::lower_bound(d, d + n0, IVPair<int, T>(index, 0), IVPairIndexComp<int, T>());
+            p = std::lower_bound(d, d + n0, IRVPair(index, 0), IRVPairIndexComp());
         else // Linear search
             while (p->index != -1 && p->index != index) ++p;
         return p;
     }
 
-    void forEachD(const std::function<void(T&)>& func) override {
+    void forEachD(const std::function<void(Real&)>& func) override {
         for(auto p = d; p->index != -1; ++p) func(p->value);
     };
 
-    void forEachD(const std::function<void(T&)>& func) const override {
+    void forEachD(const std::function<void(Real&)>& func) const override {
         for(auto p = d; p->index != -1; ++p) func(p->value);
     };
 
-    void forEachID(const std::function<void(const int&, T&)>& func) override {
+    void forEachID(const std::function<void(const int&, Real&)>& func) override {
         for(auto p = d; p->index != -1; ++p) func(p->index, p->value);
     };
 
-    void forEachID(const std::function<void(const int&, T&)>& func) const override {
+    void forEachID(const std::function<void(const int&, Real&)>& func) const override {
         for(auto p = d; p->index != -1; ++p) func(p->index, p->value);
     };
 
     unsigned long long mem() const override { return estimateMem(s, n0); };
     static unsigned long long estimateMem(size_t s, size_t n0){
-        return sizeof(SparseVector<T>) + n0 * (sizeof(int) + sizeof(T));
+        return sizeof(SparseVector) + n0 * (sizeof(int) + sizeof(Real));
     };
 
     void load(std::istream& in) override {
-        AbstractVector<T>::load(in);
+        AbstractVector::load(in);
         sort();
     };
 
@@ -565,7 +570,7 @@ public:
 
     void sort() {
         if(!sorted){
-            std::sort(d, d + n0, IVPairIndexComp<int, T>());
+            std::sort(d, d + n0, IRVPairIndexComp());
             sorted = true;
         }
     };
@@ -577,31 +582,31 @@ public:
 protected:
     size_t maxN0;
     size_t sorted;
-    IVPair<int, T>* d; // data
+    IRVPair* d; // data
 };
 
 
-template <typename T> class MapVector: public AbstractVector<T> {
-    using AbstractVector<T>::s;
-    using AbstractVector<T>::n0;
+class MapVector: public AbstractVector {
+    using AbstractVector::s;
+    using AbstractVector::n0;
 
 public:
-    MapVector(): AbstractVector<T>() { initD(); };
-    explicit MapVector(size_t s): AbstractVector<T>(s) { initD(); };
-    MapVector(size_t s, size_t maxN0): AbstractVector<T>(s) {
+    MapVector(): AbstractVector() { initD(); };
+    explicit MapVector(size_t s): AbstractVector(s) { initD(); };
+    MapVector(size_t s, size_t maxN0): AbstractVector(s) {
         initD();
         reserve(maxN0);
     };
-    explicit MapVector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+    explicit MapVector(const AbstractVector& vec): AbstractVector(vec) {
         initD();
-        vec.forEachID([&](const int& i, T& v) { insertD(i, v); });
+        vec.forEachID([&](const int& i, Real& v) { insertD(i, v); });
     };
     ~MapVector(){
         clearD();
     }
 
     void initD() override {
-        d = new UnorderedMap<int, T>();
+        d = new UnorderedMap<int, Real>();
     };
 
     void clearD() override {
@@ -610,7 +615,7 @@ public:
         n0 = 0;
     };
 
-    void insertD(int i, T v) override {
+    void insertD(int i, Real v) override {
         if(i >= s) s = i + 1;
         if(v != 0) {
             (*d)[i] = v;
@@ -620,67 +625,67 @@ public:
 
     void checkD() override {
         n0 = 0;
-        forEachID([&](const int& i, T& v) {
+        forEachID([&](const int& i, Real& v) {
             if(i >= s) s = i + 1;
             if(v != 0) ++n0;
         });
     };
 
-    double dot(Feature* vec) const override {
-        double val = 0;
+    Real dot(Feature* vec) const override {
+        Real val = 0;
         for(auto f = vec; f->index != -1; ++f) val += f->value * at(f->index);
         return val;
     };
 
-    double dot(Feature* vec, size_t size) const override {
-        double val = 0;
+    Real dot(Feature* vec, size_t size) const override {
+        Real val = 0;
         for(auto f = vec; f->index != -1; ++f) val += f->value * at(f->index);
         return val;
     };
 
-    AbstractVector<T>* copy() override {
-        auto newVec = new MapVector<T>(*static_cast<AbstractVector<T>*>(this));
-        return static_cast<AbstractVector<T>*>(newVec);
+    AbstractVector* copy() override {
+        auto newVec = new MapVector(*static_cast<AbstractVector*>(this));
+        return static_cast<AbstractVector*>(newVec);
     };
 
     void reserve(size_t maxN0) override {
         d->reserve(maxN0);
     };
 
-    inline T at(int index) const override {
+    inline Real at(int index) const override {
         auto v = d->find(index);
         if (v != d->end()) return v->second;
         else return 0;
     };
-    inline const T& operator[](int index) const override { return (*d)[index]; }
-    inline T& operator[](int index) override { return (*d)[index]; };
+    inline const Real& operator[](int index) const override { return (*d)[index]; }
+    inline Real& operator[](int index) override { return (*d)[index]; };
 
-    void forEachD(const std::function<void(T&)>& func) override {
+    void forEachD(const std::function<void(Real&)>& func) override {
         for (auto& c : *d) func(c.second);
     };
 
-    void forEachD(const std::function<void(T&)>& func) const override {
+    void forEachD(const std::function<void(Real&)>& func) const override {
         for (auto& c : *d) func(c.second);
     };
 
-    void forEachID(const std::function<void(const int&, T&)>& func) override {
+    void forEachID(const std::function<void(const int&, Real&)>& func) override {
         for (auto& c : *d) func(c.first, c.second);
     };
 
-    void forEachID(const std::function<void(const int&, T&)>& func) const override {
+    void forEachID(const std::function<void(const int&, Real&)>& func) const override {
         for (auto& c : *d) func(c.first, c.second);
     };
 
     unsigned long long mem() const override {
         unsigned long long mem = sizeof(MapVector);
-        if(d != nullptr) mem += d->mask() * (2 * sizeof(int) + sizeof(T));
+        if(d != nullptr) mem += d->mask() * (2 * sizeof(int) + sizeof(Real));
         return mem;
     };
     static unsigned long long estimateMem(size_t s, size_t n0){
         unsigned long long mem = sizeof(MapVector);
         size_t mapSize = sizeof(uint64_t);
         while(mapSize < n0) mapSize *= 2;
-        mem += mapSize * (2 * sizeof(int) + sizeof(T));
+        mem += mapSize * (2 * sizeof(int) + sizeof(Real));
         return mem;
     }
 
@@ -689,29 +694,29 @@ public:
     }
 
 protected:
-    UnorderedMap<int, T>* d; // data
+    UnorderedMap<int, Real>* d; // data
 };
 
 
 // Simple dense vector
-template <typename T> class Vector: public AbstractVector<T> {
-    using AbstractVector<T>::s;
-    using AbstractVector<T>::n0;
+class Vector: public AbstractVector {
+    using AbstractVector::s;
+    using AbstractVector::n0;
 
 public:
-    Vector(): AbstractVector<T>() { initD(); };
-    explicit Vector(size_t s): AbstractVector<T>(s) { initD(); };
-    Vector(size_t s, size_t maxN0): AbstractVector<T>(s) { initD(); };
-    explicit Vector(const AbstractVector<T>& vec): AbstractVector<T>(vec) {
+    Vector(): AbstractVector() { initD(); };
+    explicit Vector(size_t s): AbstractVector(s) { initD(); };
+    Vector(size_t s, size_t maxN0): AbstractVector(s) { initD(); };
+    explicit Vector(const AbstractVector& vec): AbstractVector(vec) {
         initD();
-        vec.forEachID([&](const int& i, T& v) { d[i] = v; });
+        vec.forEachID([&](const int& i, Real& v) { d[i] = v; });
     };
     ~Vector(){
         clearD();
     }
 
     void initD() override {
-        d = new T[s]();
+        d = new Real[s]();
     };
 
     void clearD() override {
@@ -727,30 +732,37 @@ public:
         }
     };
 
-    double dot(Feature* vec) const override {
-        double val = 0;
+    Real dot(Vector& vec) const {
+        size_t minS = std::min(s, vec.size());
+        Real val = 0;
+        for(size_t i = 0; i < minS; ++i) val += d[i] * vec[i];
+        return val;
+    };
+
+    Real dot(Feature* vec) const override {
+        Real val = 0;
         for(auto f = vec; f->index != -1; ++f) val += f->value * d[f->index];
         return val;
     };
 
-    double dot(Feature* vec, size_t size) const override {
-        double val = 0;
+    Real dot(Feature* vec, size_t size) const override {
+        Real val = 0;
         for(auto f = vec; f->index != -1; ++f) val += f->value * d[f->index];
         return val;
     };
 
-    void insertD(int i, T v) override {
+    void insertD(int i, Real v) override {
         if(d[i] == 0 && v != 0) ++n0;
         d[i] = v;
     };
 
-    AbstractVector<T>* copy() override {
-        auto newVec = new Vector<T>(*static_cast<AbstractVector<T>*>(this));
-        return static_cast<AbstractVector<T>*>(newVec);
+    AbstractVector* copy() override {
+        auto newVec = new Vector(*static_cast<AbstractVector*>(this));
+        return static_cast<AbstractVector*>(newVec);
     };
 
     void resize(size_t newS) override {
-        auto newD = new T[newS]();
+        auto newD = new Real[newS]();
         if(d != nullptr){
             std::copy(d, d + std::min(s, newS), newD);
             delete[] d;
@@ -760,40 +772,40 @@ public:
     };
 
     // Access row also by [] operator
-    inline T at(int index) const override {
+    inline Real at(int index) const override {
         if(index < s) return d[index];
         else return 0;
     };
 
-    inline T& operator[](int index) override { return d[index]; }
-    inline const T& operator[](int index) const override { return d[index]; }
+    inline Real& operator[](int index) override { return d[index]; }
+    inline const Real& operator[](int index) const override { return d[index]; }
 
-    void forEachD(const std::function<void(T&)>& func) override {
+    void forEachD(const std::function<void(Real&)>& func) override {
         for(int i = 0; i < s; ++i) if(d[i] != 0) func(d[i]);
     };
 
-    void forEachD(const std::function<void(T&)>& func) const override {
+    void forEachD(const std::function<void(Real&)>& func) const override {
         for(int i = 0; i < s; ++i) if(d[i] != 0) func(d[i]);
     };
 
-    void forEachID(const std::function<void(const int&, T&)>& func) override {
+    void forEachID(const std::function<void(const int&, Real&)>& func) override {
         for(int i = 0; i < s; ++i) if(d[i] != 0) func(i, d[i]);
     };
 
-    void forEachID(const std::function<void(const int&, T&)>& func) const override {
+    void forEachID(const std::function<void(const int&, Real&)>& func) const override {
         for(int i = 0; i < s; ++i) if(d[i] != 0) func(i, d[i]);
     };
 
     unsigned long long mem() const override { return estimateMem(s, n0); };
     static unsigned long long estimateMem(size_t s, size_t n0){
-        return sizeof(Vector<T>) + s * sizeof(T);
+        return sizeof(Vector) + s * sizeof(Real);
     }
 
     RepresentationType type() const override {
         return dense;
     }
 
-    friend std::ostream& operator<<(std::ostream& os, const Vector<T>& v) {
+    friend std::ostream& operator<<(std::ostream& os, const Vector& v) {
         os << "[ ";
         for (int i = 0; i < v.s; ++i) {
             if (i != 0) os << ", ";
@@ -804,7 +816,7 @@ public:
     };
 
 protected:
-    T* d; // data
+    Real* d; // data
 };
 
 
@@ -813,7 +825,7 @@ template <typename T> class RMatrix {
 public:
     RMatrix(){ m = 0; n = 0; };
     RMatrix(size_t m, size_t n): m(m), n(n) {
-        r.reserve(m);
+        r.resize(m);
     };
 
     // Access row also by [] operator
@@ -823,7 +835,7 @@ public:
     // Returns size of matrix
     inline int rows() const { return m; }
     inline int cols() const { return n; }
-    inline unsigned long long mem() const { return (m * n) * sizeof(T); }
+    inline unsigned long long mem() const { return (m * n) * sizeof(Real); }
 
     void save(std::ostream& out) {
         out.write((char*)&m, sizeof(m));
@@ -845,7 +857,7 @@ private:
 };
 
 
-// Elastic low-level sparse row matrix, type T needs to contain int at offset 0!
+// Elastic low-level sparse row matrix, type Real needs to contain int at offset 0!
 template <typename T> class SRMatrix {
 public:
     SRMatrix();
@@ -876,7 +888,7 @@ public:
     inline const T* operator[](int index) const { return r[index]; }
 
     // Compare matrices with == operator
-    inline bool operator==(const SRMatrix<T>& rm){
+    inline bool operator==(const SRMatrix& rm){
         if(m != rm.m || n != rm.n || c != rm.c)
             return false;
 
@@ -890,7 +902,7 @@ public:
         return true;
     }
 
-    inline bool operator!=(const SRMatrix<T>& rm){
+    inline bool operator!=(const SRMatrix& rm){
         return !operator==(rm);
     }
 
@@ -905,7 +917,7 @@ public:
     inline int cols() const { return n; }
     inline int cells() const { return c; }
 
-    // (Number of cells + number of -1 cells) * size of type T + ~size of vector<T>
+    // (Number of cells + number of -1 cells) * size of type T + ~size of vector
     inline unsigned long long mem() { return (c + n) * sizeof(T) + m * (sizeof(int) + sizeof(T*)); }
 
     void clear();

@@ -28,7 +28,6 @@
 #include <string>
 
 #include "measure.h"
-#include "set_utility.h"
 
 
 std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSize) {
@@ -79,8 +78,6 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalsePositives>()));
             else if (m == "fn")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalseNegatives>()));
-            else if (m == "u")
-                measures.push_back(std::static_pointer_cast<Measure>(SetUtility::factory(args, outputSize)));
             else
                 throw std::invalid_argument("Unknown measure type: " + m + "!");
         }

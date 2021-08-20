@@ -24,7 +24,7 @@ MACH::~MACH() {
 
 bool MACH::isPrime(int number){
     if(number % 2 == 0) return false;
-    double numberSqrt = std::sqrt(static_cast<double>(number));
+    Real numberSqrt = std::sqrt(static_cast<Real>(number));
     for(int i = 3; i <= numberSqrt; i += 2)
         if(number % i == 0) return false;
     return true;
@@ -70,7 +70,7 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     int lCols = labels.cols();
     assert(rows == labels.rows());
 
-    std::vector<std::vector<double>> binLabels(size);
+    std::vector<std::vector<Real>> binLabels(size);
     for (int i = 0; i < binLabels.size(); ++i) binLabels[i].reserve(rows);
 
     for (int r = 0; r < rows; ++r) {
@@ -89,12 +89,12 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
 
     // Train bases
     std::vector<ProblemData> binProblemData;
-    std::vector<double> binWeights(features.rows(), 1);
+    std::vector<Real> binWeights(features.rows(), 1);
     for(int i = 0; i < size; ++i) binProblemData.emplace_back(binLabels[i], features.allRows(), features.cols(), binWeights);
     trainBases(joinPath(output, "weights.bin"), binProblemData, args);
 }
 
-void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void MACH::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) {
     // Brute force prediction
     prediction.reserve(m);
     for (int i = 0; i < m; ++i){
@@ -102,7 +102,7 @@ void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args&
     }
 
     for (int i = 0; i < bases.size(); ++i) {
-        double value = bases[i]->predictProbability(features);
+        Real value = bases[i]->predictProbability(features);
         for (const auto &l : baseToLabels[i]) {
             prediction[l].value += value;
         }
@@ -115,7 +115,7 @@ void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args&
     // TODO: Faster prediction
     /*
     std::priority_queue<Prediction> nQueue;
-    std::vector<double> basePredictions(bases.size());
+    std::vector<Real> basePredictions(bases.size());
     for (int i = 0; i < bases.size(); ++i)
         basePredictions[i] = bases[i]->predictProbability(features);
 
@@ -124,8 +124,8 @@ void MACH::predict(std::vector<Prediction>& prediction, Feature* features, Args&
 
 }
 
-double MACH::predictForLabel(Label label, Feature* features, Args& args) {
-    double prob = 1;
+Real MACH::predictForLabel(Label label, Feature* features, Args& args) {
+    Real prob = 1;
     for (int i = 0; i < hashes.size(); ++i)
         prob *= bases[baseForLabel(label, i)]->predictProbability(features);
     return prob;

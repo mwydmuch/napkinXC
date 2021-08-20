@@ -48,29 +48,29 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
 
 
 // Sparse vector dot dense vector
-template <typename T> inline double dotVectors(Feature* vector1, T* vector2, const size_t size) {
-    double val = 0;
+template <typename T> inline Real dotVectors(Feature* vector1, T* vector2, const size_t size) {
+    Real val = 0;
     for(Feature* f = vector1; f->index != -1 && f->index < size; ++f) val += f->value * vector2[f->index];
     return val;
 }
 
-template <typename T> inline double dotVectors(Feature* vector1, T* vector2) { // Version without size checks
-    double val = 0;
+template <typename T> inline Real dotVectors(Feature* vector1, T* vector2) { // Version without size checks
+    Real val = 0;
     for(Feature* f = vector1; f->index != -1; ++f) val += f->value * vector2[f->index];
     return val;
 }
 
-template <typename T> inline double dotVectors(T* vector1, T* vector2, const size_t size) {
-    double val = 0;
+template <typename T> inline Real dotVectors(T* vector1, T* vector2, const size_t size) {
+    Real val = 0;
     for(size_t i = 0; i < size; ++i) val += vector1[i] * vector2[i];
     return val;
 }
 
-template <typename T> inline double dotVectors(Feature* vector1, T& vector2) {
+template <typename T> inline Real dotVectors(Feature* vector1, T& vector2) {
     return dotVectors(vector1, vector2.data(), vector2.size());
 }
 
-template <typename T> inline double dotVectors(T& vector1, T& vector2) {
+template <typename T> inline Real dotVectors(T& vector1, T& vector2) {
     assert(vector1.size() == vector2.size());
     return dotVectors(vector1.data(), vector2.data(), vector2.size());
 }
@@ -106,11 +106,11 @@ template <typename T> inline void setVectorToZeros(Feature* vector1, T& vector2)
 
 
 // Add values of vector 1 to vector 2 multiplied by scalar
-template <typename T> inline void addVector(T* vector1, double scalar, T* vector2, const size_t size) {
+template <typename T> inline void addVector(T* vector1, Real scalar, T* vector2, const size_t size) {
     for(int i = 0; i < size; ++i) vector2[i] += vector1[i] * scalar;
 }
 
-template <typename T> inline void addVector(T& vector1, double scalar, T& vector2) {
+template <typename T> inline void addVector(T& vector1, Real scalar, T& vector2) {
     addVector(vector1.data(), scalar, vector2.data(), vector2.size());
 }
 
@@ -118,7 +118,7 @@ template <typename T> inline void addVector(T& vector1, T& vector2) {
     addVector(vector1.data(), 1.0, vector2.data(), vector2.size());
 }
 
-template <typename T> inline void addVector(const Feature* vector1, double scalar, T* vector2, const size_t size) {
+template <typename T> inline void addVector(const Feature* vector1, Real scalar, T* vector2, const size_t size) {
     Feature* f = (Feature*)vector1;
     while (f->index != -1 && f->index < size) {
         vector2[f->index] += f->value * scalar;
@@ -126,7 +126,7 @@ template <typename T> inline void addVector(const Feature* vector1, double scala
     }
 }
 
-template <typename T> inline void addVector(const Feature* vector1, double scalar, UnorderedMap<int, T>& vector2) {
+template <typename T> inline void addVector(const Feature* vector1, Real scalar, UnorderedMap<int, T>& vector2) {
     Feature* f = (Feature*)vector1;
     while (f->index != -1) {
         vector2[f->index] += f->value * scalar;
@@ -134,7 +134,7 @@ template <typename T> inline void addVector(const Feature* vector1, double scala
     }
 }
 
-template <typename T> inline void addVector(const Feature* vector1, double scalar, T& vector2) {
+template <typename T> inline void addVector(const Feature* vector1, Real scalar, T& vector2) {
     addVector(vector1, scalar, vector2.data(), vector2.size());
 }
 
@@ -144,32 +144,32 @@ template <typename T> inline void addVector(const Feature* vector1, T& vector2) 
 
 
 // Multiply vector by scalar
-template <typename T> inline void mulVector(T* vector, double scalar, const size_t size) {
+template <typename T> inline void mulVector(T* vector, Real scalar, const size_t size) {
     for (int f = 0; f < size; ++f) vector[f] *= scalar;
 }
 
-template <typename T> inline void mulVector(Feature* vector, double scalar) {
+template <typename T> inline void mulVector(Feature* vector, Real scalar) {
     for (Feature* f = vector; f->index != -1; ++f) f->value *= scalar;
 }
 
-template <typename T> inline void mulVector(T& vector, double scalar) {
+template <typename T> inline void mulVector(T& vector, Real scalar) {
     mulVector(vector.data(), scalar, vector.size());
 }
 
 // Divide vector by scalar
-inline void divVector(Feature* vector, double scalar, const size_t size) {
+inline void divVector(Feature* vector, Real scalar, const size_t size) {
     for (Feature* f = vector; f->index != -1; ++f) f->value /= scalar;
 }
 
-inline void divVector(Feature* vector, double scalar) {
+inline void divVector(Feature* vector, Real scalar) {
     for (Feature* f = vector; f->index != -1; ++f) f->value /= scalar;
 }
 
-template <typename T> inline void divVector(T* vector, double scalar, const size_t size) {
+template <typename T> inline void divVector(T* vector, Real scalar, const size_t size) {
     for (int f = 0; f < size; ++f) vector[f] /= scalar;
 }
 
-template <typename T> inline void divVector(T& vector, double scalar) {
+template <typename T> inline void divVector(T& vector, Real scalar) {
     divVector(vector.data(), scalar, vector.size());
 }
 
@@ -177,7 +177,7 @@ template <typename T> inline void divVector(T& vector, double scalar) {
 template <typename I>
 typename std::enable_if<std::is_same<typename std::iterator_traits<I>::value_type, Feature>::value, void>::type
 unitNorm(I begin, I end) {
-    double norm = 0;
+    Real norm = 0;
     for (auto i = begin; i != end; ++i) norm += (*i).value * (*i).value;
     if (norm == 0) return;
     norm = std::sqrt(norm);
@@ -187,7 +187,7 @@ unitNorm(I begin, I end) {
 template <typename I>
 typename std::enable_if<std::is_floating_point<typename std::iterator_traits<I>::value_type>::value, void>::type
 unitNorm(I begin, I end) {
-    double norm = 0;
+    Real norm = 0;
     for (auto& i = begin; i != end; ++i) norm += (*i) * (*i);
     if (norm == 0) return;
     norm = std::sqrt(norm);
@@ -206,7 +206,7 @@ shift(I begin, I end, int shift) {
 template <typename T> inline void shift(T& cont, int shift) { shift(cont.begin(), cont.end(), shift); }
 
 
-inline void threshold(std::vector<Feature>& vector, double threshold) {
+inline void threshold(std::vector<Feature>& vector, Real threshold) {
     int c = 0;
     for (int i = 0; i < vector.size(); ++i)
         if (vector[i].value > threshold) {
@@ -237,7 +237,7 @@ template <typename T> inline uint32_t hash(T& v) {
 // Prints progress
 inline void printProgress(int state, int max) {
     if (max < 100 || state % (max / 100) == 0)
-        Log(CERR) << "  " << std::round(static_cast<double>(state) / (static_cast<double>(max) / 100)) << "%\r";
+        Log(CERR) << "  " << std::round(static_cast<Real>(state) / (static_cast<Real>(max) / 100)) << "%\r";
 }
 
 // Splits string

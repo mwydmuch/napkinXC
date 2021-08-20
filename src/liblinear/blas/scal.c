@@ -4,10 +4,10 @@
 extern "C" {
 #endif
 
-int dscal_(int *n, double *sa, double *sx, int *incx)
+int scal_(int *n, float *sa, float *sx, int *incx)
 {
   long int i, m, nincx, nn, iincx;
-  double ssa;
+  float ssa;
 
   /* scales a vector by a constant.
      uses unrolled loops for increment equal to 1.

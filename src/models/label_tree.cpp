@@ -190,7 +190,7 @@ void LabelTree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
         }
 
         TreeNode* parent = createTreeNode();
-        double aggregatedProb = 0;
+        Real aggregatedProb = 0;
         for (TreeNodeValue& e : toMerge) {
             e.node->parent = parent;
             parent->children.push_back(e.node);
@@ -261,7 +261,7 @@ void LabelTree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& arg
     std::default_random_engine rng(args.getSeed());
 
     int k = labelCount;
-    int t = static_cast<int>(ceil(static_cast<double>(args.arity * k - 1) / (args.arity - 1)));
+    int t = static_cast<int>(ceil(static_cast<Real>(args.arity * k - 1) / (args.arity - 1)));
 
     int ti = t - k;
 
@@ -282,7 +282,7 @@ void LabelTree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& arg
                 label = i - ti;
         }
 
-        TreeNode* parent = nodes[static_cast<int>(floor(static_cast<double>(i - 1) / args.arity))];
+        TreeNode* parent = nodes[static_cast<int>(floor(static_cast<Real>(i - 1) / args.arity))];
         createTreeNode(parent, label);
     }
 }

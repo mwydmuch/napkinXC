@@ -30,7 +30,7 @@
 
 struct EnsemblePrediction {
     int label;
-    double value;
+    Real value;
     std::vector<int> members;
 
     bool operator<(const EnsemblePrediction& r) const { return value < r.value; }
@@ -44,10 +44,10 @@ public:
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
-    double predictForLabel(Label label, Feature* features, Args& args) override;
+    Real predictForLabel(Label label, Feature* features, Args& args) override;
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
 
-    void setLabelsWeights(std::vector<double> lw) override;
+    void setLabelsWeights(std::vector<Real> lw) override;
 
     void load(Args& args, std::string infile) override;
 
@@ -118,8 +118,8 @@ template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& predict
     if (args.topK > 0) prediction.resize(args.topK);
 }
 
-template <typename T> double Ensemble<T>::predictForLabel(Label label, Feature* features, Args& args) {
-    double value = 0;
+template <typename T> Real Ensemble<T>::predictForLabel(Label label, Feature* features, Args& args) {
+    Real value = 0;
     for (auto& m : members) value += m->predictForLabel(label, features, args);
     return value / members.size();
 }
@@ -197,7 +197,7 @@ template <typename T> void Ensemble<T>::load(Args& args, std::string infile) {
 
 template <typename T> void Ensemble<T>::printInfo() {}
 
-template <typename T> void Ensemble<T>::setLabelsWeights(std::vector<double> lw){
+template <typename T> void Ensemble<T>::setLabelsWeights(std::vector<Real> lw){
     Model::setLabelsWeights(lw);
     if (members.size())
         for (size_t i = 0; i < members.size(); ++i)

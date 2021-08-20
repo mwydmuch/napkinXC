@@ -58,7 +58,7 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labels
     int size = labelsExamples.size();
     for (int l = threadId; l < size; l += threads) {
         if (threadId == 0) printProgress(l, size);
-        UnorderedMap<int, double> lFeatures;
+        UnorderedMap<int, Real> lFeatures;
 
         for (const auto& e : labelsExamples[l]){
             auto f = features[e];
@@ -70,7 +70,7 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labels
         for(auto& f : lFeatures)
             labelsFeatures[l].push_back({f.first, f.second});
 
-        std::sort(labelsFeatures[l].begin(), labelsFeatures[l].end());
+        std::sort(labelsFeatures[l].begin(), labelsFeatures[l].end(), IRVPairIndexComp());
         if(norm) unitNorm(labelsFeatures[l]);
         else divVector(labelsFeatures[l], labelsExamples[l].size());
     }
@@ -124,7 +124,7 @@ std::string toLower(std::string text) {
 std::string formatMem(size_t mem){
     // kilo, mega, giga, tera, peta, exa
     char units[7] = {' ', 'K', 'M', 'G', 'T', 'P', 'E'};
-    double fMem = mem;
+    Real fMem = mem;
     int i = 0;
     while(fMem > 1024){
         fMem /= 1024;

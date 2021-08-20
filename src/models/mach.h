@@ -28,8 +28,8 @@ public:
     ~MACH() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
-    double predictForLabel(Label label, Feature* features, Args& args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
+    Real predictForLabel(Label label, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
     inline int baseForLabel(int label, int hash) {

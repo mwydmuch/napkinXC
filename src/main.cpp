@@ -39,15 +39,15 @@
 #include "types.h"
 #include "version.h"
 
-std::vector<double> loadVec(std::string infile){
-    std::vector<double> vec;
+std::vector<Real> loadVec(std::string infile){
+    std::vector<Real> vec;
     std::ifstream in(infile);
-    double v;
+    Real v;
     while (in >> v) vec.push_back(v);
     return vec;
 }
 
-void saveVec(std::vector<double>& vec, std::string outfile){
+void saveVec(std::vector<Real>& vec, std::string outfile){
     std::ofstream out(outfile);
     for(auto v : vec)
         out << v << "\n";
@@ -57,11 +57,11 @@ void saveVec(std::vector<double>& vec, std::string outfile){
 void loadVecs(std::shared_ptr<Model> model, Args& args){
     std::vector<std::vector<Prediction>> predictions;
     if (!args.thresholds.empty()) { // Using thresholds if provided
-        std::vector<double> thresholds = loadVec(args.thresholds);
+        std::vector<Real> thresholds = loadVec(args.thresholds);
         model->setThresholds(thresholds);
     }
     if (!args.labelsWeights.empty()) { // Using labelsWeights if provided
-        std::vector<double> labelsWeights = loadVec(args.labelsWeights);
+        std::vector<Real> labelsWeights = loadVec(args.labelsWeights);
         model->setLabelsWeights(labelsWeights);
     }
 }
@@ -76,13 +76,13 @@ void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::of
 void train(Args& args) {
 
 //    int vec1Size = 40;
-//    Vector<Weight> vec1(vec1Size);
+//    Vector vec1(vec1Size);
 //    for (int i = 0; i < vec1Size; ++i)
 //        vec1.insertD(i, static_cast<double>(std::rand() % 1000) / 1000 * 10);
 
 //    int maxDist = 10;
 //    int vec1Size = 30;
-//    Vector<Weight> vec1(vec1Size * maxDist);
+//    Vector vec1(vec1Size * maxDist);
 //    int j = 0;
 //    for (int i = 0; i < vec1Size; ++i){
 //        j += 1 + std::rand() % maxDist;
@@ -104,11 +104,11 @@ void train(Args& args) {
 //    std::cerr << vec1 << "\n";
 //    std::cerr << vec1.dot(vec2) << "\n";
 //
-//    MapVector<Weight> vec3(vec1);
+//    MapVector vec3(vec1);
 //    std::cerr << vec3 << "\n";
 //    std::cerr << vec3.dot(vec2) << "\n";
 //
-//    SparseVector<Weight> vec4(vec1);
+//    SparseVector vec4(vec1);
 //    std::cerr << vec4.isSorted() << " " << vec4 << "\n";
 //    std::cerr << vec4.dot(vec2) << "\n";
 //
@@ -269,13 +269,13 @@ void ofo(Args& args) {
 
     auto resAfterData = getResources();
 
-    std::vector<double> thresholds = model->ofo(features, labels, args);
+    std::vector<Real> thresholds = model->ofo(features, labels, args);
     saveVec(thresholds, args.thresholds);
 
     auto resAfterFo = getResources();
 
     // Print resources
-    auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+    auto realTime = static_cast<Real>(std::chrono::duration_cast<std::chrono::milliseconds>(
             resAfterFo.timePoint - resAfterData.timePoint)
             .count()) /
                     1000;

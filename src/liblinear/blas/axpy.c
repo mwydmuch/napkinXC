@@ -4,11 +4,11 @@
 extern "C" {
 #endif
 
-int daxpy_(int *n, double *sa, double *sx, int *incx, double *sy,
+int axpy_(int *n, float *sa, float *sx, int *incx, float *sy,
            int *incy)
 {
   long int i, m, ix, iy, nn, iincx, iincy;
-  register double ssa;
+  register float ssa;
 
   /* constant times a vector plus a vector.
      uses unrolled loop for increments equal to one.

@@ -41,20 +41,20 @@ public:
 
     virtual void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) = 0;
     virtual void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) = 0;
-    virtual double predictForLabel(Label label, Feature* features, Args& args) = 0;
+    virtual Real predictForLabel(Label label, Feature* features, Args& args) = 0;
     virtual std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args);
 
     // Prediction with thresholds and ofo
-    virtual void setThresholds(std::vector<double> th);
-    virtual void updateThresholds(UnorderedMap<int, double> thToUpdate);
-    std::vector<double> getThresholds(){ return thresholds; };
+    virtual void setThresholds(std::vector<Real> th);
+    virtual void updateThresholds(UnorderedMap<int, Real> thToUpdate);
+    std::vector<Real> getThresholds(){ return thresholds; };
 
-    virtual void setLabelsWeights(std::vector<double> lw);
-    std::vector<double> getLabelsWeights(){ return labelsWeights; };
+    virtual void setLabelsWeights(std::vector<Real> lw);
+    std::vector<Real> getLabelsWeights(){ return labelsWeights; };
 
-    std::vector<double> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
-    double microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
-    std::vector<double> macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
+    std::vector<Real> ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
+    Real microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
+    std::vector<Real> macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
     virtual void preload(Args& args, std::string infile) { preloaded = true; };
@@ -71,8 +71,8 @@ protected:
     int m; // Output size/number of labels
     bool preloaded;
     bool loaded;
-    std::vector<double> thresholds; // For prediction with thresholds
-    std::vector<double> labelsWeights; // For prediction with label weights
+    std::vector<Real> thresholds; // For prediction with thresholds
+    std::vector<Real> labelsWeights; // For prediction with label weights
 
     // Base utils
     static Base* trainBase(ProblemData& problemsData, Args& args);
@@ -87,7 +87,7 @@ private:
     static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
                                    SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
 
-    static void macroOfoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
+    static void macroOfoThread(int threadId, Model* model, std::vector<Real>& as, std::vector<Real>& bs,
                                SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args,
                                const int startRow, const int stopRow);
 };

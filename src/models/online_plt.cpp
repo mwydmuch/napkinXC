@@ -191,13 +191,13 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
 
         else if (args.treeType == onlineBestScore) { // Best score
             //Log(CERR) << "    Current node: " << toExpand->index << "\n";
-            double bestScore = -DBL_MAX;
+            Real bestScore = -DBL_MAX;
             TreeNode *bestChild = toExpand->children[0];
 
             for (auto &child : toExpand->children) {
-                double prob = bases[child->index]->predictProbability(features);
-                double score = (1.0 - alpha) * prob + alpha * std::log(
-                    (static_cast<double>(toExpand->subtreeLeaves) / toExpand->children.size()) / child->subtreeLeaves);
+                Real prob = bases[child->index]->predictProbability(features);
+                Real score = (1.0 - alpha) * prob + alpha * std::log(
+                    (static_cast<Real>(toExpand->subtreeLeaves) / toExpand->children.size()) / child->subtreeLeaves);
                 if (score > bestScore) {
                     bestScore = score;
                     bestChild = child;

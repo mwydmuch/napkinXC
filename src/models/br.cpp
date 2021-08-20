@@ -42,7 +42,7 @@ void BR::unload() {
     bases.shrink_to_fit();
 }
 
-void BR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<double>& binWeights,
+void BR::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<Real>& binWeights,
                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
     int rows = labels.rows();
 
@@ -68,9 +68,9 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     int range = lCols / parts + 1;
 
     assert(lCols < range * parts);
-    std::vector<std::vector<double>> binLabels(range);
+    std::vector<std::vector<Real>> binLabels(range);
     std::vector<Feature*> binFeatures;
-    std::vector<double> binWeights;
+    std::vector<Real> binWeights;
     std::vector<ProblemData> binProblemData;
     binWeights.reserve(range);
 
@@ -90,7 +90,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 
         assignDataPoints(binLabels, binFeatures, binWeights, labels, features, rStart, rStop, args);
 
-        unsigned long long usedMem = binFeatures.size() * ((range + 1) * sizeof(double) + sizeof(void*));
+        unsigned long long usedMem = binFeatures.size() * ((range + 1) * sizeof(Real) + sizeof(void*));
         Log(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 
         // Train bases
@@ -145,7 +145,7 @@ std::vector<Prediction> BR::predictForAllLabels(Feature* features, size_t fSize,
     return prediction;
 }
 
-double BR::predictForLabel(Label label, Feature* features, Args& args) {
+Real BR::predictForLabel(Label label, Feature* features, Args& args) {
     return bases[label]->predictProbability(features, 0);
 }
 
@@ -172,9 +172,9 @@ size_t BR::calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& fe
     unsigned long long dataMem = labels.mem() + features.mem();
     unsigned long long tmpDataMem = 0;
     if(args.modelType == ovr && args.pickOneLabelWeighting)
-        tmpDataMem = lCells * ((lCols + 1) * sizeof(double) + sizeof(void*));
-    else tmpDataMem = rows * ((lCols + 1) * sizeof(double) + sizeof(void*));
-    unsigned long long baseMem = 4 * args.threads * features.cols() * sizeof(double);
+        tmpDataMem = lCells * ((lCols + 1) * sizeof(Real) + sizeof(void*));
+    else tmpDataMem = rows * ((lCols + 1) * sizeof(Real) + sizeof(void*));
+    unsigned long long baseMem = 4 * args.threads * features.cols() * sizeof(Real);
     unsigned long long reqMem = tmpDataMem + dataMem + baseMem;
     //Log(CERR) << "Required memory to train: " << formatMem(reqMem) << ", available memory: " << formatMem(args.memLimit) << "\n";
     Log(CERR) << "Required memory to train: " << formatMem(reqMem) << " (data: " << formatMem(dataMem)

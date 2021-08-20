@@ -23,51 +23,51 @@
 #include<cmath>
 
 
-double logisticLoss(double label, double pred, double w){
-    double prob = (1.0 / (1.0 + std::exp(-pred)));
+Real logisticLoss(Real label, Real pred, Real w){
+    Real prob = (1.0 / (1.0 + std::exp(-pred)));
     return -label * std::log(prob) - (1 - label) * std::log(1 - prob);
 }
 
-double logisticGrad(double label, double pred, double w){
+Real logisticGrad(Real label, Real pred, Real w){
     return (1.0 / (1.0 + std::exp(-pred))) - label;
 }
 
-double hingeGrad(double label, double pred, double w){
-    double _label = 2 * label - 1;
-    double v = _label * pred;
+Real hingeGrad(Real label, Real pred, Real w){
+    Real _label = 2 * label - 1;
+    Real v = _label * pred;
     if(v > 1.0) return 0.0;
     else return -_label;
 }
 
-double squaredHingeGrad(double label, double pred, double w){
-    double _label = 2 * label - 1;
-    double v = _label * pred;
+Real squaredHingeGrad(Real label, Real pred, Real w){
+    Real _label = 2 * label - 1;
+    Real v = _label * pred;
     if(v > 1.0) return 0.0;
     else return -2 * std::max(1.0 - v, 0.0) * _label;
 }
 
-double unbiasedLogisticLoss(double label, double pred, double w){
-    double prob = (1.0 / (1.0 + std::exp(-pred)));
+Real unbiasedLogisticLoss(Real label, Real pred, Real w){
+    Real prob = (1.0 / (1.0 + std::exp(-pred)));
     return -label * w * std::log(prob) - (1 - label * w) * std::log(1 - prob);
 }
 
-double unbiasedLogisticGrad(double label, double pred, double w){
+Real unbiasedLogisticGrad(Real label, Real pred, Real w){
     return 1 / (1 + std::exp(-pred)) - label * w;
 }
 
-double pwLogisticLoss(double label, double pred, double w){
-    double prob = (1.0 / (1.0 + std::exp(-pred)));
+Real pwLogisticLoss(Real label, Real pred, Real w){
+    Real prob = (1.0 / (1.0 + std::exp(-pred)));
     return -(2 * w - 1) * label * std::log(prob) - (1 - label) * std::log(1 - prob);
 }
 
-double pwLogisticGrad(double label, double pred, double w){
+Real pwLogisticGrad(Real label, Real pred, Real w){
     return -(2 * (label * w - label * 0.5) / (1.0 + std::exp(-pred))) - label + 1;
 }
 
 template <typename T>
-void updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args){
-    double eta = args.eta;
-    double lr = eta * sqrt(1.0 / t);
+void updateSGD(T& W, T& G, Feature* features, Real grad, int t, Args& args){
+    Real eta = args.eta;
+    Real lr = eta * sqrt(1.0 / t);
     Feature* f = features;
     while (f->index != -1) {
         W[f->index] -= lr * grad * f->value;
@@ -76,18 +76,18 @@ void updateSGD(T& W, T& G, Feature* features, double grad, int t, Args& args){
 }
 
 template <typename T>
-void updateAdaGrad(T& W, T& G, Feature* features, double grad, int t, Args& args){
-    double eta = args.eta;
-    double eps = args.adagradEps;
+void updateAdaGrad(T& W, T& G, Feature* features, Real grad, int t, Args& args){
+    Real eta = args.eta;
+    Real eps = args.adagradEps;
     Feature* f = features;
     while (f->index != -1) {
-        Weight& g = G[f->index];
+        Real& g = G[f->index];
         G[f->index] += f->value * f->value * grad * grad;
-        double lr = eta * std::sqrt(1.0 / (eps + G[f->index]));
+        Real lr = eta * std::sqrt(1.0 / (eps + G[f->index]));
         W[f->index] -= lr * (grad * f->value);
         ++f;
         // TODO: add correct regularization
-        //double reg = l2 * W[f->index];
+        //Real reg = l2 * W[f->index];
         //W[f->index] -= lr * (grad * f->value + reg);
     }
 }

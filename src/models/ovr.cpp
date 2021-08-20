@@ -36,7 +36,7 @@ OVR::OVR() {
     name = "OVR";
 }
 
-void OVR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<double>& binWeights,
+void OVR::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<Real>& binWeights,
                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
     int rows = labels.rows();
     for (int r = 0; r < rows; ++r) {
@@ -60,10 +60,10 @@ void OVR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
 std::vector<Prediction> OVR::predictForAllLabels(Feature* features, size_t fSize, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
-    double sum = 0;
+    Real sum = 0;
 
     for (int i = 0; i < bases.size(); ++i) {
-        double value = exp(bases[i]->predictValue(features, fSize)); // Softmax normalization
+        Real value = exp(bases[i]->predictValue(features, fSize)); // Softmax normalization
         sum += value;
         prediction.emplace_back(i, value);
     }
@@ -72,10 +72,10 @@ std::vector<Prediction> OVR::predictForAllLabels(Feature* features, size_t fSize
     return prediction;
 }
 
-double OVR::predictForLabel(Label label, Feature* features, Args& args) {
-    double sum = 0;
+Real OVR::predictForLabel(Label label, Feature* features, Args& args) {
+    Real sum = 0;
     for (int i = 0; i < bases.size(); ++i) {
-        double value = exp(bases[i]->predictValue(features, 0)); // Softmax normalization
+        Real value = exp(bases[i]->predictValue(features, 0)); // Softmax normalization
         sum += value;
     }
 

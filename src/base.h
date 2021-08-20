@@ -37,18 +37,18 @@
 //TODO: Refactor base class
 
 struct ProblemData {
-    std::vector<double>& binLabels;
+    std::vector<Real>& binLabels;
     std::vector<Feature*>& binFeatures;
-    std::vector<double>& instancesWeights;
+    std::vector<Real>& instancesWeights;
     int n; // features space size
 
     int labelsCount;
     int* labels;
-    double* labelsWeights;
-    double invPs; // inverse propensity
+    Real* labelsWeights;
+    Real invPs; // inverse propensity
     int r; // number of all examples
 
-    ProblemData(std::vector<double>& binLabels, std::vector<Feature*>& binFeatures, int n, std::vector<double>& instancesWeights):
+    ProblemData(std::vector<Real>& binLabels, std::vector<Feature*>& binFeatures, int n, std::vector<Real>& instancesWeights):
                 binLabels(binLabels), binFeatures(binFeatures), n(n), instancesWeights(instancesWeights) {
         labelsCount = 0;
         labels = NULL;
@@ -65,8 +65,8 @@ public:
     Base(Args& args);
     ~Base();
 
-    void update(double label, Feature* features, Args& args);
-    void unsafeUpdate(double label, Feature* features, Args& args);
+    void update(Real label, Feature* features, Args& args);
+    void unsafeUpdate(Real label, Feature* features, Args& args);
     void train(ProblemData& problemData, Args& args);
     void trainLiblinear(ProblemData& problemData, Args& args);
     void trainOnline(ProblemData& problemData, Args& args);
@@ -75,11 +75,11 @@ public:
     void setupOnlineTraining(Args& args, int n = 0, bool startWithDenseW = false);
     void finalizeOnlineTraining(Args& args);
 
-    double predictValue(Feature* features, size_t s = 0);
-    double predictProbability(Feature* features, size_t s = 0);
+    Real predictValue(Feature* features, size_t s = 0);
+    Real predictProbability(Feature* features, size_t s = 0);
 
-    inline AbstractVector<Weight>* getW() { return W; };
-    inline AbstractVector<Weight>* getG() { return G; };
+    inline AbstractVector* getW() { return W; };
+    inline AbstractVector* getG() { return G; };
 
     unsigned long long mem();
     inline int getFirstClass() { return firstClass; }
@@ -87,7 +87,7 @@ public:
 
     void to(RepresentationType type); // Change representation type of base classifier
     RepresentationType getType();
-    void pruneWeights(double threshold);
+    void pruneWeights(Real threshold);
     void setFirstClass(int first);
     void setLoss(LossType);
 
@@ -103,8 +103,8 @@ public:
 private:
     std::mutex updateMtx;
     LossType lossType;
-    double (*lossFunc)(double, double, double);
-    double (*gradFunc)(double, double, double);
+    Real (*lossFunc)(Real, Real, Real);
+    Real (*gradFunc)(Real, Real, Real);
 
     int classCount;
     int firstClass;
@@ -112,8 +112,8 @@ private:
     int t;
 
     // Weights (parameters)
-    AbstractVector<Weight>* W;
-    AbstractVector<Weight>* G;
+    AbstractVector* W;
+    AbstractVector* G;
 
-    AbstractVector<Weight>* vecTo(AbstractVector<Weight>*, RepresentationType type);
+    AbstractVector* vecTo(AbstractVector*, RepresentationType type);
 };

@@ -33,9 +33,9 @@ void ExtremeText::trainThread(int threadId, ExtremeText* model, SRMatrix<Label>&
                                     SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
     const int rowsRange = stopRow - startRow;
     const int examples = rowsRange * args.epochs;
-    double loss = 0;
+    Real loss = 0;
     for (int i = 0; i < examples; ++i) {
-        double lr = args.eta * (1.0 - (static_cast<double>(i) / examples));
+        Real lr = args.eta * (1.0 - (static_cast<Real>(i) / examples));
         if (!threadId) printProgress(i, examples, lr, loss / i);
 
         int r = startRow + i % rowsRange;
@@ -43,13 +43,13 @@ void ExtremeText::trainThread(int threadId, ExtremeText* model, SRMatrix<Label>&
     }
 }
 
-double ExtremeText::updateNode(TreeNode* node, double label, Vector<XTWeight>& hidden, Vector<XTWeight>& gradient, double lr, double l2){
+Real ExtremeText::updateNode(TreeNode* node, Real label, Vector& hidden, Vector& gradient, Real lr, Real l2){
     size_t i = node->index;
 
-    //double pred = 1.0 / (1.0 + std::exp(-dotVectors(outputW[i], hidden)));
-    double val = outputW[i].dot(hidden);
-    double pred = sigmoid(val);
-    double grad = label - pred;
+    //Real pred = 1.0 / (1.0 + std::exp(-dotVectors(outputW[i], hidden)));
+    Real val = outputW[i].dot(hidden);
+    Real pred = sigmoid(val);
+    Real grad = label - pred;
     //Log(COUT) << val << " " << pred << " " << grad << "\n";
 
     for(int j = 0; j < dims; ++j){
@@ -60,11 +60,11 @@ double ExtremeText::updateNode(TreeNode* node, double label, Vector<XTWeight>& h
     return label ? -log(pred) : -log(1.0 - pred);
 }
 
-double ExtremeText::update(double lr, Feature* features, Label* labels, int rSize, Args& args){
+Real ExtremeText::update(Real lr, Feature* features, Label* labels, int rSize, Args& args){
 
     // Compute hidden
-    double valuesSum = 0;
-    Vector<XTWeight> hidden(dims);
+    Real valuesSum = 0;
+    Vector hidden(dims);
     for(Feature* f = features; f->index != -1; ++f){
         valuesSum += f->value;
         inputW[f->index].add(hidden, f->value);
@@ -78,9 +78,9 @@ double ExtremeText::update(double lr, Feature* features, Label* labels, int rSiz
     getNodesToUpdate(nPositive, nNegative, labels, rSize);
 
     // Compute gradient
-    Vector<XTWeight> gradient(dims);
-    //double lr = 0.5 * args.eta * std::sqrt(1.0 / ++t);
-    double loss = 0.0;
+    Vector gradient(dims);
+    //Real lr = 0.5 * args.eta * std::sqrt(1.0 / ++t);
+    Real loss = 0.0;
     for (auto &n : nPositive)
         loss += updateNode(n, 1.0, hidden, gradient, lr, args.l2Penalty);
 
@@ -105,21 +105,21 @@ void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     m = tree->getNumberOfLeaves();
 
     dims = args.dims;
-    inputW = Matrix<XTWeight>(features.cols(), dims);
+    inputW = RMatrix<Vector>(features.cols(), dims);
 
     std::default_random_engine rng(args.getSeed());
-    std::uniform_real_distribution<double> dist(-1.0 / dims, 1.0 / dims);
+    std::uniform_real_distribution<Real> dist(-1.0 / dims, 1.0 / dims);
 
     for(int i = 0; i < inputW.rows(); ++i)
         for(int j = 0; j < inputW.cols(); ++j) inputW[i][j] = dist(rng);
 
-    outputW = Matrix<XTWeight>(tree->size(), dims);
+    outputW = RMatrix<Vector>(tree->size(), dims);
 
     // Iterate over rows
     Log(CERR) << "Training extremeText for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
 
     ThreadSet tSet;
-    int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
+    int tRows = ceil(static_cast<Real>(features.rows()) / args.threads);
     for (int t = 0; t < args.threads; ++t)
         tSet.add(trainThread, t, this, std::ref(labels), std::ref(features), std::ref(args), t * tRows,
                  std::min((t + 1) * tRows, features.rows()));
@@ -155,15 +155,15 @@ void ExtremeText::load(Args& args, std::string infile) {
     loaded = true;
 }
 
-void ExtremeText::predict(std::vector<Prediction>& prediction, Feature* features, Args& args){
+void ExtremeText::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args){
     Feature* hidden = computeHidden(features);
-    PLT::predict(prediction, hidden, args);
+    PLT::predict(prediction, hidden, fSize, args);
     delete[] hidden;
 }
 
-double ExtremeText::predictForLabel(Label label, Feature* features, Args& args){
+Real ExtremeText::predictForLabel(Label label, Feature* features, Args& args){
     Feature* hidden = computeHidden(features);
-    double value = PLT::predictForLabel(label, hidden, args);
+    Real value = PLT::predictForLabel(label, hidden, args);
     delete[] hidden;
     return value;
 }
@@ -176,7 +176,7 @@ Feature* ExtremeText::computeHidden(Feature* features){
     }
     hidden[dims].index = -1;
 
-    double valuesSum = 0;
+    Real valuesSum = 0;
     for(Feature* f = features; f->index != -1; ++f){
         valuesSum += f->value;
         for(size_t i = 0; i < dims; ++i) hidden[i].value += inputW[f->index][i] * f->value;

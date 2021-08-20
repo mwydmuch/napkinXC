@@ -5,10 +5,10 @@
 extern "C" {
 #endif
 
-double dnrm2_(int *n, double *x, int *incx)
+float nrm2_(int *n, float *x, int *incx)
 {
   long int ix, nn, iincx;
-  double norm, scale, absxi, ssq, temp;
+  float norm, scale, absxi, ssq, temp;
 
 /*  DNRM2 returns the euclidean norm of a vector via the function
     name, so that

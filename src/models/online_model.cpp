@@ -57,7 +57,7 @@ void OnlineModel::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     Log(CERR) << "Training online for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
 
     ThreadSet tSet;
-    int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
+    int tRows = ceil(static_cast<Real>(features.rows()) / args.threads);
     for (int t = 0; t < args.threads; ++t)
         tSet.add(onlineTrainThread, t, this, std::ref(labels), std::ref(features), std::ref(args), t * tRows,
                  std::min((t + 1) * tRows, features.rows()));

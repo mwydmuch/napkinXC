@@ -28,16 +28,16 @@
 #include "types.h"
 
 // K-Means clustering with balanced option
-typedef IVPair<int, int> Assignation;
+typedef IIVPair Assignation;
 
 struct Similarities {
     int index;
     std::vector<Feature> values;
-    double sortby;
+    Real sortby;
 
     bool operator<(const Similarities& r) const { return sortby < r.sortby; }
 };
 
 // Partition is returned via reference, calculated for cosine distance
-void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures, int centroids, double eps,
+void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures, int centroids, Real eps,
             bool balanced, int seed);

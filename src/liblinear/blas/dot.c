@@ -4,10 +4,10 @@
 extern "C" {
 #endif
 
-double ddot_(int *n, double *sx, int *incx, double *sy, int *incy)
+float dot_(int *n, float *sx, int *incx, float *sy, int *incy)
 {
   long int i, m, nn, iincx, iincy;
-  double stemp;
+  float stemp;
   long int ix, iy;
 
   /* forms the dot product of two vectors.
@@ -28,7 +28,7 @@ double ddot_(int *n, double *sx, int *incx, double *sy, int *incy)
       m = nn-4;
       for (i = 0; i < m; i += 5)
         stemp += sx[i] * sy[i] + sx[i+1] * sy[i+1] + sx[i+2] * sy[i+2] +
-                 sx[i+3] * sy[i+3] + sx[i+4] * sy[i+4];
+            sx[i+3] * sy[i+3] + sx[i+4] * sy[i+4];
 
       for ( ; i < nn; i++)        /* clean-up loop */
         stemp += sx[i] * sy[i];

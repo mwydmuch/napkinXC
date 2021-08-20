@@ -219,24 +219,12 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     modelType = hsm;
                 else if (args.at(ai + 1) == "plt")
                     modelType = plt;
-                else if (args.at(ai + 1) == "svbopFull")
-                    modelType = svbopFull;
-                else if (args.at(ai + 1) == "svbopFagin")
-                    modelType = svbopFagin;
-                else if (args.at(ai + 1) == "svbopThreshold")
-                    modelType = svbopThreshold;
-                else if (args.at(ai + 1) == "svbopInvertedIndex")
-                    modelType = svbopInvertedIndex;
-                else if (args.at(ai + 1) == "svbopHf")
-                    modelType = svbopHf;
                 else if (args.at(ai + 1) == "oplt")
                     modelType = oplt;
                 else if (args.at(ai + 1) == "xt" || args.at(ai + 1) == "extremeText")
                     modelType = extremeText;
                 else if (args.at(ai + 1) == "mach")
                     modelType = mach;
-                else if (args.at(ai + 1) == "pltplus")
-                    modelType = pltplus;
 // Mips extension models
 #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips")
@@ -547,7 +535,7 @@ void Args::printArgs(std::string command) {
         Log(CERR) << ", weights threshold: " << weightsThreshold;
 
         // Tree related
-        if (modelType == plt || modelType == hsm || modelType == oplt || modelType == svbopHf) {
+        if (modelType == plt || modelType == hsm || modelType == oplt) {
             if (treeStructure.empty()) {
                 Log(CERR) << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
                 if (treeType == hierarchicalKmeans)
@@ -569,7 +557,7 @@ void Args::printArgs(std::string command) {
     if(!labelsWeights.empty()) Log(CERR) << "\n  Label weights: " << labelsWeights;
 
     if (command == "test" || command == "predict") {
-        if (modelType == plt || modelType == hsm || modelType == oplt || modelType == svbopHf) {
+        if (modelType == plt || modelType == hsm || modelType == oplt) {
             Log(CERR) << "\n  Tree search type: " << treeSearchName;
             if(treeSearchType == beam && threshold <= 0 && thresholds.empty())
                 Log(CERR) << ", beam search width: " << beamSearchWidth;
@@ -577,18 +565,6 @@ void Args::printArgs(std::string command) {
         Log(CERR) << "\n  Base classifiers representation: " << representationName << " vector";
         if(thresholds.empty()) Log(CERR) << "\n  Top k: " << topK << ", threshold: " << threshold;
         else Log(CERR) << "\n  Thresholds: " << thresholds;
-
-        if (modelType == svbopMips || modelType == brMips) {
-            Log(CERR) << "\n  HNSW: M: " << hnswM << ", efConst.: " << hnswEfConstruction << ", efSearch: " << hnswEfSearch;
-            if(modelType == svbopMips) Log(CERR) << ", k: " << svbopMipsK;
-        }
-
-        if (modelType == svbopFull || modelType == svbopHf || modelType == svbopMips) {
-            Log(CERR) << "\n  Set utility: " << setUtilityName;
-            if (setUtilityType == uAlpha || setUtilityType == uAlphaBeta) Log(CERR) << ", alpha: " << alpha;
-            if (setUtilityType == uAlphaBeta) Log(CERR) << ", beta: " << beta;
-            if (setUtilityType == uDeltaGamma) Log(CERR) << ", delta: " << delta << ", gamma: " << gamma;
-        }
     }
 
     if (command == "ofo")

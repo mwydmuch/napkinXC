@@ -1,8 +1,8 @@
+#include "tron.h"
 #include <math.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdarg.h>
-#include "tron.h"
 
 #ifndef min
 template <class T> static inline T min(T x,T y) { return (x<y)?x:y; }
@@ -16,10 +16,10 @@ template <class T> static inline T max(T x,T y) { return (x>y)?x:y; }
 extern "C" {
 #endif
 
-extern double dnrm2_(int *, double *, int *);
-extern double ddot_(int *, double *, int *, double *, int *);
-extern int daxpy_(int *, double *, double *, int *, double *, int *);
-extern int dscal_(int *, double *, double *, int *);
+extern float nrm2_(int *, float *, int *);
+extern float dot_(int *, float *, int *, float *, int *);
+extern int axpy_(int *, float *, float *, int *, float *, int *);
+extern int scal_(int *, float *, float *, int *);
 
 #ifdef __cplusplus
 }
@@ -31,10 +31,10 @@ static void default_print(const char *buf)
 	fflush(stdout);
 }
 
-static double uTMv(int n, double *u, double *M, double *v)
+static float uTMv(int n, float *u, float *M, float *v)
 {
 	const int m = n-4;
-	double res = 0;
+	float res = 0;
 	int i;
 	for (i=0; i<m; i+=5)
 		res += u[i]*M[i]*v[i]+u[i+1]*M[i+1]*v[i+1]+u[i+2]*M[i+2]*v[i+2]+
@@ -54,7 +54,7 @@ void TRON::info(const char *fmt,...)
 	(*tron_print_string)(buf);
 }
 
-TRON::TRON(const function *fun_obj, double eps, double eps_cg, int max_iter)
+TRON::TRON(const function *fun_obj, float eps, float eps_cg, int max_iter)
 {
 	this->fun_obj=const_cast<function *>(fun_obj);
 	this->eps=eps;
@@ -67,38 +67,38 @@ TRON::~TRON()
 {
 }
 
-void TRON::tron(double *w)
+void TRON::tron(float *w)
 {
 	// Parameters for updating the iterates.
-	double eta0 = 1e-4, eta1 = 0.25, eta2 = 0.75;
+	float eta0 = 1e-4, eta1 = 0.25, eta2 = 0.75;
 
 	// Parameters for updating the trust region size delta.
-	double sigma1 = 0.25, sigma2 = 0.5, sigma3 = 4;
+	float sigma1 = 0.25, sigma2 = 0.5, sigma3 = 4;
 
 	int n = fun_obj->get_nr_variable();
 	int i, cg_iter;
-	double delta=0, sMnorm, one=1.0;
-	double alpha, f, fnew, prered, actred, gs;
+	float delta=0, sMnorm, one=1.0;
+	float alpha, f, fnew, prered, actred, gs;
 	int search = 1, iter = 1, inc = 1;
-	double *s = new double[n];
-	double *r = new double[n];
-	double *g = new double[n];
+	float *s = new float[n];
+	float *r = new float[n];
+	float *g = new float[n];
 
-	const double alpha_pcg = 0.01;
-	double *M = new double[n];
+	const float alpha_pcg = 0.01;
+	float *M = new float[n];
 
 	// calculate gradient norm at w=0 for stopping condition.
-	double *w0 = new double[n];
+	float *w0 = new float[n];
 	for (i=0; i<n; i++)
 		w0[i] = 0;
 	fun_obj->fun(w0);
 	fun_obj->grad(w0, g);
-	double gnorm0 = dnrm2_(&n, g, &inc);
+	float gnorm0 = nrm2_(&n, g, &inc);
 	delete [] w0;
 
 	f = fun_obj->fun(w);
 	fun_obj->grad(w, g);
-	double gnorm = dnrm2_(&n, g, &inc);
+	float gnorm = nrm2_(&n, g, &inc);
 
 	if (gnorm <= eps*gnorm0)
 		search = 0;
@@ -108,18 +108,18 @@ void TRON::tron(double *w)
 		M[i] = (1-alpha_pcg) + alpha_pcg*M[i];
 	delta = sqrt(uTMv(n, g, M, g));
 
-	double *w_new = new double[n];
+	float *w_new = new float[n];
 	bool reach_boundary;
 	bool delta_adjusted = false;
 	while (iter <= max_iter && search)
 	{
 		cg_iter = trpcg(delta, g, M, s, r, &reach_boundary);
 
-		memcpy(w_new, w, sizeof(double)*n);
-		daxpy_(&n, &one, s, &inc, w_new, &inc);
+		memcpy(w_new, w, sizeof(float)*n);
+		axpy_(&n, &one, s, &inc, w_new, &inc);
 
-		gs = ddot_(&n, g, &inc, s, &inc);
-		prered = -0.5*(gs-ddot_(&n, s, &inc, r, &inc));
+		gs = dot_(&n, g, &inc, s, &inc);
+		prered = -0.5*(gs-dot_(&n, s, &inc, r, &inc));
 		fnew = fun_obj->fun(w_new);
 
 		// Compute the actual reduction.
@@ -137,7 +137,7 @@ void TRON::tron(double *w)
 		if (fnew - f - gs <= 0)
 			alpha = sigma3;
 		else
-			alpha = max(sigma1, -0.5*(gs/(fnew - f - gs)));
+			alpha = max(sigma1, -0.5f*(gs/(fnew - f - gs)));
 
 		// Update the trust region bound according to the ratio of actual to predicted reduction.
 		if (actred < eta0*prered)
@@ -159,14 +159,14 @@ void TRON::tron(double *w)
 		if (actred > eta0*prered)
 		{
 			iter++;
-			memcpy(w, w_new, sizeof(double)*n);
+			memcpy(w, w_new, sizeof(float)*n);
 			f = fnew;
 			fun_obj->grad(w, g);
 			fun_obj->get_diag_preconditioner(M);
 			for(i=0; i<n; i++)
 				M[i] = (1-alpha_pcg) + alpha_pcg*M[i];
 
-			gnorm = dnrm2_(&n, g, &inc);
+			gnorm = nrm2_(&n, g, &inc);
 			if (gnorm <= eps*gnorm0)
 				break;
 		}
@@ -195,15 +195,15 @@ void TRON::tron(double *w)
 	delete[] M;
 }
 
-int TRON::trpcg(double delta, double *g, double *M, double *s, double *r, bool *reach_boundary)
+int TRON::trpcg(float delta, float *g, float *M, float *s, float *r, bool *reach_boundary)
 {
 	int i, inc = 1;
 	int n = fun_obj->get_nr_variable();
-	double one = 1;
-	double *d = new double[n];
-	double *Hd = new double[n];
-	double zTr, znewTrnew, alpha, beta, cgtol;
-	double *z = new double[n];
+	float one = 1;
+	float *d = new float[n];
+	float *Hd = new float[n];
+	float zTr, znewTrnew, alpha, beta, cgtol;
+	float *z = new float[n];
 
 	*reach_boundary = false;
 	for (i=0; i<n; i++)
@@ -214,7 +214,7 @@ int TRON::trpcg(double delta, double *g, double *M, double *s, double *r, bool *
 		d[i] = z[i];
 	}
 
-	zTr = ddot_(&n, z, &inc, r, &inc);
+	zTr = dot_(&n, z, &inc, r, &inc);
 	cgtol = eps_cg*sqrt(zTr);
 	int cg_iter = 0;
 	int max_cg_iter = max(n, 5);
@@ -226,40 +226,40 @@ int TRON::trpcg(double delta, double *g, double *M, double *s, double *r, bool *
 		cg_iter++;
 		fun_obj->Hv(d, Hd);
 
-		alpha = zTr/ddot_(&n, d, &inc, Hd, &inc);
-		daxpy_(&n, &alpha, d, &inc, s, &inc);
+		alpha = zTr/dot_(&n, d, &inc, Hd, &inc);
+		axpy_(&n, &alpha, d, &inc, s, &inc);
 
-		double sMnorm = sqrt(uTMv(n, s, M, s));
+		float sMnorm = sqrt(uTMv(n, s, M, s));
 		if (sMnorm > delta)
 		{
 			//info("cg reaches trust region boundary\n");
 			*reach_boundary = true;
 			alpha = -alpha;
-			daxpy_(&n, &alpha, d, &inc, s, &inc);
+			axpy_(&n, &alpha, d, &inc, s, &inc);
 
-			double sTMd = uTMv(n, s, M, d);
-			double sTMs = uTMv(n, s, M, s);
-			double dTMd = uTMv(n, d, M, d);
-			double dsq = delta*delta;
-			double rad = sqrt(sTMd*sTMd + dTMd*(dsq-sTMs));
+			float sTMd = uTMv(n, s, M, d);
+			float sTMs = uTMv(n, s, M, s);
+			float dTMd = uTMv(n, d, M, d);
+			float dsq = delta*delta;
+			float rad = sqrt(sTMd*sTMd + dTMd*(dsq-sTMs));
 			if (sTMd >= 0)
 				alpha = (dsq - sTMs)/(sTMd + rad);
 			else
 				alpha = (rad - sTMd)/dTMd;
-			daxpy_(&n, &alpha, d, &inc, s, &inc);
+			axpy_(&n, &alpha, d, &inc, s, &inc);
 			alpha = -alpha;
-			daxpy_(&n, &alpha, Hd, &inc, r, &inc);
+			axpy_(&n, &alpha, Hd, &inc, r, &inc);
 			break;
 		}
 		alpha = -alpha;
-		daxpy_(&n, &alpha, Hd, &inc, r, &inc);
+		axpy_(&n, &alpha, Hd, &inc, r, &inc);
 
 		for (i=0; i<n; i++)
 			z[i] = r[i] / M[i];
-		znewTrnew = ddot_(&n, z, &inc, r, &inc);
+		znewTrnew = dot_(&n, z, &inc, r, &inc);
 		beta = znewTrnew/zTr;
-		dscal_(&n, &beta, d, &inc);
-		daxpy_(&n, &one, z, &inc, d, &inc);
+		scal_(&n, &beta, d, &inc);
+		axpy_(&n, &one, z, &inc, d, &inc);
 		zTr = znewTrnew;
 	}
 
@@ -273,9 +273,9 @@ int TRON::trpcg(double delta, double *g, double *M, double *s, double *r, bool *
 	return(cg_iter);
 }
 
-double TRON::norm_inf(int n, double *x)
+float TRON::norm_inf(int n, float *x)
 {
-	double dmax = fabs(x[0]);
+	float dmax = fabs(x[0]);
 	for (int i=1; i<n; i++)
 		if (fabs(x[i]) >= dmax)
 			dmax = fabs(x[i]);

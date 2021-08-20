@@ -39,17 +39,17 @@ class HSM : public BatchPLT { // HSM is multi-class version of PLT
 public:
     HSM();
 
-    double predictForLabel(Label label, Feature* features, Args& args) override;
+    Real predictForLabel(Label label, Feature* features, Args& args) override;
     void printInfo() override;
 
 protected:
-    void assignDataPoints(std::vector<std::vector<double>>& binLabels,
+    void assignDataPoints(std::vector<std::vector<Real>>& binLabels,
                           std::vector<std::vector<Feature*>>& binFeatures,
-                          std::vector<std::vector<double>>& binWeights,
+                          std::vector<std::vector<Real>>& binWeights,
                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) override;
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const int rLabel);
     Prediction predictNextLabel(
-        std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
+        std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,
         TopKQueue<TreeNodeValue>& nQueue, Feature* features, size_t fSize) override;
 
     int pathLength;   // Length of the path

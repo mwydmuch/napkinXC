@@ -185,7 +185,6 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 }
 
 void Base::train(ProblemData& problemData, Args& args) {
-
     if (problemData.binLabels.empty()) {
         firstClass = 0;
         classCount = 0;
@@ -211,13 +210,15 @@ void Base::train(ProblemData& problemData, Args& args) {
         problemData.labelsWeights = new double[2];
 
         int negativeLabels = static_cast<int>(problemData.binLabels.size()) - positiveLabels;
-        if (negativeLabels > positiveLabels) {
-            problemData.labelsWeights[0] = 1.0;
-            problemData.labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabels) / positiveLabels);
-        } else {
-            problemData.labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabels) / negativeLabels);
-            problemData.labelsWeights[1] = 1.0;
-        }
+//        if (negativeLabels > positiveLabels) {
+//            problemData.labelsWeights[0] = 1.0;
+//            problemData.labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabels) / positiveLabels);
+//        } else {
+//            problemData.labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabels) / negativeLabels);
+//            problemData.labelsWeights[1] = 1.0;
+//        }
+        problemData.labelsWeights[0] = positiveLabels / negativeLabels;
+        problemData.labelsWeights[1] = negativeLabels / positiveLabels;
     }
 
     if (args.optimizerType == liblinear) trainLiblinear(problemData, args);
@@ -266,16 +267,16 @@ void Base::finalizeOnlineTraining(Args& args) {
     pruneWeights(args.weightsThreshold);
 }
 
-double Base::predictValue(Feature* features) {
+double Base::predictValue(Feature* features, size_t fSize) {
     if (classCount < 2 || !W) return static_cast<double>((1 - 2 * firstClass) * -10);
-    double val = W->dot(features);
+    double val = W->dot(features, fSize);
     if (firstClass == 0) val *= -1;
 
     return val;
 }
 
-double Base::predictProbability(Feature* features) {
-    double val = predictValue(features);
+double Base::predictProbability(Feature* features, size_t fSize) {
+    double val = predictValue(features, fSize);
     if (lossType == squaredHinge)
         //val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
         val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2));

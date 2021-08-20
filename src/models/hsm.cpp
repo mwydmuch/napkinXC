@@ -121,7 +121,7 @@ void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
 
 Prediction HSM::predictNextLabel(
     std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
-    TopKQueue<TreeNodeValue>& nQueue, Feature* features) {
+    TopKQueue<TreeNodeValue>& nQueue, Feature* features, size_t fSize) {
 
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
@@ -129,7 +129,7 @@ Prediction HSM::predictNextLabel(
 
         if (!nVal.node->children.empty()) {
             if (nVal.node->children.size() == 2) {
-                double value = bases[nVal.node->children[0]->index]->predictProbability(features);
+                double value = bases[nVal.node->children[0]->index]->predictProbability(features, fSize);
                 addToQueue(ifAddToQueue, calculateValue, nQueue, nVal.node->children[0], nVal.value * value);
                 addToQueue(ifAddToQueue, calculateValue, nQueue, nVal.node->children[1], nVal.value * (1.0 - value));
                 ++nodeEvaluationCount;
@@ -138,7 +138,7 @@ Prediction HSM::predictNextLabel(
                 std::vector<double> values;
                 values.reserve(nVal.node->children.size());
                 for (const auto& child : nVal.node->children) {
-                    values.emplace_back(std::exp(bases[child->index]->predictValue(features))); // Softmax normalization
+                    values.emplace_back(std::exp(bases[child->index]->predictValue(features, fSize))); // Softmax normalization
                     sum += values.back();
                 }
 
@@ -160,19 +160,19 @@ double HSM::predictForLabel(Label label, Feature* features, Args& args) {
     while (n->parent) {
         if (n->parent->children.size() == 2) {
             if (n == n->parent->children[0])
-                value *= bases[n->children[0]->index]->predictProbability(features);
+                value *= bases[n->children[0]->index]->predictProbability(features, 0);
             else
-                value *= 1.0 - bases[n->children[0]->index]->predictProbability(features);
+                value *= 1.0 - bases[n->children[0]->index]->predictProbability(features, 0);
             ++nodeEvaluationCount;
         } else {
             double sum = 0;
             double tmpValue = 0;
             for (const auto& child : n->parent->children) {
                 if (child == n) {
-                    tmpValue = std::exp(bases[child->index]->predictValue(features)); // Softmax normalization
+                    tmpValue = std::exp(bases[child->index]->predictValue(features, 0)); // Softmax normalization
                     sum += tmpValue;
                 } else
-                    sum += std::exp(bases[child->index]->predictValue(features));
+                    sum += std::exp(bases[child->index]->predictValue(features, 0));
             }
             value *= tmpValue / sum;
             nodeEvaluationCount += n->parent->children.size();

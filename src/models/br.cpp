@@ -112,8 +112,8 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     out.close();
 }
 
-void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
-    prediction = predictForAllLabels(features, args);
+void BR::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) {
+    prediction = predictForAllLabels(features, fSize, args);
 
     if(!labelsWeights.empty())
         for(auto &p : prediction) p.value *= labelsWeights[p.label];
@@ -137,16 +137,16 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& a
     prediction.shrink_to_fit();
 }
 
-std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {
+std::vector<Prediction> BR::predictForAllLabels(Feature* features, size_t fSize, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
-    for (int i = 0; i < bases.size(); ++i) prediction.emplace_back(i, bases[i]->predictProbability(features));
+    for (int i = 0; i < bases.size(); ++i) prediction.emplace_back(i, bases[i]->predictProbability(features, fSize));
 
     return prediction;
 }
 
 double BR::predictForLabel(Label label, Feature* features, Args& args) {
-    return bases[label]->predictProbability(features);
+    return bases[label]->predictProbability(features, 0);
 }
 
 void BR::load(Args& args, std::string infile) {

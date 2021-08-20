@@ -42,7 +42,8 @@ enum ModelType {
     svbopMips, // MIPS extension model
     svbopThreshold,
     svbopFagin,
-    svbopInvertedIndex
+    svbopInvertedIndex,
+    pltplus
 };
 
 enum TreeType {
@@ -117,6 +118,7 @@ public:
     bool saveGrads;
     bool resume;
     RepresentationType loadAs;
+    bool forceLoadAs;
 
     // Input/output options
     std::string input;
@@ -182,6 +184,7 @@ public:
     std::string labelsWeights;
     TreeSearchType treeSearchType;
     int beamSearchWidth;
+    bool beamUnpack;
     bool ensMissingScores;
 
     // Mips options

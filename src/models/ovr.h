@@ -35,5 +35,5 @@ protected:
                           std::vector<Feature*>& binFeatures,
                           std::vector<double>& binWeights,
                           SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args) override;
-    std::vector<Prediction> predictForAllLabels(Feature* features, Args& args) override;
+    std::vector<Prediction> predictForAllLabels(Feature* features, size_t fSize, Args& args) override;
 };

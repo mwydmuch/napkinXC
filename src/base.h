@@ -75,8 +75,8 @@ public:
     void setupOnlineTraining(Args& args, int n = 0, bool startWithDenseW = false);
     void finalizeOnlineTraining(Args& args);
 
-    double predictValue(Feature* features);
-    double predictProbability(Feature* features);
+    double predictValue(Feature* features, size_t s = 0);
+    double predictProbability(Feature* features, size_t s = 0);
 
     inline AbstractVector<Weight>* getW() { return W; };
     inline AbstractVector<Weight>* getG() { return G; };

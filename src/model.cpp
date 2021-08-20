@@ -33,14 +33,10 @@
 
 #include "br.h"
 #include "hsm.h"
-#include "online_plt.h"
 #include "ovr.h"
 #include "plt.h"
-#include "svbop_full.h"
-#include "svbop_inverted_index.h"
-#include "svbop_hf.h"
+#include "plt_plus.h"
 #include "version.h"
-#include "extreme_text.h"
 
 // Mips extension models
 #ifdef MIPS_EXT
@@ -63,13 +59,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case br: model = std::static_pointer_cast<Model>(std::make_shared<BR>()); break;
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<HSM>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>()); break;
-        case svbopFull: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPFull>()); break;
-        case svbopInvertedIndex: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPInvertedIndex>()); break;
-        case svbopFagin: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPFagin>()); break;
-        case svbopThreshold: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPThreshold>()); break;
-        case svbopHf: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPHF>()); break;
-        case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
-        case extremeText: model = std::static_pointer_cast<Model>(std::make_shared<ExtremeText>()); break;
+        case pltplus: model = std::static_pointer_cast<Model>(std::make_shared<PLTPlus>()); break;
 #ifdef MIPS_EXT
         // Mips extension models
         case brMips: model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>()); break;
@@ -93,7 +83,7 @@ void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vect
     const int batchSize = stopRow - startRow;
     for (int r = startRow; r < stopRow; ++r) {
         int i = r - startRow;
-        model->predict(predictions[r], features[r], args);
+        model->predict(predictions[r], features[r], features.size(r), args);
         if (!threadId) printProgress(i, batchSize);
     }
 }
@@ -146,7 +136,7 @@ double Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Arg
         // Predict with current thresholds
         std::vector<Prediction> prediction;
         args.threshold = a / b;
-        predict(prediction, features[r], args);
+        predict(prediction, features[r], features.size(r), args);
 
         // Update a and b counters
         for (const auto &p : prediction) {
@@ -198,7 +188,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, 
 
         // Predict with current thresholds
         std::vector<Prediction> prediction;
-        model->predict(prediction, features[r], args);
+        model->predict(prediction, features[r], features.size(r), args);
 
         // Update a and b counters
         for (const auto& p : prediction) {

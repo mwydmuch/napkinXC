@@ -38,8 +38,8 @@ public:
     void load(Args& args, std::string infile) override;
 
 protected:
-    Matrix<XTWeight> inputW;  // Input vectors (word vectors)
-    Matrix<XTWeight> outputW; // Tree node vectors
+    RMatrix<XTWeight> inputW;  // Input vectors (word vectors)
+    RMatrix<XTWeight> outputW; // Tree node vectors
     int dims;
 
     double update(double lr, Feature* features, Label* labels, int rSize, Args& args);

@@ -50,7 +50,7 @@ protected:
     void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const int rLabel);
     Prediction predictNextLabel(
         std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
-        TopKQueue<TreeNodeValue>& nQueue, Feature* features) override;
+        TopKQueue<TreeNodeValue>& nQueue, Feature* features, size_t fSize) override;
 
     int pathLength;   // Length of the path
 };

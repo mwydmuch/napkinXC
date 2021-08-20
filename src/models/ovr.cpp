@@ -57,13 +57,13 @@ void OVR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
     }
 }
 
-std::vector<Prediction> OVR::predictForAllLabels(Feature* features, Args& args) {
+std::vector<Prediction> OVR::predictForAllLabels(Feature* features, size_t fSize, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
     double sum = 0;
 
     for (int i = 0; i < bases.size(); ++i) {
-        double value = exp(bases[i]->predictValue(features)); // Softmax normalization
+        double value = exp(bases[i]->predictValue(features, fSize)); // Softmax normalization
         sum += value;
         prediction.emplace_back(i, value);
     }
@@ -75,9 +75,9 @@ std::vector<Prediction> OVR::predictForAllLabels(Feature* features, Args& args) 
 double OVR::predictForLabel(Label label, Feature* features, Args& args) {
     double sum = 0;
     for (int i = 0; i < bases.size(); ++i) {
-        double value = exp(bases[i]->predictValue(features)); // Softmax normalization
+        double value = exp(bases[i]->predictValue(features, 0)); // Softmax normalization
         sum += value;
     }
 
-    return exp(bases[label]->predictValue(features)) / sum;
+    return exp(bases[label]->predictValue(features, 0)) / sum;
 }

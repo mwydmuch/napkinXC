@@ -31,7 +31,7 @@ public:
     BR();
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
@@ -45,6 +45,6 @@ protected:
                                   std::vector<Feature*>& binFeatures,
                                   std::vector<double>& binWeights,
                                   SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args);
-    virtual std::vector<Prediction> predictForAllLabels(Feature* features, Args& args);
+    virtual std::vector<Prediction> predictForAllLabels(Feature* features, size_t fSize, Args& args);
     static size_t calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
 };

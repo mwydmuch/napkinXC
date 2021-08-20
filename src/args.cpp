@@ -195,6 +195,9 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 else if (args.at(ai + 1) == "sparse")
                     loadAs = sparse;
             }
+            else if (args[ai] == "--forceLoadAs")
+                forceLoadAs = std::stoi(args.at(ai + 1)) != 0;
+
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
                 input = std::string(args.at(ai + 1));
@@ -232,6 +235,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     modelType = extremeText;
                 else if (args.at(ai + 1) == "mach")
                     modelType = mach;
+                else if (args.at(ai + 1) == "pltplus")
+                    modelType = pltplus;
 // Mips extension models
 #ifdef MIPS_EXT
                 else if (args.at(ai + 1) == "brMips")
@@ -451,6 +456,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     throw std::invalid_argument("Unknown tree search type: " + args.at(ai + 1));
             } else if (args[ai] == "--beamSearchWidth")
                 beamSearchWidth = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--beamUnpack")
+                beamUnpack = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--batchSizes")
                 batchSizes = args.at(ai + 1);
             else if (args[ai] == "--batches")
@@ -464,6 +471,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 autoCLin = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--autoCLog")
                 autoCLog = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--dummy") {}
             else
                 throw std::invalid_argument("Unknown argument: " + args[ai]);
 

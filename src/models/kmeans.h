@@ -28,7 +28,7 @@
 #include "types.h"
 
 // K-Means clustering with balanced option
-typedef IntFeature Assignation;
+typedef IVPair<int, int> Assignation;
 
 struct Similarities {
     int index;

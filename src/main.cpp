@@ -74,6 +74,46 @@ void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::of
 }
 
 void train(Args& args) {
+
+//    int vec1Size = 40;
+//    Vector<Weight> vec1(vec1Size);
+//    for (int i = 0; i < vec1Size; ++i)
+//        vec1.insertD(i, static_cast<double>(std::rand() % 1000) / 1000 * 10);
+
+//    int maxDist = 10;
+//    int vec1Size = 30;
+//    Vector<Weight> vec1(vec1Size * maxDist);
+//    int j = 0;
+//    for (int i = 0; i < vec1Size; ++i){
+//        j += 1 + std::rand() % maxDist;
+//        vec1.insertD(j, static_cast<double>(std::rand() % 1000) / 1000 * 10);
+//    }
+//
+//    int vec2Size = 20;
+//    Feature* vec2 = new Feature [vec2Size + 1];
+//    j = 0;
+//    for (int i = 0; i < vec2Size; ++i){
+//        j += 1 + std::rand() % maxDist;
+//        vec2[i].index = j;
+//        vec2[i].value = static_cast<double>(std::rand() % 1000) / 100;
+//    }
+//    vec2[vec2Size].index = -1;
+//
+//    //std::cerr << vec1 << "\n";
+//    //std::cerr << vec2 << "\n";
+//    std::cerr << vec1 << "\n";
+//    std::cerr << vec1.dot(vec2) << "\n";
+//
+//    MapVector<Weight> vec3(vec1);
+//    std::cerr << vec3 << "\n";
+//    std::cerr << vec3.dot(vec2) << "\n";
+//
+//    SparseVector<Weight> vec4(vec1);
+//    std::cerr << vec4.isSorted() << " " << vec4 << "\n";
+//    std::cerr << vec4.dot(vec2) << "\n";
+//
+//    exit(0);
+
     SRMatrix<Label> labels;
     SRMatrix<Feature> features;
 
@@ -193,40 +233,24 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    Log(COUT) << std::setprecision(5);
+    SRMatrix<Label> labels;
+    SRMatrix<Feature> features;
+    readData(labels, features, args);
 
-    // Predict data from cin and output to cout
-    if (args.input == "-") {
-        for (std::string line; std::getline(std::cin, line); ) {
-            // TODO
-        }
+    loadVecs(model, args);
+    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+
+    // Output predictions
+    if(!args.prediction.empty()){
+        std::ofstream out(args.prediction);
+        outputPrediction(predictions, out);
+        out.close();
     }
 
-    // Read data from file and output prediction to cout
-    else {
-        SRMatrix<Label> labels;
-        SRMatrix<Feature> features;
-        readData(labels, features, args);
-
-        loadVecs(model, args);
-
-        if(args.threads > 1) {
-            std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
-
-            for (const auto &p : predictions) {
-                for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
-                Log(COUT) << "\n";
-            }
-        } else { // For 1 thread predict and immediately output
-            for(int r = 0; r < features.rows(); ++r){
-                printProgress(r, features.rows());
-                std::vector<Prediction> prediction;
-                model->predict(prediction, features[r], args);
-
-                for (const auto &l : prediction) Log(COUT) << l.label << ":" << l.value << " ";
-                Log(COUT) << "\n";
-            }
-        }
+    Log(COUT) << std::setprecision(5);
+    for (const auto &p : predictions) {
+        for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
+        Log(COUT) << "\n";
     }
 }
 
@@ -305,7 +329,7 @@ void testPredictionTime(Args& args) {
             double startTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
             for (const auto& r : batch) {
                 std::vector<Prediction> prediction;
-                model->predict(prediction, r, args);
+                model->predict(prediction, r, 0, args);
             }
 
             // Accumulate time measurements

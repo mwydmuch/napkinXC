@@ -43,7 +43,7 @@ public:
     ~Ensemble() override;
 
     void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
 
@@ -94,12 +94,12 @@ void Ensemble<T>::accumulatePrediction(std::unordered_map<int, EnsemblePredictio
     }
 }
 
-template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) {
 
     std::unordered_map<int, EnsemblePrediction> ensemblePredictions;
     for (size_t i = 0; i < members.size(); ++i) {
         prediction.clear();
-        members[i]->predict(prediction, features, args);
+        members[i]->predict(prediction, features, fSize, args);
         accumulatePrediction(ensemblePredictions, prediction, i);
     }
 

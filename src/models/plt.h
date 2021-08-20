@@ -43,7 +43,7 @@ class PLT : virtual public Model {
 public:
     PLT();
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, Args& args) override;
+    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
     double predictForLabel(Label label, Feature* features, Args& args) override;
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
     std::vector<std::vector<Prediction>> predictWithBeamSearch(SRMatrix<Feature>& features, Args& args);
@@ -94,10 +94,10 @@ protected:
 
     // Helper methods for prediction
     virtual Prediction predictNextLabel(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
-                                        TopKQueue<TreeNodeValue>& nQueue, Feature* features);
+                                        TopKQueue<TreeNodeValue>& nQueue, Feature* features, size_t fSize);
 
-    virtual inline double predictForNode(TreeNode* node, Feature* features){
-        return bases[node->index]->predictProbability(features);
+    virtual inline double predictForNode(TreeNode* node, Feature* features, size_t fSize){
+        return bases[node->index]->predictProbability(features, fSize);
     }
 
     inline void addToQueue(std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,

@@ -155,11 +155,11 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
             if(!nodePredictions[nIdx].empty()){
                 auto base = bases[nIdx];
                 auto type = base->getType();
-                if(type == sparse) base->to(dense);
+                //if() base->to(dense);
 
                 for(auto &e : nodePredictions[nIdx]){
                     int rIdx = e.label;
-                    double prob = bases[nIdx]->predictProbability(features[rIdx]) * e.value;
+                    double prob = bases[nIdx]->predictProbability(features[rIdx], features.size(rIdx)) * e.value;
                     double value = prob;
 
                     // Reweight score
@@ -171,7 +171,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
 
-                if(type != base->getType()) base->to(type);
+                //if(type != base->getType()) base->to(type);
             }
 
             for(auto &c : n->children)
@@ -219,7 +219,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
     return prediction;
 }
 
-void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void PLT::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) {
     int topK = args.topK;
     double threshold = args.threshold;
 
@@ -251,28 +251,28 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
         };
 
     // Predict for root
-    double rootProb = predictForNode(tree->root, features);
+    double rootProb = predictForNode(tree->root, features, fSize);
     addToQueue(ifAddToQueue, calculateValue, nQueue, tree->root, rootProb);
     ++nodeEvaluationCount;
     ++dataPointCount;
 
-    Prediction p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features);
+    Prediction p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features, fSize);
     while ((prediction.size() < topK || topK == 0) && p.label != -1) {
         prediction.push_back(p);
-        p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features);
+        p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features, fSize);
     }
 }
 
 Prediction PLT::predictNextLabel(
     std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
-    TopKQueue<TreeNodeValue>& nQueue, Feature* features) {
+    TopKQueue<TreeNodeValue>& nQueue, Feature* features, size_t fSize) {
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
 
         if (!nVal.node->children.empty()) {
             for (const auto& child : nVal.node->children)
-                addToQueue(ifAddToQueue, calculateValue, nQueue, child, nVal.prob * predictForNode(child, features));
+                addToQueue(ifAddToQueue, calculateValue, nQueue, child, nVal.prob * predictForNode(child, features, fSize));
             nodeEvaluationCount += nVal.node->children.size();
         }
         if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
@@ -363,10 +363,10 @@ double PLT::predictForLabel(Label label, Feature* features, Args& args) {
     auto fn = tree->leaves.find(label);
     if(fn == tree->leaves.end()) return 0;
     TreeNode* n = fn->second;
-    double value = bases[n->index]->predictProbability(features);
+    double value = bases[n->index]->predictProbability(features, 0);
     while (n->parent) {
         n = n->parent;
-        value *= predictForNode(n, features);
+        value *= predictForNode(n, features, 0);
         ++nodeEvaluationCount;
     }
 

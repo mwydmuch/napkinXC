@@ -48,25 +48,13 @@ enum TreeType {
 
 enum OptimizerType { liblinear, sgd, adagrad };
 
-enum SetUtilityType {
-    uP,
-    uR,
-    uF1,
-    uFBeta,
-    uExp,
-    uLog,
-    uDeltaGamma,
-    uAlpha,
-    uAlphaBeta
-};
-
 enum LossType {
     logistic,
     squaredHinge,
     unLogistic,
     pwLogistic,
     asymteric,
-    };
+};
 
 enum RepresentationType{
     dense,

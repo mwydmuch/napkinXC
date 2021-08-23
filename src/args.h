@@ -48,7 +48,6 @@ public:
     bool saveGrads;
     bool resume;
     RepresentationType loadAs;
-    bool forceLoadAs;
 
     // Input/output options
     std::string input;
@@ -75,6 +74,7 @@ public:
     bool pickOneLabelWeighting;
     bool autoCLin;
     bool autoCLog;
+    bool reportLoss;
 
     // For online training
     Real eta;
@@ -117,25 +117,8 @@ public:
     bool beamUnpack;
     bool ensMissingScores;
 
-    // Mips options
-    bool mipsDense;
-    int hnswM;
-    int hnswEfConstruction;
-    int hnswEfSearch;
-
-    // Set utility options
-    Real svbopMipsK;
-    int svbopInvIndexK;
-
-    SetUtilityType setUtilityType;
-    Real alpha;
-    Real beta;
-    Real delta;
-    Real gamma;
-
     // Measures for test command
     std::string measures;
-    int measuresPrecision;
 
     // Args for OFO command
     OFOType ofoType;

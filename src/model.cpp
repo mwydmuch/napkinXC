@@ -35,6 +35,7 @@
 #include "hsm.h"
 #include "ovr.h"
 #include "plt.h"
+#include "online_plt.h"
 #include "extreme_text.h"
 #include "version.h"
 
@@ -55,6 +56,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<HSM>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>()); break;
         case extremeText: model = std::static_pointer_cast<Model>(std::make_shared<ExtremeText>()); break;
+        case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
         default: throw std::invalid_argument("Unknown model type");
         }
     }
@@ -305,6 +307,20 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
             base->save(out, args.saveGrads);
             delete base;
         }
+    }
+
+    if(args.reportLoss){
+        Real meanLoss = 0;
+        Real weightLoss = 0;
+        Real weightsSum = 0;
+        for(const auto &pd : problemsData){
+            meanLoss += pd.loss;
+            weightLoss += pd.loss * pd.binLabels.size();
+            weightsSum += pd.binLabels.size();
+        }
+        meanLoss /= problemsData.size();
+        weightLoss /= weightsSum;
+        Log(CERR) << "Train mean node loss: " << meanLoss << ", weighted loss: " << weightLoss << "...\n";
     }
 }
 

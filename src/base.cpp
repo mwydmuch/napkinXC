@@ -65,7 +65,7 @@ void Base::unsafeUpdate(Real label, Feature* features, Args& args) {
     if (label == firstClass) ++firstClassCount;
 
     Real pred = W->dot(features);
-    Real grad = gradFunc(label, pred, 0); // Online version doesn't support weights
+    Real grad = gradFunc(label, pred, 0); // Online version doesn't support weights  right now
 
     if (args.optimizerType == sgd)
         updateSGD(*W, *G, features, grad, t, args);
@@ -132,17 +132,12 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
 }
 
 void Base::trainOnline(ProblemData& problemData, Args& args) {
-    delete W;
-    delete G;
     classCount = 2;
     firstClass = 1;
     t = 0;
 
     Vector* newW = new Vector(problemData.n);
     Vector* newG = nullptr;
-
-    // Set loss function
-    setLoss(args.lossType);
 
     // Set update function
     void (*updateFunc)(Vector&, Vector&, Feature*, Real, int, Args&);
@@ -157,7 +152,6 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
         throw std::invalid_argument("Unknown online update function type");
 
     const int examples = problemData.binFeatures.size();
-    Real loss = 0;
     for (int e = 0; e < args.epochs; ++e)
         for (int r = 0; r < examples; ++r) {
             Real label = problemData.binLabels[r];
@@ -170,14 +164,8 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 
             Real pred = newW->dot(features);
             Real grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
-            //if (!std::isinf(grad) && !std::isnan(grad))
-            updateFunc(*newW, *newG, features, grad, t, args);
-
-            // Report loss
-//            loss += lossFunc(label, pred, problemData.invPs);
-//            int iter = e * examples + r;
-//            if(iter % 1000 == 999)
-//                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";
+            if (!std::isinf(grad) && !std::isnan(grad))
+                updateFunc(*newW, *newG, features, grad, t, args);
         }
 
     W = newW;
@@ -185,6 +173,13 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 }
 
 void Base::train(ProblemData& problemData, Args& args) {
+    // Delete previous weights
+    delete W;
+    delete G;
+
+    // Set loss function
+    setLoss(args.lossType);
+
     if (problemData.binLabels.empty()) {
         firstClass = 0;
         classCount = 0;
@@ -210,21 +205,31 @@ void Base::train(ProblemData& problemData, Args& args) {
         problemData.labelsWeights = new Real[2];
 
         int negativeLabels = static_cast<int>(problemData.binLabels.size()) - positiveLabels;
-//        if (negativeLabels > positiveLabels) {
-//            problemData.labelsWeights[0] = 1.0;
-//            problemData.labelsWeights[1] = 1.0 + log(static_cast<Real>(negativeLabels) / positiveLabels);
-//        } else {
-//            problemData.labelsWeights[0] = 1.0 + log(static_cast<Real>(positiveLabels) / negativeLabels);
-//            problemData.labelsWeights[1] = 1.0;
-//        }
-        problemData.labelsWeights[0] = positiveLabels / negativeLabels;
-        problemData.labelsWeights[1] = negativeLabels / positiveLabels;
+        if (negativeLabels > positiveLabels) {
+            problemData.labelsWeights[0] = 1.0;
+            problemData.labelsWeights[1] = 1.0 + log(static_cast<Real>(negativeLabels) / positiveLabels);
+        } else {
+            problemData.labelsWeights[0] = 1.0 + log(static_cast<Real>(positiveLabels) / negativeLabels);
+            problemData.labelsWeights[1] = 1.0;
+        }
     }
 
     if (args.optimizerType == liblinear) trainLiblinear(problemData, args);
     else trainOnline(problemData, args);
 
-    // TODO?: Calculate final training loss
+    // Calculate final train loss
+    if(args.reportLoss) {
+        Real meanLoss = 0;
+        const int examples = problemData.binFeatures.size();
+        for (int r = 0; r < examples; ++r) {
+            Real pred =  W->dot(problemData.binFeatures[r]);
+            if (firstClass == 0) pred *= -1;
+            const Real loss = lossFunc(problemData.binLabels[r], pred, problemData.invPs);
+            if (!std::isinf(loss) && !std::isnan(loss)) meanLoss += loss;
+        }
+        meanLoss /= examples;
+        problemData.loss = meanLoss;
+    }
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);

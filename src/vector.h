@@ -223,7 +223,7 @@ public:
 
     virtual unsigned long long mem() const = 0;
 
-    // Basic math operations, general, slow implementation using forEach
+    // Basic math operations, general, slower implementations using forEach
     virtual Real dot(AbstractVector& vec) const;
     virtual Real dot(SparseVector& vec) const;
     virtual Real dot(Feature* vec) const;
@@ -245,67 +245,9 @@ public:
     size_t sparseMem() const { return n0 * (sizeof(int) + sizeof(Real)); }
     size_t denseMem() const { return s * sizeof(Real); }
 
-    virtual void save(std::ostream& out) {
-        checkD();
-        saveVar(out, s);
-        saveVar(out, n0);
-        bool sparse = sparseMem() < denseMem() || s == 0; // Select more optimal coding
-        saveVar(out, sparse);
-
-        if(sparse) forEachIV([&](const int& i, Real& v) {
-            if(v != 0) {
-                saveVar(out, i);
-                saveVar(out, v);
-            }
-        });
-        else {
-            for (int i = 0; i < s; ++i) {
-                Real v = at(i);
-                saveVar(out, v);
-            }
-        }
-    };
-
-    virtual void load(std::istream& in) {
-        // Load header
-        loadVar(in, s);
-        size_t n0ToLoad;
-        loadVar(in, n0ToLoad);
-        bool sparse;
-        loadVar(in, sparse);
-
-        // Allocate new vec
-        initD(); // Re-init data container
-        reserve(n0ToLoad);
-
-        // Load and insert data
-        int index;
-        Real value;
-        if(sparse) {
-            for (int i = 0; i < n0ToLoad; ++i) {
-                loadVar(in, index);
-                loadVar(in, value);
-                insertD(index, value);
-            }
-        } else {
-            for (int i = 0; i < s; ++i) {
-                loadVar(in, value);
-                if(value != 0) insertD(i, value);
-            }
-        }
-
-        assert(n0 == n0ToLoad);
-    };
-
-    static void skipLoad(std::istream& in){
-        size_t s, n0;
-        bool sparse;
-        loadVar(in, s);
-        loadVar(in, n0);
-        loadVar(in, sparse);
-        if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(Real)), std::ios::cur);
-        else in.seekg(s * sizeof(Real), std::ios::cur);
-    };
+    virtual void save(std::ostream& out);
+    virtual void load(std::istream& in);
+    static void skipLoad(std::istream& in);
 
     virtual RepresentationType type() const = 0;
 
@@ -337,7 +279,7 @@ public:
         d = new IRVPair[maxN0 + 1];
         sorted = true;
     }
-    explicit SparseVector(AbstractVector& vec) {
+    explicit SparseVector(const AbstractVector& vec) {
         maxN0 = vec.nonZero() + 1;
         d = new IRVPair[maxN0 + 1];
         n0 = 0;
@@ -345,37 +287,25 @@ public:
         sort();
     }
 
-    SparseVector(const SparseVector& vec): AbstractVector(vec) {
+    SparseVector(const SparseVector& vec) noexcept {
         if (&vec != this) {
             s = vec.s;
             n0 = vec.n0;
-            maxN0 = vec.n0;
+            maxN0 = vec.maxN0;
             sorted = vec.sorted;
             d = new IRVPair[n0 + 1];
+            std::copy(vec.begin(), vec.end(), d);
             d[n0].index = -1;
         }
     }
 
-//    SparseVector& operator=(const SparseVector& vec){
-//        if (&vec != this) {
-//            s = vec.s;
-//            n0 = vec.n0;
-//            maxN0 = vec.n0;
-//            sorted = vec.sorted;
-//            d = new IRVPair[n0 + 1];
-//            d[n0].index = -1;
-//            //std::copy(vec.begin(), vec.end(), d);
-//        }
-//        return *this;
-//    }
-
-    SparseVector& operator=(SparseVector&& vec) noexcept {
+    SparseVector(SparseVector&& vec) noexcept {
         s = vec.s;
         n0 = vec.n0;
-        maxN0 = vec.n0;
+        maxN0 = vec.maxN0;
+        sorted = vec.sorted;
         d = vec.d;
         vec.d = nullptr;
-        return *this;
     }
 
     explicit SparseVector(const std::vector<IRVPair>& vec, bool sorted = true) {
@@ -386,7 +316,7 @@ public:
         std::copy(vec.begin(), vec.end(), d);
         this->sorted = sorted;
         sort();
-        s = d[n0 - 1].index;
+        s = d[n0 - 1].index + 1;
     }
 
     ~SparseVector() override{
@@ -430,10 +360,10 @@ public:
     }
 
     Real dot(SparseVector& vec) const override {
-        if(sorted) {
+        if(sorted && vec.sorted) {
             Real val = 0;
 
-            // Binary-search, assumes that vec is sorted
+            // Binary-search
             auto x = d;
             auto y = vec.data();
             auto xEnd = d + n0;
@@ -452,7 +382,7 @@ public:
                 }
             }
 
-            // Marching pointers implementation, assumes that vec is sorted
+            // Marching pointers
             /*
             auto x = d;
             for (auto y = vec.data(); y->index != -1; ++y) {
@@ -479,7 +409,7 @@ public:
     inline const Real& operator[](int index) const override {
         auto p = find(index);
         if(p->index == index) return p->value;
-        else return 0;
+        else return d[n0].value;
     }
 
     inline const IRVPair* find(int index) const {
@@ -487,7 +417,7 @@ public:
         if(sorted) // Binary search
             p = std::lower_bound(d, d + n0, IRVPair(index, 0), IRVPairIndexComp());
         else // Linear search
-        while (p->index != -1 && p->index != index) ++p;
+            while (p->index != -1 && p->index != index) ++p;
         return p;
     }
 
@@ -563,7 +493,7 @@ public:
         d = new UnorderedMap<int, Real>();
         d->reserve(maxN0);
     }
-    explicit MapVector(const AbstractVector& vec): AbstractVector(vec) {
+    explicit MapVector(const AbstractVector& vec) {
         d = new UnorderedMap<int, Real>();
         vec.forEachIV([&](const int& i, Real& v) { insertD(i, v); });
     }
@@ -598,19 +528,19 @@ public:
     AbstractVector* copy() override {
         auto newVec = new MapVector(*static_cast<AbstractVector*>(this));
         return static_cast<AbstractVector*>(newVec);
-    };
+    }
 
     void reserve(size_t maxN0) override {
         d->reserve(maxN0);
-    };
+    }
 
     inline Real at(int index) const override {
         auto v = d->find(index);
         if (v != d->end()) return v->second;
         else return 0;
-    };
+    }
     inline const Real& operator[](int index) const override { return (*d)[index]; }
-    inline Real& operator[](int index) override { return (*d)[index]; };
+    inline Real& operator[](int index) override { return (*d)[index]; }
 
     void forEachV(const std::function<void(Real&)>& func) override {
         for (auto& c : *d) func(c.second);
@@ -633,6 +563,7 @@ public:
         if(d != nullptr) mem += d->mask() * (2 * sizeof(int) + sizeof(Real));
         return mem;
     };
+
     static unsigned long long estimateMem(size_t s, size_t n0){
         unsigned long long mem = sizeof(MapVector);
         size_t mapSize = sizeof(uint64_t);
@@ -659,7 +590,7 @@ public:
     Vector(): Vector(0) {};
     explicit Vector(size_t s): AbstractVector() {
         this->s = s;
-        d = new Real[s];
+        d = new Real[s]();
     }
     explicit Vector(const AbstractVector& vec): AbstractVector(vec) {
         s = vec.size();
@@ -684,15 +615,9 @@ public:
         }
     }
 
-    Real dot(Vector& vec) const {
-        size_t minS = std::min(s, vec.size());
-        Real val = 0;
-        for(size_t i = 0; i < minS; ++i) val += d[i] * vec[i];
-        return val;
-    }
-
-    Real dot(Feature* vec) const override;
+    Real dot(Vector& vec) const;
     Real dot(SparseVector& vec) const override;
+    Real dot(Feature* vec) const override;
 
     void insertD(int i, Real v) override {
         if(d[i] == 0 && v != 0) ++n0;

@@ -151,10 +151,11 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
             levelQueue->pop();
             int nIdx = n->index;
 
+
             if(!nodePredictions[nIdx].empty()){
                 auto base = bases[nIdx];
                 auto type = base->getType();
-                //if() base->to(dense);
+                if(type == sparse) base->to(dense);
 
                 for(auto &e : nodePredictions[nIdx]){
                     int rIdx = e.label;

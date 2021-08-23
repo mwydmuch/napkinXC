@@ -45,6 +45,7 @@ struct ProblemData {
     Real* labelsWeights;
     Real invPs; // inverse propensity
     int r; // number of all examples
+    Real loss;
 
     ProblemData(std::vector<Real>& binLabels, std::vector<Feature*>& binFeatures, int n, std::vector<Real>& instancesWeights):
                 binLabels(binLabels), binFeatures(binFeatures), n(n), instancesWeights(instancesWeights) {

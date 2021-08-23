@@ -73,6 +73,7 @@ Args::Args() {
     optimizerName = "liblinear";
     optimizerType = liblinear;
     weightsThreshold = 0.1;
+    reportLoss = false;
 
     // Ensemble options
     ensemble = 0;
@@ -118,26 +119,8 @@ Args::Args() {
     treeSearchType = exact;
     beamSearchWidth = 10;
 
-    // Mips options
-    mipsDense = false;
-    hnswM = 20;
-    hnswEfConstruction = 100;
-    hnswEfSearch = 100;
-
-    // Set utility options
-    svbopMipsK = 0.05;
-    svbopInvIndexK = 1;
-
-    setUtilityType = uP;
-    alpha = 0.0;
-    beta = 1.0;
-    delta = 2.2;
-    gamma = 1.2;
-
-
     // Measures for test command
     measures = "p@1,p@3,p@5";
-    measuresPrecision = 6;
 
     // Args for OFO command
     ofoType = micro;
@@ -195,8 +178,6 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 else if (args.at(ai + 1) == "sparse")
                     loadAs = sparse;
             }
-            else if (args[ai] == "--forceLoadAs")
-                forceLoadAs = std::stoi(args.at(ai + 1)) != 0;
 
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")
@@ -225,62 +206,9 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     modelType = extremeText;
                 else if (args.at(ai + 1) == "mach")
                     modelType = mach;
-// Mips extension models
-#ifdef MIPS_EXT
-                else if (args.at(ai + 1) == "brMips")
-                    modelType = brMips;
-                else if (args.at(ai + 1) == "svbopMips")
-                    modelType = svbopMips;
-#else
-                else if (args.at(ai + 1) == "brMips" || args.at(ai + 1) == "svbopMips")
-                    throw std::invalid_argument(args.at(ai + 1) + " model requires MIPS extension");
-#endif
                 else
                     throw std::invalid_argument("Unknown model type: " + args.at(ai + 1));
-            } else if (args[ai] == "--mipsDense")
-                mipsDense = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--hnswM")
-                hnswM = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--hnswEfConstruction")
-                hnswEfConstruction = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--hnswEfSearch")
-                hnswEfSearch = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--svbopMipsK")
-                svbopMipsK = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--svbopInvIndexK")
-                svbopInvIndexK = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--setUtility") {
-                setUtilityName = args.at(ai + 1);
-                if (args.at(ai + 1) == "uP")
-                    setUtilityType = uP;
-                else if (args.at(ai + 1) == "uR")
-                    setUtilityType = uP;
-                else if (args.at(ai + 1) == "uF1")
-                    setUtilityType = uF1;
-                else if (args.at(ai + 1) == "uFBeta")
-                    setUtilityType = uFBeta;
-                else if (args.at(ai + 1) == "uExp")
-                    setUtilityType = uExp;
-                else if (args.at(ai + 1) == "uLog")
-                    setUtilityType = uLog;
-                else if (args.at(ai + 1) == "uDeltaGamma")
-                    setUtilityType = uDeltaGamma;
-                else if (args.at(ai + 1) == "uAlpha")
-                    setUtilityType = uAlpha;
-                else if (args.at(ai + 1) == "uAlphaBeta")
-                    setUtilityType = uAlphaBeta;
-                else
-                    throw std::invalid_argument("Unknown set utility type: " + args.at(ai + 1));
-            } else if (args[ai] == "--alpha")
-                alpha = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--beta")
-                beta = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--delta")
-                delta = std::stof(args.at(ai + 1));
-            else if (args[ai] == "--gamma")
-                gamma = std::stof(args.at(ai + 1));
-
-            else if (args[ai] == "--bias")
+            } else if (args[ai] == "--bias")
                 bias = std::stof(args.at(ai + 1));
             else if (args[ai] == "--norm")
                 norm = std::stoi(args.at(ai + 1)) != 0;
@@ -453,12 +381,12 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));
-            else if (args[ai] == "--measuresPrecision")
-                measuresPrecision = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--autoCLin")
                 autoCLin = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--autoCLog")
                 autoCLog = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--reportLoss")
+                reportLoss = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--dummy") {}
             else
                 throw std::invalid_argument("Unknown argument: " + args[ai]);

@@ -65,6 +65,68 @@ void AbstractVector::unitNorm(){
     div(norm);
 }
 
+void AbstractVector::save(std::ostream& out) {
+    checkD();
+    saveVar(out, s);
+    saveVar(out, n0);
+    bool sparse = sparseMem() < denseMem() || s == 0; // Select more optimal coding
+    saveVar(out, sparse);
+
+    if(sparse) forEachIV([&](const int& i, Real& v) {
+        if(v != 0) {
+            saveVar(out, i);
+            saveVar(out, v);
+        }
+    });
+    else {
+        for (int i = 0; i < s; ++i) {
+            Real v = at(i);
+            saveVar(out, v);
+        }
+    }
+}
+
+void AbstractVector::load(std::istream& in) {
+    // Load header
+    loadVar(in, s);
+    size_t n0ToLoad;
+    loadVar(in, n0ToLoad);
+    bool sparse;
+    loadVar(in, sparse);
+
+    // Allocate new vec
+    initD(); // Re-init data container
+    reserve(n0ToLoad);
+
+    // Load and insert data
+    int index;
+    Real value;
+    if(sparse) {
+        for (int i = 0; i < n0ToLoad; ++i) {
+            loadVar(in, index);
+            loadVar(in, value);
+            insertD(index, value);
+        }
+    } else {
+        for (int i = 0; i < s; ++i) {
+            loadVar(in, value);
+            if(value != 0) insertD(i, value);
+        }
+    }
+
+    assert(n0 == n0ToLoad);
+}
+
+void AbstractVector::skipLoad(std::istream& in){
+    size_t s, n0;
+    bool sparse;
+    loadVar(in, s);
+    loadVar(in, n0);
+    loadVar(in, sparse);
+    if(sparse) in.seekg(n0 * (sizeof(int) + sizeof(Real)), std::ios::cur);
+    else in.seekg(s * sizeof(Real), std::ios::cur);
+}
+
 Real MapVector::dot(SparseVector& vec) const {
     Real val = 0;
     for(auto &f : vec) val += f.value * at(f.index);
@@ -74,6 +136,13 @@ Real MapVector::dot(SparseVector& vec) const {
 Real MapVector::dot(Feature* vec) const {
     Real val = 0;
     for(auto f = vec; f->index != -1; ++f) val += f->value * at(f->index);
+    return val;
+}
+
+Real Vector::dot(Vector& vec) const {
+    size_t minS = std::min(s, vec.s);
+    Real val = 0;
+    for(size_t i = 0; i < minS; ++i) val += d[i] * vec.d[i];
     return val;
 }
 

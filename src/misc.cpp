@@ -31,19 +31,18 @@
 #include "threads.h"
 
 // Data utils
-std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
+std::vector<Prediction> computeLabelsPriors(const SRMatrix& labels) {
     Log(CERR) << "Computing labels' prior probabilities ...\n";
 
     std::vector<Prediction> labelsProb;
 
     labelsProb.resize(labels.cols());
-    for (int i = 0; i < labelsProb.size(); ++i) labelsProb[i] = {i, 0};
+    for (int i = 0; i < labelsProb.size(); ++i) labelsProb[i].label = i;
 
     int rows = labels.rows();
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
-        int rLabels = labels.size(r);
-        for (int i = 0; i < rLabels; ++i) ++labelsProb[labels[r][i]].value;
+        for(const auto& l : labels[r]) ++labelsProb[l.index].value;
     }
 
     for (auto& p : labelsProb) p.value /= labels.rows();
@@ -53,7 +52,7 @@ std::vector<Prediction> computeLabelsPriors(const SRMatrix<Label>& labels) {
 
 void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labelsFeatures,
                                         std::vector<std::vector<int>>& labelsExamples,
-                                        const SRMatrix<Label>& labels, const SRMatrix<Feature>& features,
+                                        const SRMatrix& labels, const SRMatrix& features,
                                         bool norm, bool weightedFeatures, int threadId, int threads){
     int size = labelsExamples.size();
     for (int l = threadId; l < size; l += threads) {
@@ -61,9 +60,9 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labels
         UnorderedMap<int, Real> lFeatures;
 
         for (const auto& e : labelsExamples[l]){
-            auto f = features[e];
+            auto f = features[e].begin();
             if(f->index == 1) ++f; // Skip bias feature
-            if(weightedFeatures) addVector(f, 1.0 / features.size(e), lFeatures);
+            if(weightedFeatures) addVector(f, 1.0 / features[e].nonZero(), lFeatures);
             else addVector(f, 1.0, lFeatures);
         }
 
@@ -71,13 +70,13 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labels
             labelsFeatures[l].push_back({f.first, f.second});
 
         std::sort(labelsFeatures[l].begin(), labelsFeatures[l].end(), IRVPairIndexComp());
-        if(norm) unitNorm(labelsFeatures[l]);
+        if(norm) unitNorm(labelsFeatures[l].begin(), labelsFeatures[l].end());
         else divVector(labelsFeatures[l], labelsExamples[l].size());
     }
 }
 
-void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatrix<Label>& labels,
-                                 const SRMatrix<Feature>& features, int threads, bool norm, bool weightedFeatures) {
+void computeLabelsFeaturesMatrix(SRMatrix& labelsFeatures, const SRMatrix& labels,
+                                 const SRMatrix& features, int threads, bool norm, bool weightedFeatures) {
 
     assert(features.rows() == labels.rows());
     Log(CERR) << "Computing labels' features matrix in " << threads << " threads ...\n";
@@ -85,8 +84,7 @@ void computeLabelsFeaturesMatrix(SRMatrix<Feature>& labelsFeatures, const SRMatr
     // Labels matrix transposed dot features matrix
     std::vector<std::vector<int>> labelsExamples(labels.cols());
     for(int i = 0; i < labels.rows(); ++i)
-        for(int j = 0; j < labels.size(i); ++j)
-            labelsExamples[labels[i][j]].push_back(i);
+        for(auto &l : labels[i]) labelsExamples[l.index].push_back(i);
 
     std::vector<std::vector<Feature>> tmpLabelsFeatures(labels.cols());
     ThreadSet tSet;

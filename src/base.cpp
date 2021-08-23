@@ -267,16 +267,16 @@ void Base::finalizeOnlineTraining(Args& args) {
     pruneWeights(args.weightsThreshold);
 }
 
-Real Base::predictValue(Feature* features, size_t fSize) {
+Real Base::predictValue(SparseVector& features) {
     if (classCount < 2 || !W) return static_cast<Real>((1 - 2 * firstClass) * -10);
-    Real val = W->dot(features, fSize);
+    Real val = W->dot(features);
     if (firstClass == 0) val *= -1;
 
     return val;
 }
 
-Real Base::predictProbability(Feature* features, size_t fSize) {
-    Real val = predictValue(features, fSize);
+Real Base::predictProbability(SparseVector& features) {
+    Real val = predictValue(features);
     if (lossType == squaredHinge)
         //val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
         val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2));

@@ -43,7 +43,7 @@ void BR::unload() {
 }
 
 void BR::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<Real>& binWeights,
-                          SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
+                          SRMatrix& labels, SRMatrix& features, int rStart, int rStop, Args& args){
     int rows = labels.rows();
 
     binWeights.resize(rows, 1);
@@ -52,17 +52,13 @@ void BR::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vector
 
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
-
-        int rSize = labels.size(r);
-        auto rLabels = labels[r];
-
-        binFeatures[r] = features[r];
-        for (int i = 0; i < rSize; ++i)
-            if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart][r] = 1;
+        binFeatures[r] = features[r].data();
+        for (auto &l : labels[r])
+            if (l.index >= rStart && l.index < rStop) binLabels[l.index - rStart][r] = 1;
     }
 }
 
-void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void BR::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
     int lCols = labels.cols();
     int parts = calculateNumberOfParts(labels, features, args);
     int range = lCols / parts + 1;
@@ -112,8 +108,8 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     out.close();
 }
 
-void BR::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) {
-    prediction = predictForAllLabels(features, fSize, args);
+void BR::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
+    prediction = predictForAllLabels(features, args);
 
     if(!labelsWeights.empty())
         for(auto &p : prediction) p.value *= labelsWeights[p.label];
@@ -137,16 +133,17 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, size_t 
     prediction.shrink_to_fit();
 }
 
-std::vector<Prediction> BR::predictForAllLabels(Feature* features, size_t fSize, Args& args) {
+std::vector<Prediction> BR::predictForAllLabels(SparseVector& features, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
-    for (int i = 0; i < bases.size(); ++i) prediction.emplace_back(i, bases[i]->predictProbability(features, fSize));
+    for (int i = 0; i < bases.size(); ++i)
+        prediction.emplace_back(i, bases[i]->predictProbability(features));
 
     return prediction;
 }
 
-Real BR::predictForLabel(Label label, Feature* features, Args& args) {
-    return bases[label]->predictProbability(features, 0);
+Real BR::predictForLabel(Label label, SparseVector& features, Args& args) {
+    return bases[label]->predictProbability(features);
 }
 
 void BR::load(Args& args, std::string infile) {
@@ -162,7 +159,7 @@ void BR::printInfo() {
               << "\n  Mean # estimators per data point: " << bases.size() << "\n";
 }
 
-size_t BR::calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+size_t BR::calculateNumberOfParts(SRMatrix& labels, SRMatrix& features, Args& args){
     int rows = features.rows();
     int lCols = labels.cols();
     int lCells = labels.cells();

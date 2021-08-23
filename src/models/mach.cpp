@@ -35,7 +35,7 @@ int MACH::getFirstBiggerPrime(int number){
     return number;
 }
 
-void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void MACH::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
     int hashCount = args.machHashes;
     bucketCount = args.machBuckets;
 
@@ -76,25 +76,28 @@ void MACH::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& arg
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
-        int rSize = labels.size(r);
-        auto rLabels = labels.row(r);
-
         for (int i = 0; i < binLabels.size(); ++i) binLabels[i].push_back(0.0);
 
-        for (int i = 0; i < rSize; ++i) {
+        for (auto &l : labels[r]){
             for (int j = 0; j < hashes.size(); ++j)
-                binLabels[baseForLabel(rLabels[i], j)].back() = 1.0;
+                binLabels[baseForLabel(l.index, j)].back() = 1.0;
         }
     }
+
+
 
     // Train bases
     std::vector<ProblemData> binProblemData;
     std::vector<Real> binWeights(features.rows(), 1);
-    for(int i = 0; i < size; ++i) binProblemData.emplace_back(binLabels[i], features.allRows(), features.cols(), binWeights);
+    std::vector<Feature*> binFeatures(features.rows());
+    for(int i = 0; i < features.rows(); ++i)
+        binFeatures[i] = features[i].data();
+
+    for(int i = 0; i < size; ++i) binProblemData.emplace_back(binLabels[i], binFeatures, features.cols(), binWeights);
     trainBases(joinPath(output, "weights.bin"), binProblemData, args);
 }
 
-void MACH::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) {
+void MACH::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
     // Brute force prediction
     prediction.reserve(m);
     for (int i = 0; i < m; ++i){
@@ -124,7 +127,7 @@ void MACH::predict(std::vector<Prediction>& prediction, Feature* features, size_
 
 }
 
-Real MACH::predictForLabel(Label label, Feature* features, Args& args) {
+Real MACH::predictForLabel(Label label, SparseVector& features, Args& args) {
     Real prob = 1;
     for (int i = 0; i < hashes.size(); ++i)
         prob *= bases[baseForLabel(label, i)]->predictProbability(features);

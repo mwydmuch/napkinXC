@@ -8,8 +8,8 @@
 #include <unordered_set>
 
 #include "base.h"
+#include "basic_types.h"
 #include "model.h"
-#include "types.h"
 
 class UniversalHash {
 public:
@@ -27,9 +27,9 @@ public:
     MACH();
     ~MACH() override;
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
-    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
-    Real predictForLabel(Label label, Feature* features, Args& args) override;
+    void train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) override;
+    void predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) override;
+    Real predictForLabel(Label label, SparseVector& features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
     inline int baseForLabel(int label, int hash) {

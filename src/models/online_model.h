@@ -27,15 +27,14 @@
 
 class OnlineModel : virtual public Model {
 public:
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) final;
+    void train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) final;
 
     virtual void init(Args& args) = 0;
-    virtual void init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) = 0;
-    virtual void update(const int epoch, const int row, Label* labels, size_t labelsSize, Feature* features,
-                        size_t featuresSize, Args& args) = 0;
+    virtual void init(SRMatrix& labels, SRMatrix& features, Args& args) = 0;
+    virtual void update(const int epoch, const int row, SparseVector& labels, SparseVector& features, Args& args) = 0;
     virtual void save(Args& args, std::string output) = 0;
 
 private:
-    static void onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<Label>& labels,
-                                  SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow);
+    static void onlineTrainThread(int threadId, OnlineModel* model, SRMatrix& labels,
+                                  SRMatrix& features, Args& args, const int startRow, const int stopRow);
 };

@@ -32,10 +32,10 @@
 
 #include "args.h"
 #include "base.h"
+#include "basic_types.h"
+#include "kmeans.h"
 #include "misc.h"
 #include "save_load.h"
-#include "kmeans.h"
-#include "types.h"
 
 
 // Tree node
@@ -78,20 +78,20 @@ public:
 
     // Build tree structure of given type
     void buildTreeStructure(int labelCount, Args& args);
-    void buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+    void buildTreeStructure(SRMatrix& labels, SRMatrix& features, Args& args);
 
     // Hierarchical K-Means
-    void buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args);
+    void buildKmeansTree(SRMatrix& labelsFeatures, Args& args);
 
     // Huffman tree
-    void buildHuffmanTree(SRMatrix<Label>& labels, Args& args);
+    void buildHuffmanTree(SRMatrix& labels, Args& args);
 
     // Just random complete and balance tree
     void buildCompleteTree(int labelCount, bool randomizeOrder, Args& args);
     void buildBalancedTree(int labelCount, bool randomizeOrder, Args& args);
 
     // Simulate simple online tree building
-    void buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+    void buildOnlineTree(SRMatrix& labels, SRMatrix& features, Args& args);
 
     // Flatten tree
     void flattenTree(int levels);
@@ -136,6 +136,6 @@ public:
     int distanceBetweenNodes(TreeNode* n1, TreeNode* n2);
 
 private:
-    static TreeNodePartition buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args, int seed);
+    static TreeNodePartition buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix& labelsFeatures, Args& args, int seed);
 
 };

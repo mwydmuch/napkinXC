@@ -30,9 +30,9 @@ class BR : public Model {
 public:
     BR();
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
-    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
-    Real predictForLabel(Label label, Feature* features, Args& args) override;
+    void train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) override;
+    void predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) override;
+    Real predictForLabel(Label label, SparseVector& features, Args& args) override;
 
     void load(Args& args, std::string infile) override;
     void unload() override;
@@ -44,7 +44,7 @@ protected:
     virtual void assignDataPoints(std::vector<std::vector<Real>>& binLabels,
                                   std::vector<Feature*>& binFeatures,
                                   std::vector<Real>& binWeights,
-                                  SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args);
-    virtual std::vector<Prediction> predictForAllLabels(Feature* features, size_t fSize, Args& args);
-    static size_t calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+                                  SRMatrix& labels, SRMatrix& features, int rStart, int rStop, Args& args);
+    virtual std::vector<Prediction> predictForAllLabels(SparseVector& features, Args& args);
+    static size_t calculateNumberOfParts(SRMatrix& labels, SRMatrix& features, Args& args);
 };

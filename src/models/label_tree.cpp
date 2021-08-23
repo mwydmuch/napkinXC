@@ -68,7 +68,7 @@ void LabelTree::buildTreeStructure(int labelCount, Args& args) {
         throw std::invalid_argument("Unknown tree type");
 }
 
-void LabelTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+void LabelTree::buildTreeStructure(SRMatrix& labels, SRMatrix& features, Args& args) {
     clear();
 
     // Load tree structure from file
@@ -88,7 +88,7 @@ void LabelTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& f
     else if (args.treeType == huffman)
         buildHuffmanTree(labels, args);
     else if (args.treeType == hierarchicalKmeans) {
-        SRMatrix<Feature> labelsFeatures;
+        SRMatrix labelsFeatures;
         computeLabelsFeaturesMatrix(labelsFeatures, labels, features, args.threads, args.norm,
                                     args.kmeansWeightedFeatures);
         //labelsFeatures.dump(joinPath(args.output, "lf_mat.txt"));
@@ -107,13 +107,13 @@ void LabelTree::buildTreeStructure(SRMatrix<Label>& labels, SRMatrix<Feature>& f
     Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
-TreeNodePartition LabelTree::buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix<Feature>& labelsFeatures, Args& args,
+TreeNodePartition LabelTree::buildKmeansTreeThread(TreeNodePartition nPart, SRMatrix& labelsFeatures, Args& args,
                                               int seed) {
     kmeans(nPart.partition, labelsFeatures, args.arity, args.kmeansEps, args.kmeansBalanced, seed);
     return nPart;
 }
 
-void LabelTree::buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
+void LabelTree::buildKmeansTree(SRMatrix& labelsFeatures, Args& args) {
     Log(CERR) << "Hierarchical K-Means clustering in " << args.threads << " threads ...\n";
 
     root = createTreeNode();
@@ -169,7 +169,7 @@ void LabelTree::buildKmeansTree(SRMatrix<Feature>& labelsFeatures, Args& args) {
     }
 }
 
-void LabelTree::buildHuffmanTree(SRMatrix<Label>& labels, Args& args) {
+void LabelTree::buildHuffmanTree(SRMatrix& labels, Args& args) {
     Log(CERR) << "Building Huffman Tree ...\n";
 
     int k = labels.cols();
@@ -287,7 +287,7 @@ void LabelTree::buildCompleteTree(int labelCount, bool randomizeOrder, Args& arg
     }
 }
 
-void LabelTree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+void LabelTree::buildOnlineTree(SRMatrix& labels, SRMatrix& features, Args& args) {
     Log(CERR) << "Building online tree ...\n";
 
     int nextToExpand = 0;
@@ -297,7 +297,7 @@ void LabelTree::buildOnlineTree(SRMatrix<Label>& labels, SRMatrix<Feature>& feat
         printProgress(r, rows);
 
         auto rSize = labels.size(r);
-        auto rLabels = labels[r];
+        auto& rLabels = labels[r];
 
         // Check row
         for (int i = 0; i < rSize; ++i) {

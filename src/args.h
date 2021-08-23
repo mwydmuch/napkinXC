@@ -25,9 +25,9 @@
 #include <random>
 #include <string>
 
-#include "save_load.h"
+#include "basic_types.h"
 #include "enums.h"
-#include "types.h"
+#include "save_load.h"
 
 class Args : public FileHelper {
 public:

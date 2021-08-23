@@ -43,10 +43,10 @@ class PLT : virtual public Model {
 public:
     PLT();
 
-    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
-    Real predictForLabel(Label label, Feature* features, Args& args) override;
-    std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
-    std::vector<std::vector<Prediction>> predictWithBeamSearch(SRMatrix<Feature>& features, Args& args);
+    void predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) override;
+    Real predictForLabel(Label label, SparseVector& features, Args& args) override;
+    std::vector<std::vector<Prediction>> predictBatch(SRMatrix& features, Args& args) override;
+    std::vector<std::vector<Prediction>> predictWithBeamSearch(SRMatrix& features, Args& args);
 
     void setThresholds(std::vector<Real> th) override;
     void updateThresholds(UnorderedMap<int, Real> thToUpdate) override;
@@ -63,9 +63,9 @@ public:
     void preload(Args& args, std::string infile) override;
 
     // Helpers for Python PLT Framework
-    void buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output);
-    std::vector<std::vector<std::pair<int, Real>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels);
-    std::vector<std::vector<std::pair<int, Real>>> getNodesUpdates(std::vector<std::vector<Label>>& labels);
+    void buildTree(SRMatrix& labels, SRMatrix& features, Args& args, std::string output);
+    std::vector<std::vector<std::pair<int, Real>>> getNodesToUpdate(const SRMatrix& labels);
+    std::vector<std::vector<std::pair<int, Real>>> getNodesUpdates(const SRMatrix& labels);
 
     void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output);
     std::vector<std::tuple<int, int, int>> getTreeStructure();
@@ -85,19 +85,18 @@ protected:
     virtual void assignDataPoints(std::vector<std::vector<Real>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,
                                   std::vector<std::vector<Real>>& binWeights,
-                                  SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
+                                  SRMatrix& labels, SRMatrix& features, Args& args);
 
-    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
-                          const int* rLabels, const int rSize);
+    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const SparseVector& labels);
     static void addNodesLabelsAndFeatures(std::vector<std::vector<Real>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                                          UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, Feature* features);
+                                          UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, SparseVector& features);
 
     // Helper methods for prediction
     virtual Prediction predictNextLabel(std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,
-                                        TopKQueue<TreeNodeValue>& nQueue, Feature* features, size_t fSize);
+                                        TopKQueue<TreeNodeValue>& nQueue, SparseVector& features);
 
-    virtual inline Real predictForNode(TreeNode* node, Feature* features, size_t fSize){
-        return bases[node->index]->predictProbability(features, fSize);
+    virtual inline Real predictForNode(TreeNode* node, SparseVector& features){
+        return bases[node->index]->predictProbability(features);
     }
 
     inline void addToQueue(std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,
@@ -115,5 +114,5 @@ protected:
 
 class BatchPLT : public PLT {
 public:
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
+    void train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) override;
 };

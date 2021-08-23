@@ -31,10 +31,8 @@
 #include <mutex>
 
 #include "args.h"
-#include "types.h"
+#include "vector.h"
 
-
-//TODO: Refactor base class
 
 struct ProblemData {
     std::vector<Real>& binLabels;
@@ -65,8 +63,8 @@ public:
     Base(Args& args);
     ~Base();
 
-    void update(Real label, Feature* features, Args& args);
-    void unsafeUpdate(Real label, Feature* features, Args& args);
+    void update(Real label, Feature* feature, Args& args);
+    void unsafeUpdate(Real label, Feature* feature, Args& args);
     void train(ProblemData& problemData, Args& args);
     void trainLiblinear(ProblemData& problemData, Args& args);
     void trainOnline(ProblemData& problemData, Args& args);
@@ -75,8 +73,8 @@ public:
     void setupOnlineTraining(Args& args, int n = 0, bool startWithDenseW = false);
     void finalizeOnlineTraining(Args& args);
 
-    Real predictValue(Feature* features, size_t s = 0);
-    Real predictProbability(Feature* features, size_t s = 0);
+    Real predictValue(SparseVector& features);
+    Real predictProbability(SparseVector& features);
 
     inline AbstractVector* getW() { return W; };
     inline AbstractVector* getG() { return G; };

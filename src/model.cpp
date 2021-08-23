@@ -69,16 +69,16 @@ Model::~Model() {
 }
 
 void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
-                               SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
+                               SRMatrix& features, Args& args, const int startRow, const int stopRow) {
     const int batchSize = stopRow - startRow;
     for (int r = startRow; r < stopRow; ++r) {
         int i = r - startRow;
-        model->predict(predictions[r], features[r], features.size(r), args);
+        model->predict(predictions[r], features[r], args);
         if (!threadId) printProgress(i, batchSize);
     }
 }
 
-std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& features, Args& args) {
+std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Args& args) {
     Log(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
 
     int rows = features.rows();
@@ -112,7 +112,7 @@ void Model::setLabelsWeights(std::vector<Real> lw){
     labelsWeights = lw;
 }
 
-Real Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
+Real Model::microOfo(SRMatrix& features, SRMatrix& labels, Args& args){
     Real a = args.ofoA;
     Real b = args.ofoB;
 
@@ -126,7 +126,7 @@ Real Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args&
         // Predict with current thresholds
         std::vector<Prediction> prediction;
         args.threshold = a / b;
-        predict(prediction, features[r], features.size(r), args);
+        predict(prediction, features[r], args);
 
         // Update a and b counters
         for (const auto &p : prediction) {
@@ -143,7 +143,7 @@ Real Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args&
     return a / b;
 }
 
-std::vector<Real> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
+std::vector<Real> Model::macroOfo(SRMatrix& features, SRMatrix& labels, Args& args){
     // Variables required for OFO
     std::vector<Real> as(m, args.ofoA);
     std::vector<Real> bs(m, args.ofoB);
@@ -167,7 +167,7 @@ std::vector<Real> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& 
 }
 
 void Model::macroOfoThread(int threadId, Model* model, std::vector<Real>& as, std::vector<Real>& bs,
-                      SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args, const int startRow, const int stopRow) {
+                      SRMatrix& features, SRMatrix& labels, Args& args, const int startRow, const int stopRow) {
 
     const int rowsRange = stopRow - startRow;
     const int examples = rowsRange * args.epochs;
@@ -178,7 +178,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<Real>& as, st
 
         // Predict with current thresholds
         std::vector<Prediction> prediction;
-        model->predict(prediction, features[r], features.size(r), args);
+        model->predict(prediction, features[r], args);
 
         // Update a and b counters
         for (const auto& p : prediction) {
@@ -212,7 +212,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<Real>& as, st
     }
 }
 
-std::vector<Real> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
+std::vector<Real> Model::ofo(SRMatrix& features, SRMatrix& labels, Args& args) {
 
     args.topK = 0;
     args.threshold = 0;

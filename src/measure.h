@@ -34,8 +34,8 @@ public:
 
     Measure();
 
-    virtual void accumulate(Label* labels, const std::vector<Prediction>& prediction) = 0;
-    void accumulate(SRMatrix<Label>& labels, std::vector<std::vector<Prediction>>& predictions);
+    virtual void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) = 0;
+    void accumulate(SRMatrix& labels, std::vector<std::vector<Prediction>>& predictions);
     virtual double value();
 
     inline bool isMeanMeasure(){ return meanMeasure; };
@@ -66,82 +66,82 @@ class TruePositivesAtK : public MeasureAtK {
 public:
     explicit TruePositivesAtK(int k);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-    static double calculate(Label* labels, const std::vector<Prediction>& prediction, int k);
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction, int k);
 };
 
 class TruePositives : public Measure {
 public:
     TruePositives();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-    static double calculate(Label* labels, const std::vector<Prediction>& prediction);
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction);
 };
 
 class FalsePositives : public Measure {
 public:
     FalsePositives();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-    static double calculate(Label* labels, const std::vector<Prediction>& prediction);
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction);
 };
 
 class FalseNegatives : public Measure {
 public:
     FalseNegatives();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-    static double calculate(Label* labels, const std::vector<Prediction>& prediction);
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction);
 };
 
 class Recall : public Measure {
 public:
     Recall();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class RecallAtK : public MeasureAtK {
 public:
     explicit RecallAtK(int k);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class Precision : public Measure {
 public:
     Precision();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class PrecisionAtK : public MeasureAtK {
 public:
     explicit PrecisionAtK(int k);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class DCGAtK : public MeasureAtK {
 public:
     explicit DCGAtK(int k);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
-    static double calculate(Label* labels, const std::vector<Prediction>& prediction, int k);
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
+    static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction, int k);
 };
 
 class NDCGAtK : public MeasureAtK{
 public:
     explicit NDCGAtK(int k);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class Coverage : public Measure {
 public:
     explicit Coverage(int outputSize);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
     double value() override;
 
 protected:
@@ -153,7 +153,7 @@ class CoverageAtK : public MeasureAtK {
 public:
     CoverageAtK(int outputSize, int k);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
     double value() override;
 
 protected:
@@ -165,42 +165,42 @@ class Accuracy : public Measure {
 public:
     Accuracy();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class PredictionSize : public Measure {
 public:
     PredictionSize();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class HammingLoss : public Measure {
 public:
     HammingLoss();
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
 class SampleF1 : public Measure {
 public:
     SampleF1();
 
-    void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction> &prediction) override;
 };
 
 class MicroF1 : public Measure {
 public:
     MicroF1();
 
-    void accumulate(Label *labels, const std::vector<Prediction> &prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction> &prediction) override;
 };
 
 class MacroF1 : public Measure {
 public:
     explicit MacroF1(int outputSize);
 
-    void accumulate(Label* labels, const std::vector<Prediction>& prediction) override;
+    void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
     double value() override;
 
 protected:

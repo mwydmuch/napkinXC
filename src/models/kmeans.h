@@ -25,7 +25,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "types.h"
+#include "basic_types.h"
+#include "vector.h"
+#include "matrix.h"
 
 // K-Means clustering with balanced option
 typedef IIVPair Assignation;
@@ -39,5 +41,4 @@ struct Similarities {
 };
 
 // Partition is returned via reference, calculated for cosine distance
-void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures, int centroids, Real eps,
-            bool balanced, int seed);
+void kmeans(std::vector<Assignation>* partition, SRMatrix& pointsFeatures, int centroids, Real eps, bool balanced, int seed);

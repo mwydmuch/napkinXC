@@ -30,13 +30,13 @@
 #include <iostream>
 
 #include "args.h"
-#include "read_data.h"
+#include "basic_types.h"
 #include "log.h"
 #include "measure.h"
 #include "misc.h"
 #include "model.h"
+#include "read_data.h"
 #include "resources.h"
-#include "types.h"
 #include "version.h"
 
 std::vector<Real> loadVec(std::string infile){
@@ -75,47 +75,8 @@ void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::of
 
 void train(Args& args) {
 
-//    int vec1Size = 40;
-//    Vector vec1(vec1Size);
-//    for (int i = 0; i < vec1Size; ++i)
-//        vec1.insertD(i, static_cast<double>(std::rand() % 1000) / 1000 * 10);
-
-//    int maxDist = 10;
-//    int vec1Size = 30;
-//    Vector vec1(vec1Size * maxDist);
-//    int j = 0;
-//    for (int i = 0; i < vec1Size; ++i){
-//        j += 1 + std::rand() % maxDist;
-//        vec1.insertD(j, static_cast<double>(std::rand() % 1000) / 1000 * 10);
-//    }
-//
-//    int vec2Size = 20;
-//    Feature* vec2 = new Feature [vec2Size + 1];
-//    j = 0;
-//    for (int i = 0; i < vec2Size; ++i){
-//        j += 1 + std::rand() % maxDist;
-//        vec2[i].index = j;
-//        vec2[i].value = static_cast<double>(std::rand() % 1000) / 100;
-//    }
-//    vec2[vec2Size].index = -1;
-//
-//    //std::cerr << vec1 << "\n";
-//    //std::cerr << vec2 << "\n";
-//    std::cerr << vec1 << "\n";
-//    std::cerr << vec1.dot(vec2) << "\n";
-//
-//    MapVector vec3(vec1);
-//    std::cerr << vec3 << "\n";
-//    std::cerr << vec3.dot(vec2) << "\n";
-//
-//    SparseVector vec4(vec1);
-//    std::cerr << vec4.isSorted() << " " << vec4 << "\n";
-//    std::cerr << vec4.dot(vec2) << "\n";
-//
-//    exit(0);
-
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
 
     args.printArgs("train");
     makeDir(args.output);
@@ -155,8 +116,8 @@ void train(Args& args) {
 }
 
 void test(Args& args) {
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
 
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
@@ -233,8 +194,8 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
     readData(labels, features, args);
 
     loadVecs(model, args);
@@ -263,8 +224,8 @@ void ofo(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
     readData(labels, features, args);
 
     auto resAfterData = getResources();
@@ -296,8 +257,8 @@ void testPredictionTime(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
     readData(labels, features, args);
 
     // Read batch sizes
@@ -318,18 +279,18 @@ void testPredictionTime(Args& args) {
 
         for (int i = 0; i < args.batches; ++i) {
             // Generate batch
-            std::vector<Feature*> batch;
+            std::vector<int> batch;
             batch.reserve(batchSize);
             for (int j = 0; j < batchSize; ++j)
-                batch.push_back(features[dist(rng)]);
+                batch.push_back(dist(rng));
 
             assert(batch.size() == batchSize);
 
             // Test batch
             double startTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
-            for (const auto& r : batch) {
+            for (auto& r : batch) {
                 std::vector<Prediction> prediction;
-                model->predict(prediction, r, 0, args);
+                model->predict(prediction, features[r], args);
             }
 
             // Accumulate time measurements

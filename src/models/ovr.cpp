@@ -37,19 +37,19 @@ OVR::OVR() {
 }
 
 void OVR::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<Real>& binWeights,
-                          SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
+                          SRMatrix& labels, SRMatrix& features, int rStart, int rStop, Args& args){
     int rows = labels.rows();
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
         int rSize = labels.size(r);
-        auto rLabels = labels[r];
+        auto& rLabels = labels[r];
 
         if (rSize != 1 && !args.pickOneLabelWeighting)
             throw std::invalid_argument("Encountered example with " + std::to_string(rSize) + " labels! OVR is multi-class classifier, use BR or --pickOneLabelWeighting option instead!");
 
         for (int i = 0; i < rSize; ++i){
-            binFeatures.push_back(features[r]);
+            binFeatures.push_back(features[r].data());
             binWeights.push_back(1.0 / rSize);
             for (auto &bl: binLabels) bl.push_back(0);
             if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart].back() = 1;
@@ -57,13 +57,13 @@ void OVR::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vecto
     }
 }
 
-std::vector<Prediction> OVR::predictForAllLabels(Feature* features, size_t fSize, Args& args) {
+std::vector<Prediction> OVR::predictForAllLabels(SparseVector& features, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
     Real sum = 0;
 
     for (int i = 0; i < bases.size(); ++i) {
-        Real value = exp(bases[i]->predictValue(features, fSize)); // Softmax normalization
+        Real value = exp(bases[i]->predictValue(features)); // Softmax normalization
         sum += value;
         prediction.emplace_back(i, value);
     }
@@ -72,12 +72,12 @@ std::vector<Prediction> OVR::predictForAllLabels(Feature* features, size_t fSize
     return prediction;
 }
 
-Real OVR::predictForLabel(Label label, Feature* features, Args& args) {
+Real OVR::predictForLabel(Label label, SparseVector& features, Args& args) {
     Real sum = 0;
     for (int i = 0; i < bases.size(); ++i) {
-        Real value = exp(bases[i]->predictValue(features, 0)); // Softmax normalization
+        Real value = exp(bases[i]->predictValue(features)); // Softmax normalization
         sum += value;
     }
 
-    return exp(bases[label]->predictValue(features, 0)) / sum;
+    return exp(bases[label]->predictValue(features)) / sum;
 }

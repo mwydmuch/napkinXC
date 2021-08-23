@@ -28,12 +28,13 @@
 class OVR : public BR { // OVR is multi-class version of BR
 public:
     OVR();
-    Real predictForLabel(Label label, Feature* features, Args& args) override;
+    Real predictForLabel(Label label, SparseVector& features, Args& args) override;
 
 protected:
     void assignDataPoints(std::vector<std::vector<Real>>& binLabels,
                           std::vector<Feature*>& binFeatures,
                           std::vector<Real>& binWeights,
-                          SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args) override;
-    std::vector<Prediction> predictForAllLabels(Feature* features, size_t fSize, Args& args) override;
+                          SRMatrix& labels, SRMatrix& features,
+                          int rStart, int rStop, Args& args) override;
+    std::vector<Prediction> predictForAllLabels(SparseVector& features, Args& args) override;
 };

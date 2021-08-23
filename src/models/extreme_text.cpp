@@ -29,8 +29,8 @@ ExtremeText::ExtremeText() {
     name = "extremeText";
 }
 
-void ExtremeText::trainThread(int threadId, ExtremeText* model, SRMatrix<Label>& labels,
-                                    SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
+void ExtremeText::trainThread(int threadId, ExtremeText* model, SRMatrix& labels,
+                                    SRMatrix& features, Args& args, const int startRow, const int stopRow) {
     const int rowsRange = stopRow - startRow;
     const int examples = rowsRange * args.epochs;
     Real loss = 0;
@@ -39,7 +39,7 @@ void ExtremeText::trainThread(int threadId, ExtremeText* model, SRMatrix<Label>&
         if (!threadId) printProgress(i, examples, lr, loss / i);
 
         int r = startRow + i % rowsRange;
-        loss += model->update(lr, features[r], labels[r], labels.size(r), args);
+        loss += model->update(lr, features[r], labels[r], args);
     }
 }
 
@@ -60,14 +60,14 @@ Real ExtremeText::updateNode(TreeNode* node, Real label, Vector& hidden, Vector&
     return label ? -log(pred) : -log(1.0 - pred);
 }
 
-Real ExtremeText::update(Real lr, Feature* features, Label* labels, int rSize, Args& args){
+Real ExtremeText::update(Real lr, const SparseVector& features, const SparseVector& labels, const Args& args){
 
     // Compute hidden
     Real valuesSum = 0;
     Vector hidden(dims);
-    for(Feature* f = features; f->index != -1; ++f){
-        valuesSum += f->value;
-        inputW[f->index].add(hidden, f->value);
+    for(auto &f : features){
+        valuesSum += f.value;
+        hidden.add(inputW[f.index], f.value);
     }
     hidden.div(valuesSum);
 
@@ -75,7 +75,7 @@ Real ExtremeText::update(Real lr, Feature* features, Label* labels, int rSize, A
     UnorderedSet<TreeNode*> nPositive;
     UnorderedSet<TreeNode*> nNegative;
 
-    getNodesToUpdate(nPositive, nNegative, labels, rSize);
+    getNodesToUpdate(nPositive, nNegative, labels);
 
     // Compute gradient
     Vector gradient(dims);
@@ -89,13 +89,13 @@ Real ExtremeText::update(Real lr, Feature* features, Label* labels, int rSize, A
 
     // Update input weights
     gradient.div(valuesSum);
-    for(Feature* f = features; f->index != -1; ++f)
-        gradient.add( inputW[f->index], f->value);
+    for(auto &f : features)
+        inputW[f.index].add(gradient, f.value);
 
     return loss;
 }
 
-void ExtremeText::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void ExtremeText::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
 
     // Create tree
     if (!tree) {
@@ -155,35 +155,28 @@ void ExtremeText::load(Args& args, std::string infile) {
     loaded = true;
 }
 
-void ExtremeText::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args){
-    Feature* hidden = computeHidden(features);
-    PLT::predict(prediction, hidden, fSize, args);
-    delete[] hidden;
+void ExtremeText::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args){
+    auto hidden = computeHidden(features);
+    PLT::predict(prediction, hidden, args);
 }
 
-Real ExtremeText::predictForLabel(Label label, Feature* features, Args& args){
-    Feature* hidden = computeHidden(features);
+Real ExtremeText::predictForLabel(Label label, SparseVector& features, Args& args){
+    auto hidden = computeHidden(features);
     Real value = PLT::predictForLabel(label, hidden, args);
-    delete[] hidden;
     return value;
 }
 
-Feature* ExtremeText::computeHidden(Feature* features){
-    Feature* hidden = new Feature[dims + 1];
-    for(size_t i = 0; i < dims; ++i) {
-        hidden[i].index = i;
-        hidden[i].value = 0;
-    }
-    hidden[dims].index = -1;
+SparseVector ExtremeText::computeHidden(const SparseVector& features){
+    SparseVector hidden(dims, dims);
+    for(size_t i = 0; i < dims; ++i) hidden.insertD(i, 0);
 
     Real valuesSum = 0;
-    for(Feature* f = features; f->index != -1; ++f){
-        valuesSum += f->value;
-        for(size_t i = 0; i < dims; ++i) hidden[i].value += inputW[f->index][i] * f->value;
+    for(auto &f : features){
+        valuesSum += f.value;
+        hidden.add(inputW[f.index], f.value);
     }
 
-    for(size_t i = 0; i < dims; ++i)
-        hidden[i].value /= valuesSum;
+    hidden.div(valuesSum);
 
     return hidden;
 }

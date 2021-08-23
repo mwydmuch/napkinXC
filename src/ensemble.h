@@ -42,10 +42,10 @@ public:
     Ensemble();
     ~Ensemble() override;
 
-    void train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) override;
-    void predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) override;
-    Real predictForLabel(Label label, Feature* features, Args& args) override;
-    std::vector<std::vector<Prediction>> predictBatch(SRMatrix<Feature>& features, Args& args) override;
+    void train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) override;
+    void predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) override;
+    Real predictForLabel(Label label, SparseVector& features, Args& args) override;
+    std::vector<std::vector<Prediction>> predictBatch(SRMatrix& features, Args& args) override;
 
     void setLabelsWeights(std::vector<Real> lw) override;
 
@@ -68,7 +68,7 @@ template <typename T> Ensemble<T>::~Ensemble() {
 }
 
 template <typename T>
-void Ensemble<T>::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void Ensemble<T>::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
     Log(CERR) << "Training ensemble of " << args.ensemble << " models ...\n";
 
     for (int i = 0; i < args.ensemble; ++i) {
@@ -94,12 +94,12 @@ void Ensemble<T>::accumulatePrediction(std::unordered_map<int, EnsemblePredictio
     }
 }
 
-template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& prediction, Feature* features, size_t fSize, Args& args) {
+template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
 
     std::unordered_map<int, EnsemblePrediction> ensemblePredictions;
     for (size_t i = 0; i < members.size(); ++i) {
         prediction.clear();
-        members[i]->predict(prediction, features, fSize, args);
+        members[i]->predict(prediction, features, args);
         accumulatePrediction(ensemblePredictions, prediction, i);
     }
 
@@ -118,14 +118,14 @@ template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& predict
     if (args.topK > 0) prediction.resize(args.topK);
 }
 
-template <typename T> Real Ensemble<T>::predictForLabel(Label label, Feature* features, Args& args) {
+template <typename T> Real Ensemble<T>::predictForLabel(Label label, SparseVector& features, Args& args) {
     Real value = 0;
     for (auto& m : members) value += m->predictForLabel(label, features, args);
     return value / members.size();
 }
 
 template <typename T>
-std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix<Feature>& features, Args& args) {
+std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& features, Args& args) {
     if (!args.onTheTrotPrediction) return Model::predictBatch(features, args);
 
     int rows = features.rows();

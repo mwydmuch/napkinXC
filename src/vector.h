@@ -494,7 +494,9 @@ public:
         d->reserve(maxN0);
     }
     explicit MapVector(const AbstractVector& vec) {
+        s = vec.size();
         d = new UnorderedMap<int, Real>();
+        d->reserve(vec.nonZero());
         vec.forEachIV([&](const int& i, Real& v) { insertD(i, v); });
     }
     ~MapVector() override{

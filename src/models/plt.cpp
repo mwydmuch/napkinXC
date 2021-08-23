@@ -36,6 +36,7 @@ PLT::PLT() {
     dataPointCount = 0;
     type = plt;
     name = "PLT";
+    tree = nullptr;
 }
 
 void PLT::unload() {
@@ -150,7 +151,6 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
             auto n = levelQueue->front();
             levelQueue->pop();
             int nIdx = n->index;
-
 
             if(!nodePredictions[nIdx].empty()){
                 auto base = bases[nIdx];

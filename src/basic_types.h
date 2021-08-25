@@ -58,6 +58,8 @@ typedef IVPair<Real> IRVPair;
 typedef IVPair<int> IIVPair;
 
 typedef IRVPair Feature;
+
+// TODO: Replace prediction with IRVPair
 //typedef IRVPair Prediction;
 
 struct Prediction{

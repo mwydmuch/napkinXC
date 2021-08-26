@@ -19,8 +19,8 @@ plt = PLT("eurlex-model")
 
 # Fit the model on the training dataset.
 # The model weights and additional data will be stored in "eurlex-model" directory.
-# Features matrix X must be SciPy csr_matrix, NumPy array, or list of tuples of (idx, value),
-# while labels matrix Y should be list of lists or tuples containing positive labels.
+# Features matrix X should be SciPy csr_matrix, NumPy array, or list of tuples of (idx, value),
+# while labels matrix Y should be list of lists or tuples containing positive labels, SciPy csr_matrix, NumPy array.
 plt.fit(X_train, Y_train)
 
 # After the training model is not loaded to RAM.

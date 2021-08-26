@@ -14,12 +14,13 @@ download_dataset("eurlex-4k", "train")
 file = "data/Eurlex/eurlex_train.txt"
 
 # Load using Sklearn
-# Because Sklearn method cannot handel header from XML Repository, offset and number of features needs to be provided.
+# Because Sklearn method cannot handle header from XML Repository, offset and number of features needs to be provided.
 start = time()
 X, Y = load_svmlight_file(file, multilabel=True, zero_based=True, n_features=5000, offset=1)
 print("Sklearn's load_svmlight_file time:", time() - start)
 
 # Load using napkinXC
+# It supports two different output formats for labels, list like in Sklearn version and sparse Scipy csr_matrix, list is default.
 start = time()
-X, Y = load_libsvm_file(file)
+X, Y = load_libsvm_file(file, labels_format='list')
 print("napkinXC's load_libsvm_file time:", time() - start)

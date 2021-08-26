@@ -48,6 +48,7 @@ enum InputDataType {
     csr_matrix
 };
 
+typedef std::tuple<py::array_t<Real>, py::array_t<int>, py::array_t<int>> ScipyCSRMatrixData;
 
 template<typename F> void runAsInterruptable(F func){
     std::atomic<bool> done(false);
@@ -108,7 +109,36 @@ template<typename T> py::array_t<T> dataToPyArray(T* ptr, std::vector<py::ssize_
         ));
 }
 
-std::tuple<std::vector<std::vector<int>>, py::array_t<int>, py::array_t<int>, py::array_t<Real>> loadLibSvmFile(std::string path){
+
+ScipyCSRMatrixData SRMatrixToScipyCSRMatrix(SRMatrix& matrix){
+    int rows = matrix.rows();
+    int cells = matrix.cells();
+
+    Real* data = new Real[cells];
+    int* indices = new int[cells];
+    int* indptr = new int[rows + 1];
+
+    int i = 0;
+    for(auto r = 0; r < matrix.rows(); ++r){
+        indptr[r] = i;
+        if (!std::is_sorted(matrix[r].begin(), matrix[r].end()))
+            std::sort(matrix[r].begin(), matrix[r].end());
+        for(auto &f : matrix[r]){
+            indices[i] = f.index;
+            data[i] = f.value;
+            ++i;
+        }
+    }
+    indptr[rows] = cells;
+
+    auto pyData = dataToPyArray(data, {cells});
+    auto pyIndices = dataToPyArray(indices, {cells});
+    auto pyIndptr = dataToPyArray(indptr, {rows + 1});
+
+    return std::make_tuple(pyData, pyIndices, pyIndptr);
+}
+
+std::tuple<std::vector<std::vector<int>>, ScipyCSRMatrixData> loadLibSvmFileLabelsList(std::string path){
     SRMatrix labels;
     SRMatrix features;
 
@@ -117,38 +147,32 @@ std::tuple<std::vector<std::vector<int>>, py::array_t<int>, py::array_t<int>, py
     args.processData = false;
     readData(labels, features, args);
 
-    int rows = features.rows();
-    int cells = features.cells();
-
-    // For labels
+    // Labels
+    int rows = labels.rows();
     std::vector<std::vector<Label>> pyLabels(labels.rows());
     for(auto r = 0; r < labels.rows(); ++r){
         for(auto &l : labels[r]) pyLabels[r].push_back(l.index);
     }
 
-    // For feature CSR-matrix
-    int* indptr = new int[rows + 1];
-    int* indices = new int[cells];
-    Real* data = new Real[cells];
+    // Features
+    auto pyFeatures = SRMatrixToScipyCSRMatrix(features);
 
-    int i = 0;
-    for(auto r = 0; r < features.rows(); ++r){
-        indptr[r] = i;
-        if (!std::is_sorted(features[r].begin(), features[r].end()))
-            std::sort(features[r].begin(), features[r].end());
-        for(auto &f : features[r]){
-            indices[i] = f.index;
-            data[i] = f.value;
-            ++i;
-        }
-    }
-    indptr[rows] = cells;
+    return std::make_tuple(pyLabels, pyFeatures);
+}
 
-    auto pyIndptr = dataToPyArray(indptr, {rows + 1});
-    auto pyIndices = dataToPyArray(indices, {cells});
-    auto pyData = dataToPyArray(data, {cells});
+std::tuple<ScipyCSRMatrixData, ScipyCSRMatrixData> loadLibSvmFileLabelsCSRMatrix(std::string path) {
+    SRMatrix labels;
+    SRMatrix features;
 
-    return std::make_tuple(pyLabels, pyIndptr, pyIndices, pyData);
+    Args args;
+    args.input = path;
+    args.processData = false;
+    readData(labels, features, args);
+
+    auto pyLabels = SRMatrixToScipyCSRMatrix(labels);
+    auto pyFeatures = SRMatrixToScipyCSRMatrix(features);
+
+    return std::make_tuple(pyLabels, pyFeatures);
 }
 
 
@@ -483,7 +507,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     n.doc() = "Python bindings for napkinXC C++ core";
     n.attr("__version__") = VERSION;
 
-    n.def("_load_libsvm_file", &loadLibSvmFile);
+    n.def("_load_libsvm_file_labels_list", &loadLibSvmFileLabelsList);
+    n.def("_load_libsvm_file_labels_csr_matrix", &loadLibSvmFileLabelsCSRMatrix);
 
     py::enum_<InputDataType>(n, "InputDataType")
     .value("list", list)

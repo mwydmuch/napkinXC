@@ -28,7 +28,7 @@ from sys import stdout
 from os import makedirs, path, remove
 import numpy as np
 from scipy.sparse import csr_matrix
-from ._napkinxc import _load_libsvm_file
+from ._napkinxc import _load_libsvm_file_labels_list, _load_libsvm_file_labels_csr_matrix
 
 
 # List of all available datasets
@@ -386,7 +386,7 @@ DATASETS = {
 
 
 # Main functions for downloading and loading datasets
-def load_libsvm_file(file):
+def load_libsvm_file(file, labels_format="list"):
     """
     Load data in the libsvm format into sparse CSR matrix.
     The format is text-based. Each line contains an instance and is ended by a ``\\n`` character.
@@ -404,11 +404,19 @@ def load_libsvm_file(file):
 
     :param file: Path to a file to load
     :type file: str
+    :param labels_format: Format in which load the labels data (``'list'`` or ``'csr_matrix'``), defaults to `csr_matrix`
+    :type labels_format: str
     :return:  Features matrix and labels
     :rtype: (csr_matrix, list[list[int]])
     """
-    labels, indptr, indices, data = _load_libsvm_file(file)
-    return csr_matrix((data, indices, indptr)), labels
+    if labels_format == 'list':
+        labels, features = _load_libsvm_file_labels_list(file)
+        return csr_matrix(features), labels
+    elif labels_format == 'csr_matrix':
+        labels, features = _load_libsvm_file_labels_csr_matrix(file)
+        return csr_matrix(features), csr_matrix(labels)
+    else:
+        raise ValueError("Label format {} is not valid format".format(labels_format))
 
 
 def load_json_lines_file(file, features_fields=['title', 'content'], labels_field='target_ind', gzip_file=None):
@@ -417,7 +425,7 @@ def load_json_lines_file(file, features_fields=['title', 'content'], labels_fiel
     :type file: str
     :param features_fields: list of fields of JSON line that contain features, fields will be concatenated in the specified order, defaults to ['title', 'content']
     :type features_fields: list[str], optional
-    :param labels_field: field name that contains labels, defaults to 'target_ind'
+    :param labels_field: field name that contains labels, defaults to ``'target_ind'``
     :type labels_field: str, optional
     :param gzip_file: If True, read file as gzip file, if None, decide based on file extension, defaults to None
     :type gzip_file: bool, optional

@@ -110,7 +110,7 @@ template<typename T> py::array_t<T> dataToPyArray(T* ptr, std::vector<py::ssize_
 }
 
 
-ScipyCSRMatrixData SRMatrixToScipyCSRMatrix(SRMatrix& matrix){
+ScipyCSRMatrixData SRMatrixToScipyCSRMatrix(SRMatrix& matrix, bool sortIndices){
     int rows = matrix.rows();
     int cells = matrix.cells();
 
@@ -121,8 +121,8 @@ ScipyCSRMatrixData SRMatrixToScipyCSRMatrix(SRMatrix& matrix){
     int i = 0;
     for(auto r = 0; r < matrix.rows(); ++r){
         indptr[r] = i;
-        if (!std::is_sorted(matrix[r].begin(), matrix[r].end()))
-            std::sort(matrix[r].begin(), matrix[r].end());
+        if (sortIndices && !std::is_sorted(matrix[r].begin(), matrix[r].end(), IRVPairIndexComp()))
+            std::sort(matrix[r].begin(), matrix[r].end(), IRVPairIndexComp());
         for(auto &f : matrix[r]){
             indices[i] = f.index;
             data[i] = f.value;
@@ -138,7 +138,7 @@ ScipyCSRMatrixData SRMatrixToScipyCSRMatrix(SRMatrix& matrix){
     return std::make_tuple(pyData, pyIndices, pyIndptr);
 }
 
-std::tuple<std::vector<std::vector<int>>, ScipyCSRMatrixData> loadLibSvmFileLabelsList(std::string path){
+std::tuple<std::vector<std::vector<int>>, ScipyCSRMatrixData> loadLibSvmFileLabelsList(std::string path, bool sortIndices){
     SRMatrix labels;
     SRMatrix features;
 
@@ -152,15 +152,17 @@ std::tuple<std::vector<std::vector<int>>, ScipyCSRMatrixData> loadLibSvmFileLabe
     std::vector<std::vector<Label>> pyLabels(labels.rows());
     for(auto r = 0; r < labels.rows(); ++r){
         for(auto &l : labels[r]) pyLabels[r].push_back(l.index);
+        if (sortIndices && !std::is_sorted(pyLabels[r].begin(), pyLabels[r].end()))
+            std::sort(pyLabels[r].begin(), pyLabels[r].end());
     }
 
     // Features
-    auto pyFeatures = SRMatrixToScipyCSRMatrix(features);
+    auto pyFeatures = SRMatrixToScipyCSRMatrix(features, sortIndices);
 
     return std::make_tuple(pyLabels, pyFeatures);
 }
 
-std::tuple<ScipyCSRMatrixData, ScipyCSRMatrixData> loadLibSvmFileLabelsCSRMatrix(std::string path) {
+std::tuple<ScipyCSRMatrixData, ScipyCSRMatrixData> loadLibSvmFileLabelsCSRMatrix(std::string path, bool sortIndices) {
     SRMatrix labels;
     SRMatrix features;
 
@@ -169,8 +171,8 @@ std::tuple<ScipyCSRMatrixData, ScipyCSRMatrixData> loadLibSvmFileLabelsCSRMatrix
     args.processData = false;
     readData(labels, features, args);
 
-    auto pyLabels = SRMatrixToScipyCSRMatrix(labels);
-    auto pyFeatures = SRMatrixToScipyCSRMatrix(features);
+    auto pyLabels = SRMatrixToScipyCSRMatrix(labels, sortIndices);
+    auto pyFeatures = SRMatrixToScipyCSRMatrix(features, sortIndices);
 
     return std::make_tuple(pyLabels, pyFeatures);
 }
@@ -380,6 +382,27 @@ public:
         }
     }
 
+//    ScipyCSRMatrixData getWeights() {
+//        int cells = 0;
+//        int rows = 0;
+//
+//        Real* data = new Real[cells];
+//        int* indices = new int[cells];
+//        int* indptr = new int[rows + 1];
+//
+//        //TODO
+//
+//        auto pyData = dataToPyArray(data, {cells});
+//        auto pyIndices = dataToPyArray(indices, {cells});
+//        auto pyIndptr = dataToPyArray(indptr, {rows + 1});
+//
+//        return std::make_tuple(pyData, pyIndices, pyIndptr);
+//    }
+//
+//    void setWeights(py::object input, InputDataType dataTyp){
+//        //TODO
+//    }
+
 private:
     Args args;
     std::shared_ptr<Model> model;
@@ -536,4 +559,6 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("get_nodes_updates", &CPPModel::getNodesUpdates)
     .def("get_tree_structure", &CPPModel::getTreeStructure)
     .def("set_tree_structure", &CPPModel::setTreeStructure);
+//    .def("get_weights", &CPPModel::getWeights)
+//    .def("set_weights", &CPPModel::setWeights);
 }

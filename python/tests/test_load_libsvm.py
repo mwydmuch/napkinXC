@@ -25,14 +25,24 @@ def test_load_libsvm():
         print("\tsklearn.datasets.load_svmlight_file time: {}s".format(time() - t_start))
 
         t_start = time()
-        nxc_X, nxc_Y = load_libsvm_file(v["file"])
+        nxc_X1, nxc_Y_list = load_libsvm_file(v["file"], labels_format="list")
         print("\tnapkinXC.datasets.load_libsvm_file time: {}s".format(time() - t_start))
 
-        assert np.array_equal(nxc_X.indptr, sk_X.indptr)
-        assert np.array_equal(nxc_X.indices, sk_X.indices)
-        assert np.allclose(nxc_X.data, sk_X.data)
+        t_start = time()
+        nxc_X2, nxc_Y_csrm = load_libsvm_file(v["file"], labels_format="csr_matrix")
+        print("\tnapkinXC.datasets.load_libsvm_file time: {}s".format(time() - t_start))
 
-        assert len(nxc_Y) == len(sk_Y)
-        for nxc_y, sk_y in zip(nxc_Y, sk_Y):
+        assert np.array_equal(nxc_X1.indptr, nxc_X2.indptr)
+        assert np.array_equal(nxc_X1.indices, nxc_X2.indices)
+        assert np.array_equal(nxc_X1.data, nxc_X2.data)
+
+        assert np.array_equal(nxc_X1.indptr, sk_X.indptr)
+        assert np.array_equal(nxc_X1.indices, sk_X.indices)
+        assert np.allclose(nxc_X1.data, sk_X.data)
+        assert nxc_X1.shape[0] == nxc_Y_csrm.shape[0]
+
+        assert len(nxc_Y_list) == len(sk_Y)
+        for nxc_y, sk_y in zip(nxc_Y_list, sk_Y):
             assert len(nxc_y) == len(sk_y)
             assert all(y1 == y2 for y1, y2 in zip(nxc_y, sk_y))
+

@@ -8,20 +8,19 @@
 *.a
 *.so
 *.dylib
+/src/nmslib
+/src/version.h
+/build
+**/install_manifest.txt
+**/nxc
 
 # Python
 /dist
-/build
 /pybind11
-/src/version.h
-/src/nmslib
 *.pyc
 
-# Cpp
-nxc
-
 # Docs
-docs/*/*
+/docs/*/*
 
 # Experiments and examples
 data

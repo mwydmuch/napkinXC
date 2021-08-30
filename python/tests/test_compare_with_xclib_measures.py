@@ -1,6 +1,7 @@
 import os
 from time import time
 import numpy as np
+import shutil
 
 # pip install git+https://github.com/kunaldahiya/pyxclib.git
 from xclib.evaluation.xc_metrics import *
@@ -15,14 +16,15 @@ data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data"
 
 
 def test_compare_napkinxc_with_xclib():
-
+    k = 5
+    
     # Train model and predict
     X_train, Y_train = load_dataset("eurlex-4k", "train", root=data_path)
     X_test, Y_test = load_dataset("eurlex-4k", "test", root=data_path)
     plt = PLT(model_path)
     if not os.path.exists(model_path):
         plt.fit(X_train, Y_train)
-    Y_pred = plt.predict_proba(X_test, top_k=5)
+    Y_pred = plt.predict_proba(X_test, top_k=k)
     shutil.rmtree(model_path, ignore_errors=True)
 
     # Prepare dataset
@@ -51,15 +53,15 @@ def test_compare_napkinxc_with_xclib():
     for m, v in measures.items():
         print("\n{} time comparison:".format(m))
         t_start = time()
-        xclib_r = v["xclib"](csr_Y_pred, csr_Y_test, xcl_inv_ps, k=5) if v["inv_ps"] else v["xclib"](csr_Y_pred, csr_Y_test, k=5)
+        xclib_r = v["xclib"](csr_Y_pred, csr_Y_test, xcl_inv_ps, k=k) if v["inv_ps"] else v["xclib"](csr_Y_pred, csr_Y_test, k=k)
         print("\txclib.evaluation.xc_metrics.{} with csr_matrices: {}s".format(v["xclib"].__name__, time() - t_start))
 
         t_start = time()
-        nxc_r = v["nxc"](Y_test, Y_pred, xcl_inv_ps, k=5) if v["inv_ps"] else v["nxc"](Y_test, Y_pred, k=5)
+        nxc_r = v["nxc"](Y_test, Y_pred, xcl_inv_ps, k=k) if v["inv_ps"] else v["nxc"](Y_test, Y_pred, k=k)
         print("\tnapkinXC.measures.{} with lists: {}s".format(v["nxc"].__name__, time() - t_start))
 
         t_start = time()
-        csr_nxc_r = v["nxc"](csr_Y_test, csr_Y_pred, csr_nxc_inv_ps, k=5) if v["inv_ps"] else v["nxc"](csr_Y_test, csr_Y_pred, k=5)
+        csr_nxc_r = v["nxc"](csr_Y_test, csr_Y_pred, csr_nxc_inv_ps, k=k) if v["inv_ps"] else v["nxc"](csr_Y_test, csr_Y_pred, k=k)
         print("\tnapkinXC.measures.{} with csr_matrices: {}s".format(v["nxc"].__name__, time() - t_start))
 
         assert np.allclose(nxc_r, csr_nxc_r)

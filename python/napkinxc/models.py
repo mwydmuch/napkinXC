@@ -41,7 +41,7 @@ class Model():
         :param X: Training data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
         :type X: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]]
         :param Y: Target labels as a matrix or lists or tuples of ints (multi-label data) or list of ints (multi-class data).
-        :type Y: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]], list[int]
+        :type Y: csr_matrix|ndarray|list[list[int]|tuple[int]], list[list[tuple[int, float]], list[int]
         """
         self._model.fit(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
 
@@ -218,23 +218,24 @@ class Model():
 
         return self
 
-    # TODO:
     # def get_weights(self):
     #     """
+    #     Returns weights of binary classifiers used in the model.
     #
-    #     :return: Sparse matrix with linear classifiers weights
+    #     :return: Sparse matrix with weights.
     #     :rtype: csr_matrix
     #     """
-    #     indptr, indices, data = self._model.get_weights()
-    #     return csr_matrix((data, indices, indptr))
+    #     weights = self._model.get_weights()
+    #     return csr_matrix(weights)
     #
     # def set_weights(self, W):
     #     """
+    #     Set weights of binary classifiers used in the model.
     #
-    #     :param W:
-    #     :type W:
+    #     :param W: Matrix with weights.
+    #     :type W: csr_matrix|ndarray
     #     """
-    #     self._model.set_weights(W)
+    #     self._model.set_weights(W, Model._check_data_type(W))
 
     @staticmethod
     def _get_init_params(locals):

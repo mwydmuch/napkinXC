@@ -386,7 +386,7 @@ DATASETS = {
 
 
 # Main functions for downloading and loading datasets
-def load_libsvm_file(file, labels_format="list"):
+def load_libsvm_file(file, labels_format="list", sort_indices=False):
     """
     Load data in the libsvm format into sparse CSR matrix.
     The format is text-based. Each line contains an instance and is ended by a ``\\n`` character.
@@ -406,14 +406,16 @@ def load_libsvm_file(file, labels_format="list"):
     :type file: str
     :param labels_format: Format in which load the labels data (``'list'`` or ``'csr_matrix'``), defaults to `csr_matrix`
     :type labels_format: str
-    :return:  Features matrix and labels
-    :rtype: (csr_matrix, list[list[int]])
+    :param sort_indices: If True, sort indices, otherwise keep original order, defaults to True
+    :type sort_indices: bool
+    :return:  Features and labels data
+    :rtype: (csr_matrix, list[list[int]]) or (csr_matrix, csr_matrix)
     """
     if labels_format == 'list':
-        labels, features = _load_libsvm_file_labels_list(file)
+        labels, features = _load_libsvm_file_labels_list(file, sort_indices)
         return csr_matrix(features), labels
     elif labels_format == 'csr_matrix':
-        labels, features = _load_libsvm_file_labels_csr_matrix(file)
+        labels, features = _load_libsvm_file_labels_csr_matrix(file, sort_indices)
         return csr_matrix(features), csr_matrix(labels)
     else:
         raise ValueError("Label format {} is not valid format".format(labels_format))

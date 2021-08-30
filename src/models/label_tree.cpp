@@ -54,9 +54,9 @@ void LabelTree::buildTreeStructure(int labelCount, Args& args) {
     // Create a tree structure
     Log(CERR) << "Building tree ...\n";
 
-    if (args.treeType == completeInOrder)
+    if (args.treeType == completeKaryInOrder)
         buildCompleteTree(labelCount, false, args);
-    else if (args.treeType == completeRandom)
+    else if (args.treeType == completeKaryRandom)
         buildCompleteTree(labelCount, true, args);
     else if (args.treeType == balancedInOrder)
         buildBalancedTree(labelCount, false, args);
@@ -77,9 +77,9 @@ void LabelTree::buildTreeStructure(SRMatrix& labels, SRMatrix& features, Args& a
     // Create a tree structure
     Log(CERR) << "Building tree ...\n";
 
-    if (args.treeType == completeInOrder)
+    if (args.treeType == completeKaryInOrder)
         buildCompleteTree(labels.cols(), false, args);
-    else if (args.treeType == completeRandom)
+    else if (args.treeType == completeKaryRandom)
         buildCompleteTree(labels.cols(), true, args);
     else if (args.treeType == balancedInOrder)
         buildBalancedTree(labels.cols(), false, args);

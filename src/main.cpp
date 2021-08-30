@@ -331,11 +331,12 @@ Args:
     -i, --input             Input dataset, required
     -o, --output            Output (model) dir, required
     -m, --model             Model type (default = plt)
-                            Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
+                            Models: plt, hsm, br, ovr, oplt
+    -p, --prediction
     --ensemble              Number of models in ensemble (default = 1)
     -t, --threads           Number of threads to use (default = 0)
                             Note: set to -1 to use a number of available CPUs - 1, 0 to use a number of available CPUs
-    --memLimit              Maximum amount of memory (in G) available for training (defualt = 0)
+    --memLimit              Maximum amount of memory (in G) available for training (default = 0)
                             Note: set to 0 to set limit to amount of available memory
     --hash                  Size of features space (default = 0)
                             Note: set to 0 to disable hashing
@@ -350,15 +351,14 @@ Args:
     --optim, --optimizer    Optimizer used for training binary classifiers (default = liblinear)
                             Optimizers: liblinear, sgd, adagrad
     --bias                  Value of the bias features (default = 1)
-    --inbalanceLabelsWeighting      Increase the weight of minority labels in base classifiers (default = 0)
     --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
     --loss                  Loss function to optimize in base classifier (default = log)
                             Losses: log (alias logistic), l2 (alias squaredHinge)
 
-    LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
-    -c, --liblinearC        LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
-                            smaller values specify stronger regularization (default = 10.0)
-    --eps, --liblinearEps   LIBLINEAR tolerance of termination criterion (default = 0.1)
+    LIBLINEAR:                      (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
+    -c, --liblinearC                LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
+                                    smaller values specify stronger regularization (default = 10.0)
+    --eps, --liblinearEps           LIBLINEAR tolerance of termination criterion (default = 0.1)
     --solver, --liblinearSolver     LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
                                     Overrides default solver set by loss parameter.
                                     Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
@@ -372,7 +372,7 @@ Args:
 
     Tree (PLT and HSM):
     -a, --arity             Arity of tree nodes (default = 2)
-    --maxLeaves             Maximum degree of pre-leaf nodes. (default = 100)
+    --maxLeaves             Maximum degree of pre-leaf nodes (default = 100)
     --tree                  File with tree structure
     --treeType              Type of a tree to build if file with structure is not provided
                             tree types: hierarchicalKmeans, huffman, completeKaryInOrder, completeKaryRandom,
@@ -388,15 +388,6 @@ Args:
     --threshold             Predict labels with probability above the threshold (default = 0)
     --thresholds            Path to a file with threshold for each label, one threshold per line
     --labelsWeights         Path to a file with weight for each label, one weight per line
-    --setUtility            Type of set-utility function for prediction using svbopFull, svbopHf, svbopMips models.
-                            Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
-                            See: https://arxiv.org/abs/1906.08129
-
-    Set-Utility:
-    --alpha
-    --beta
-    --delta
-    --gamma
 
     Test:
     --measures              Evaluate test using set of measures (default = "p@1,p@3,p@5")

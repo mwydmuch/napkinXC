@@ -302,10 +302,10 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 treeType = custom;
             } else if (args[ai] == "--treeType") {
                 treeTypeName = args.at(ai + 1);
-                if (args.at(ai + 1) == "completeInOrder")
-                    treeType = completeInOrder;
-                else if (args.at(ai + 1) == "completeRandom")
-                    treeType = completeRandom;
+                if (args.at(ai + 1) == "completeKaryInOrder")
+                    treeType = completeKaryInOrder;
+                else if (args.at(ai + 1) == "completeKaryRandom")
+                    treeType = completeKaryRandom;
                 else if (args.at(ai + 1) == "balancedInOrder")
                     treeType = balancedInOrder;
                 else if (args.at(ai + 1) == "balancedRandom")

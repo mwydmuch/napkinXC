@@ -35,8 +35,8 @@ enum ModelType {
 enum TreeType {
     hierarchicalKmeans,
     huffman,
-    completeInOrder,
-    completeRandom,
+    completeKaryInOrder,
+    completeKaryRandom,
     balancedInOrder,
     balancedRandom,
     onlineKaryComplete,

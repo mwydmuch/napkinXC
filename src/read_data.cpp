@@ -24,10 +24,11 @@
 
 #include "read_data.h"
 #include "log.h"
+#include "misc.h"
 
 
 // Reads train/test data to sparse matrix
-void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+void readData(SRMatrix& labels, SRMatrix& features, Args& args) {
     if (args.input.empty())
         throw std::invalid_argument("Empty input path");
 
@@ -56,12 +57,11 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
     if (args.hash) hFeatures = args.hash;
 
     // Read data points
-    std::vector<Label> lLabels;
-    std::vector<Feature> lFeatures;
+    std::vector<IRVPair> lLabels;
+    std::vector<IRVPair> lFeatures;
     if (!hRows) Log(CERR) << "  ?%\r";
     do {
         if (hRows) printProgress(i, hRows); // If the number of rows is know, print progress
-
         lLabels.clear();
         lFeatures.clear();
 
@@ -108,14 +108,14 @@ void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) 
 }
 
 // Reads line in LibSvm format label,label,... feature(:value) feature(:value) ...
-void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures) {
+void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVPair>& lFeatures) {
     // Trim leading spaces
     size_t nextPos, pos = line.find_first_not_of(' ');
 
     while ((nextPos = line.find_first_of(",: ", pos))) {
         // Label
         if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' ' || nextPos == std::string::npos))
-            lLabels.emplace_back(std::strtol(&line[pos], NULL, 10));
+            lLabels.emplace_back(std::strtol(&line[pos], NULL, 10), 1.0);
 
         // Feature index
         else if ((pos == 0 || line[pos - 1] == ' ') && line[nextPos] == ':')
@@ -123,19 +123,19 @@ void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Featur
 
         // Feature value
         else if (line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
-            lFeatures.back().value = std::strtod(&line[pos], NULL);
+            lFeatures.back().value = strtor(&line[pos], NULL);
 
         if (nextPos == std::string::npos) break;
         pos = nextPos + 1;
     }
 }
 
-void prepareFeaturesVector(std::vector<Feature> &lFeatures, double bias) {
+void prepareFeaturesVector(std::vector<IRVPair> &lFeatures, Real bias) {
     // Add bias feature (bias feature has index 1)
     lFeatures.emplace_back(1, bias);
 }
 
-void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashSize, double featuresThreshold) {
+void processFeaturesVector(std::vector<IRVPair> &lFeatures, bool norm, size_t hashSize, Real featuresThreshold) {
     //Shift index by 2 because LibLinear ignore feature 0 and feature 1 is reserved for bias
     //assert(!lFeatures.empty());
     shift(lFeatures.begin() + 1, lFeatures.end(), 2);
@@ -146,18 +146,18 @@ void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm, int hashS
         for (int j = 1; j < lFeatures.size(); ++j)
             lHashed[hash(lFeatures[j].index) % hashSize] += lFeatures[j].value;
 
-        lFeatures.erase (lFeatures.begin() + 1, lFeatures.end()); // Keep bias feature
+        lFeatures.erase(lFeatures.begin() + 1, lFeatures.end()); // Keep bias feature
         for (const auto& f : lHashed) lFeatures.emplace_back(f.first + 2, f.second);
     }
 
     // Norm row
-    if (norm) unitNorm(lFeatures.begin() + 1, lFeatures.end());
+    if (norm) unitNorm(lFeatures.begin() + 1, lFeatures.end()); // Skip bias feature
 
     // Apply features threshold
-    if (featuresThreshold > 0) threshold(lFeatures, featuresThreshold);
+    if (featuresThreshold > 0) thresholdAbs(lFeatures.begin() + 1, lFeatures.end(), featuresThreshold);
 
     // Check if it requires sorting
-    if (!std::is_sorted(lFeatures.begin(), lFeatures.end())) sort(lFeatures.begin(), lFeatures.end());
+    if (!std::is_sorted(lFeatures.begin(), lFeatures.end(), IRVPairIndexComp())) sort(lFeatures.begin(), lFeatures.end(), IRVPairIndexComp());
 }
 
 

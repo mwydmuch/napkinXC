@@ -26,12 +26,12 @@
 #include <pybind11/functional.h>
 
 #include "args.h"
-#include "read_data.h"
+#include "basic_types.h"
 #include "measure.h"
 #include "model.h"
 #include "plt.h"
+#include "read_data.h"
 #include "resources.h"
-#include "types.h"
 #include "version.h"
 
 #include <thread>
@@ -48,6 +48,7 @@ enum InputDataType {
     csr_matrix
 };
 
+typedef std::tuple<py::array_t<Real>, py::array_t<int>, py::array_t<int>> ScipyCSRMatrixData;
 
 template<typename F> void runAsInterruptable(F func){
     std::atomic<bool> done(false);
@@ -64,36 +65,35 @@ template<typename F> void runAsInterruptable(F func){
     t.join();
 }
 
-template<typename T> std::vector<T> pyListToVector(py::list const &list){
-    std::vector<T> vector(list.size());
-    for (size_t i = 0; i < list.size(); ++i) vector[i] = py::cast<T>(list[i]);
+template<typename T> std::vector<T> pyListToVector(py::list const &pyList){
+    std::vector<T> vector(pyList.size());
+    for (size_t i = 0; i < pyList.size(); ++i) vector[i] = py::cast<T>(pyList[i]);
     return vector;
 }
 
-template<typename T> std::vector<T> pyDataToSparseVector(py::object input, InputDataType dataType) {
-    std::vector<T> output;
-    pyDataToSparseVector(output, input, dataType);
-    return output;
-}
-
 template<typename T> void pyDataToSparseVector(std::vector<T>& output, py::object input, InputDataType dataType) {
-    switch (dataType) {
-        case ndarray: {
-            py::array_t<double, py::array::c_style | py::array::forcecast> array(input); // TODO: test it with different strides
-            for(int i = 0; i < array.size(); ++i)
-                output.push_back({i, array.at(i)});
-        }
-        case list: {
-            // Sparse vectors are expected to be list of (id, value) tuples
-            py::list list(input);
-            for (int i = 0; i < list.size(); ++i) {
-                py::tuple pyTuple(list[i]);
-                output.push_back({py::cast<int>(pyTuple[0]), py::cast<double>(pyTuple[1])});
-            }
-        }
-        default:
-            throw py::value_error("Unsupported data type for pyDataToSparseVector");
+    if(dataType == ndarray) {
+        py::array_t<Real, py::array::c_style | py::array::forcecast> pyArray(input); // TODO: test it with different strides
+        output.reserve(output.size() + pyArray.size());
+        for(int i = 0; i < pyArray.size(); ++i) output.emplace_back(i, pyArray.at(i));
     }
+    else if(dataType == list) {
+        py::list pyList(input);
+        if(pyList.size() == 0) return;
+        output.reserve(output.size() + pyList.size());
+
+        // Sparse vectors are expected to be list of (id (int), value (float)) tuples or list of ids (int).
+        if(py::isinstance<py::tuple>(pyList[0])){
+            for (int i = 0; i < pyList.size(); ++i) {
+                py::tuple pyTuple(pyList[i]);
+                output.emplace_back(py::cast<int>(pyTuple[0]), py::cast<Real>(pyTuple[1]));
+            }
+        } else {
+            for (int i = 0; i < pyList.size(); ++i)
+                output.emplace_back(py::cast<int>(pyList[i]), 1);
+        }
+    }
+    else throw py::value_error("Unsupported data type for pyDataToSparseVector");
 }
 
 template<typename T> py::array_t<T> dataToPyArray(T* ptr, std::vector<py::ssize_t> dims){
@@ -106,52 +106,75 @@ template<typename T> py::array_t<T> dataToPyArray(T* ptr, std::vector<py::ssize_
         dims.size(),        // How many dimensions?
         dims,               // Number of elements for each dimension */
         strides             // Strides for each dimension */
-    ));
+        ));
 }
 
 
-std::tuple<std::vector<std::vector<int>>, py::array_t<int>, py::array_t<int>, py::array_t<double>> loadLibSvmFile(std::string path){
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+ScipyCSRMatrixData SRMatrixToScipyCSRMatrix(SRMatrix& matrix, bool sortIndices){
+    int rows = matrix.rows();
+    int cells = matrix.cells();
+
+    Real* data = new Real[cells];
+    int* indices = new int[cells];
+    int* indptr = new int[rows + 1];
+
+    int i = 0;
+    for(auto r = 0; r < matrix.rows(); ++r){
+        indptr[r] = i;
+        if (sortIndices && !std::is_sorted(matrix[r].begin(), matrix[r].end(), IRVPairIndexComp()))
+            std::sort(matrix[r].begin(), matrix[r].end(), IRVPairIndexComp());
+        for(auto &f : matrix[r]){
+            indices[i] = f.index;
+            data[i] = f.value;
+            ++i;
+        }
+    }
+    indptr[rows] = cells;
+
+    auto pyData = dataToPyArray(data, {cells});
+    auto pyIndices = dataToPyArray(indices, {cells});
+    auto pyIndptr = dataToPyArray(indptr, {rows + 1});
+
+    return std::make_tuple(pyData, pyIndices, pyIndptr);
+}
+
+std::tuple<std::vector<std::vector<int>>, ScipyCSRMatrixData> loadLibSvmFileLabelsList(std::string path, bool sortIndices){
+    SRMatrix labels;
+    SRMatrix features;
 
     Args args;
     args.input = path;
     args.processData = false;
     readData(labels, features, args);
 
-    int rows = features.rows();
-    int cells = features.cells();
-
-    // For labels
+    // Labels
+    int rows = labels.rows();
     std::vector<std::vector<Label>> pyLabels(labels.rows());
     for(auto r = 0; r < labels.rows(); ++r){
-        for(auto l = labels[r]; (*l) != -1; ++l) pyLabels[r].push_back(*l);
+        for(auto &l : labels[r]) pyLabels[r].push_back(l.index);
+        if (sortIndices && !std::is_sorted(pyLabels[r].begin(), pyLabels[r].end()))
+            std::sort(pyLabels[r].begin(), pyLabels[r].end());
     }
-    labels.clear();
 
-    // For feature CSR-matrix
-    int* indptr = new int[rows + 1];
-    int* indices = new int[cells];
-    double* data = new double[cells];
+    // Features
+    auto pyFeatures = SRMatrixToScipyCSRMatrix(features, sortIndices);
 
-    int i = 0;
-    for(auto r = 0; r < features.rows(); ++r){
-        indptr[r] = i;
-        if (!std::is_sorted(features[r], features[r] + features.size(r))) std::sort(features[r], features[r] + features.size(r));
-        for(auto f = features[r]; (*f).index != -1; ++f){
-            indices[i] = (*f).index;
-            data[i] = (*f).value;
-            ++i;
-        }
-    }
-    indptr[rows] = cells;
-    features.clear();
+    return std::make_tuple(pyLabels, pyFeatures);
+}
 
-    auto pyIndptr = dataToPyArray(indptr, {rows + 1});
-    auto pyIndices = dataToPyArray(indices, {cells});
-    auto pyData = dataToPyArray(data, {cells});
+std::tuple<ScipyCSRMatrixData, ScipyCSRMatrixData> loadLibSvmFileLabelsCSRMatrix(std::string path, bool sortIndices) {
+    SRMatrix labels;
+    SRMatrix features;
 
-    return std::make_tuple(pyLabels, pyIndptr, pyIndices, pyData);
+    Args args;
+    args.input = path;
+    args.processData = false;
+    readData(labels, features, args);
+
+    auto pyLabels = SRMatrixToScipyCSRMatrix(labels, sortIndices);
+    auto pyFeatures = SRMatrixToScipyCSRMatrix(features, sortIndices);
+
+    return std::make_tuple(pyLabels, pyFeatures);
 }
 
 
@@ -166,8 +189,8 @@ public:
     void fitOnFile(std::string path){
         runAsInterruptable([&] {
             args.input = path;
-            SRMatrix<Label> labels;
-            SRMatrix<Feature> features;
+            SRMatrix labels;
+            SRMatrix features;
             readData(labels, features, args);
             fitHelper(labels, features);
         });
@@ -175,10 +198,10 @@ public:
 
     void fit(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
         runAsInterruptable([&] {
-            SRMatrix<Label> labels;
-            SRMatrix<Feature> features;
-            readFeatureMatrix(features, inputFeatures, (InputDataType) featuresDataType);
-            readLabelsMatrix(labels, inputLabels, (InputDataType) labelsDataType);
+            SRMatrix labels;
+            SRMatrix features;
+            readSRMatrix(features, inputFeatures, (InputDataType) featuresDataType, true);
+            readSRMatrix(labels, inputLabels, (InputDataType) labelsDataType);
             fitHelper(labels, features);
         });
     }
@@ -203,41 +226,41 @@ public:
         if(model != nullptr && model->isLoaded()) model->unload();
     }
 
-    void setThresholds(std::vector<double> thresholds){
+    void setThresholds(std::vector<Real> thresholds){
         load();
         model->setThresholds(thresholds);
     }
 
-    void setLabelsWeights(std::vector<double> weights){
+    void setLabelsWeights(std::vector<Real> weights){
         load();
         model->setLabelsWeights(weights);
     }
 
-    std::vector<std::vector<int>> predict(py::object inputFeatures, int featuresDataType, int topK, double threshold){
+    std::vector<std::vector<int>> predict(py::object inputFeatures, int featuresDataType, int topK, Real threshold){
         auto predWithProba = predictProba(inputFeatures, featuresDataType, topK, threshold);
         return dropProbaHelper(predWithProba);
     }
 
-    std::vector<std::vector<std::pair<int, double>>> predictProba(py::object inputFeatures, int featuresDataType, int topK, double threshold){
-        std::vector<std::vector<std::pair<int, double>>> pred;
+    std::vector<std::vector<std::pair<int, Real>>> predictProba(py::object inputFeatures, int featuresDataType, int topK, Real threshold){
+        std::vector<std::vector<std::pair<int, Real>>> pred;
         runAsInterruptable([&] {
             load();
-            SRMatrix<Feature> features;
-            readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
+            SRMatrix features;
+            readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
             pred = predictHelper(features, topK, threshold);
         });
 
         return pred;
     }
 
-    std::vector<double> ofo(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType) {
-        std::vector<double> thresholds;
+    std::vector<Real> ofo(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType) {
+        std::vector<Real> thresholds;
         runAsInterruptable([&] {
             load();
-            SRMatrix<Label> labels;
-            SRMatrix<Feature> features;
-            readFeatureMatrix(features, inputFeatures, (InputDataType) featuresDataType);
-            readLabelsMatrix(labels, inputLabels, (InputDataType) labelsDataType);
+            SRMatrix labels;
+            SRMatrix features;
+            readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
+            readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
             args.printArgs("ofo");
             thresholds = model->ofo(features, labels, args);
         });
@@ -245,19 +268,19 @@ public:
         return thresholds;
     }
 
-    std::vector<std::vector<int>> predictForFile(std::string path, int topK, double threshold) {
+    std::vector<std::vector<int>> predictForFile(std::string path, int topK, Real threshold) {
         auto predWithProba = predictProbaForFile(path, topK, threshold);
         return dropProbaHelper(predWithProba);
     }
 
-    std::vector<std::vector<std::pair<int, double>>> predictProbaForFile(std::string path, int topK, double threshold) {
-        std::vector<std::vector<std::pair<int, double>>> pred;
+    std::vector<std::vector<std::pair<int, Real>>> predictProbaForFile(std::string path, int topK, Real threshold) {
+        std::vector<std::vector<std::pair<int, Real>>> pred;
         runAsInterruptable([&] {
             load();
             args.input = path;
 
-            SRMatrix<Label> labels;
-            SRMatrix<Feature> features;
+            SRMatrix labels;
+            SRMatrix features;
             readData(labels, features, args);
             pred = predictHelper(features, topK, threshold);
         });
@@ -265,29 +288,29 @@ public:
         return pred;
     }
 
-    std::vector<std::pair<std::string, double>> test(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType,
-                                                     int topK, double threshold, std::string measuresStr){
-        std::vector<std::pair<std::string, double>> results;
+    std::vector<std::pair<std::string, Real>> test(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType,
+                                                     int topK, Real threshold, std::string measuresStr){
+        std::vector<std::pair<std::string, Real>> results;
         runAsInterruptable([&] {
             load();
-            SRMatrix<Label> labels;
-            SRMatrix<Feature> features;
-            readFeatureMatrix(features, inputFeatures, (InputDataType) featuresDataType);
-            readLabelsMatrix(labels, inputLabels, (InputDataType) labelsDataType);
+            SRMatrix labels;
+            SRMatrix features;
+            readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
+            readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
             results = testHelper(labels, features, topK, threshold, measuresStr);
         });
 
         return results;
     }
 
-    std::vector<std::pair<std::string, double>> testOnFile(std::string path, int topK, double threshold, std::string measuresStr){
-        std::vector<std::pair<std::string, double>> results;
+    std::vector<std::pair<std::string, Real>> testOnFile(std::string path, int topK, Real threshold, std::string measuresStr){
+        std::vector<std::pair<std::string, Real>> results;
         runAsInterruptable([&] {
             load();
             args.input = path;
 
-            SRMatrix<Label> labels;
-            SRMatrix<Feature> features;
+            SRMatrix labels;
+            SRMatrix features;
             readData(labels, features, args);
             results = testHelper(labels, features, topK, threshold, measuresStr);
         });
@@ -301,10 +324,10 @@ public:
                 if(model == nullptr) model = Model::factory(args);
                 auto treeModel = std::dynamic_pointer_cast<PLT>(model);
 
-                SRMatrix<Label> labels;
-                SRMatrix<Feature> features;
-                readFeatureMatrix(features, inputFeatures, (InputDataType)featuresDataType);
-                readLabelsMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+                SRMatrix labels;
+                SRMatrix features;
+                readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
+                readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
 
                 makeDir(args.output);
                 args.saveToFile(joinPath(args.output, "args.bin"));
@@ -313,9 +336,12 @@ public:
         }
     }
 
-    std::vector<std::vector<std::pair<int, double>>> getNodesToUpdate(std::vector<std::vector<Label>>& labels){
-        std::vector<std::vector<std::pair<int, double>>> nodesToUpdate;
+    std::vector<std::vector<std::pair<int, Real>>> getNodesToUpdate(py::object inputLabels, int labelsDataType){
+        std::vector<std::vector<std::pair<int, Real>>> nodesToUpdate;
         if(args.modelType == plt || args.modelType == hsm) {
+            SRMatrix labels;
+            readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+
             preload();
             auto treeModel = std::dynamic_pointer_cast<PLT>(model);
             nodesToUpdate = treeModel->getNodesToUpdate(labels);
@@ -323,9 +349,12 @@ public:
         return nodesToUpdate;
     }
 
-    std::vector<std::vector<std::pair<int, double>>> getNodesUpdates(std::vector<std::vector<Label>>& labels){
-        std::vector<std::vector<std::pair<int, double>>> nodesUpdates;
+    std::vector<std::vector<std::pair<int, Real>>> getNodesUpdates(py::object inputLabels, int labelsDataType){
+        std::vector<std::vector<std::pair<int, Real>>> nodesUpdates;
         if(args.modelType == plt || args.modelType == hsm) {
+            SRMatrix labels;
+            readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+
             preload();
             auto treeModel = std::dynamic_pointer_cast<PLT>(model);
             nodesUpdates = treeModel->getNodesUpdates(labels);
@@ -353,112 +382,69 @@ public:
         }
     }
 
-    double callPythonFunction(std::function<double(py::object)> pyFunc, py::object pyArg){
-        return pyFunc(pyArg);
-    }
-
-    double callPythonObjectMethod(py::object pyObject, py::object pyArg, std::string methodName){
-        return pyObject.attr(methodName.c_str())(pyArg).cast<double>();
-    }
-
-    bool testDataLoad(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType, std::string path, double eps){
-        SRMatrix<Label> labelsFromPython;
-        SRMatrix<Feature> featuresFromPython;
-        readFeatureMatrix(featuresFromPython, inputFeatures, (InputDataType)featuresDataType);
-        readLabelsMatrix(labelsFromPython, inputLabels, (InputDataType)labelsDataType);
-
-        args.input = path;
-
-        SRMatrix<Label> labelsFromFile;
-        SRMatrix<Feature> featuresFromFile;
-        readData(labelsFromFile, featuresFromFile, args);
-
-        // Labels can be check by comparison
-        if (labelsFromPython != labelsFromFile)
-            return false;
-
-        // Due to differences in precision features needs manual check
-        if(featuresFromFile.cells() != featuresFromPython.cells()
-            || featuresFromFile.cols() != featuresFromPython.cols()
-            || featuresFromFile.rows() != featuresFromPython.rows())
-            return false;
-
-        for(int r = 0; r < featuresFromFile.rows(); ++r){
-            for(int c = 0; c < featuresFromFile.size(r); ++c){
-                if(featuresFromFile[r][c].index != featuresFromPython[r][c].index)
-                    return false;
-
-                if(std::fabs(featuresFromFile[r][c].value - featuresFromPython[r][c].value) > eps)
-                    return false;
-            }
-        }
-
-        return true;
-    }
+//    ScipyCSRMatrixData getWeights() {
+//        int cells = 0;
+//        int rows = 0;
+//
+//        Real* data = new Real[cells];
+//        int* indices = new int[cells];
+//        int* indptr = new int[rows + 1];
+//
+//        //TODO
+//
+//        auto pyData = dataToPyArray(data, {cells});
+//        auto pyIndices = dataToPyArray(indices, {cells});
+//        auto pyIndptr = dataToPyArray(indptr, {rows + 1});
+//
+//        return std::make_tuple(pyData, pyIndices, pyIndptr);
+//    }
+//
+//    void setWeights(py::object input, InputDataType dataTyp){
+//        //TODO
+//    }
 
 private:
     Args args;
     std::shared_ptr<Model> model;
 
-    // Reads multiple items from a python object and inserts onto a SRMatrix<Label>
-    void readLabelsMatrix(SRMatrix<Label>& output, py::object& input, InputDataType dataType) {
-        if (dataType == list && py::isinstance<py::list>(input)) {
-            py::list rows(input);
-            for (size_t r = 0; r < rows.size(); ++r) {
-                std::vector<Label> rLabels;
+    // Reads multiple items from a python object and inserts onto a SRMatrix
+    //SRMatrix readSRMatrix(py::object input, InputDataType dataType) {
+    //SRMatrix output;
+    void readSRMatrix(SRMatrix& output, py::object& input, InputDataType dataType, bool process = false) {
+        std::vector<IRVPair> rVec;
 
-                // Multi-label data
-                if (py::isinstance<py::list>(rows[r]) || py::isinstance<py::tuple>(rows[r])) {
-                    py::list row(rows[r]);
-                    std::vector<double> _rLabels = pyListToVector<double>(row);
-                    rLabels = std::vector<Label>(_rLabels.begin(), _rLabels.end());
-                }
-                else //if (py::isinstance<py::float_>(rows[r]) || py::isinstance<py::int_>(rows[r]))
-                    rLabels.push_back(static_cast<Label>(py::cast<double>(rows[r])));
+        if (dataType == list) {
+            py::list pyData(input);
+            for (size_t i = 0; i < pyData.size(); ++i) {
+                rVec.clear();
+                if(process) prepareFeaturesVector(rVec, args.bias);
 
-                output.appendRow(rLabels);
-            }
-        } else
-            throw py::value_error("Unsupported data type for Y, should be list of lists or tuples");
-    }
+                pyDataToSparseVector<IRVPair>(rVec, pyData[i], list);
 
-    // Reads multiple items from a python object and inserts onto a SRMatrix<Feature>
-    //SRMatrix<Feature> readFeatureMatrix(py::object input, InputDataType dataType) {
-        //SRMatrix<Feature> output;
-    void readFeatureMatrix(SRMatrix<Feature>& output, py::object& input, InputDataType dataType) {
-        if (dataType == list && py::isinstance<py::list>(input)) {
-            py::list data(input);
-            std::vector<Feature> rFeatures;
-            for (size_t i = 0; i < data.size(); ++i) {
-                rFeatures.clear();
-                prepareFeaturesVector(rFeatures, args.bias);
-
-                pyDataToSparseVector<Feature>(rFeatures, data[i], list);
-
-                processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
-                output.appendRow(rFeatures);
+                if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+                output.appendRow(rVec);
             }
         } else if (dataType == ndarray) {
-            py::array_t<float, py::array::c_style | py::array::forcecast> data(input);
-            auto buffer = data.request();
+            py::array_t<Real, py::array::c_style | py::array::forcecast> pyData(input);
+            auto buffer = pyData.request();
             if (buffer.ndim != 2) throw py::value_error("Data must be a 2d array");
 
             size_t rows = buffer.shape[0];
-            size_t features = buffer.shape[1];
+            size_t rSize = buffer.shape[1];
 
             // Read each row from the sparse matrix, and insert
-            std::vector<Feature> rFeatures;
-            rFeatures.reserve(features);
             for (size_t r = 0; r < rows; ++r) {
-                const float* rData = data.data(r);
-                rFeatures.clear();
-                prepareFeaturesVector(rFeatures, args.bias);
+                const Real* rData = pyData.data(r);
+                rVec.clear();
+                if(process) prepareFeaturesVector(rVec, args.bias);
 
-                for (int f = 0; f < features; ++f)
-                    rFeatures.push_back({f, rData[f]});
+                for (int f = 0; f < rSize; ++f) {
+                    Real v = rData[f];
+                    if (v != 0) rVec.emplace_back(f, rData[f]);
+                }
 
-                processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
-                output.appendRow(rFeatures);
+                if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+                output.appendRow(rVec);
             }
         } else if (dataType == csr_matrix) {
             // Check for attributes
@@ -469,25 +455,25 @@ private:
             // Try to interpret input data as a csr_matrix CSR matrix
             py::array_t<int> indptr(input.attr("indptr"));
             py::array_t<int> indices(input.attr("indices"));
-            py::array_t<double> data(input.attr("data"));
+            py::array_t<Real> data(input.attr("data"));
 
             // Read each row from the sparse matrix, and insert
-            std::vector<Feature> rFeatures;
             for (int rId = 0; rId < indptr.size() - 1; ++rId) {
-                rFeatures.clear();
-                prepareFeaturesVector(rFeatures, args.bias);
+                rVec.clear();
+                if(process) prepareFeaturesVector(rVec, args.bias);
 
                 for (int i = indptr.at(rId); i < indptr.at(rId + 1); ++i)
-                    rFeatures.push_back({indices.at(i), data.at(i)});
+                    rVec.emplace_back(indices.at(i), data.at(i));
 
-                processFeaturesVector(rFeatures, args.norm, args.hash, args.featuresThreshold);
-                output.appendRow(rFeatures);
+                if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+                output.appendRow(rVec);
             }
         } else
             throw py::value_error("Unsupported data type");
     }
 
-    inline void fitHelper(SRMatrix<Label>& labels, SRMatrix<Feature>& features){
+    inline void fitHelper(SRMatrix& labels, SRMatrix& features){
+        // Save args to file
         args.printArgs("train");
         makeDir(args.output);
         args.saveToFile(joinPath(args.output, "args.bin"));
@@ -497,7 +483,7 @@ private:
         model->train(labels, features, args, args.output);
     }
 
-    inline std::vector<std::vector<std::pair<int, double>>> predictHelper(SRMatrix<Feature>& features, int topK, double threshold){
+    inline std::vector<std::vector<std::pair<int, Real>>> predictHelper(SRMatrix& features, int topK, Real threshold){
         args.printArgs("predict");
 
         // TODO: refactor this
@@ -506,10 +492,10 @@ private:
         auto predictions = model->predictBatch(features, args);
 
         // This is only safe because it's struct with two fields casted to pair, don't do this with tuples!
-        return reinterpret_cast<std::vector<std::vector<std::pair<int, double>>>&>(predictions);
+        return reinterpret_cast<std::vector<std::vector<std::pair<int, Real>>>&>(predictions);
     }
 
-    inline std::vector<std::pair<std::string, double>> testHelper(SRMatrix<Label>& labels, SRMatrix<Feature>& features, int topK, double threshold, std::string measuresStr){
+    inline std::vector<std::pair<std::string, Real>> testHelper(SRMatrix& labels, SRMatrix& features, int topK, Real threshold, std::string measuresStr){
         args.printArgs("test");
 
         args.topK = topK;
@@ -520,14 +506,14 @@ private:
         auto measures = Measure::factory(args, model->outputSize());
         for (auto& m : measures) m->accumulate(labels, predictions);
 
-        std::vector<std::pair<std::string, double>> results;
+        std::vector<std::pair<std::string, Real>> results;
         for (auto& m : measures)
             results.push_back({m->getName(), m->value()});
 
         return results;
     }
 
-    inline std::vector<std::vector<int>> dropProbaHelper(std::vector<std::vector<std::pair<int, double>>>& predWithProba){
+    inline std::vector<std::vector<int>> dropProbaHelper(std::vector<std::vector<std::pair<int, Real>>>& predWithProba){
         std::vector<std::vector<int>> pred;
         pred.reserve(predWithProba.size());
         for(const auto& p : predWithProba){
@@ -544,7 +530,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     n.doc() = "Python bindings for napkinXC C++ core";
     n.attr("__version__") = VERSION;
 
-    n.def("_load_libsvm_file", &loadLibSvmFile);
+    n.def("_load_libsvm_file_labels_list", &loadLibSvmFileLabelsList);
+    n.def("_load_libsvm_file_labels_csr_matrix", &loadLibSvmFileLabelsCSRMatrix);
 
     py::enum_<InputDataType>(n, "InputDataType")
     .value("list", list)
@@ -571,9 +558,7 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("get_nodes_to_update", &CPPModel::getNodesToUpdate)
     .def("get_nodes_updates", &CPPModel::getNodesUpdates)
     .def("get_tree_structure", &CPPModel::getTreeStructure)
-    .def("set_tree_structure", &CPPModel::setTreeStructure)
-    //.def("call_python_function", &CPPModel::callPythonFunction)
-    //.def("call_python_object_method", &CPPModel::callPythonObjectMethod)
-    .def("test_data_load", &CPPModel::testDataLoad);
-
+    .def("set_tree_structure", &CPPModel::setTreeStructure);
+//    .def("get_weights", &CPPModel::getWeights)
+//    .def("set_weights", &CPPModel::setWeights);
 }

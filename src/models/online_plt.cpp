@@ -39,7 +39,7 @@ void OnlinePLT::init(Args& args) {
     onlineTree = true;
 }
 
-void OnlinePLT::init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) {
+void OnlinePLT::init(SRMatrix& labels, SRMatrix& features, Args& args) {
     tree = new LabelTree();
 
     if (args.treeType == onlineRandom || args.treeType == onlineBestScore) {
@@ -65,24 +65,23 @@ void OnlinePLT::init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args&
     }
 }
 
-void OnlinePLT::update(const int epoch, const int row, Label* labels, size_t labelsSize, Feature* features, size_t featuresSize,
-                       Args& args) {
+void OnlinePLT::update(const int epoch, const int row, SparseVector& labels, SparseVector& features, Args& args) {
     UnorderedSet<TreeNode *> nPositive;
     UnorderedSet<TreeNode *> nNegative;
     if (epoch == 0 && onlineTree) { // Check if example contains a new label
         std::vector<int> newLabels;
 
         if(args.threads == 1) {
-            for (int i = 0; i < labelsSize; ++i)
-                if (!tree->leaves.count(labels[i])) newLabels.push_back(labels[i]);
+            for (auto &l : labels)
+                if (!tree->leaves.count(l.index)) newLabels.push_back(l.index);
 
             if (!newLabels.empty()) // Expand tree in case of the new label
                 expandTree(newLabels, features, args);
         } else {
             {
                 std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
-                for (int i = 0; i < labelsSize; ++i)
-                    if (!tree->leaves.count(labels[i])) newLabels.push_back(labels[i]);
+                for (auto &l : labels)
+                    if (!tree->leaves.count(l.index)) newLabels.push_back(l.index);
             }
 
             if (!newLabels.empty()) { // Expand tree in case of the new label
@@ -95,15 +94,15 @@ void OnlinePLT::update(const int epoch, const int row, Label* labels, size_t lab
     // Update positive, negative and aux base estimators
     if(epoch == 0 && onlineTree && args.threads > 1) {
         std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
-        getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+        getNodesToUpdate(nPositive, nNegative, labels);
     }
-    else getNodesToUpdate(nPositive, nNegative, labels, labelsSize);
+    else getNodesToUpdate(nPositive, nNegative, labels);
 
     for (const auto &n : nPositive){
-        bases[n->index]->update(1.0, features, args);
-        if (!auxBases[n->index]->isDummy()) auxBases[n->index]->update(0.0, features, args);
+        bases[n->index]->update(1.0, features.data(), args);
+        if (!auxBases[n->index]->isDummy()) auxBases[n->index]->update(0.0, features.data(), args);
     }
-    for (const auto &n : nNegative) bases[n->index]->update(0.0, features, args);
+    for (const auto &n : nNegative) bases[n->index]->update(0.0, features.data(), args);
 }
 
 void OnlinePLT::save(Args& args, std::string output) {
@@ -158,7 +157,7 @@ TreeNode* OnlinePLT::createTreeNode(TreeNode* parent, int label, Base* base, Bas
     return n;
 }
 
-void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* features, Args& args){
+void OnlinePLT::expandTree(const std::vector<Label>& newLabels, SparseVector& features, Args& args){
 
     //Log(CERR) << "  New labels in size of " << newLabels.size() << " ...\n";
 
@@ -191,13 +190,13 @@ void OnlinePLT::expandTree(const std::vector<Label>& newLabels, Feature* feature
 
         else if (args.treeType == onlineBestScore) { // Best score
             //Log(CERR) << "    Current node: " << toExpand->index << "\n";
-            double bestScore = -DBL_MAX;
+            Real bestScore = -DBL_MAX;
             TreeNode *bestChild = toExpand->children[0];
 
             for (auto &child : toExpand->children) {
-                double prob = bases[child->index]->predictProbability(features);
-                double score = (1.0 - alpha) * prob + alpha * std::log(
-                    (static_cast<double>(toExpand->subtreeLeaves) / toExpand->children.size()) / child->subtreeLeaves);
+                Real prob = bases[child->index]->predictProbability(features);
+                Real score = (1.0 - alpha) * prob + alpha * std::log(
+                    (static_cast<Real>(toExpand->subtreeLeaves) / toExpand->children.size()) / child->subtreeLeaves);
                 if (score > bestScore) {
                     bestScore = score;
                     bestChild = child;

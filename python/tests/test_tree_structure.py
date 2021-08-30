@@ -23,10 +23,8 @@ def test_tree_structure():
     nodes_updates = plt.get_nodes_updates(Y)
     assert len(nodes_updates) == len(tree_structure)
 
+    plt.fit(X, Y)
+    tree_structure3 = plt.get_tree_structure()
+    assert len(set(tree_structure) - set(tree_structure3)) == 0
+
     shutil.rmtree(model_path, ignore_errors=True)
-
-
-# def test_no_tree():
-#     plt = PLT(model_path)
-#     tree_structure = plt.get_tree_structure()
-#     assert len(tree_structure) == 0

@@ -26,9 +26,9 @@
 
 #include "base.h"
 #include "linear.h"
-#include "online_optimization.h"
 #include "log.h"
 #include "misc.h"
+#include "online_optimization.h"
 #include "threads.h"
 
 
@@ -52,20 +52,20 @@ Base::Base(Args& args): Base(){
 
 Base::~Base() { clear(); }
 
-void Base::update(double label, Feature* features, Args& args) {
+void Base::update(Real label, Feature* features, Args& args) {
     std::lock_guard<std::mutex> lock(updateMtx);
 
     unsafeUpdate(label, features, args);
 }
 
-void Base::unsafeUpdate(double label, Feature* features, Args& args) {
+void Base::unsafeUpdate(Real label, Feature* features, Args& args) {
     if (args.tmax != -1 && args.tmax < t) return;
 
     ++t;
     if (label == firstClass) ++firstClassCount;
 
-    double pred = W->dot(features);
-    double grad = gradFunc(label, pred, 0); // Online version doesn't support weights
+    Real pred = W->dot(features);
+    Real grad = gradFunc(label, pred, 0); // Online version doesn't support weights  right now
 
     if (args.optimizerType == sgd)
         updateSGD(*W, *G, features, grad, t, args);
@@ -83,16 +83,16 @@ void Base::unsafeUpdate(double label, Feature* features, Args& args) {
 }
 
 void Base::trainLiblinear(ProblemData& problemData, Args& args) {
-    double cost = args.cost;
+    Real cost = args.cost;
     if (args.autoCLog)
-        cost *= 1.0 + log(static_cast<double>(problemData.r) / problemData.binFeatures.size());
+        cost *= 1.0 + log(static_cast<Real>(problemData.r) / problemData.binFeatures.size());
     if (args.autoCLin)
-        cost *= static_cast<double>(problemData.r) / problemData.binFeatures.size();
+        cost *= static_cast<Real>(problemData.r) / problemData.binFeatures.size();
 
     problem P = {.l = static_cast<int>(problemData.binLabels.size()),
                  .n = problemData.n,
                  .y = problemData.binLabels.data(),
-                 .x = problemData.binFeatures.data(),
+                 .x = reinterpret_cast<feature_node**>(problemData.binFeatures.data()),
                  .bias = -1,
                  .W = problemData.instancesWeights.data()};
 
@@ -119,7 +119,7 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
     classCount = M->nr_class;
 
     // Copy weights
-    W = new Vector<Weight>(problemData.n + 1);
+    W = new Vector(problemData.n + 1);
     for (int i = 0; i < problemData.n; ++i) W->insertD(i + 1, M->w[i]); // Shift by 1
 
     if(args.solverType == L2R_L2LOSS_SVC_DUAL || args.solverType == L2R_L2LOSS_SVC ||
@@ -132,35 +132,29 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
 }
 
 void Base::trainOnline(ProblemData& problemData, Args& args) {
-    delete W;
-    delete G;
     classCount = 2;
     firstClass = 1;
     t = 0;
 
-    Vector<Weight>* newW = new Vector<Weight>(problemData.n);
-    Vector<Weight>* newG = nullptr;
-
-    // Set loss function
-    setLoss(args.lossType);
+    Vector* newW = new Vector(problemData.n);
+    Vector* newG = nullptr;
 
     // Set update function
-    void (*updateFunc)(Vector<Weight>&, Vector<Weight>&, Feature*, double, int, Args&);
+    void (*updateFunc)(Vector&, Vector&, Feature*, Real, int, Args&);
     if(args.optimizerType == sgd) {
         updateFunc = &updateSGD;
     }
     else if (args.optimizerType == adagrad){
         updateFunc = &updateAdaGrad;
-        newG = new Vector<Weight>(problemData.n);
+        newG = new Vector(problemData.n);
     }
     else
         throw std::invalid_argument("Unknown online update function type");
 
     const int examples = problemData.binFeatures.size();
-    double loss = 0;
     for (int e = 0; e < args.epochs; ++e)
         for (int r = 0; r < examples; ++r) {
-            double label = problemData.binLabels[r];
+            Real label = problemData.binLabels[r];
             Feature* features = problemData.binFeatures[r];
 
             if (args.tmax != -1 && args.tmax < t) break;
@@ -168,16 +162,10 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             ++t;
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
-            double pred = newW->dot(features);
-            double grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
-            //if (!std::isinf(grad) && !std::isnan(grad))
-            updateFunc(*newW, *newG, features, grad, t, args);
-
-            // Report loss
-//            loss += lossFunc(label, pred, problemData.invPs);
-//            int iter = e * examples + r;
-//            if(iter % 1000 == 999)
-//                Log(CERR) << "  Iter: " << iter << "/" << args.epochs * examples << ", loss: " << loss / iter << "\n";
+            Real pred = newW->dot(features);
+            Real grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
+            if (!std::isinf(grad) && !std::isnan(grad))
+                updateFunc(*newW, *newG, features, grad, t, args);
         }
 
     W = newW;
@@ -185,6 +173,12 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
 }
 
 void Base::train(ProblemData& problemData, Args& args) {
+    // Delete previous weights
+    delete W;
+    delete G;
+
+    // Set loss function
+    setLoss(args.lossType);
 
     if (problemData.binLabels.empty()) {
         firstClass = 0;
@@ -208,14 +202,14 @@ void Base::train(ProblemData& problemData, Args& args) {
         problemData.labels = new int[2];
         problemData.labels[0] = 0;
         problemData.labels[1] = 1;
-        problemData.labelsWeights = new double[2];
+        problemData.labelsWeights = new Real[2];
 
         int negativeLabels = static_cast<int>(problemData.binLabels.size()) - positiveLabels;
         if (negativeLabels > positiveLabels) {
             problemData.labelsWeights[0] = 1.0;
-            problemData.labelsWeights[1] = 1.0 + log(static_cast<double>(negativeLabels) / positiveLabels);
+            problemData.labelsWeights[1] = 1.0 + log(static_cast<Real>(negativeLabels) / positiveLabels);
         } else {
-            problemData.labelsWeights[0] = 1.0 + log(static_cast<double>(positiveLabels) / negativeLabels);
+            problemData.labelsWeights[0] = 1.0 + log(static_cast<Real>(positiveLabels) / negativeLabels);
             problemData.labelsWeights[1] = 1.0;
         }
     }
@@ -223,12 +217,24 @@ void Base::train(ProblemData& problemData, Args& args) {
     if (args.optimizerType == liblinear) trainLiblinear(problemData, args);
     else trainOnline(problemData, args);
 
-    // TODO?: Calculate final training loss
+    // Calculate final train loss
+    if(args.reportLoss) {
+        Real meanLoss = 0;
+        const int examples = problemData.binFeatures.size();
+        for (int r = 0; r < examples; ++r) {
+            Real pred =  W->dot(problemData.binFeatures[r]);
+            if (firstClass == 0) pred *= -1;
+            const Real loss = lossFunc(problemData.binLabels[r], pred, problemData.invPs);
+            if (!std::isinf(loss) && !std::isnan(loss)) meanLoss += loss;
+        }
+        meanLoss /= examples;
+        problemData.loss = meanLoss;
+    }
 
     // Apply threshold and calculate number of non-zero weights
     pruneWeights(args.weightsThreshold);
     if(W->sparseMem() < W->denseMem()){
-        auto newW = new SparseVector<Weight>(*W);
+        auto newW = new SparseVector(*W);
         delete W;
         W = newW;
     }
@@ -243,11 +249,11 @@ void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {
 
     // Init weights
     if (n != 0 && startWithDenseW) {
-        W = new Vector<Weight>(n);
-        if (args.optimizerType == adagrad) G = new Vector<Weight>(n);
+        W = new Vector(n);
+        if (args.optimizerType == adagrad) G = new Vector(n);
     } else {
-        W = new MapVector<Weight>();
-        if (args.optimizerType == adagrad) G = new MapVector<Weight>();
+        W = new MapVector();
+        if (args.optimizerType == adagrad) G = new MapVector();
     }
 
     classCount = 2;
@@ -266,16 +272,16 @@ void Base::finalizeOnlineTraining(Args& args) {
     pruneWeights(args.weightsThreshold);
 }
 
-double Base::predictValue(Feature* features) {
-    if (classCount < 2 || !W) return static_cast<double>((1 - 2 * firstClass) * -10);
-    double val = W->dot(features);
+Real Base::predictValue(SparseVector& features) {
+    if (classCount < 2 || !W) return static_cast<Real>((1 - 2 * firstClass) * -10);
+    Real val = W->dot(features);
     if (firstClass == 0) val *= -1;
 
     return val;
 }
 
-double Base::predictProbability(Feature* features) {
-    double val = predictValue(features);
+Real Base::predictProbability(SparseVector& features) {
+    Real val = predictValue(features);
     if (lossType == squaredHinge)
         //val = 1.0 / (1.0 + std::exp(-2 * val)); // Probability for squared Hinge loss solver
         val = std::exp(-std::pow(std::max(0.0, 1.0 - val), 2));
@@ -295,9 +301,9 @@ void Base::clear() {
     G = nullptr;
 }
 
-void Base::pruneWeights(double threshold) {
+void Base::pruneWeights(Real threshold) {
     if(W != nullptr) {
-        Weight bias = W->at(1); // Do not prune bias feature
+        Real bias = W->at(1); // Do not prune bias feature
         W->prune(threshold);
         W->insertD(1, bias);
     }
@@ -336,27 +342,27 @@ void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
         loadVar(in, n0);
 
         // Decide on optimal representation in case of map
-        size_t denseSize = Vector<Weight>::estimateMem(s, n0);
-        size_t mapSize = MapVector<Weight>::estimateMem(s, n0);
-        size_t sparseSize = SparseVector<Weight>::estimateMem(s, n0);
+        size_t denseSize = Vector::estimateMem(s, n0);
+        size_t mapSize = MapVector::estimateMem(s, n0);
+        size_t sparseSize = SparseVector::estimateMem(s, n0);
         bool loadMap = loadGrads || (mapSize < denseSize || s == 0);
         bool loadSparse = (sparseSize < denseSize || s == 0);
 
-        if(loadAs == map && loadMap) W = new MapVector<Weight>();
-        else if(loadAs == sparse && loadSparse) W = new SparseVector<Weight>();
-        else W = new Vector<Weight>();
+        if(loadAs == map && loadMap) W = new MapVector();
+        else if(loadAs == sparse && loadSparse) W = new SparseVector();
+        else W = new Vector();
         W->load(in);
 
         bool grads;
         loadVar(in, grads);
         if(grads) {
             if(loadGrads){
-                if(loadAs == map && loadMap) G = new MapVector<Weight>();
-                else if(loadAs == sparse && loadSparse) G = new SparseVector<Weight>();
-                else G = new Vector<Weight>();
+                if(loadAs == map && loadMap) G = new MapVector();
+                else if(loadAs == sparse && loadSparse) G = new SparseVector();
+                else G = new Vector();
                 G->load(in);
             }
-            else AbstractVector<Weight>::skipLoad(in);
+            else AbstractVector::skipLoad(in);
         }
 //        Log(CERR) << "  Load base: classCount: " << classCount << ", firstClass: "
 //                  << firstClass << ", non-zero weights: " << n0 << "/" << s << "\n";
@@ -442,12 +448,12 @@ unsigned long long Base::mem(){
     return totalMem;
 }
 
-AbstractVector<Weight>* Base::vecTo(AbstractVector<Weight>* vec, RepresentationType type){
+AbstractVector* Base::vecTo(AbstractVector* vec, RepresentationType type){
     if(vec == nullptr || vec->type() == type) return vec;
-    AbstractVector<Weight>* newVec;
-    if(type == dense) newVec = new Vector<Weight>(*vec);
-    else if(type == map) newVec = new MapVector<Weight>(*vec);
-    else if(type == sparse) newVec = new SparseVector<Weight>(*vec);
+    AbstractVector* newVec;
+    if(type == dense) newVec = new Vector(*vec);
+    else if(type == map) newVec = new MapVector(*vec);
+    else if(type == sparse) newVec = new SparseVector(*vec);
     else throw std::invalid_argument("Unknown representation type");
     return newVec;
 }

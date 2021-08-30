@@ -42,8 +42,8 @@ void BR::unload() {
     bases.shrink_to_fit();
 }
 
-void BR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<double>& binWeights,
-                          SRMatrix<Label>& labels, SRMatrix<Feature>& features, int rStart, int rStop, Args& args){
+void BR::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vector<Feature*>& binFeatures, std::vector<Real>& binWeights,
+                          SRMatrix& labels, SRMatrix& features, int rStart, int rStop, Args& args){
     int rows = labels.rows();
 
     binWeights.resize(rows, 1);
@@ -52,25 +52,21 @@ void BR::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vect
 
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
-
-        int rSize = labels.size(r);
-        auto rLabels = labels[r];
-
-        binFeatures[r] = features[r];
-        for (int i = 0; i < rSize; ++i)
-            if (rLabels[i] >= rStart && rLabels[i] < rStop) binLabels[rLabels[i] - rStart][r] = 1;
+        binFeatures[r] = features[r].data();
+        for (auto &l : labels[r])
+            if (l.index >= rStart && l.index < rStop) binLabels[l.index - rStart][r] = 1;
     }
 }
 
-void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void BR::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
     int lCols = labels.cols();
     int parts = calculateNumberOfParts(labels, features, args);
     int range = lCols / parts + 1;
 
     assert(lCols < range * parts);
-    std::vector<std::vector<double>> binLabels(range);
+    std::vector<std::vector<Real>> binLabels(range);
     std::vector<Feature*> binFeatures;
-    std::vector<double> binWeights;
+    std::vector<Real> binWeights;
     std::vector<ProblemData> binProblemData;
     binWeights.reserve(range);
 
@@ -90,7 +86,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
 
         assignDataPoints(binLabels, binFeatures, binWeights, labels, features, rStart, rStop, args);
 
-        unsigned long long usedMem = binFeatures.size() * ((range + 1) * sizeof(double) + sizeof(void*));
+        unsigned long long usedMem = binFeatures.size() * ((range + 1) * sizeof(Real) + sizeof(void*));
         Log(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 
         // Train bases
@@ -112,7 +108,7 @@ void BR::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args,
     out.close();
 }
 
-void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void BR::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
     prediction = predictForAllLabels(features, args);
 
     if(!labelsWeights.empty())
@@ -137,15 +133,16 @@ void BR::predict(std::vector<Prediction>& prediction, Feature* features, Args& a
     prediction.shrink_to_fit();
 }
 
-std::vector<Prediction> BR::predictForAllLabels(Feature* features, Args& args) {
+std::vector<Prediction> BR::predictForAllLabels(SparseVector& features, Args& args) {
     std::vector<Prediction> prediction;
     prediction.reserve(bases.size());
-    for (int i = 0; i < bases.size(); ++i) prediction.emplace_back(i, bases[i]->predictProbability(features));
+    for (int i = 0; i < bases.size(); ++i)
+        prediction.emplace_back(i, bases[i]->predictProbability(features));
 
     return prediction;
 }
 
-double BR::predictForLabel(Label label, Feature* features, Args& args) {
+Real BR::predictForLabel(Label label, SparseVector& features, Args& args) {
     return bases[label]->predictProbability(features);
 }
 
@@ -162,7 +159,7 @@ void BR::printInfo() {
               << "\n  Mean # estimators per data point: " << bases.size() << "\n";
 }
 
-size_t BR::calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args){
+size_t BR::calculateNumberOfParts(SRMatrix& labels, SRMatrix& features, Args& args){
     int rows = features.rows();
     int lCols = labels.cols();
     int lCells = labels.cells();
@@ -172,9 +169,9 @@ size_t BR::calculateNumberOfParts(SRMatrix<Label>& labels, SRMatrix<Feature>& fe
     unsigned long long dataMem = labels.mem() + features.mem();
     unsigned long long tmpDataMem = 0;
     if(args.modelType == ovr && args.pickOneLabelWeighting)
-        tmpDataMem = lCells * ((lCols + 1) * sizeof(double) + sizeof(void*));
-    else tmpDataMem = rows * ((lCols + 1) * sizeof(double) + sizeof(void*));
-    unsigned long long baseMem = 4 * args.threads * features.cols() * sizeof(double);
+        tmpDataMem = lCells * ((lCols + 1) * sizeof(Real) + sizeof(void*));
+    else tmpDataMem = rows * ((lCols + 1) * sizeof(Real) + sizeof(void*));
+    unsigned long long baseMem = 4 * args.threads * features.cols() * sizeof(Real);
     unsigned long long reqMem = tmpDataMem + dataMem + baseMem;
     //Log(CERR) << "Required memory to train: " << formatMem(reqMem) << ", available memory: " << formatMem(args.memLimit) << "\n";
     Log(CERR) << "Required memory to train: " << formatMem(reqMem) << " (data: " << formatMem(dataMem)

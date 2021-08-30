@@ -36,6 +36,7 @@ PLT::PLT() {
     dataPointCount = 0;
     type = plt;
     name = "PLT";
+    tree = nullptr;
 }
 
 void PLT::unload() {
@@ -47,10 +48,8 @@ void PLT::unload() {
     Model::unload();
 }
 
-void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                           std::vector<std::vector<double>>& binWeights, SRMatrix<Label>& labels,
-                           SRMatrix<Feature>& features, Args& args) {
-
+void PLT::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+                           std::vector<std::vector<Real>>& binWeights, SRMatrix& labels, SRMatrix& features, Args& args) {
     Log(CERR) << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
@@ -65,23 +64,22 @@ void PLT::assignDataPoints(std::vector<std::vector<double>>& binLabels, std::vec
         nPositive.clear();
         nNegative.clear();
 
-        getNodesToUpdate(nPositive, nNegative, labels[r], labels.size(r));
+        getNodesToUpdate(nPositive, nNegative, labels[r]);
         addNodesLabelsAndFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
 
         nodeUpdateCount += nPositive.size() + nNegative.size();
         ++dataPointCount;
     }
 
-    unsigned long long usedMem = nodeUpdateCount * (sizeof(double) + sizeof(Feature*)) + binLabels.size() * (sizeof(binLabels) + sizeof(binFeatures));
+    unsigned long long usedMem = nodeUpdateCount * (sizeof(Real) + sizeof(Feature*)) + binLabels.size() * (sizeof(binLabels) + sizeof(binFeatures));
     Log(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 }
 
-void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
-                           const int* rLabels, const int rSize) {
-    for (int i = 0; i < rSize; ++i) {
-        auto ni = tree->leaves.find(rLabels[i]);
+void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const SparseVector& labels) {
+    for (auto &l : labels) {
+        auto ni = tree->leaves.find(l.index);
         if (ni == tree->leaves.end()) {
-            Log(CERR) << "Encountered example with label " << rLabels[i] << " that does not exists in the tree\n";
+            Log(CERR) << "Encountered example with label " << l.index << " that does not exists in the tree\n";
             continue;
         }
         TreeNode* n = ni->second;
@@ -105,27 +103,29 @@ void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
     }
 }
 
-void PLT::addNodesLabelsAndFeatures(std::vector<std::vector<double>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
+void PLT::addNodesLabelsAndFeatures(std::vector<std::vector<Real>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
                       UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
-                      Feature* features) {
+                      SparseVector& features) {
+    Feature* featuresData = features.data();
+
     for (const auto& n : nPositive) {
         binLabels[n->index].push_back(1.0);
-        binFeatures[n->index].push_back(features);
+        binFeatures[n->index].push_back(featuresData);
     }
 
     for (const auto& n : nNegative) {
         binLabels[n->index].push_back(0.0);
-        binFeatures[n->index].push_back(features);
+        binFeatures[n->index].push_back(featuresData);
     }
 }
 
-std::vector<std::vector<Prediction>> PLT::predictBatch(SRMatrix<Feature>& features, Args& args) {
+std::vector<std::vector<Prediction>> PLT::predictBatch(SRMatrix& features, Args& args) {
     if (args.treeSearchType == exact) return Model::predictBatch(features, args);
     else if (args.treeSearchType == beam) return predictWithBeamSearch(features, args);
     else throw std::invalid_argument("Unknown tree search type");
 }
 
-std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature>& features, Args& args){
+std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& features, Args& args){
     Log(CERR) << "Starting prediction in 1 thread ...\n";
 
     int rows = features.rows();
@@ -159,8 +159,8 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
 
                 for(auto &e : nodePredictions[nIdx]){
                     int rIdx = e.label;
-                    double prob = bases[nIdx]->predictProbability(features[rIdx]) * e.value;
-                    double value = prob;
+                    Real prob = bases[nIdx]->predictProbability(features[rIdx]) * e.value;
+                    Real value = prob;
 
                     // Reweight score
                     if (!labelsWeights.empty()) value *= nodesWeights[nIdx].weight;
@@ -171,7 +171,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
 
-                if(type != base->getType()) base->to(type);
+                //if(type != base->getType()) base->to(type);
             }
 
             for(auto &c : n->children)
@@ -219,39 +219,39 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix<Feature
     return prediction;
 }
 
-void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& args) {
+void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
     int topK = args.topK;
-    double threshold = args.threshold;
+    Real threshold = args.threshold;
 
     if(topK > 0) prediction.reserve(topK);
     TopKQueue<TreeNodeValue> nQueue(args.topK);
 
 
     // Set functions
-    std::function<bool(TreeNode*, double)> ifAddToQueue = [&] (TreeNode* node, double prob) {
+    std::function<bool(TreeNode*, Real)> ifAddToQueue = [&] (TreeNode* node, Real prob) {
         return true;
     };
 
     if(args.threshold > 0)
-        ifAddToQueue = [&] (TreeNode* node, double prob) {
+        ifAddToQueue = [&] (TreeNode* node, Real prob) {
             return (prob >= threshold);
         };
     else if(thresholds.size())
-        ifAddToQueue = [&] (TreeNode* node, double prob) {
+        ifAddToQueue = [&] (TreeNode* node, Real prob) {
             return (prob >= nodesThr[node->index].th);
         };
 
-    std::function<double(TreeNode*, double)> calculateValue = [&] (TreeNode* node, double prob) {
+    std::function<Real(TreeNode*, Real)> calculateValue = [&] (TreeNode* node, Real prob) {
         return prob;
     };
 
     if (!labelsWeights.empty())
-        calculateValue = [&] (TreeNode* node, double prob) {
+        calculateValue = [&] (TreeNode* node, Real prob) {
             return prob * nodesWeights[node->index].weight;
         };
 
     // Predict for root
-    double rootProb = predictForNode(tree->root, features);
+    Real rootProb = predictForNode(tree->root, features);
     addToQueue(ifAddToQueue, calculateValue, nQueue, tree->root, rootProb);
     ++nodeEvaluationCount;
     ++dataPointCount;
@@ -264,8 +264,8 @@ void PLT::predict(std::vector<Prediction>& prediction, Feature* features, Args& 
 }
 
 Prediction PLT::predictNextLabel(
-    std::function<bool(TreeNode*, double)>& ifAddToQueue, std::function<double(TreeNode*, double)>& calculateValue,
-    TopKQueue<TreeNodeValue>& nQueue, Feature* features) {
+    std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,
+    TopKQueue<TreeNodeValue>& nQueue, SparseVector& features) {
     while (!nQueue.empty()) {
         TreeNodeValue nVal = nQueue.top();
         nQueue.pop();
@@ -322,7 +322,7 @@ void PLT::setNodeWeight(TreeNode* n){
     }
 }
 
-void PLT::setThresholds(std::vector<double> th){
+void PLT::setThresholds(std::vector<Real> th){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     Model::setThresholds(th);
@@ -331,7 +331,7 @@ void PLT::setThresholds(std::vector<double> th){
     for (auto& n : tree->nodes) setNodeThreshold(n);
 }
 
-void PLT::setLabelsWeights(std::vector<double> lw){
+void PLT::setLabelsWeights(std::vector<Real> lw){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     Model::setLabelsWeights(lw);
@@ -340,7 +340,7 @@ void PLT::setLabelsWeights(std::vector<double> lw){
     for (auto& n : tree->nodes) setNodeWeight(n);
 }
 
-void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
+void PLT::updateThresholds(UnorderedMap<int, Real> thToUpdate){
     for(auto& th : thToUpdate)
         thresholds[th.first] = th.second;
 
@@ -359,11 +359,11 @@ void PLT::updateThresholds(UnorderedMap<int, double> thToUpdate){
     }
 }
 
-double PLT::predictForLabel(Label label, Feature* features, Args& args) {
+Real PLT::predictForLabel(Label label, SparseVector& features, Args& args) {
     auto fn = tree->leaves.find(label);
     if(fn == tree->leaves.end()) return 0;
     TreeNode* n = fn->second;
-    double value = bases[n->index]->predictProbability(features);
+    Real value = bases[n->index]->predictProbability(features);
     while (n->parent) {
         n = n->parent;
         value *= predictForNode(n, features);
@@ -400,12 +400,12 @@ void PLT::printInfo() {
               << "\n  Tree size: " << tree->nodes.size()
               << "\n  Tree depth: " << tree->getTreeDepth() << "\n";
     if(nodeUpdateCount > 0)
-        Log(COUT) << "  Updated estimators / data point: " << static_cast<double>(nodeUpdateCount) / dataPointCount << "\n";
+        Log(COUT) << "  Updated estimators / data point: " << static_cast<Real>(nodeUpdateCount) / dataPointCount << "\n";
     if(nodeEvaluationCount > 0)
-        Log(COUT) << "  Evaluated estimators / data point: " << static_cast<double>(nodeEvaluationCount) / dataPointCount << "\n";
+        Log(COUT) << "  Evaluated estimators / data point: " << static_cast<Real>(nodeEvaluationCount) / dataPointCount << "\n";
 }
 
-void PLT::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output){
+void PLT::buildTree(SRMatrix& labels, SRMatrix& features, Args& args, std::string output){
     delete tree;
     tree = new LabelTree();
     tree->buildTreeStructure(labels, features, args);
@@ -415,7 +415,7 @@ void PLT::buildTree(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& 
     tree->saveTreeStructure(joinPath(output, "tree.txt"));
 }
 
-std::vector<std::vector<std::pair<int, double>>> PLT::getNodesToUpdate(std::vector<std::vector<Label>>& labels){
+std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesToUpdate(const SRMatrix& labels){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     // Positive and negative nodes
@@ -425,8 +425,8 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesToUpdate(std::vect
     Log(CERR) << "Getting nodes to update ...\n";
 
     // Gather examples for each node
-    int rows = labels.size();
-    std::vector<std::vector<std::pair<int, double>>> nodesToUpdate(rows);
+    int rows = labels.rows();
+    std::vector<std::vector<std::pair<int, Real>>> nodesToUpdate(rows);
 
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
@@ -434,7 +434,7 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesToUpdate(std::vect
         nPositive.clear();
         nNegative.clear();
 
-        getNodesToUpdate(nPositive, nNegative, labels[r].data(), labels[r].size());
+        getNodesToUpdate(nPositive, nNegative, labels[r]);
         nodesToUpdate[r].reserve(nPositive.size() + nNegative.size());
         for (const auto& n : nPositive) nodesToUpdate[r].emplace_back(n->index, 1.0);
         for (const auto& n : nNegative) nodesToUpdate[r].emplace_back(n->index, 0);
@@ -443,7 +443,7 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesToUpdate(std::vect
     return nodesToUpdate;
 }
 
-std::vector<std::vector<std::pair<int, double>>> PLT::getNodesUpdates(std::vector<std::vector<Label>>& labels){
+std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesUpdates(const SRMatrix& labels){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     // Positive and negative nodes
@@ -453,8 +453,8 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesUpdates(std::vecto
     Log(CERR) << "Getting nodes to update ...\n";
 
     // Gather examples for each node
-    int rows = labels.size();
-    std::vector<std::vector<std::pair<int, double>>> nodesDataPoints(tree->size());
+    int rows = labels.rows();
+    std::vector<std::vector<std::pair<int, Real>>> nodesDataPoints(tree->size());
 
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
@@ -462,7 +462,7 @@ std::vector<std::vector<std::pair<int, double>>> PLT::getNodesUpdates(std::vecto
         nPositive.clear();
         nNegative.clear();
 
-        getNodesToUpdate(nPositive, nNegative, labels[r].data(), labels[r].size());
+        getNodesToUpdate(nPositive, nNegative, labels[r]);
         for (const auto& n : nPositive) nodesDataPoints[n->index].emplace_back(r, 1.0);
         for (const auto& n : nNegative) nodesDataPoints[n->index].emplace_back(r, 0);
     }
@@ -484,15 +484,15 @@ std::vector<std::tuple<int, int, int>> PLT::getTreeStructure(){
     else return tree->getTreeStructure();
 }
 
-void BatchPLT::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void BatchPLT::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
     if(!tree) buildTree(labels, features, args, output);
 
     Log(CERR) << "Training tree ...\n";
 
     // Examples selected for each node
-    std::vector<std::vector<double>> binLabels(tree->size());
+    std::vector<std::vector<Real>> binLabels(tree->size());
     std::vector<std::vector<Feature*>> binFeatures(tree->size());
-    std::vector<std::vector<double>> binWeights;
+    std::vector<std::vector<Real>> binWeights;
 
     if (type == hsm && args.pickOneLabelWeighting) binWeights.resize(tree->size());
     else binWeights.emplace_back(features.rows(), 1);

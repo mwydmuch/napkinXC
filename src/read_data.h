@@ -25,13 +25,14 @@
 #include <string>
 
 #include "args.h"
-#include "misc.h"
-#include "types.h"
+#include "basic_types.h"
+#include "vector.h"
+#include "matrix.h"
 
 
 // Libsvm, XMLCRepo and numeric VW file reader
-void readData(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args);
-void readLine(std::string& line, std::vector<Label>& lLabels, std::vector<Feature>& lFeatures);
+void readData(SRMatrix& labels, SRMatrix& features, Args& args);
+void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVPair>& lFeatures);
 
-void prepareFeaturesVector(std::vector<Feature> &lFeatures, double bias = 1.0);
-void processFeaturesVector(std::vector<Feature> &lFeatures, bool norm = true, int hashSize = 0, double featuresThreshold = 0);
+void prepareFeaturesVector(std::vector<IRVPair> &lFeatures, Real bias = 1.0);
+void processFeaturesVector(std::vector<IRVPair> &lFeatures, bool norm = true, size_t hashSize = 0, Real featuresThreshold = 0);

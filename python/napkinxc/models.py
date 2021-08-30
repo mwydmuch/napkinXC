@@ -39,9 +39,9 @@ class Model():
         Fit the model to the given training data.
 
         :param X: Training data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
-        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
-        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
-        :type Y: list[int], list[list|tuple[int]]
+        :type X: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]]
+        :param Y: Target labels as a matrix or lists or tuples of ints (multi-label data) or list of ints (multi-class data).
+        :type Y: csr_matrix|ndarray|list[list[int]|tuple[int]], list[list[tuple[int, float]], list[int]
         """
         self._model.fit(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
 
@@ -71,7 +71,7 @@ class Model():
         Predict labels for data points in X.
 
         :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
-        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :type X: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]]
         :param top_k: Predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
         :param threshold: Predict labels with probability above the threshold in case of single value
@@ -92,7 +92,7 @@ class Model():
         Predict labels with probability estimates for data points in X.
 
         :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
-        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
+        :type X: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]]
         :param top_k: Predict top-k labels, if 0, the option is ignored, defaults to 0
         :type top_k: int
         :param threshold: Predict labels with probability above the threshold in case of single value
@@ -155,9 +155,9 @@ class Model():
         Perform Online F-measure Optimization procedure on the given data to find optimal thresholds.
 
         :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
-        :type X: ndarray, csr_matrix, list[list[int]], list[list[tuple[int, float]]
-        :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
-        :type Y: list[int], list[list|tuple[int]]
+        :type X: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]]
+        :param Y: Target labels as a matrix or lists or tuples of ints (multi-label data) or list of ints (multi-class data).
+        :type Y: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]], list[int]
         :param type: Type of OFO procedure {``'micro'``, ``'macro'``}, default to ``'micro'``
         :type type: str
         :param a: Parameter of OFO procedure, defaults to 10
@@ -218,23 +218,24 @@ class Model():
 
         return self
 
-    # TODO:
     # def get_weights(self):
     #     """
+    #     Returns weights of binary classifiers used in the model.
     #
-    #     :return: Sparse matrix with linear classifiers weights
+    #     :return: Sparse matrix with weights.
     #     :rtype: csr_matrix
     #     """
-    #     indptr, indices, data = self._model.get_weights()
-    #     return csr_matrix((data, indices, indptr))
+    #     weights = self._model.get_weights()
+    #     return csr_matrix(weights)
     #
     # def set_weights(self, W):
     #     """
+    #     Set weights of binary classifiers used in the model.
     #
-    #     :param W:
-    #     :type W:
+    #     :param W: Matrix with weights.
+    #     :type W: csr_matrix|ndarray
     #     """
-    #     self._model.set_weights(W)
+    #     self._model.set_weights(W, Model._check_data_type(W))
 
     @staticmethod
     def _get_init_params(locals):
@@ -340,18 +341,50 @@ class LabelTreeModel(Model):
         :return: List of lists of nodes and their updates (0 - negative  or 1 - positive) for each set of labels in Y.
         :rtype: list[list[tuple[int, float]]]
         """
-        return self._model.get_nodes_to_update(Y)
+        return self._model.get_nodes_to_update(Y, self._check_data_type(Y))
 
     def get_nodes_updates(self, Y):
         """
         Based on the current tree, get list of updates for each node for dataset Y.
 
         :param Y: Target labels as list of ints (multi-class data) or lists or tuples of ints (multi-label data).
-        :type Y: list[int], list[list|tuple[int]]
+        :type Y: list[int], list[list[int]|tuple[int]]
         :return: List of lists of examples and their updates (0 - negative  or 1 - positive) for each node in the current tree.
         :rtype: list[list[tuple[int, float]]]
         """
-        return self._model.get_nodes_updates(Y)
+        return self._model.get_nodes_updates(Y, self._check_data_type(Y))
+
+    @staticmethod
+    def remap_tree_structure(tree_structure):
+        """
+        Remaps tree structure to list of tuples of ints.
+
+        :param tree_structure: Tree structure in format of a list of tuples representing nodes,
+            where the first value is name/index a parent node, if equal to None or -1, then the node is a root node,
+            the second value is name/index of the node,
+            and the third, a label assigned to the node, if equal to None or -1, then no label is assigned to the node.
+        :type tree_structure: list[tuple[any, any, any]]
+        :return: Tree structure, represented as a list of tuples representing nodes,
+            where the first value is an index of a parent node, if equal to -1, then the node is a root node,
+            the second value is an index of the node,
+            and the third, a label assigned to the node, if equal to -1, then no label is assigned to the node.
+        :rtype: list[tuple[int, int, int]]
+        """
+        def _get_remapped_index(map, index):
+            remapped_index = map.get(index, None)
+            if remapped_index is None:
+                remapped_index = len(map)
+                map[index] = remapped_index
+            return remapped_index
+
+        remapped_tree_structure = []
+        labels_map = {}
+        nodes_map = {}
+        for (p, n, l) in tree_structure:
+            rp = _get_remapped_index(nodes_map, p)
+            np = _get_remapped_index(nodes_map, p)
+            lp = _get_remapped_index(labels_map, l)
+        return remapped_tree_structure
 
 
 class PLT(LabelTreeModel):
@@ -370,8 +403,6 @@ class PLT(LabelTreeModel):
                  kmeans_balanced=True,
                  flatten_tree=0,
                  tree_structure=None,
-                 tree_search_type='exact',
-                 beam_search_width=10,
 
                  # Features params
                  hash=None,
@@ -390,6 +421,11 @@ class PLT(LabelTreeModel):
                  eta=1.0,
                  epochs=1,
                  adagrad_eps=0.001,
+
+                 # Prediction
+                 tree_search_type='exact',
+                 beam_search_width=10,
+                 load_as='map',
 
                  # Other
                  ensemble=1,
@@ -514,6 +550,9 @@ class HSM(LabelTreeModel):
                  epochs=1,
                  adagrad_eps=0.001,
 
+                 # Prediction
+                 load_as='map',
+
                  # Other
                  ensemble=1,
                  seed=None,
@@ -623,6 +662,9 @@ class BR(Model):
                  epochs=1,
                  adagrad_eps=0.001,
 
+                 # Prediction
+                 load_as='map',
+
                  # Other
                  threads=0,
                  mem_limit=0,
@@ -710,6 +752,9 @@ class OVR(BR):
                  eta=1.0,
                  epochs=1,
                  adagrad_eps=0.001,
+
+                 # Prediction
+                 load_as='map',
 
                  # Other
                  threads=0,

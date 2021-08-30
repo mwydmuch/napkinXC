@@ -4,20 +4,9 @@
 #define LIBLINEAR_VERSION 230
 #include <iostream>
 
-struct feature_node
-{
+struct feature_node{
     int index;
-    double value;
-    feature_node() { index = 0; value = 0; }
-    feature_node(int index, double value): index(index), value(value) {}
-
-    // Features are sorted by index
-    bool operator<(const feature_node &r) const { return index < r.index; }
-
-    friend std::ostream& operator<<(std::ostream& os, const feature_node& fn) {
-        os << fn.index << ":" << fn.value;
-        return os;
-    }
+    float value;
 };
 
 #ifdef __cplusplus
@@ -29,10 +18,10 @@ extern int liblinear_version;
 struct problem
 {
 	int l, n;
-	double *y;
+	float *y;
 	struct feature_node **x;
-	double bias;            /* < 0 if no bias term */
-	double *W;              /* instance weight */
+	float bias;            /* < 0 if no bias term */
+	float *W;              /* instance weight */
 };
 
 enum { L2R_LR, L2R_L2LOSS_SVC_DUAL, L2R_L2LOSS_SVC, L2R_L1LOSS_SVC_DUAL, MCSVM_CS, L1R_L2LOSS_SVC, L1R_LR, L2R_LR_DUAL, L2R_L2LOSS_SVR = 11, L2R_L2LOSS_SVR_DUAL, L2R_L1LOSS_SVR_DUAL }; /* solver_type */
@@ -42,13 +31,13 @@ struct parameter
 	int solver_type;
 
 	/* these are for training only */
-	double eps;	        /* stopping criteria */
-	double C;
+	float eps;	        /* stopping criteria */
+	float C;
 	int nr_weight;
 	int *weight_label;
-	double* weight;
-	double p;
-	double *init_sol;
+	float* weight;
+	float p;
+	float *init_sol;
 	int max_iter;
 };
 
@@ -57,18 +46,18 @@ struct model
 	struct parameter param;
 	int nr_class;		/* number of classes */
 	int nr_feature;
-	double *w;
+	float *w;
 	int *label;		/* label of each class */
-	double bias;
+	float bias;
 };
 
 struct model* train_liblinear(const struct problem *prob, const struct parameter *param);
-void cross_validation(const struct problem *prob, const struct parameter *param, int nr_fold, double *target);
-void find_parameters(const struct problem *prob, const struct parameter *param, int nr_fold, double start_C, double start_p, double *best_C, double *best_p, double *best_score);
+void cross_validation(const struct problem *prob, const struct parameter *param, int nr_fold, float *target);
+void find_parameters(const struct problem *prob, const struct parameter *param, int nr_fold, float start_C, float start_p, float *best_C, float *best_p, float *best_score);
 
-double predict_values(const struct model *model_, const struct feature_node *x, double* dec_values);
-double predict(const struct model *model_, const struct feature_node *x);
-double predict_probability(const struct model *model_, const struct feature_node *x, double* prob_estimates);
+float predict_values(const struct model *model_, const struct feature_node *x, float* dec_values);
+float predict(const struct model *model_, const struct feature_node *x);
+float predict_probability(const struct model *model_, const struct feature_node *x, float* prob_estimates);
 
 int save_model(const char *model_file_name, const struct model *model_);
 struct model *load_model(const char *model_file_name);
@@ -76,8 +65,8 @@ struct model *load_model(const char *model_file_name);
 int get_nr_feature(const struct model *model_);
 int get_nr_class(const struct model *model_);
 void get_labels(const struct model *model_, int* label);
-double get_decfun_coef(const struct model *model_, int feat_idx, int label_idx);
-double get_decfun_bias(const struct model *model_, int label_idx);
+float get_decfun_coef(const struct model *model_, int feat_idx, int label_idx);
+float get_decfun_bias(const struct model *model_, int label_idx);
 
 void free_model_content(struct model *model_ptr);
 void free_and_destroy_model(struct model **model_ptr_ptr);

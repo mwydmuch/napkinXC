@@ -33,20 +33,12 @@
 
 #include "br.h"
 #include "hsm.h"
-#include "online_plt.h"
 #include "ovr.h"
 #include "plt.h"
-#include "svbop_full.h"
-#include "svbop_inverted_index.h"
-#include "svbop_hf.h"
-#include "version.h"
+#include "online_plt.h"
 #include "extreme_text.h"
+#include "version.h"
 
-// Mips extension models
-#ifdef MIPS_EXT
-#include "br_mips.h"
-#include "svbop_mips.h"
-#endif
 
 std::shared_ptr<Model> Model::factory(Args& args) {
     std::shared_ptr<Model> model = nullptr;
@@ -63,18 +55,8 @@ std::shared_ptr<Model> Model::factory(Args& args) {
         case br: model = std::static_pointer_cast<Model>(std::make_shared<BR>()); break;
         case hsm: model = std::static_pointer_cast<Model>(std::make_shared<HSM>()); break;
         case plt: model = std::static_pointer_cast<Model>(std::make_shared<BatchPLT>()); break;
-        case svbopFull: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPFull>()); break;
-        case svbopInvertedIndex: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPInvertedIndex>()); break;
-        case svbopFagin: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPFagin>()); break;
-        case svbopThreshold: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPThreshold>()); break;
-        case svbopHf: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPHF>()); break;
-        case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
         case extremeText: model = std::static_pointer_cast<Model>(std::make_shared<ExtremeText>()); break;
-#ifdef MIPS_EXT
-        // Mips extension models
-        case brMips: model = std::static_pointer_cast<Model>(std::make_shared<BRMIPS>()); break;
-        case svbopMips: model = std::static_pointer_cast<Model>(std::make_shared<SVBOPMIPS>()); break;
-#endif
+        case oplt: model = std::static_pointer_cast<Model>(std::make_shared<OnlinePLT>()); break;
         default: throw std::invalid_argument("Unknown model type");
         }
     }
@@ -89,7 +71,7 @@ Model::~Model() {
 }
 
 void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,
-                               SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
+                               SRMatrix& features, Args& args, const int startRow, const int stopRow) {
     const int batchSize = stopRow - startRow;
     for (int r = startRow; r < stopRow; ++r) {
         int i = r - startRow;
@@ -98,7 +80,7 @@ void Model::predictBatchThread(int threadId, Model* model, std::vector<std::vect
     }
 }
 
-std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& features, Args& args) {
+std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Args& args) {
     Log(CERR) << "Starting prediction in " << args.threads << " threads ...\n";
 
     int rows = features.rows();
@@ -106,7 +88,7 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
 
     // Run prediction in parallel using thread set
     ThreadSet tSet;
-    int tRows = ceil(static_cast<double>(rows) / args.threads);
+    int tRows = ceil(static_cast<Real>(rows) / args.threads);
     for (int t = 0; t < args.threads; ++t)
         tSet.add(predictBatchThread, t, this, std::ref(predictions), std::ref(features), std::ref(args), t * tRows,
                  std::min((t + 1) * tRows, rows));
@@ -115,26 +97,26 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix<Feature>& feat
     return predictions;
 }
 
-void Model::setThresholds(std::vector<double> th){
+void Model::setThresholds(std::vector<Real> th){
 //    if(th.size() != m)
 //        throw std::invalid_argument("Size of thresholds vector dose not match number of model outputs");
     thresholds = th;
 }
 
-void Model::updateThresholds(UnorderedMap<int, double> thToUpdate){
+void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
     for(auto& th : thToUpdate)
         thresholds[th.first] = th.second;
 }
 
-void Model::setLabelsWeights(std::vector<double> lw){
+void Model::setLabelsWeights(std::vector<Real> lw){
 //    if(lw.size() != m)
 //        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
     labelsWeights = lw;
 }
 
-double Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
-    double a = args.ofoA;
-    double b = args.ofoB;
+Real Model::microOfo(SRMatrix& features, SRMatrix& labels, Args& args){
+    Real a = args.ofoA;
+    Real b = args.ofoB;
 
     Log(CERR) << "Optimizing Micro F measure for " << args.epochs << " epochs using " << args.threads << " threads ...\n";
 
@@ -163,11 +145,11 @@ double Model::microOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Arg
     return a / b;
 }
 
-std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args){
+std::vector<Real> Model::macroOfo(SRMatrix& features, SRMatrix& labels, Args& args){
     // Variables required for OFO
-    std::vector<double> as(m, args.ofoA);
-    std::vector<double> bs(m, args.ofoB);
-    thresholds = std::vector<double>(m, args.ofoA / args.ofoB);
+    std::vector<Real> as(m, args.ofoA);
+    std::vector<Real> bs(m, args.ofoB);
+    thresholds = std::vector<Real>(m, args.ofoA / args.ofoB);
 
     Log(CERR) << "Optimizing Macro F measure for " << args.epochs << " epochs using " << args.threads
               << " threads ...\n";
@@ -176,7 +158,7 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     setThresholds(thresholds);
 
     ThreadSet tSet;
-    int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
+    int tRows = ceil(static_cast<Real>(features.rows()) / args.threads);
     for (int t = 0; t < args.threads; ++t)
         tSet.add(macroOfoThread, t, this, std::ref(as), std::ref(bs), std::ref(features), std::ref(labels),
                  std::ref(args),
@@ -186,8 +168,8 @@ std::vector<double> Model::macroOfo(SRMatrix<Feature>& features, SRMatrix<Label>
     return thresholds;
 }
 
-void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, std::vector<double>& bs,
-                      SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args, const int startRow, const int stopRow) {
+void Model::macroOfoThread(int threadId, Model* model, std::vector<Real>& as, std::vector<Real>& bs,
+                      SRMatrix& features, SRMatrix& labels, Args& args, const int startRow, const int stopRow) {
 
     const int rowsRange = stopRow - startRow;
     const int examples = rowsRange * args.epochs;
@@ -221,7 +203,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, 
 
         // Update thresholds, only those that may have changed due to update of as or bs,
         // For simplicity I compute some of them twice because it does not really matter
-        UnorderedMap<int, double> thresholdsToUpdate;
+        UnorderedMap<int, Real> thresholdsToUpdate;
         for (const auto& p : prediction)
             thresholdsToUpdate[p.label] = as[p.label] / bs[p.label];
         l = -1;
@@ -232,7 +214,7 @@ void Model::macroOfoThread(int threadId, Model* model, std::vector<double>& as, 
     }
 }
 
-std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& labels, Args& args) {
+std::vector<Real> Model::ofo(SRMatrix& features, SRMatrix& labels, Args& args) {
 
     args.topK = 0;
     args.threshold = 0;
@@ -242,17 +224,17 @@ std::vector<double> Model::ofo(SRMatrix<Feature>& features, SRMatrix<Label>& lab
     if(args.ofoType == macro)
         thresholds = macroOfo(features, labels, args);
     else if(args.ofoType == OFOType::micro)
-        thresholds = std::vector<double>(m, microOfo(features, labels, args));
+        thresholds = std::vector<Real>(m, microOfo(features, labels, args));
     else {
-        std::vector<double> macroThr = macroOfo(features, labels, args);
+        std::vector<Real> macroThr = macroOfo(features, labels, args);
         args.epochs = 1;
-        double microThr = microOfo(features, labels, args);
+        Real microThr = microOfo(features, labels, args);
 
         Log(CERR) << "Mixing thresholds for top " << args.ofoTopLabels << " labels ...\n";
         std::vector<Prediction> priors = computeLabelsPriors(labels);
         std::sort(priors.rbegin(), priors.rend());
 
-        thresholds = std::vector<double>(m, microThr);
+        thresholds = std::vector<Real>(m, microThr);
         for(int i = 0; i < args.ofoTopLabels; ++i)
             thresholds[priors[i].label] = macroThr[priors[i].label];
     }
@@ -293,7 +275,7 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
 
     size_t size = problemsData.size(); // This "batch" size
     Log(CERR) << "Starting training " << size << " base estimators in " << args.threads << " threads ...\n";
-    //Log(CERR) << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(double)) << "\n";
+    //Log(CERR) << "  Required memory: " << formatMem(args.threads * args.threads * n * sizeof(Real)) << "\n";
 
     // Run learning in parallel
     if(args.threads > 1) {
@@ -326,12 +308,26 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
             delete base;
         }
     }
+
+    if(args.reportLoss){
+        Real meanLoss = 0;
+        Real weightLoss = 0;
+        Real weightsSum = 0;
+        for(const auto &pd : problemsData){
+            meanLoss += pd.loss;
+            weightLoss += pd.loss * pd.binLabels.size();
+            weightsSum += pd.binLabels.size();
+        }
+        meanLoss /= problemsData.size();
+        weightLoss /= weightsSum;
+        Log(CERR) << "Train mean node loss: " << meanLoss << ", weighted loss: " << weightLoss << "...\n";
+    }
 }
 
 std::vector<Base*> Model::loadBases(std::string infile, bool resume, RepresentationType loadAs) {
     Log(CERR) << "Loading base estimators ...\n";
 
-    double nonZeroSum = 0;
+    Real nonZeroSum = 0;
     unsigned long long memSize = 0;
     int sparse = 0;
 

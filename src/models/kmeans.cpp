@@ -30,7 +30,7 @@
 
 // K-Means clustering with balanced option
 // Partition is returned via reference, calculated for cosine distance
-void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatures, int centroids, double eps,
+void kmeans(std::vector<Assignation>* partition, SRMatrix& pointsFeatures, int centroids, Real eps,
             bool balanced, int seed) {
 
     int points = partition->size();
@@ -48,14 +48,12 @@ void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
     }
 
     // Init centroids
-    std::vector<std::vector<double>> centroidsFeatures(centroids);
+    Matrix centroidsFeatures(centroids, features);
 
     std::default_random_engine rng(seed);
     std::uniform_int_distribution<int> dist(0, points);
-    for (int i = 0; i < centroids; ++i) {
-        centroidsFeatures[i].resize(features, 0);
-        setVector(pointsFeatures[dist(rng)], centroidsFeatures[i]);
-    }
+    for (int i = 0; i < centroids; ++i)
+        centroidsFeatures[i].add(pointsFeatures[dist(rng)]); // set centroid to this vector
 
     double oldCos = INT_MIN, newCos = -1;
 
@@ -68,15 +66,18 @@ void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
         oldCos = newCos;
         newCos = 0;
 
+        for (int i = 0; i < points; ++i) {
+            similarities[i].index = i;
+            for (int j = 0; j < centroids; ++j) {
+                similarities[i].values[j].index = j;
+                similarities[i].values[j].value = centroidsFeatures[j].dot(pointsFeatures[(*partition)[i].index]);
+            }
+        }
+
         if(centroids == 2){ // Faster version for 2-means
 
             // Calculate similarity to centroids
             for (int i = 0; i < points; ++i) {
-                similarities[i].index = i;
-                for (int j = 0; j < centroids; ++j) {
-                    similarities[i].values[j].index = j;
-                    similarities[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
-                }
                 similarities[i].sortby = similarities[i].values[0].value - similarities[i].values[1].value;
             }
 
@@ -94,17 +95,7 @@ void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
             std::vector<int> centroidsSizes(centroids, 0);
 
             for (int i = 0; i < points; ++i) {
-                similarities[i].index = i;
-                for (int j = 0; j < centroids; ++j) {
-                    similarities[i].values[j].index = j;
-                    similarities[i].values[j].value = dotVectors(pointsFeatures[(*partition)[i].index], centroidsFeatures[j]);
-                }
-
-                std::sort(similarities[i].values.begin(), similarities[i].values.end(),
-                        [](const Feature& a, const Feature& b) -> bool
-                    {
-                        return a.value > b.value;
-                    });
+                std::sort(similarities[i].values.begin(), similarities[i].values.end(), IRVPairValueComp());
                 similarities[i].sortby = similarities[i].values[0].value;
             }
 
@@ -133,9 +124,9 @@ void kmeans(std::vector<Assignation>* partition, SRMatrix<Feature>& pointsFeatur
         newCos /= points;
 
         // Update centroids
-        for (auto& c : centroidsFeatures) std::fill(c.begin(), c.end(), 0);
-        for (auto& p : (*partition)) addVector(pointsFeatures[p.index], centroidsFeatures[p.value]);
-        for (auto& c : centroidsFeatures) unitNorm(c);
+        for (auto& c : centroidsFeatures) c.zeros();
+        for (auto& p : (*partition)) centroidsFeatures[p.value].add(pointsFeatures[p.index]);
+        for (auto& c : centroidsFeatures) c.unitNorm();
     }
 
     //Log(CERR) << Final similarity: << newCos << "\n";

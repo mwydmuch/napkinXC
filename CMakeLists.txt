@@ -41,14 +41,14 @@ configure_file(
 # Gather napkinXC source files
 file(GLOB SOURCES
     ${SRC_DIR}/*.cpp
-    ${SRC_DIR}/blas/*.c
     ${SRC_DIR}/liblinear/*.cpp
+    ${SRC_DIR}/liblinear/blas/*.c
     ${SRC_DIR}/models/*.cpp)
 
 set(INCLUDES
     ${SRC_DIR}
-    ${SRC_DIR}/blas
     ${SRC_DIR}/liblinear
+    ${SRC_DIR}/liblinear/blas
     ${SRC_DIR}/models)
 
 set(LIBRARIES PRIVATE Threads::Threads)

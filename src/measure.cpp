@@ -28,7 +28,6 @@
 #include <string>
 
 #include "measure.h"
-#include "set_utility.h"
 
 
 std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSize) {
@@ -79,8 +78,6 @@ std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSiz
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalsePositives>()));
             else if (m == "fn")
                 measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalseNegatives>()));
-            else if (m == "u")
-                measures.push_back(std::static_pointer_cast<Measure>(SetUtility::factory(args, outputSize)));
             else
                 throw std::invalid_argument("Unknown measure type: " + m + "!");
         }
@@ -95,7 +92,7 @@ Measure::Measure() {
     count = 0;
 }
 
-void Measure::accumulate(SRMatrix<Label>& labels, std::vector<std::vector<Prediction>>& predictions) {
+void Measure::accumulate(SRMatrix& labels, std::vector<std::vector<Prediction>>& predictions) {
     assert(predictions.size() == labels.rows());
     for (int i = 0; i < labels.rows(); ++i) accumulate(labels[i], predictions[i]);
 }
@@ -122,16 +119,15 @@ TruePositivesAtK::TruePositivesAtK(int k) : MeasureAtK(k) {
     meanMeasure = true;
 }
 
-void TruePositivesAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void TruePositivesAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(calculate(labels, prediction, k));
 }
 
-double TruePositivesAtK::calculate(Label* labels, const std::vector<Prediction>& prediction, int k) {
+double TruePositivesAtK::calculate(SparseVector& labels, const std::vector<Prediction>& prediction, int k) {
     double tp = 0;
     for (int i = 0; i < std::min(k, static_cast<int>(prediction.size())); ++i) {
-        int l = -1;
-        while (labels[++l] > -1)
-            if (prediction[i].label == labels[l]) {
+        for(auto &l : labels)
+            if (prediction[i].label == l.index) {
                 ++tp;
                 break;
             }
@@ -145,11 +141,11 @@ TruePositives::TruePositives() {
     meanMeasure = true;
 }
 
-void TruePositives::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void TruePositives::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(TruePositives::calculate(labels, prediction));
 }
 
-double TruePositives::calculate(Label* labels, const std::vector<Prediction>& prediction) {
+double TruePositives::calculate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     return TruePositivesAtK::calculate(labels, prediction, prediction.size());
 }
 
@@ -158,18 +154,17 @@ FalsePositives::FalsePositives() {
     meanMeasure = true;
 }
 
-void FalsePositives::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void FalsePositives::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(FalsePositives::calculate(labels, prediction));
 }
 
-double FalsePositives::calculate(Label* labels, const std::vector<Prediction>& prediction) {
+double FalsePositives::calculate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double fp = 0;
 
     for (const auto& p : prediction) {
-        int l = -1;
         bool found = false;
-        while (labels[++l] > -1) {
-            if (p.label == labels[l]) {
+        for(auto &l : labels) {
+            if (p.label == l.index) {
                 found = true;
                 break;
             }
@@ -185,18 +180,18 @@ FalseNegatives::FalseNegatives() {
     meanMeasure = true;
 }
 
-void FalseNegatives::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void FalseNegatives::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(FalseNegatives::calculate(labels, prediction));
 }
 
-double FalseNegatives::calculate(Label* labels, const std::vector<Prediction>& prediction) {
+double FalseNegatives::calculate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double fn = 0;
 
-    int l = -1;
-    while (labels[++l] > -1) {
+    
+    for(auto &l : labels) {
         bool found = false;
         for (const auto& p : prediction) {
-            if (p.label == labels[l]) {
+            if (p.label == l.index) {
                 found = true;
                 break;
             }
@@ -212,13 +207,9 @@ Recall::Recall() {
     meanMeasure = true;
 }
 
-void Recall::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void Recall::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositives::calculate(labels, prediction);
-    int l = -1;
-    while (labels[++l] > -1)
-        ;
-    if (l > 0)
-        addValue(tp / l);
+    if(labels.nonZero()) addValue(tp / labels.nonZero());
 }
 
 RecallAtK::RecallAtK(int k) : MeasureAtK(k) {
@@ -226,13 +217,9 @@ RecallAtK::RecallAtK(int k) : MeasureAtK(k) {
     meanMeasure = true;
 }
 
-void RecallAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void RecallAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositivesAtK::calculate(labels, prediction, k);
-    int l = -1;
-    while (labels[++l] > -1)
-        ;
-    if (l > 0)
-        addValue(tp / l);
+    if(labels.nonZero()) addValue(tp / labels.nonZero());
 }
 
 Precision::Precision() {
@@ -240,7 +227,7 @@ Precision::Precision() {
     meanMeasure = true;
 }
 
-void Precision::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void Precision::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositives::calculate(labels, prediction);
     if (!prediction.empty()) addValue(tp / prediction.size());
 }
@@ -250,7 +237,7 @@ PrecisionAtK::PrecisionAtK(int k) : MeasureAtK(k) {
     meanMeasure = true;
 }
 
-void PrecisionAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void PrecisionAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(TruePositivesAtK::calculate(labels, prediction, k) / k);
 }
 
@@ -259,16 +246,15 @@ DCGAtK::DCGAtK(int k) : MeasureAtK(k) {
     meanMeasure = true;
 }
 
-void DCGAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void DCGAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(calculate(labels, prediction, k));
 }
 
-double DCGAtK::calculate(Label* labels, const std::vector<Prediction>& prediction, int k){
+double DCGAtK::calculate(SparseVector& labels, const std::vector<Prediction>& prediction, int k){
     double score = 0;
     for (int i = 0; i < std::min(k, static_cast<int>(prediction.size())); ++i) {
-        int l = -1;
-        while (labels[++l] > -1)
-            if (prediction[i].label == labels[l]) {
+        for(auto &l : labels)
+            if (prediction[i].label == l.index) {
                 score += 1.0 / std::log2(i + 2);
                 break;
             }
@@ -283,16 +269,17 @@ NDCGAtK::NDCGAtK(int k) : MeasureAtK(k) {
     meanMeasure = true;
 }
 
-void NDCGAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void NDCGAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double nDenominator = 0;
 
-    int l = 0;
-    while (labels[l] > -1 && l < k) {
-        nDenominator += 1.0 / std::log2(l + 2);
-        ++l;
+    int i = 0;
+    for(auto &l : labels){
+        nDenominator += 1.0 / std::log2(i + 2);
+        ++i;
+        if(i >= k) break;
     }
 
-    if (l > 0) addValue(DCGAtK::calculate(labels, prediction, k) / nDenominator);
+    if (labels.nonZero() > 0) addValue(DCGAtK::calculate(labels, prediction, k) / nDenominator);
     else addValue(0);
 
 }
@@ -302,11 +289,10 @@ Coverage::Coverage(int outputSize) : m(outputSize) {
     meanMeasure = false;
 }
 
-void Coverage::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void Coverage::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     for (const auto& p : prediction) {
-        int l = -1;
-        while (labels[++l] > -1)
-            if (p.label == labels[l]) {
+        for(auto &l : labels)
+            if (p.label == l.index) {
                 seen.insert(p.label);
                 break;
             }
@@ -320,11 +306,10 @@ CoverageAtK::CoverageAtK(int outputSize, int k) : MeasureAtK(k), m(outputSize) {
     meanMeasure = false;
 }
 
-void CoverageAtK::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void CoverageAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     for (int i = 0; i < std::min(k, static_cast<int>(prediction.size())); ++i) {
-        int l = -1;
-        while (labels[++l] > -1)
-            if (prediction[i].label == labels[l]) {
+        for(auto &l : labels)
+            if (prediction[i].label == l.index) {
                 seen.insert(prediction[i].label);
                 break;
             }
@@ -338,7 +323,7 @@ Accuracy::Accuracy() {
     meanMeasure = true;
 }
 
-void Accuracy::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void Accuracy::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     if (!prediction.empty() && labels[0] == prediction[0].label) addValue(1);
     else addValue(0);
 }
@@ -348,7 +333,7 @@ PredictionSize::PredictionSize() {
     meanMeasure = true;
 }
 
-void PredictionSize::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void PredictionSize::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(prediction.size());
 }
 
@@ -357,7 +342,7 @@ HammingLoss::HammingLoss() {
     meanMeasure = true;
 }
 
-void HammingLoss::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void HammingLoss::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(FalsePositives::calculate(labels, prediction) + FalseNegatives::calculate(labels, prediction));
 }
 
@@ -366,15 +351,11 @@ SampleF1::SampleF1() {
     meanMeasure = true;
 }
 
-void SampleF1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void SampleF1::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositives::calculate(labels, prediction);
-    int l = -1;
-    while (labels[++l] > -1)
-        ;
-
-    if (!prediction.empty() && l > 0) {
+    if (!prediction.empty() && labels.nonZero() > 0) {
         double p = tp / prediction.size();
-        double r = tp / l;
+        double r = tp / labels.nonZero();
         if(p > 0 && r > 0) addValue(2 * p * r / (p + r));
     }
 }
@@ -384,7 +365,7 @@ MicroF1::MicroF1() {
     meanMeasure = false;
 }
 
-void MicroF1::accumulate(Label* labels, const std::vector<Prediction>& prediction) {
+void MicroF1::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     double tp = TruePositives::calculate(labels, prediction);
     sum += 2 * tp;
     count += 2 * tp + FalsePositives::calculate(labels, prediction) + FalseNegatives::calculate(labels, prediction);
@@ -398,13 +379,12 @@ MacroF1::MacroF1(int outputSize) : m(outputSize), zeroDivisionDenominator(1) {
     labelsFN.resize(m, 0);
 }
 
-void MacroF1::accumulate(Label* labels, const std::vector<Prediction>& prediction){
+void MacroF1::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction){
 
     for (const auto& p : prediction) {
-        int l = -1;
         bool found = false;
-        while (labels[++l] > -1) {
-            if (p.label == labels[l]) {
+        for(auto &l : labels) {
+            if (p.label == l.index) {
                 found = true;
                 ++labelsTP[p.label];
                 break;
@@ -413,16 +393,15 @@ void MacroF1::accumulate(Label* labels, const std::vector<Prediction>& predictio
         if (!found) ++labelsFP[p.label];
     }
 
-    int l = -1;
-    while (labels[++l] > -1) {
+    for(auto &l : labels) {
         bool found = false;
         for (const auto& p : prediction) {
-            if (p.label == labels[l]) {
+            if (p.label == l.index) {
                 found = true;
                 break;
             }
         }
-        if (!found) ++labelsFN[labels[l]];
+        if (!found) ++labelsFN[l.index];
     }
 }
 

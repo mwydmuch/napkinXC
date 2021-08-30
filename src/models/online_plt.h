@@ -35,9 +35,8 @@ public:
     ~OnlinePLT() override;
 
     void init(Args& args) override;
-    void init(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args) override;
-    void update(const int epoch, const int row, Label* labels, size_t labelsSize, Feature* features,
-                size_t featuresSize, Args& args) override;
+    void init(SRMatrix& labels, SRMatrix& features, Args& args) override;
+    void update(const int epoch, const int row, SparseVector& labels, SparseVector& features, Args& args) override;
 
     void save(Args& args, std::string output) override;
     void load(Args& args, std::string infile) override;
@@ -49,5 +48,5 @@ protected:
     std::shared_timed_mutex treeMtx;
 
     TreeNode* createTreeNode(TreeNode* parent = nullptr, int label = -1, Base* base = nullptr, Base* auxBase = nullptr);
-    void expandTree(const std::vector<Label>& newLabels, Feature* features, Args& args);
+    void expandTree(const std::vector<Label>& newLabels, SparseVector& features, Args& args);
 };

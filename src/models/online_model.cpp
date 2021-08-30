@@ -26,15 +26,15 @@
 #include "log.h"
 
 
-void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<Label>& labels,
-                                    SRMatrix<Feature>& features, Args& args, const int startRow, const int stopRow) {
+void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix& labels,
+                                    SRMatrix& features, Args& args, const int startRow, const int stopRow) {
     const int rowsRange = stopRow - startRow;
     const int examples = rowsRange * args.epochs;
     for (int i = 0; i < examples; ++i) {
         if (!threadId) printProgress(i, examples);
         int r = startRow + i % rowsRange;
         int e = i / rowsRange;
-        model->update(e, r, labels.row(r), labels.size(r), features.row(r), features.size(r), args);
+        model->update(e, r, labels[r], features[r], args);
 
         if(!threadId && logLevel >= CERR_DEBUG && i % (examples / 100) == 0){
             auto res = getResources();
@@ -46,7 +46,7 @@ void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix<L
     }
 }
 
-void OnlineModel::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Args& args, std::string output) {
+void OnlineModel::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
     Log(CERR) << "Preparing online model ...\n";
 
     // Init model
@@ -57,7 +57,7 @@ void OnlineModel::train(SRMatrix<Label>& labels, SRMatrix<Feature>& features, Ar
     Log(CERR) << "Training online for " << args.epochs << " epochs in " << args.threads << " threads ...\n";
 
     ThreadSet tSet;
-    int tRows = ceil(static_cast<double>(features.rows()) / args.threads);
+    int tRows = ceil(static_cast<Real>(features.rows()) / args.threads);
     for (int t = 0; t < args.threads; ++t)
         tSet.add(onlineTrainThread, t, this, std::ref(labels), std::ref(features), std::ref(args), t * tRows,
                  std::min((t + 1) * tRows, features.rows()));

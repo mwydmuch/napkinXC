@@ -14,6 +14,11 @@ L1l = [
     [7, 6, 3]
 ]
 
+L1l2 = [
+    [1, 2],
+    [7, 6, 3, 1]
+]
+
 L1lf = [
     [(1, 1.0), (2, 0.9), (4, 0.8)],
     [(7, 1.0), (6, 0.9), (3, 0.8)]
@@ -70,7 +75,7 @@ L5l = [
 
 # Sets of datasets
 binary_set = [(T1, L1l), (T1, L1lf), (T2, L2b), (T3, L3b), (T5, L5l)]
-ranking_set = binary_set + [(T2, L2f), (T3, L3f)]
+ranking_set = binary_set + [(T1, L1l2), (T2, L2f), (T3, L3f)]
 
 
 def test_precision_at_k():

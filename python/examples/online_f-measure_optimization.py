@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+
+# This example demonstrates how to use Online F-measure optimization technique.
+
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
 from napkinxc.measures import f1_measure

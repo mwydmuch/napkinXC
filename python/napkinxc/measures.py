@@ -57,8 +57,9 @@ def precision_at_k(Y_true, Y_pred, k=5):
     count = 0
     for t, p in zip(Y_true, Y_pred):
         p_at_i = 0
-        for i, p_i in enumerate(p[:k]):
-            p_at_i += 1 if p_i in t else 0
+        for i in range(k):
+            if i < len(p):
+                p_at_i += 1 if p[i] in t else 0
             sum[i] += p_at_i / (i + 1)
         count += 1
     return sum / count
@@ -99,10 +100,11 @@ def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
     count = 0
     for t, p in zip(Y_true, Y_pred):
         if len(t) > 0:
-            r_at_k = 0
-            for i, p_i in enumerate(p[:k]):
-                r_at_k += 1 if p_i in t else 0
-                sum[i] += r_at_k / len(t)
+            r_at_i = 0
+            for i in range(k):
+                if i < len(p):
+                    r_at_i += 1 if p[i] in t else 0
+                sum[i] += r_at_i / len(t)
         else:
             sum += zero_division
         count += 1
@@ -178,8 +180,9 @@ def dcg_at_k(Y_true, Y_pred, k=5):
     count = 0
     for t, p in zip(Y_true, Y_pred):
         dcg_at_i = 0
-        for i, p_i in enumerate(p[:k]):
-            dcg_at_i += 1 / log2(i + 2) if p_i in t else 0
+        for i in range(k):
+            if i < len(p):
+                dcg_at_i += 1 / log2(i + 2) if p[i] in t else 0
             sum[i] += dcg_at_i
         count += 1
     return sum / count
@@ -216,11 +219,12 @@ def ndcg_at_k(Y_true, Y_pred, k=5, zero_division=0):
         if norm_len == 0:
             sum += zero_division
             continue
-        for i, p_i in enumerate(p[:k]):
+        for i in range(k):
             _log_i = 1 / log2(i + 2)
             if i < norm_len:
                 norm_at_i += _log_i
-            dcg_at_i += 1 * _log_i if p_i in t else 0
+            if i < len(p):
+                dcg_at_i += 1 * _log_i if p[i] in t else 0
             sum[i] += dcg_at_i / norm_at_i
     return sum / count
 
@@ -342,11 +346,12 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True):
     best_sum = np.zeros(k)
     count = 0
     for t, p in zip(Y_true, Y_pred):
-        top_ps = _top_ps(inv_ps, t)
         psp_at_i = 0
         best_psp_at_i = 0
-        for i, p_i in enumerate(p[:k]):
-            psp_at_i += inv_ps[p_i] if p_i in t else 0
+        top_ps = _top_ps(inv_ps, t)
+        for i in range(k):
+            if i < len(p):
+                psp_at_i += inv_ps[p[i]] if p[i] in t else 0
             if i < top_ps.shape[0]:
                 best_psp_at_i += top_ps[i]
             sum[i] += psp_at_i / (i + 1)
@@ -392,8 +397,9 @@ def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
         psr_at_i = 0
         best_psr_at_i = 0
         top_ps = _top_ps(inv_ps, t)
-        for i, p_i in enumerate(p[:k]):
-            psr_at_i += inv_ps[p_i] if p_i in t else 0
+        for i in range(k):
+            if i < len(p):
+                psr_at_i += inv_ps[p[i]] if p[i] in t else 0
             if i < top_ps.shape[0]:
                 best_psr_at_i += top_ps[i]
             sum[i] += psr_at_i / len(t)
@@ -433,9 +439,10 @@ def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True):
         psdcg_at_i = 0
         best_psdcg_at_i = 0
         top_ps = _top_ps(inv_ps, t)
-        for i, p_i in enumerate(p[:k]):
+        for i in range(k):
             _log_i = 1 / log2(i + 2)
-            psdcg_at_i += inv_ps[p_i] * _log_i if p_i in t else 0
+            if i < len(p):
+                psdcg_at_i += inv_ps[p[i]] * _log_i if p[i] in t else 0
             if i < top_ps.shape[0]:
                 best_psdcg_at_i += top_ps[i] * _log_i
             sum[i] += psdcg_at_i / (i + 1)
@@ -484,11 +491,12 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
             continue
 
         top_ps = _top_ps(inv_ps, t)
-        for i, p_i in enumerate(p[:k]):
+        for i in range(k):
             _log_i = 1 / log2(i + 2)
             if i < norm_len:
                 norm_at_i += _log_i
-            psdcg_at_i += inv_ps[p_i] * _log_i if p_i in t else 0
+            if i < len(p):
+                psdcg_at_i += inv_ps[p[i]] * _log_i if p[i] in t else 0
             if i < top_ps.shape[0]:
                 best_psdcg_at_i += top_ps[i] * _log_i
             sum[i] += psdcg_at_i / norm_at_i

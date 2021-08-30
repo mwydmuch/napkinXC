@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
-# This demo shows the most basic usage of the napkinXC library.
+# This shows how to use exact top-k weighted prediction for PLT.
+# To demonstrate this we will use inverse propensities fo labels as weights.
+
 
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
 from napkinxc.measures import precision_at_k, psprecision_at_k, inverse_propensity
+
+# The beginning is the same as in the basic.py example.
 
 # Use load_dataset function to load one of the benchmark datasets
 # from XML Repository (http://manikvarma.org/downloads/XC/XMLRepository.html).

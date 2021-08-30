@@ -30,24 +30,24 @@
 #include <iostream>
 
 #include "args.h"
-#include "read_data.h"
+#include "basic_types.h"
 #include "log.h"
 #include "measure.h"
 #include "misc.h"
 #include "model.h"
+#include "read_data.h"
 #include "resources.h"
-#include "types.h"
 #include "version.h"
 
-std::vector<double> loadVec(std::string infile){
-    std::vector<double> vec;
+std::vector<Real> loadVec(std::string infile){
+    std::vector<Real> vec;
     std::ifstream in(infile);
-    double v;
+    Real v;
     while (in >> v) vec.push_back(v);
     return vec;
 }
 
-void saveVec(std::vector<double>& vec, std::string outfile){
+void saveVec(std::vector<Real>& vec, std::string outfile){
     std::ofstream out(outfile);
     for(auto v : vec)
         out << v << "\n";
@@ -57,11 +57,11 @@ void saveVec(std::vector<double>& vec, std::string outfile){
 void loadVecs(std::shared_ptr<Model> model, Args& args){
     std::vector<std::vector<Prediction>> predictions;
     if (!args.thresholds.empty()) { // Using thresholds if provided
-        std::vector<double> thresholds = loadVec(args.thresholds);
+        std::vector<Real> thresholds = loadVec(args.thresholds);
         model->setThresholds(thresholds);
     }
     if (!args.labelsWeights.empty()) { // Using labelsWeights if provided
-        std::vector<double> labelsWeights = loadVec(args.labelsWeights);
+        std::vector<Real> labelsWeights = loadVec(args.labelsWeights);
         model->setLabelsWeights(labelsWeights);
     }
 }
@@ -74,8 +74,9 @@ void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::of
 }
 
 void train(Args& args) {
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+
+    SRMatrix labels;
+    SRMatrix features;
 
     args.printArgs("train");
     makeDir(args.output);
@@ -115,8 +116,8 @@ void train(Args& args) {
 }
 
 void test(Args& args) {
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
 
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
@@ -193,40 +194,24 @@ void predict(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    Log(COUT) << std::setprecision(5);
+    SRMatrix labels;
+    SRMatrix features;
+    readData(labels, features, args);
 
-    // Predict data from cin and output to cout
-    if (args.input == "-") {
-        for (std::string line; std::getline(std::cin, line); ) {
-            // TODO
-        }
+    loadVecs(model, args);
+    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+
+    // Output predictions
+    if(!args.prediction.empty()){
+        std::ofstream out(args.prediction);
+        outputPrediction(predictions, out);
+        out.close();
     }
 
-    // Read data from file and output prediction to cout
-    else {
-        SRMatrix<Label> labels;
-        SRMatrix<Feature> features;
-        readData(labels, features, args);
-
-        loadVecs(model, args);
-
-        if(args.threads > 1) {
-            std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
-
-            for (const auto &p : predictions) {
-                for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
-                Log(COUT) << "\n";
-            }
-        } else { // For 1 thread predict and immediately output
-            for(int r = 0; r < features.rows(); ++r){
-                printProgress(r, features.rows());
-                std::vector<Prediction> prediction;
-                model->predict(prediction, features[r], args);
-
-                for (const auto &l : prediction) Log(COUT) << l.label << ":" << l.value << " ";
-                Log(COUT) << "\n";
-            }
-        }
+    Log(COUT) << std::setprecision(5);
+    for (const auto &p : predictions) {
+        for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
+        Log(COUT) << "\n";
     }
 }
 
@@ -239,19 +224,19 @@ void ofo(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
     readData(labels, features, args);
 
     auto resAfterData = getResources();
 
-    std::vector<double> thresholds = model->ofo(features, labels, args);
+    std::vector<Real> thresholds = model->ofo(features, labels, args);
     saveVec(thresholds, args.thresholds);
 
     auto resAfterFo = getResources();
 
     // Print resources
-    auto realTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+    auto realTime = static_cast<Real>(std::chrono::duration_cast<std::chrono::milliseconds>(
             resAfterFo.timePoint - resAfterData.timePoint)
             .count()) /
                     1000;
@@ -272,8 +257,8 @@ void testPredictionTime(Args& args) {
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
 
-    SRMatrix<Label> labels;
-    SRMatrix<Feature> features;
+    SRMatrix labels;
+    SRMatrix features;
     readData(labels, features, args);
 
     // Read batch sizes
@@ -294,18 +279,18 @@ void testPredictionTime(Args& args) {
 
         for (int i = 0; i < args.batches; ++i) {
             // Generate batch
-            std::vector<Feature*> batch;
+            std::vector<int> batch;
             batch.reserve(batchSize);
             for (int j = 0; j < batchSize; ++j)
-                batch.push_back(features[dist(rng)]);
+                batch.push_back(dist(rng));
 
             assert(batch.size() == batchSize);
 
             // Test batch
             double startTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
-            for (const auto& r : batch) {
+            for (auto& r : batch) {
                 std::vector<Prediction> prediction;
-                model->predict(prediction, r, args);
+                model->predict(prediction, features[r], args);
             }
 
             // Accumulate time measurements
@@ -346,11 +331,12 @@ Args:
     -i, --input             Input dataset, required
     -o, --output            Output (model) dir, required
     -m, --model             Model type (default = plt)
-                            Models: ovr, br, hsm, plt, oplt, svbopFull, svbopHf, brMips, svbopMips
+                            Models: plt, hsm, br, ovr, oplt
+    -p, --prediction
     --ensemble              Number of models in ensemble (default = 1)
     -t, --threads           Number of threads to use (default = 0)
                             Note: set to -1 to use a number of available CPUs - 1, 0 to use a number of available CPUs
-    --memLimit              Maximum amount of memory (in G) available for training (defualt = 0)
+    --memLimit              Maximum amount of memory (in G) available for training (default = 0)
                             Note: set to 0 to set limit to amount of available memory
     --hash                  Size of features space (default = 0)
                             Note: set to 0 to disable hashing
@@ -365,15 +351,14 @@ Args:
     --optim, --optimizer    Optimizer used for training binary classifiers (default = liblinear)
                             Optimizers: liblinear, sgd, adagrad
     --bias                  Value of the bias features (default = 1)
-    --inbalanceLabelsWeighting      Increase the weight of minority labels in base classifiers (default = 0)
     --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
     --loss                  Loss function to optimize in base classifier (default = log)
                             Losses: log (alias logistic), l2 (alias squaredHinge)
 
-    LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
-    -c, --liblinearC        LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
-                            smaller values specify stronger regularization (default = 10.0)
-    --eps, --liblinearEps   LIBLINEAR tolerance of termination criterion (default = 0.1)
+    LIBLINEAR:                      (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
+    -c, --liblinearC                LIBLINEAR cost co-efficient, inverse of regularization strength, must be a positive float,
+                                    smaller values specify stronger regularization (default = 10.0)
+    --eps, --liblinearEps           LIBLINEAR tolerance of termination criterion (default = 0.1)
     --solver, --liblinearSolver     LIBLINEAR solver (default for log loss = L2R_LR_DUAL, for l2 loss = L2R_L2LOSS_SVC_DUAL)
                                     Overrides default solver set by loss parameter.
                                     Supported solvers: L2R_LR_DUAL, L2R_LR, L1R_LR,
@@ -387,7 +372,7 @@ Args:
 
     Tree (PLT and HSM):
     -a, --arity             Arity of tree nodes (default = 2)
-    --maxLeaves             Maximum degree of pre-leaf nodes. (default = 100)
+    --maxLeaves             Maximum degree of pre-leaf nodes (default = 100)
     --tree                  File with tree structure
     --treeType              Type of a tree to build if file with structure is not provided
                             tree types: hierarchicalKmeans, huffman, completeKaryInOrder, completeKaryRandom,
@@ -403,15 +388,6 @@ Args:
     --threshold             Predict labels with probability above the threshold (default = 0)
     --thresholds            Path to a file with threshold for each label, one threshold per line
     --labelsWeights         Path to a file with weight for each label, one weight per line
-    --setUtility            Type of set-utility function for prediction using svbopFull, svbopHf, svbopMips models.
-                            Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
-                            See: https://arxiv.org/abs/1906.08129
-
-    Set-Utility:
-    --alpha
-    --beta
-    --delta
-    --gamma
 
     Test:
     --measures              Evaluate test using set of measures (default = "p@1,p@3,p@5")

@@ -21,7 +21,7 @@ Set CXX and CC environmental variables before running ``cmake`` command if you w
 After successful compilation, ``nxc`` executable should appear in the root or specified build directory.
 
 
-Data Format
+LIBSVM data Format
 -----------
 
 napkinXC supports multi-label svmlight/libsvm like-format (less strict)
@@ -80,10 +80,9 @@ Command line options
         --verbose               Verbose level (default = 2)
 
         Base classifiers:
-        --optimizer             Optimizer used for training binary classifiers (default = libliner)
+        --optimizer             Optimizer used for training binary classifiers (default = liblinear)
                                 Optimizers: liblinear, sgd, adagrad, fobos
         --bias                  Value of the bias features (default = 1)
-        --inbalanceLabelsWeighting     Increase the weight of minority labels in base classifiers (default = 1)
         --weightsThreshold      Threshold value for pruning models weights (default = 0.1)
 
         LIBLINEAR:              (more about LIBLINEAR: https://github.com/cjlin1/liblinear)
@@ -116,15 +115,6 @@ Command line options
         --topK                  Predict top-k labels (default = 5)
         --threshold             Predict labels with probability above the threshold (default = 0)
         --thresholds            Path to a file with threshold for each label
-        --setUtility            Type of set-utility function for prediction using svbopFull, svbopHf, svbopMips models.
-                                Set-utility functions: uP, uF1, uAlfa, uAlfaBeta, uDeltaGamma
-                                See: https://arxiv.org/abs/1906.08129
-
-        Set-Utility:
-        --alpha
-        --beta
-        --delta
-        --gamma
 
         Test:
         --measures              Evaluate test using set of measures (default = "p@1,r@1,c@1,p@3,r@3,c@3,p@5,r@5,c@5")

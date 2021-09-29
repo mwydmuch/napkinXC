@@ -151,8 +151,9 @@ Real Vector::dot(Vector& vec) const {
 }
 
 Real Vector::dot(SparseVector& vec) const {
-    Real val = 0;
-    for(auto &f : vec) val += f.value * d[f.index];
+    Real val = 0; //TODO: Improve this
+    if(vec.size() < s) for(auto &f : vec) val += f.value * d[f.index];
+    else for(auto &f : vec) if(f.index < s) val += f.value * d[f.index];
     return val;
 }
 
@@ -161,4 +162,3 @@ Real Vector::dot(Feature* vec) const {
     for(auto f = vec; f->index != -1; ++f) val += f->value * d[f->index];
     return val;
 }
-

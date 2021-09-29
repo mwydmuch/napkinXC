@@ -368,11 +368,11 @@ public:
         if(sorted && vec.sorted) {
             Real val = 0;
 
-            // Binary-search
+            // Binary search
             auto x = d;
-            auto y = vec.data();
-            auto xEnd = d + n0;
-            auto yEnd = y + vec.size();
+            auto y = vec.d;
+            auto xEnd = x + n0;
+            auto yEnd = y + vec.n0;
             while(x->index != -1 && y->index != -1){
                 if(x->index == y->index){
                     val += x->value * y->value;

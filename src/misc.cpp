@@ -77,7 +77,6 @@ void computeLabelsFeaturesMatrixThread(std::vector<std::vector<Feature>>& labels
 
 void computeLabelsFeaturesMatrix(SRMatrix& labelsFeatures, const SRMatrix& labels,
                                  const SRMatrix& features, int threads, bool norm, bool weightedFeatures) {
-
     assert(features.rows() == labels.rows());
     Log(CERR) << "Computing labels' features matrix in " << threads << " threads ...\n";
 
@@ -95,6 +94,9 @@ void computeLabelsFeaturesMatrix(SRMatrix& labelsFeatures, const SRMatrix& label
 
     for(auto& v : tmpLabelsFeatures)
         labelsFeatures.appendRow(v);
+
+    assert(features.cols() == labelsFeatures.cols());
+    assert(labels.cols() == labelsFeatures.rows());
 }
 
 // Splits string

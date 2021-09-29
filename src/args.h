@@ -68,13 +68,16 @@ public:
     Real cost;
     int maxIter;
     Real weightsThreshold;
-    int ensemble;
-    bool onTheTrotPrediction;
     bool inbalanceLabelsWeighting;
     bool pickOneLabelWeighting;
     bool autoCLin;
     bool autoCLog;
     bool reportLoss;
+
+    // Ensemble options
+    int ensemble;
+    bool ensOnTheTrot;
+    bool ensMissingScores;
 
     // For online training
     Real eta;
@@ -114,8 +117,7 @@ public:
     std::string labelsWeights;
     TreeSearchType treeSearchType;
     int beamSearchWidth;
-    bool beamUnpack;
-    bool ensMissingScores;
+    bool beamSearchUnpack;
 
     // Measures for test command
     std::string measures;

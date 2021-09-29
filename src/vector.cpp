@@ -43,7 +43,7 @@ void AbstractVector::sub(AbstractVector& vec, Real scalar){
 }
 
 void AbstractVector::zero(AbstractVector& vec){
-    vec.forEachIV([&](const int& i, Real& v) { (*this)[i] += 0; });
+    vec.forEachIV([&](const int& i, Real& v) { (*this)[i] = 0; });
 }
 
 void AbstractVector::invert() {

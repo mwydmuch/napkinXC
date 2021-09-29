@@ -77,7 +77,8 @@ Args::Args() {
 
     // Ensemble options
     ensemble = 0;
-    onTheTrotPrediction = false;
+    ensOnTheTrot = true;
+    ensMissingScores = true;
 
     // For online training
     eta = 1.0;
@@ -114,10 +115,10 @@ Args::Args() {
     threshold = 0.0;
     thresholds = "";
     labelsWeights = "";
-    ensMissingScores = true;
     treeSearchName = "exact";
     treeSearchType = exact;
     beamSearchWidth = 10;
+    beamSearchUnpack = true;
 
     // Measures for test command
     measures = "p@1,p@3,p@5";
@@ -188,8 +189,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 prediction = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensemble")
                 ensemble = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--onTheTrotPrediction")
-                onTheTrotPrediction = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--ensOnTheTrot")
+                ensOnTheTrot = std::stoi(args.at(ai + 1));
             else if (args[ai] == "-m" || args[ai] == "--model") {
                 modelName = args.at(ai + 1);
                 if (args.at(ai + 1) == "br")
@@ -372,8 +373,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                     throw std::invalid_argument("Unknown tree search type: " + args.at(ai + 1));
             } else if (args[ai] == "--beamSearchWidth")
                 beamSearchWidth = std::stoi(args.at(ai + 1));
-            else if (args[ai] == "--beamUnpack")
-                beamUnpack = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--beamSearchUnpack")
+                beamSearchUnpack = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--batchSizes")
                 batchSizes = args.at(ai + 1);
             else if (args[ai] == "--batches")
@@ -438,9 +439,14 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
             topK = 0;
     }
 
-    if(treeSearchType == beam && !countArg(args, "--loadAs")){
-        loadAs = sparse;
-        representationName = "sparse";
+    if(treeSearchType == beam){
+        if(!countArg(args, "--loadAs")) {
+            loadAs = sparse;
+            representationName = "sparse";
+        }
+        if(!countArg(args, "--ensMissingScores")){
+            ensMissingScores = false;
+        }
     }
 }
 
@@ -450,7 +456,11 @@ void Args::printArgs(std::string command) {
         Log(CERR) << "\n  Input: " << input << "\n    Bias: " << bias << ", norm: " << norm
         << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
     Log(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
-    if (ensemble > 1) Log(CERR) << ", ensemble: " << ensemble;
+    if (ensemble > 1){
+        Log(CERR) << ", ensemble: " << ensemble;
+        if (command == "test" || command == "predict")
+            Log(CERR) << ", onTheTrot: " << ensOnTheTrot << ", missingScores" << ensMissingScores;
+    }
 
     if (command == "train") {
         // Base binary models related

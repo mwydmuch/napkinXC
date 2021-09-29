@@ -10,7 +10,7 @@ ENSEMBLES=(1 3 5)
 
 for e in "${ENSEMBLES[@]}"; do
     TRAIN_ARGS="-m plt --eps 0.1 --treeType hierarchicalKmeans --ensemble ${e}"
-    TEST_ARGS="--topK 5 --ensemble ${e} --onTheTrotPrediction 1"
+    TEST_ARGS="--topK 5 --ensemble ${e}"
     for s in "${SEEDS[@]}"; do
         bash ${EXP_DIR}/test.sh eurlex "${TRAIN_ARGS} -C 12 --seed ${s}" "${TEST_ARGS}" $MODEL $RESULTS
         bash ${EXP_DIR}/test.sh wiki10 "${TRAIN_ARGS} -C 16 --autoCLin 1 --seed ${s}" "${TEST_ARGS}" $MODEL $RESULTS

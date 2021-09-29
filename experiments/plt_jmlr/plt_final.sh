@@ -8,7 +8,7 @@ RESULTS=results_plt_final
 SEEDS=(1993 2020 2029 2047 2077)
 
 TRAIN_ARGS="-m plt --eps 0.1 --treeType hierarchicalKmeans --ensemble 3 --arity 16 --kMeansBalanced 0"
-TEST_ARGS="--topK 5 --ensemble 3 --onTheTrotPrediction 1"
+TEST_ARGS="--topK 5 --ensemble 3"
 for s in "${SEEDS[@]}"; do
     bash ${EXP_DIR}/test.sh eurlex "${TRAIN_ARGS} -C 12 --seed ${s}" "${TEST_ARGS}" $MODEL $RESULTS
     bash ${EXP_DIR}/test.sh wiki10 "${TRAIN_ARGS} -C 16 --autoCLin 1 --seed ${s}" "${TEST_ARGS}" $MODEL $RESULTS

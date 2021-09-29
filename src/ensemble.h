@@ -133,19 +133,19 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
 
     // Get top predictions for members
     for (int i = 0; i < args.ensemble; ++i) {
-        if (args.onTheTrotPrediction) tmpMember = loadMember(args, args.output, i);
+        if (args.ensOnTheTrot) tmpMember = loadMember(args, args.output, i);
         else tmpMember = members[i];
 
         std::vector<std::vector<Prediction>> memberPredictions = tmpMember->predictBatch(features, args);
         for (int j = 0; j < rows; ++j) accumulatePrediction(ensemblePredictions[j], memberPredictions[j], i);
 
-        if (args.onTheTrotPrediction) delete tmpMember;
+        if (args.ensOnTheTrot) delete tmpMember;
     }
 
     // Predict missing predictions for specific labels
     if(args.ensMissingScores) {
         for (int i = 0; i < args.ensemble; ++i) {
-            if (args.onTheTrotPrediction) tmpMember = loadMember(args, args.output, i);
+            if (args.ensOnTheTrot) tmpMember = loadMember(args, args.output, i);
             else tmpMember = members[i];
 
             for (int j = 0; j < rows; ++j) {
@@ -156,7 +156,7 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
                 }
             }
 
-            if (args.onTheTrotPrediction) delete tmpMember;
+            if (args.ensOnTheTrot) delete tmpMember;
         }
     }
 
@@ -186,7 +186,7 @@ template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& 
 }
 
 template <typename T> void Ensemble<T>::load(Args& args, std::string infile) {
-    if (!args.onTheTrotPrediction) {
+    if (!args.ensOnTheTrot) {
         Log(CERR) << "Loading ensemble of " << args.ensemble << " models ...\n";
         for (int i = 0; i < args.ensemble; ++i) members.push_back(loadMember(args, infile, i));
         m = members[0]->outputSize();

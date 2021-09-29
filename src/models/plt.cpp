@@ -138,16 +138,19 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
     auto nextLevelQueue = new std::queue<TreeNode*>();
     nextLevelQueue->push(tree->root);
     for(int i = 0; i < rows; ++i) nodePredictions[tree->root->index].emplace_back(i, 1.0);
+    AbstractVector* tmpW = new Vector(features.cols());
+    AbstractVector* originalW = nullptr;
 
     int nCount = 0;
     while(!nextLevelQueue->empty()){
-        printProgress(nCount++, nodes);
 
         auto levelQueue = nextLevelQueue;
         nextLevelQueue = new std::queue<TreeNode*>();
 
         // Predict for level
         while(!levelQueue->empty()){
+            printProgress(nCount++, nodes);
+
             auto n = levelQueue->front();
             levelQueue->pop();
             int nIdx = n->index;
@@ -155,7 +158,11 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
             if(!nodePredictions[nIdx].empty()){
                 auto base = bases[nIdx];
                 auto type = base->getType();
-                if(type == sparse) base->to(dense);
+                if(type == sparse && args.beamSearchUnpack){
+                    originalW = base->getW();
+                    tmpW->add(*originalW);
+                    base->setW(tmpW);
+                }
 
                 for(auto &e : nodePredictions[nIdx]){
                     int rIdx = e.label;
@@ -165,13 +172,16 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
                     // Reweight score
                     if (!labelsWeights.empty()) value *= nodesWeights[nIdx].weight;
 
-                    if(n->label >= 0) prediction[rIdx].emplace_back(n->label, value); // Final prediction
-                    else levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
+                    if(n->label >= 0) prediction[rIdx].emplace_back(n->label, value); // Label prediction
+                    if(n->children.size() > 0) levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
                 }
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
 
-                //if(type != base->getType()) base->to(type);
+                if(type == sparse && args.beamSearchUnpack){
+                    tmpW->zero(*originalW);
+                    base->setW(originalW);
+                }
             }
 
             for(auto &c : n->children)
@@ -209,6 +219,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
         }
     }
     delete nextLevelQueue;
+    delete tmpW;
 
     for(int rIdx = 0; rIdx < rows; ++rIdx){
         auto &v = prediction[rIdx];

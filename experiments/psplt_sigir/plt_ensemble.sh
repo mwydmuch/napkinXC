@@ -9,7 +9,7 @@ SEEDS=(1993 2021 2029 2047 2077)
 
 # log loss (liblinear optimizer), ensemble of 3 trees
 BASE_TRAIN_ARGS="-m plt --ensemble 3 --loss log"
-BASE_TEST_ARGS="--topK 5 --ensemble 3 --onTheTrotPrediction 1"
+BASE_TEST_ARGS="--topK 5 --ensemble 3"
 for s in "${SEEDS[@]}"; do
     bash ${EXP_DIR}/test.sh eurlex "${BASE_TRAIN_ARGS} -C 16 --seed ${s}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
     bash ${EXP_DIR}/test.sh wiki10 "${BASE_TRAIN_ARGS} -C 16 --seed ${s}" "${BASE_TEST_ARGS}" $MODEL $RESULTS

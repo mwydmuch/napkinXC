@@ -80,6 +80,9 @@ public:
     inline AbstractVector* getW() { return W; };
     inline AbstractVector* getG() { return G; };
 
+    inline void setW(AbstractVector* vec) { W = vec; };
+    inline void setG(AbstractVector* vec) { G = vec; };
+
     unsigned long long mem();
     inline int getFirstClass() { return firstClass; }
     void clear();

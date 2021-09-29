@@ -69,6 +69,7 @@ protected:
     ModelType type;
     std::string name;
     int m; // Output size/number of labels
+    int f; // Input size/number of features
     bool preloaded;
     bool loaded;
     std::vector<Real> thresholds; // For prediction with thresholds

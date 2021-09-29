@@ -126,35 +126,37 @@ template <typename T> Real Ensemble<T>::predictForLabel(Label label, SparseVecto
 
 template <typename T>
 std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& features, Args& args) {
-    if (!args.onTheTrotPrediction) return Model::predictBatch(features, args);
-
     int rows = features.rows();
     std::vector<std::unordered_map<int, EnsemblePrediction>> ensemblePredictions(rows);
 
+    T* tmpMember;
+
     // Get top predictions for members
-    for (int memberNo = 0; memberNo < args.ensemble; ++memberNo) {
-        T* member = loadMember(args, args.output, memberNo);
+    for (int i = 0; i < args.ensemble; ++i) {
+        if (args.onTheTrotPrediction) tmpMember = loadMember(args, args.output, i);
+        else tmpMember = members[i];
 
-        std::vector<std::vector<Prediction>> memberPredictions = member->predictBatch(features, args);
-        for (int i = 0; i < rows; ++i) accumulatePrediction(ensemblePredictions[i], memberPredictions[i], memberNo);
+        std::vector<std::vector<Prediction>> memberPredictions = tmpMember->predictBatch(features, args);
+        for (int j = 0; j < rows; ++j) accumulatePrediction(ensemblePredictions[j], memberPredictions[j], i);
 
-        delete member;
+        if (args.onTheTrotPrediction) delete tmpMember;
     }
 
     // Predict missing predictions for specific labels
     if(args.ensMissingScores) {
-        for (int memberNo = 0; memberNo < args.ensemble; ++memberNo) {
-            T *member = loadMember(args, args.output, memberNo);
+        for (int i = 0; i < args.ensemble; ++i) {
+            if (args.onTheTrotPrediction) tmpMember = loadMember(args, args.output, i);
+            else tmpMember = members[i];
 
-            for (int i = 0; i < rows; ++i) {
-                printProgress(i, rows);
-                for (auto &p : ensemblePredictions[i]) {
-                    if (!std::count(p.second.members.begin(), p.second.members.end(), memberNo))
-                        p.second.value += member->predictForLabel(p.second.label, features[i], args);
+            for (int j = 0; j < rows; ++j) {
+                printProgress(j, rows);
+                for (auto &p : ensemblePredictions[j]) {
+                    if (!std::count(p.second.members.begin(), p.second.members.end(), i))
+                        p.second.value += tmpMember->predictForLabel(p.second.label, features[j], args);
                 }
             }
 
-            delete member;
+            if (args.onTheTrotPrediction) delete tmpMember;
         }
     }
 

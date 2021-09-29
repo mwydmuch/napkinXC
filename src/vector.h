@@ -234,6 +234,7 @@ public:
     void add(AbstractVector& vec, Real scalar = 1.0);
     void sub(Real scalar);
     void sub(AbstractVector& vec, Real scalar = 1.0);
+    void zero(AbstractVector& vec);
     void invert();
     void zeros();
 

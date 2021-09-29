@@ -64,7 +64,7 @@ std::shared_ptr<Model> Model::factory(Args& args) {
     return model;
 }
 
-Model::Model():preloaded(false), loaded(false), m(0) {}
+Model::Model():preloaded(false), loaded(false), m(0), f(0) {}
 
 Model::~Model() {
     unload();

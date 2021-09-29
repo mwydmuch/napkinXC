@@ -309,14 +309,18 @@ public:
     }
 
     explicit SparseVector(const std::vector<IRVPair>& vec, bool sorted = true) {
+        s = 0;
+        this->sorted = true;
         n0 = vec.size();
         maxN0 = n0;
         d = new IRVPair[n0 + 1];
         d[n0].index = -1;
-        std::copy(vec.begin(), vec.end(), d);
-        this->sorted = sorted;
-        sort();
-        s = d[n0 - 1].index + 1;
+        if(n0) {
+            std::copy(vec.begin(), vec.end(), d);
+            this->sorted = sorted;
+            sort();
+            s = d[n0 - 1].index + 1;
+        }
     }
 
     ~SparseVector() override{

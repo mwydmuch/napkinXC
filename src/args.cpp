@@ -396,14 +396,12 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
         }
     }
 
-//    if (input.empty() || output.empty())
-//        throw std::invalid_argument("Empty input or model path");
+    //    if (input.empty() || output.empty())
+    //        throw std::invalid_argument("Empty input or model path");
 
     // Change default values for specific cases + parameters warnings
     if (optimizerType == liblinear) {
-        if (countArgs(args, {"-s", "--solver", "--liblinearSolver"}) and countArg(args, "--loss"))
-            Log(CERR) << "Warning: Default solver for " << lossName << " will be overridden by " << solverName << " solver!\n";
-        else {
+        if (!countArgs(args, {"--solver", "--liblinearSolver"})) {
             if(lossType == logistic){
                 solverType = L2R_LR_DUAL;
                 solverName = "L2R_LR_DUAL";
@@ -413,6 +411,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 solverName = "L2R_L2LOSS_SVC_DUAL";
             }
         }
+        else if(countArg(args, "--loss"))
+            Log(CERR) << "Warning: Default solver for " << lossName << " will be overridden by " << solverName << " solver!\n";
     }
 
     if (modelType == oplt && optimizerType == liblinear) {
@@ -425,7 +425,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
     if (modelType == oplt && resume && (treeType != onlineRandom && treeType != onlineBestScore)) {
         if (countArg(args, "--treeType"))
             Log(CERR) << "Warning: Resuming training for Online PLT does not support " << treeTypeName
-                      << " tree type! Changing to onlineBestScore.\n";
+            << " tree type! Changing to onlineBestScore.\n";
         treeType = onlineBestScore;
         treeTypeName = "onlineBestScore";
     }
@@ -448,7 +448,7 @@ void Args::printArgs(std::string command) {
     Log(CERR) << "napkinXC " << VERSION << " - " << command;
     if (!input.empty())
         Log(CERR) << "\n  Input: " << input << "\n    Bias: " << bias << ", norm: " << norm
-                  << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
+        << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
     Log(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
     if (ensemble > 1) Log(CERR) << ", ensemble: " << ensemble;
 
@@ -468,9 +468,9 @@ void Args::printArgs(std::string command) {
                 Log(CERR) << "\n  Tree type: " << treeTypeName << ", arity: " << arity;
                 if (treeType == hierarchicalKmeans)
                     Log(CERR) << ", k-means eps: " << kmeansEps << ", balanced: " << kmeansBalanced
-                              << ", weighted features: " << kmeansWeightedFeatures;
+                    << ", weighted features: " << kmeansWeightedFeatures;
                 if (treeType == hierarchicalKmeans || treeType == balancedInOrder || treeType == balancedRandom
-                    || treeType == onlineBestScore || treeType == onlineRandom)
+                || treeType == onlineBestScore || treeType == onlineRandom)
                     Log(CERR) << ", max leaves: " << maxLeaves;
                 if (flattenTree)
                     Log(CERR) << ", flatten tree levels: " << flattenTree;
@@ -499,7 +499,7 @@ void Args::printArgs(std::string command) {
         Log(CERR) << "\n  Epochs: " << epochs << ", initial a: " << ofoA << ", initial b: " << ofoB;
 
     Log(CERR) << "\n  Threads: " << threads << ", memory limit: " << formatMem(memLimit)
-              << "\n  Seed: " << seed << "\n";
+    << "\n  Seed: " << seed << "\n";
 }
 
 int Args::countArg(const std::vector<std::string>& args, std::string to_count){

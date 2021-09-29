@@ -371,7 +371,7 @@ Real PLT::predictForLabel(Label label, SparseVector& features, Args& args) {
     }
 
     if(!labelsWeights.empty())
-        value = labelsWeights[label] = value;
+        value *= labelsWeights[label];
 
     return value;
 }

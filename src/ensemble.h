@@ -56,8 +56,11 @@ public:
 protected:
     std::vector<T*> members;
     T* loadMember(Args& args, const std::string& infile, int memberNo);
-    void accumulatePrediction(std::unordered_map<int, EnsemblePrediction>& ensemblePredictions,
+    void accumulatePrediction(UnorderedMap<int, EnsemblePrediction>& ensemblePredictions,
                               std::vector<Prediction>& prediction, int memberNo);
+
+    void accumulatePrediction(UnorderedMap<int, Prediction>& ensemblePredictions,
+                              std::vector<Prediction>& prediction);
 };
 
 
@@ -81,22 +84,31 @@ void Ensemble<T>::train(SRMatrix& labels, SRMatrix& features, Args& args, std::s
 }
 
 template <typename T>
-void Ensemble<T>::accumulatePrediction(std::unordered_map<int, EnsemblePrediction>& ensemblePredictions,
+void Ensemble<T>::accumulatePrediction(UnorderedMap<int, EnsemblePrediction>& ensemblePredictions,
                                        std::vector<Prediction>& prediction, int memberNo) {
-
     for (auto& mP : prediction) {
         auto ensP = ensemblePredictions.find(mP.label);
         if (ensP != ensemblePredictions.end()) {
             ensP->second.value += mP.value;
             ensP->second.members.push_back(memberNo);
         } else
-            ensemblePredictions.insert({mP.label, {mP.label, mP.value, {memberNo}}});
+            ensemblePredictions[mP.label] = {mP.label, mP.value, {memberNo}};
+    }
+}
+
+template <typename T>
+void Ensemble<T>::accumulatePrediction(UnorderedMap<int, Prediction>& ensemblePredictions,
+                                       std::vector<Prediction>& prediction) {
+    for (auto& mP : prediction) {
+        auto ensP = ensemblePredictions.find(mP.label);
+        if (ensP != ensemblePredictions.end()) ensP->second.value += mP.value;
+        else ensemblePredictions[mP.label] = {mP.label, mP.value};
     }
 }
 
 template <typename T> void Ensemble<T>::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
 
-    std::unordered_map<int, EnsemblePrediction> ensemblePredictions;
+    UnorderedMap<int, EnsemblePrediction> ensemblePredictions;
     for (size_t i = 0; i < members.size(); ++i) {
         prediction.clear();
         members[i]->predict(prediction, features, args);
@@ -127,7 +139,11 @@ template <typename T> Real Ensemble<T>::predictForLabel(Label label, SparseVecto
 template <typename T>
 std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& features, Args& args) {
     int rows = features.rows();
-    std::vector<std::unordered_map<int, EnsemblePrediction>> ensemblePredictions(rows);
+    std::vector<UnorderedMap<int, Prediction>> simpleEnsemblePredictions;
+    std::vector<UnorderedMap<int, EnsemblePrediction>> allEnsemblePredictions;
+
+    if(args.ensMissingScores) allEnsemblePredictions.resize(rows);
+    else simpleEnsemblePredictions.resize(rows);
 
     T* tmpMember;
 
@@ -137,10 +153,16 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
         else tmpMember = members[i];
 
         std::vector<std::vector<Prediction>> memberPredictions = tmpMember->predictBatch(features, args);
-        for (int j = 0; j < rows; ++j) accumulatePrediction(ensemblePredictions[j], memberPredictions[j], i);
+        if(args.ensMissingScores)
+            for (int j = 0; j < rows; ++j) accumulatePrediction(allEnsemblePredictions[j], memberPredictions[j], i);
+        else
+            for (int j = 0; j < rows; ++j) accumulatePrediction(simpleEnsemblePredictions[j], memberPredictions[j]);
 
         if (args.ensOnTheTrot) delete tmpMember;
     }
+
+
+    std::vector<std::vector<Prediction>> predictions(rows);
 
     // Predict missing predictions for specific labels
     if(args.ensMissingScores) {
@@ -150,7 +172,7 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
 
             for (int j = 0; j < rows; ++j) {
                 printProgress(j, rows);
-                for (auto &p : ensemblePredictions[j]) {
+                for (auto &p : allEnsemblePredictions[j]) {
                     if (!std::count(p.second.members.begin(), p.second.members.end(), i))
                         p.second.value += tmpMember->predictForLabel(p.second.label, features[j], args);
                 }
@@ -158,14 +180,22 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
 
             if (args.ensOnTheTrot) delete tmpMember;
         }
+
+        for (int i = 0; i < rows; ++i) {
+            predictions[i].reserve(allEnsemblePredictions[i].size());
+            for (auto& p : allEnsemblePredictions[i])
+                predictions[i].emplace_back(p.second.label, p.second.value / args.ensemble);
+        }
+    } else {
+        for (int i = 0; i < rows; ++i) {
+            predictions[i].reserve(simpleEnsemblePredictions[i].size());
+            for (auto& p : simpleEnsemblePredictions[i])
+                predictions[i].emplace_back(p.second.label, p.second.value / args.ensemble);
+        }
     }
 
     // Create final predictions
-    std::vector<std::vector<Prediction>> predictions(rows);
     for (int i = 0; i < rows; ++i) {
-        for (auto& p : ensemblePredictions[i])
-            predictions[i].push_back({p.second.label, p.second.value / args.ensemble});
-
         sort(predictions[i].rbegin(), predictions[i].rend());
         if (args.topK > 0) predictions[i].resize(args.topK);
     }

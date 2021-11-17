@@ -39,7 +39,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1qcU-jxF7VmHBvwTn0-6MB4FW4ItD-bIp', # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=1qcU-jxF7VmHBvwTn0-6MB4FW4ItD-bIp',  # Marek Wydmuch's upload
             'dir': 'yeast',
             'train': 'yeast_train.txt',
             'test': 'yeast_test.txt',
@@ -51,7 +51,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1YDlU9GTYSoydU1UYTNT8BpPkRw1BCnFw', # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=1YDlU9GTYSoydU1UYTNT8BpPkRw1BCnFw',  # Marek Wydmuch's upload
             'dir': 'mediamill',
             'train': 'mediamill_train.txt',
             'test': 'mediamill_test.txt',
@@ -60,12 +60,25 @@ DATASETS = {
     },
 
     # XMLC repo datasets
+    'rcv1-2k': {
+        'name': 'RCV1-2K',
+        'formats': ['bow'],
+        'subsets': ['train', 'test'],
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1pdken_Di3PLcLlRbhHF4XIWp-CEiv9oQ',  # Marek Wydmuch's upload
+            'dir': 'RCV1-x',
+            'train': 'rcv1x_train.txt',
+            'test': 'rcv1x_test.txt',
+            'file_format': 'libsvm',
+        }
+    },
     'eurlex-4k': {
         'name': 'EURLex-4K',
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGU0VTR1pCejFpWjg', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGU0VTR1pCejFpWjg',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1xWW1UykQBTD2IorVn7V8XubJatQDScol',  # Marek Wydmuch's upload
             'dir': 'Eurlex',
             'train': 'eurlex_train.txt',
             'test': 'eurlex_test.txt',
@@ -77,7 +90,8 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test', 'validation'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1b3mWgaKIAmc9Ae3E0QrokiIFA9Qj1K9r', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1b3mWgaKIAmc9Ae3E0QrokiIFA9Qj1K9r',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1UZ5joZdU1axWdCVSECakmEA8XQJ2gVuQ',  # Marek Wydmuch's upload
             'dir': 'EURLex-4.3K',
             'train': 'train.txt',
             'test': 'test.txt',
@@ -90,14 +104,16 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=17EFQtnRswEv0XyPng2EOy5IeWmeZbe0a',  # Marek Wydmuch's upload
             'dir': 'AmazonCat',
             'train': 'amazonCat_train.txt',
             'test': 'amazonCat_test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=17rVRDarPwlMpb3l5zof9h34FlwbpTu4l', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=17rVRDarPwlMpb3l5zof9h34FlwbpTu4l',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1iOsEOYL-fY-GOt0CNfgW9YO2oFDTb6X4',  # Marek Wydmuch's upload
             'dir': 'AmazonCat-13K.raw',
             'train': 'trn.json.gz',
             'test': 'tst.json.gz',
@@ -111,14 +127,16 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDFqU2E5U0dxS00', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDFqU2E5U0dxS00',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1VAxPvByB-SX3_MefdfW1eKZYTfz0vMcR',  # Marek Wydmuch's upload
             'dir': 'AmazonCat-14K',
             'train': 'amazonCat-14K_train.txt',
             'test': 'amazonCat-14K_test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=1vy1N-lDdDfuoo0CNwFE11hb3INCpJHFx', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1vy1N-lDdDfuoo0CNwFE11hb3INCpJHFx',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1CTu0ZKhpaWuzIoOheDrccG_skXhyfzLm',  # Marek Wydmuch's upload
             'dir': 'AmazonCat-14K.raw',
             'train': 'trn.json.gz',
             'test': 'tst.json.gz',
@@ -132,7 +150,8 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDdOeGliWF9EOTA', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDdOeGliWF9EOTA',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1WbxhKvvBSynX5_Sf6OaPReTMs8K6bZ8u',  # Marek Wydmuch's upload
             'dir': 'Wiki10',
             'train': 'wiki10_train.txt',
             'test': 'wiki10_test.txt',
@@ -144,7 +163,8 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGR3lBWWYyVlhDLWM', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGR3lBWWYyVlhDLWM',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=18Tb595TuGyFW--nEYGfduwS5WvSbX-sX',  # Marek Wydmuch's upload
             'dir': 'DeliciousLarge',
             'train': 'deliciousLarge_train.txt',
             'test': 'deliciousLarge_test.txt',
@@ -156,7 +176,8 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGSHE1SWx4TVRva3c', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGSHE1SWx4TVRva3c',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1Y5xEJu-j3M7voyFV5Ouq9Wl3vyd9fus2',  # Marek Wydmuch's upload
             'dir': 'WikiLSHTC',
             'train': 'wikiLSHTC_train.txt',
             'test': 'wikiLSHTC_test.txt',
@@ -168,14 +189,16 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1bHtiLVF5EFsVL3qyU7y5e3M-fYHvXsG9', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1bHtiLVF5EFsVL3qyU7y5e3M-fYHvXsG9',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1icZIEU2TA5k86mTweciSa3mBLFD3fbIP',  # Marek Wydmuch's upload
             'dir': 'WikiSeeAlsoTitles-350K',
             'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
             'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=1sxPHzlnotUKjbtVRe0GuXGfSI7YhBSdc', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1sxPHzlnotUKjbtVRe0GuXGfSI7YhBSdc',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=13Y4cvJ6zKDUpIdBVsaBHp1rEWiv5tyQy',  # Marek Wydmuch's upload
             'dir': 'WikiSeeAlsoTItles-350K',
             'train': 'trn.json.gz', # Type is there on purpose
             'test': 'tst.json.gz',
@@ -189,14 +212,15 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=11U4qDWKvsR6pCzLvY3APckx-R_ihyMih', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=11U4qDWKvsR6pCzLvY3APckx-R_ihyMih',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1LkGdINF5coOfkm6J2xys3V1NMW7zz8U1',  # Marek Wydmuch's upload
             'dir': 'WikiTitles-500K',
             'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
             'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=1YStqoa6_5Qxd9FpExTNt-_tcXUhYXUFM', # Marek Wydmuch's reupload
+            'url': 'https://drive.google.com/uc?export=download&id=1YStqoa6_5Qxd9FpExTNt-_tcXUhYXUFM',  # Marek Wydmuch's reupload
             'dir': 'Wikipedia-500K.raw',
             'train': 'trn.raw.json.gz',
             'test': 'tst.raw.json.gz',
@@ -210,14 +234,15 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGRmEzVDVkNjBMR3c', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGRmEzVDVkNjBMR3c',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1LkGdINF5coOfkm6J2xys3V1NMW7zz8U1',  # Marek Wydmuch's upload
             'dir': 'WikipediaLarge-500K',
             'train': 'WikipediaLarge-500K_train.txt',
             'test': 'WikipediaLarge-500K_test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=1YStqoa6_5Qxd9FpExTNt-_tcXUhYXUFM', # Marek Wydmuch's reupload
+            'url': 'https://drive.google.com/uc?export=download&id=1YStqoa6_5Qxd9FpExTNt-_tcXUhYXUFM',  # Marek Wydmuch's reupload
             'dir': 'Wikipedia-500K.raw',
             'train': 'trn.raw.json.gz',
             'test': 'tst.raw.json.gz',
@@ -231,14 +256,16 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1OKnaLu4SDMOQ69rHdwF8ExKkeF2SZw7z', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1OKnaLu4SDMOQ69rHdwF8ExKkeF2SZw7z',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1TWF2_tPGdezuljGEHbp63pe7eQUq7wK6',  # Marek Wydmuch's upload
             'dir': 'AmazonTitles-670K',
             'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
             'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=1FPqD8Wns7NXTSYDAcK4ZsqUUGABLyZMn', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1FPqD8Wns7NXTSYDAcK4ZsqUUGABLyZMn',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1f1w0cGc-jJoPxJRY7v7BvKJuelspwOZV',  # Marek Wydmuch's upload
             'dir': 'AmazonTitles-670K',
             'train': 'trn.json.gz',
             'test': 'tst.json.gz',
@@ -252,14 +279,16 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdUJwRzltS1dvUVk', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdUJwRzltS1dvUVk',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1d5EMgVxjjDBGjw7M09gaygx5wSt4-AqQ',  # Marek Wydmuch's upload
             'dir': 'Amazon',
             'train': 'amazon_train.txt',
             'test': 'amazon_test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=16FIzX3TnlsqbrwSJJ2gDih69laezfZWR', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=16FIzX3TnlsqbrwSJJ2gDih69laezfZWR',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1WAzs7qfLY8ZoluHbY55WyakhibW27kS2',  # Marek Wydmuch's upload
             'dir': 'Amazon-670K.raw',
             'train': 'trn.raw.json.gz',
             'test': 'tst.raw.json.gz',
@@ -273,14 +302,16 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1PGzippnzIcgVNYZ8qQKVb0GNiARjQxvV', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1PGzippnzIcgVNYZ8qQKVb0GNiARjQxvV',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=15MpbBO7MTRLc1okzwSiPkQ9ZHgyKMzzm',  # Marek Wydmuch's upload
             'dir': 'AmazonTitles-3M',
             'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
             'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=1m0MMApC0vPpjEfI35SAaBGqKDsYypVXs', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1m0MMApC0vPpjEfI35SAaBGqKDsYypVXs',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=18Rpy2WWJL8AlGoipT3DSWehzu54QLH_7',  # Marek Wydmuch's upload
             'dir': 'AmazonTitles-3M',
             'train': 'trn.json.gz',
             'test': 'tst.json.gz',
@@ -294,14 +325,16 @@ DATASETS = {
         'formats': ['bow', 'raw'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1tepPa5oOSp7jmih7LTEemHOL9KwdBtuB',  # Marek Wydmuch's upload
             'dir': 'Amazon-3M',
             'train': 'amazon-3M_train.txt',
             'test': 'amazon-3M_test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
-            'url': 'https://drive.google.com/uc?export=download&id=1gsabsx8KR2N9jJz16jTcA0QASXsNuKnN', # XMLC repo url
+            # 'url': 'https://drive.google.com/uc?export=download&id=1gsabsx8KR2N9jJz16jTcA0QASXsNuKnN',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1oDW_-c9dW6Dwj0ja_RVoLRNp87JKw1gh',  # Marek Wydmuch's upload
             'dir': 'Amazon-3M.raw',
             'train': 'trn.json.gz',
             'test': 'tst.json.gz',
@@ -315,7 +348,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1VlfcdJKJA99223fLEawRmrXhXpwjwJKn', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=1VlfcdJKJA99223fLEawRmrXhXpwjwJKn',  # XMLC repo url
             'dir': 'LF-AmazonTitles-131K',
             'train': 'train.txt',
             'test': 'test.txt',
@@ -327,7 +360,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1YNGEifTHu4qWBmCaLEBfjx07qRqw9DVW', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=1YNGEifTHu4qWBmCaLEBfjx07qRqw9DVW',  # XMLC repo url
             'dir': 'LF-Amazon-131K',
             'train': 'train.txt',
             'test': 'test.txt',
@@ -339,7 +372,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1edWtizAFBbUzxo9Z2wipGSEA9bfy5mdX', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=1edWtizAFBbUzxo9Z2wipGSEA9bfy5mdX',  # XMLC repo url
             'dir': 'LF-WikiSeeAlsoTitles-320K',
             'train': 'train.txt',
             'test': 'test.txt',
@@ -351,7 +384,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1N8C_RL71ErX6X92ew9h8qRuTWJ9LywE8', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=1N8C_RL71ErX6X92ew9h8qRuTWJ9LywE8',  # XMLC repo url
             'dir': 'LF-WikiSeeAlso-320K',
             'train': 'train.txt',
             'test': 'test.txt',
@@ -363,7 +396,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1qa1HTTD509J5r4yNAH-Aq6wArljgg4mx', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=1qa1HTTD509J5r4yNAH-Aq6wArljgg4mx',  # XMLC repo url
             'dir': 'LF-WikiTitles-500K',
             'train': 'train.txt',
             'test': 'test.txt',
@@ -375,7 +408,7 @@ DATASETS = {
         'formats': ['bow'],
         'subsets': ['train', 'test'],
         'bow': {
-            'url': 'https://drive.google.com/uc?export=download&id=1Davc6BIfoTIAS3mP1mUY5EGcGr2zN2pO', # XMLC repo url
+            'url': 'https://drive.google.com/uc?export=download&id=1Davc6BIfoTIAS3mP1mUY5EGcGr2zN2pO',  # XMLC repo url
             'dir': 'LF-AmazonTitles-1.3M',
             'train': 'train.txt',
             'test': 'test.txt',
@@ -482,7 +515,7 @@ def download_dataset(dataset, subset='train', format='bow', root='./data', verbo
         - ``'LF-AmazonTitles-1.3M'`` (for now ``'bow'`` format only).
 
     :type dataset: str
-    :param subset: Subset of dataset to load into features matrix and labels {``'train'``, ``'test'``, ``'validation'``}, defaults to ``'train'``
+    :param subset: Subset of dataset to download {``'train'``, ``'test'``, ``'validation'``}, defaults to ``'train'``
     :type subset: str, optional
     :param format: Format of dataset to load {``'bow'`` (bag-of-words/tf-idf weights, alias ``'tf-idf'``), ``'raw'`` (raw text)}, defaults to ``'bow'``
     :type format: str, optional

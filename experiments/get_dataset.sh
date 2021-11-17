@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# This script download only datasets in BOW format.
+
 set -e
 
 DATASET="$1"
@@ -17,45 +19,25 @@ case "$DATASET" in
 
     # Multi-label datasets from The Extreme Classification Repository (manikvarma.org/downloads/XC/XMLRepository.html)
     "rcv1x") # RCV1X-2K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdnEzRWZWQWJMRnc" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1pdken_Di3PLcLlRbhHF4XIWp-CEiv9oQ" ;;
     "amazonCat") # AmazonCat-13K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=17EFQtnRswEv0XyPng2EOy5IeWmeZbe0a" ;;
     "amazonCat-14K") # AmazonCat-14K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDFqU2E5U0dxS00" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1VAxPvByB-SX3_MefdfW1eKZYTfz0vMcR" ;;
     "amazon") # Amazon-670K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdUJwRzltS1dvUVk" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1d5EMgVxjjDBGjw7M09gaygx5wSt4-AqQ" ;;
     "amazon-3M") # Amazon-3M
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1tepPa5oOSp7jmih7LTEemHOL9KwdBtuB" ;;
     "deliciousLarge") # Delicious-200K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGR3lBWWYyVlhDLWM" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=18Tb595TuGyFW--nEYGfduwS5WvSbX-sX" ;;
     "eurlex") # EURLex-4K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGU0VTR1pCejFpWjg" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1xWW1UykQBTD2IorVn7V8XubJatQDScol" ;;
     "wiki10") # Wiki10-31K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDdOeGliWF9EOTA" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1WbxhKvvBSynX5_Sf6OaPReTMs8K6bZ8u" ;;
     "wikiLSHTC") # WikiLSHTC-325K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGSHE1SWx4TVRva3c" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1Y5xEJu-j3M7voyFV5Ouq9Wl3vyd9fus2" ;;
     "WikipediaLarge-500K") # Wikipedia-500K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGRmEzVDVkNjBMR3c" ;;
-
-    # Multi-class datasets from PD-Sparse (http://www.cs.utexas.edu/~xrhuang/PDSparse/)
-    "bibtex")
-	      DATASET_LINK="https://www.dropbox.com/s/yizjmqxi6ulub3y/bibtex.tar.bz2" ;;
-	  "sector")
-	      DATASET_LINK="https://www.dropbox.com/s/9qhaxn9rxb0n4mq/sector.tar.bz2" ;;
-	  "rcv1_regions")
-        DATASET_LINK="https://www.dropbox.com/s/be6sit7zcxxy4uw/rcv1_regions.tar.bz2" ;;
-	  "aloi.bin")
-	      DATASET_LINK="https://www.dropbox.com/s/jwousxredtggq3y/aloi.bin.tar.bz2" ;;
-	  "Dmoz")
-	      DATASET_LINK="https://www.dropbox.com/s/lq6vd7t6nz1w7iy/Dmoz.tar.bz2" ;;
-    "Eur-Lex")
-	      DATASET_LINK="https://www.dropbox.com/s/swjyqbtxea1q1mp/Eur-Lex.tar.bz2" ;;
-    "LSHTC1")
-	      DATASET_LINK="https://www.dropbox.com/s/0mgarujfps4cb78/LSHTC1.tar.bz2" ;;
-    "LSHTCwiki")
-	      DATASET_LINK="https://www.dropbox.com/s/3j8urvy6j9kyx4u/LSHTCwiki.tar.bz2" ;;
-    "imageNet")
-        DATASET_LINK="https://www.dropbox.com/s/898cgz76lmuz04a/imageNet.tar.bz2" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1LkGdINF5coOfkm6J2xys3V1NMW7zz8U1" ;;
     *)
         echo "Unknown dataset: ${DATASET}!"
         exit 1
@@ -91,3 +73,4 @@ if [ ! -e $DATASET_PATH ]; then
         rm ${DATASET_PATH}.tar.bz2
     fi
 fi
+

@@ -21,8 +21,8 @@ Set CXX and CC environmental variables before running ``cmake`` command if you w
 After successful compilation, ``nxc`` executable should appear in the root or specified build directory.
 
 
-LIBSVM data Format
------------
+LIBSVM data format
+------------------
 
 napkinXC supports multi-label svmlight/libsvm like-format (less strict)
 and format of datasets from `The Extreme Classification Repository <https://manikvarma.github.io/downloads/XC/XMLRepository.html>`_,

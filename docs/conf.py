@@ -47,6 +47,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # -- Autodoc configuration ---------------------------------------------------
 # Mock required packages
 autodoc_mock_imports = [
+    "gdown",
     "napkinxc._napkinxc",
     "numpy",
     "scipy",

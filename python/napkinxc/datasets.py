@@ -496,6 +496,8 @@ def load_libsvm_file(file, labels_format="list", sort_indices=False):
 
 def load_json_lines_file(file, features_fields=['title', 'content'], labels_field='target_ind', gzip_file=None):
     """
+    Load data in the JSON lines format into list of features and list of labels.
+    
     :param file: Path to a JSON lines file to load
     :type file: str
     :param features_fields: list of fields of JSON line that contain features, fields will be concatenated in the specified order, defaults to ['title', 'content']

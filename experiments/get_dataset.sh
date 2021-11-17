@@ -19,21 +19,21 @@ case "$DATASET" in
 
     # Multi-label datasets from The Extreme Classification Repository (manikvarma.org/downloads/XC/XMLRepository.html)
     "rcv1x") # RCV1X-2K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=1pdken_Di3PLcLlRbhHF4XIWp-CEiv9oQ" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1WvBWF9hH5ZlFcpCRhp8wLVGwdeGZXKD2" ;;
     "amazonCat") # AmazonCat-13K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=17EFQtnRswEv0XyPng2EOy5IeWmeZbe0a" ;;
     "amazonCat-14K") # AmazonCat-14K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=1VAxPvByB-SX3_MefdfW1eKZYTfz0vMcR" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=19IhTX1_a4U5I2Q56VUkzq2jFBpwm2-n-" ;;
     "amazon") # Amazon-670K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=1d5EMgVxjjDBGjw7M09gaygx5wSt4-AqQ" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1PV-wbKVv6Ng1K1XM1USqNxFhaQo2qfk6" ;;
     "amazon-3M") # Amazon-3M
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=1tepPa5oOSp7jmih7LTEemHOL9KwdBtuB" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1ork7yeAcliD9JQiRdEx4QknhMFHjVrku" ;;
     "deliciousLarge") # Delicious-200K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=18Tb595TuGyFW--nEYGfduwS5WvSbX-sX" ;;
     "eurlex") # EURLex-4K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=1xWW1UykQBTD2IorVn7V8XubJatQDScol" ;;
     "wiki10") # Wiki10-31K
-        DATASET_LINK="https://drive.google.com/uc?export=download&id=1WbxhKvvBSynX5_Sf6OaPReTMs8K6bZ8u" ;;
+        DATASET_LINK="https://drive.google.com/uc?export=download&id=1uV-p682ggXQQTiKZyK5M6B0xJJk8_lJx" ;;
     "wikiLSHTC") # WikiLSHTC-325K
         DATASET_LINK="https://drive.google.com/uc?export=download&id=1Y5xEJu-j3M7voyFV5Ouq9Wl3vyd9fus2" ;;
     "WikipediaLarge-500K") # Wikipedia-500K

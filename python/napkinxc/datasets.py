@@ -18,6 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import gdown
 import gzip
 import json
 import re
@@ -101,14 +102,21 @@ DATASETS = {
     },
     'amazoncat-13k': {
         'name': 'AmazonCat-13K',
-        'formats': ['bow', 'raw'],
+        'formats': ['bow-v1', 'bow', 'raw'],
         'subsets': ['train', 'test'],
-        'bow': {
+        'bow-v1': {
             # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGa2tMbVJGdDNSMGc',  # XMLC repo url (stopped working)
-            'url': 'https://drive.google.com/uc?export=download&id=17EFQtnRswEv0XyPng2EOy5IeWmeZbe0a',  # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=1WvBWF9hH5ZlFcpCRhp8wLVGwdeGZXKD2',  # Marek Wydmuch's upload
             'dir': 'AmazonCat',
             'train': 'amazonCat_train.txt',
             'test': 'amazonCat_test.txt',
+            'file_format': 'libsvm',
+        },
+        'bow': {  # v2
+            'url': 'https://drive.google.com/uc?export=download&id=17EFQtnRswEv0XyPng2EOy5IeWmeZbe0a',  # Marek Wydmuch's upload
+            'dir': 'AmazonCat-13K.bow',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
@@ -124,14 +132,21 @@ DATASETS = {
     },
     'amazoncat-14k': {
         'name': 'AmazonCat-14K',
-        'formats': ['bow', 'raw'],
+        'formats': ['bow-v1', 'bow', 'raw'],
         'subsets': ['train', 'test'],
-        'bow': {
+        'bow-v1': {
             # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDFqU2E5U0dxS00',  # XMLC repo url (stopped working)
-            'url': 'https://drive.google.com/uc?export=download&id=1VAxPvByB-SX3_MefdfW1eKZYTfz0vMcR',  # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=19IhTX1_a4U5I2Q56VUkzq2jFBpwm2-n-',  # Marek Wydmuch's upload
             'dir': 'AmazonCat-14K',
             'train': 'amazonCat-14K_train.txt',
             'test': 'amazonCat-14K_test.txt',
+            'file_format': 'libsvm',
+        },
+        'bow': {  # v2
+            'url': 'https://drive.google.com/uc?export=download&id=1VAxPvByB-SX3_MefdfW1eKZYTfz0vMcR',  # Marek Wydmuch's upload
+            'dir': 'AmazonCat-14K.bow',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
@@ -147,14 +162,21 @@ DATASETS = {
     },
     'wiki10-31k': {
         'name': 'Wiki10-31K',
-        'formats': ['bow'],
+        'formats': ['bow-v1', 'bow'],
         'subsets': ['train', 'test'],
-        'bow': {
+        'bow-v1': {
             # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGaDdOeGliWF9EOTA',  # XMLC repo url (stopped working)
-            'url': 'https://drive.google.com/uc?export=download&id=1WbxhKvvBSynX5_Sf6OaPReTMs8K6bZ8u',  # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=1uV-p682ggXQQTiKZyK5M6B0xJJk8_lJx',  # Marek Wydmuch's upload
             'dir': 'Wiki10',
             'train': 'wiki10_train.txt',
             'test': 'wiki10_test.txt',
+            'file_format': 'libsvm',
+        },
+        'bow': {  # v2
+            'url': 'https://drive.google.com/uc?export=download&id=1WbxhKvvBSynX5_Sf6OaPReTMs8K6bZ8u',  # Marek Wydmuch's upload
+            'dir': 'Wiki10.bow',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         }
     },
@@ -191,7 +213,8 @@ DATASETS = {
         'bow': {
             # 'url': 'https://drive.google.com/uc?export=download&id=1bHtiLVF5EFsVL3qyU7y5e3M-fYHvXsG9',  # XMLC repo url (stopped working)
             'url': 'https://drive.google.com/uc?export=download&id=1icZIEU2TA5k86mTweciSa3mBLFD3fbIP',  # Marek Wydmuch's upload
-            'dir': 'WikiSeeAlsoTitles-350K',
+            # 'dir': 'WikiSeeAlsoTitles-350K',  # (XMLC version)
+            'dir': 'WikiSeeAlsoTitles-350K.bow',
             'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
             'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
             'file_format': 'XY_sparse',
@@ -199,7 +222,8 @@ DATASETS = {
         'raw': {
             # 'url': 'https://drive.google.com/uc?export=download&id=1sxPHzlnotUKjbtVRe0GuXGfSI7YhBSdc',  # XMLC repo url (stopped working)
             'url': 'https://drive.google.com/uc?export=download&id=13Y4cvJ6zKDUpIdBVsaBHp1rEWiv5tyQy',  # Marek Wydmuch's upload
-            'dir': 'WikiSeeAlsoTItles-350K',
+            # 'dir': 'WikiSeeAlsoTItles-350K',  # (XMLC version)
+            'dir': 'WikiSeeAlsoTitles-350K.raw',
             'train': 'trn.json.gz', # Type is there on purpose
             'test': 'tst.json.gz',
             'file_format': 'jsonlines',
@@ -213,7 +237,7 @@ DATASETS = {
         'subsets': ['train', 'test'],
         'bow': {
             # 'url': 'https://drive.google.com/uc?export=download&id=11U4qDWKvsR6pCzLvY3APckx-R_ihyMih',  # XMLC repo url (stopped working)
-            'url': 'https://drive.google.com/uc?export=download&id=1LkGdINF5coOfkm6J2xys3V1NMW7zz8U1',  # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=1RKKOw0yl2RxrWYbb-S508aOwKdCjY_ih',  # Marek Wydmuch's upload
             'dir': 'WikiTitles-500K',
             'train': {'X': 'trn_X_Xf.txt', 'Y': 'trn_X_Y.txt'},
             'test': {'X': 'tst_X_Xf.txt', 'Y': 'tst_X_Y.txt'},
@@ -276,14 +300,23 @@ DATASETS = {
     },
     'amazon-670k': {
         'name': 'Amazon-670K',
-        'formats': ['bow', 'raw'],
+        'formats': ['bow-v1', 'bow', 'raw'],
         'subsets': ['train', 'test'],
-        'bow': {
+        'bow-v1': {
             # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGdUJwRzltS1dvUVk',  # XMLC repo url (stopped working)
-            'url': 'https://drive.google.com/uc?export=download&id=1d5EMgVxjjDBGjw7M09gaygx5wSt4-AqQ',  # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=1PV-wbKVv6Ng1K1XM1USqNxFhaQo2qfk6',  # Marek Wydmuch's upload
             'dir': 'Amazon',
             'train': 'amazon_train.txt',
             'test': 'amazon_test.txt',
+            'file_format': 'libsvm',
+        },
+        'bow': {
+            # 'url': 'https://drive.google.com/uc?export=download&id=1TLaXCNB_IDtLhk4ycOnyud0PswWAW6hR',  # XMLC repo url (stopped working)
+            'url': 'https://drive.google.com/uc?export=download&id=1d5EMgVxjjDBGjw7M09gaygx5wSt4-AqQ',  # Marek Wydmuch's upload
+            # 'dir': 'Amazon670K.bow',  # (XMLC version)
+            'dir': 'Amazon-670K.bow',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
@@ -322,14 +355,21 @@ DATASETS = {
     },
     'amazon-3m': {
         'name': 'Amazon-3M',
-        'formats': ['bow', 'raw'],
+        'formats': ['bow-v1', 'bow', 'raw'],
         'subsets': ['train', 'test'],
-        'bow': {
+        'bow-v1': {
             # 'url': 'https://drive.google.com/uc?export=download&id=0B3lPMIHmG6vGUEd4eTRxaWl3YkE',  # XMLC repo url (stopped working)
-            'url': 'https://drive.google.com/uc?export=download&id=1tepPa5oOSp7jmih7LTEemHOL9KwdBtuB',  # Marek Wydmuch's upload
+            'url': 'https://drive.google.com/uc?export=download&id=1ork7yeAcliD9JQiRdEx4QknhMFHjVrku',  # Marek Wydmuch's upload
             'dir': 'Amazon-3M',
             'train': 'amazon-3M_train.txt',
             'test': 'amazon-3M_test.txt',
+            'file_format': 'libsvm',
+        },
+        'bow': {
+            'url': 'https://drive.google.com/uc?export=download&id=1tepPa5oOSp7jmih7LTEemHOL9KwdBtuB',  # Marek Wydmuch's upload
+            'dir': 'Amazon-3M.bow',
+            'train': 'train.txt',
+            'test': 'test.txt',
             'file_format': 'libsvm',
         },
         'raw': {
@@ -693,10 +733,6 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
     :return: None
     """
 
-    download_url = 'https://drive.google.com/uc?export=download'
-    re_match = re.search('id=([\w\d\-]+)', url)
-    file_id = re_match.group(1)
-
     destination_directory = path.dirname(dest_path)
     if not path.exists(destination_directory):
         makedirs(destination_directory)
@@ -705,14 +741,7 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
         if verbose:
             print('Downloading {} into {} ... '.format(url, dest_path))
 
-        session = requests.Session()
-        response = session.get(download_url, params={'id': file_id}, stream=True)
-        token = _get_google_drive_confirm_token(response)
-        if token:
-            params = {'id': file_id, 'confirm': token}
-            response = session.get(download_url, params=params, stream=True)
-        current_download_size = [0]
-        _save_response_content(response, dest_path, verbose, current_download_size)
+        gdown.download(url=url, output=dest_path, quiet=not verbose)
 
         if unzip:
             try:
@@ -730,28 +759,3 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
         if verbose:
             print('Done.')
 
-
-def _get_google_drive_confirm_token(response):
-    for key, value in response.cookies.items():
-        if key.startswith('download_warning'):
-            return value
-    return None
-
-
-def _save_response_content(response, destination, verbose, current_size, chunk_size=32768):
-    with open(destination, 'wb') as f:
-        for chunk in response.iter_content(chunk_size):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
-                if verbose:
-                    print('\r' + _sizeof_fmt(current_size[0]), end=' ')
-                    stdout.flush()
-                    current_size[0] += chunk_size
-
-
-def _sizeof_fmt(num, suffix='B'):
-    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
-        if abs(num) < 1024.0:
-            return '{:.1f} {}{}'.format(num, unit, suffix)
-        num /= 1024.0
-    return '{:.1f} {}{}'.format(num, 'Y', suffix)

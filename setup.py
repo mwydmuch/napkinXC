@@ -57,7 +57,7 @@ setup(
     ],
     license="MIT License",
     platforms=["Linux", "MacOS"],
-    install_requires=['numpy', 'scipy', 'requests'],
+    install_requires=['numpy', 'scipy', 'gdown'],
     src_dir="python",
     packages=['napkinxc'],
     ext_module_hint=r"pybind11_add_module",

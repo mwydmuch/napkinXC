@@ -1,6 +1,12 @@
 name: Python build
 
-on: [push]
+on:
+  push:
+    paths:
+      - 'python/**'
+      - 'src/**'
+      - 'CMakeLists.txt'
+      - 'setup.py'
 
 jobs:
   build:

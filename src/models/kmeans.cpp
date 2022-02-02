@@ -51,9 +51,11 @@ void kmeans(std::vector<Assignation>* partition, SRMatrix& pointsFeatures, int c
     Matrix centroidsFeatures(centroids, features);
 
     std::default_random_engine rng(seed);
-    std::uniform_int_distribution<int> dist(0, points);
-    for (int i = 0; i < centroids; ++i)
-        centroidsFeatures[i].add(pointsFeatures[dist(rng)]); // set centroid to this vector
+    std::uniform_int_distribution<int> dist(0, points - 1);
+    for (int i = 0; i < centroids; ++i) {
+        int centroidIndex = (*partition)[dist(rng)].index;
+        centroidsFeatures[i].add(pointsFeatures[centroidIndex]); // set centroid to this vector
+    }
 
     double oldCos = INT_MIN, newCos = -1;
 

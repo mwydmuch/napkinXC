@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2021 by Marek Wydmuch
+# Copyright (c) 2020-2022 by Marek Wydmuch
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -253,7 +253,68 @@ def hamming_loss(Y_true, Y_pred):
     return sum / count
 
 
-def inverse_propensity(Y, A=0.55, B=1.5):
+def count_labels(Y):
+    """
+    Count number of occurrences of each label.
+
+    :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
+    :type Y: ndarray, csr_matrix, list[list[int]]
+    :return: Array with the count of labels occurrences
+    :rtype: ndarray
+    """
+    if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
+        counts = np.ravel(np.sum(Y, axis=0))
+
+    elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
+        m = max([max(y) for y in Y if len(y)])
+        counts = np.zeros(m + 1)
+        for y in Y:
+            counts[y] += 1
+
+    else:
+        raise TypeError("Unsupported data type, should be Numpy matrix (2d array), Scipy sparse matrix or list of lists of ints")
+
+    return counts
+
+
+def Jain_propensity(Y, A=0.55, B=1.5):
+    """
+    Calculate propensity as proposed in Jain et al. 2016.
+    Propensity :math:`p_l` of label :math:`l` is calculated as:
+
+    .. math::
+
+        C = (\\log N - 1)(B + 1)^A \\,, \\
+        p_l = \\frac{1}{1 + C(N_l + B)^{-A}} \\,,
+
+    where :math:`N` is total number of data points, :math:`N_j` is total number of data points for
+    and :math:`A` and :math:`B` are dataset specific parameters.
+
+    :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
+    :type Y: ndarray, csr_matrix, list[list[int]]
+    :param A: Dataset specific parameter, typical values:
+
+        - 0.5: ``WikiLSHTC-325K`` and ``WikipediaLarge-500K``
+        - 0.6: ``Amazon-670K`` and ``Amazon-3M``
+        - 0.55: otherwise
+
+        Defaults to 0.55
+    :type A: float, optional
+    :param B: Dataset specific parameter, typical values:
+
+        - 0.4: ``WikiLSHTC-325K`` and ``WikipediaLarge-500K``
+        - 2.6: ``Amazon-670K`` and ``Amazon-3M``
+        - 1.5: otherwise
+
+        Defaults to 1.5
+    :type B: float, optional
+    :return: Array with the propensity for all labels
+    :rtype: ndarray
+    """
+    return 1.0 / Jain_inverse_propensity(Y, A, B)
+
+
+def Jain_inverse_propensity(Y, A=0.55, B=1.5):
     """
     Calculate inverse propensity as proposed in Jain et al. 2016.
     Inverse propensity :math:`q_l` of label :math:`l` is calculated as:
@@ -287,22 +348,16 @@ def inverse_propensity(Y, A=0.55, B=1.5):
     :return: Array with the inverse propensity for all labels
     :rtype: ndarray
     """
+    counts = count_labels(Y)
     if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
-        n, m = Y.shape
-        freqs = np.ravel(np.sum(Y, axis=0))
-
-    elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
+        n = Y.shape[0]
+    elif isinstance(y, list):
         n = len(Y)
-        m = max([max(y) for y in Y if len(y)])
-        freqs = np.zeros(m + 1)
-        for y in Y:
-            freqs[y] += 1
-
     else:
-        raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of list of ints")
+        raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of lists of ints")
 
     C = (log(n) - 1) * (B + 1) ** A
-    inv_ps = 1 + C * (freqs + B) ** -A
+    inv_ps = 1 + C * (counts + B) ** -A
     return inv_ps
 
 

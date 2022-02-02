@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2021 by Marek Wydmuch
+# Copyright (c) 2020-2022 by Marek Wydmuch
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -641,7 +641,7 @@ def load_dataset(dataset, subset='train', format='bow', root='./data', verbose=F
 
 def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
     """
-    Converts matrix-like object to Scipy csr_matrix.
+    Converts sparse matrix-like data, like list of list of tuples (idx, value), to Scipy csr_matrix.
 
     :param X: Matrix-like object to convert to csr_matrix: ndarray or list of lists of ints or tuples of ints and floats (idx, value).
     :type X: ndarray, list[list[int|str]], list[list[tuple[int, float]]
@@ -664,14 +664,16 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
         data = np.ones(size, dtype=dtype)
         cells = 0
 
-        if isinstance(X[0][0], int):
+        first_element = _get_first_element_of_list_of_lists(X)
+
+        if isinstance(first_element, int):
             for row, x in enumerate(X):
                 indptr[row] = cells
                 indices[cells:cells + len(x)] = sorted(x) if sort_indices else x
                 cells += len(x)
             indptr[len(X)] = cells
 
-        elif isinstance(X[0][0], tuple):
+        elif isinstance(first_element, tuple):
             for row, x in enumerate(X):
                 indptr[row] = cells
                 x = sorted(x) if sort_indices else x
@@ -682,13 +684,59 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
             indptr[len(X)] = cells
 
         return csr_matrix((data, indices, indptr), shape=shape)
-    elif isinstance(X, np.ndarray):
+    else: # Try to convert via constructor
         return csr_matrix(X, dtype=dtype, shape=shape)
-    else:
-        raise TypeError('Cannot convert X to csr_matrix')
+    # raise TypeError('Cannot convert X to csr_matrix')
+
+
+def to_np_matrix(X, shape=None, dtype=np.float32):
+    """
+    Converts sparse matrix-like data, like list of list of tuples (idx, value), to Numpy matrix (2D array).
+
+    :param X: Matrix-like object to convert to csr_matrix: ndarray or list of lists of ints or tuples of ints and floats (idx, value).
+    :type X: ndarray, list[list[int|str]], list[list[tuple[int, float]]
+    :param shape: Shape of the matrix, if None, shape will be deduce from X, defaults to None
+    :type shape: tuple, optional
+    :param dtype: Data type of the matrix, defaults to np.float32
+    :type dtype: type, optional
+    :return: X as Numpy 2D array.
+    :rtype: ndarray
+    """
+    if isinstance(X, list) and isinstance(X[0], (list, tuple, set)):
+        if shape is None:
+            m = max([max(x) for x in X if len(x)]) + 1
+            n = len(X)
+            shape = (n, m)
+        array = np.zeros(shape, dtype=dtype)
+
+        first_element = _get_first_element_of_list_of_lists(X)
+
+        if isinstance(first_element, int):
+            for row, x in enumerate(X):
+                array[row, x] = 1
+
+        elif isinstance(first_element, tuple):
+            for row, x in enumerate(X):
+                for x_i in x:
+                    array[row, x_i[0]] = x_i[1]
+
+        return array
+    elif isinstance(X, csr_matrix):
+        return X.toarrary()
+    else: # Try to convert via constructor
+        return np.array(X)
 
 
 # Helpers
+def _get_first_element_of_list_of_lists(X):
+    first_element = None
+    for x in X:
+        if len(x):
+            first_element = x[0]
+    if first_element is None:
+        raise ValueError('X is does not contain any element')
+
+
 def _get_data_meta(dataset, subset='train', format='bow'):
     aliases = {
         'wiki10': 'wiki10-31k',

@@ -82,7 +82,12 @@ Resources getResources() {
 int getCpuCount() { return std::thread::hardware_concurrency(); }
 
 unsigned long long getSystemMemory() {
+    unsigned long long mem = 0;
+#if defined(__linux__) || defined(__APPLE__)
     long pages = sysconf(_SC_PHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
-    return pages * page_size;
+    mem = pages* page_size;
+#endif
+
+    return mem;
 }

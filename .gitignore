@@ -30,6 +30,20 @@ test-data
 eurlex-model
 test-eurlex-model
 
+# Windows MSVC
+.vs
+*.sln
+*.suo
+*.sdf
+*.vcxproj*
+*.cmd
+*.obj
+*.exe
+*.ilk
+*.pdb
+*.tlog
+
 # Misc
 .idea
 .DS_Store
+*.log

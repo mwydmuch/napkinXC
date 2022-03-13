@@ -804,7 +804,7 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
                     remove(dest_path)
 
             except zipfile.BadZipfile:
-                warnings.warn('Ignoring `unzip` since "{}" does not look like a valid zip file'.format(file_id))
+                warnings.warn('Ignoring `unzip` since "{}" does not look like a valid zip file'.format(dest_path))
 
         if verbose:
             print('Done.')

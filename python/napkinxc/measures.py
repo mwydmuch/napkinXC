@@ -351,7 +351,7 @@ def Jain_inverse_propensity(Y, A=0.55, B=1.5):
     counts = count_labels(Y)
     if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
         n = Y.shape[0]
-    elif isinstance(y, list):
+    elif isinstance(Y, list):
         n = len(Y)
     else:
         raise TypeError("Unsupported data type, should be Numpy matrix, Scipy sparse matrix or list of lists of ints")

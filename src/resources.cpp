@@ -41,15 +41,15 @@ Resources getResources() {
     rc.timePoint = std::chrono::steady_clock::now();
     rc.cpuTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 
-    rc.userCpuTime = -1;
-    rc.systemCpuTime = -1;
+    rc.userCpuTime = 0;
+    rc.systemCpuTime = 0;
 
-    rc.peakVirtualMem = -1;
-    rc.currentVirtualMem = -1;
-    rc.peakRealMem = -1;
-    rc.currentRealMem = -1;
-    rc.dataMemory = -1;
-    rc.stackMemory = -1;
+    rc.peakVirtualMem = 0;
+    rc.currentVirtualMem = 0;
+    rc.peakRealMem = 0;
+    rc.currentRealMem = 0;
+    rc.dataMemory = 0;
+    rc.stackMemory = 0;
 
     // Time - TODO: Windows
 #if defined(__linux__) || defined(__APPLE__)

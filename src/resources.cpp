@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2019-2020 by Marek Wydmuch
+ Copyright (c) 2019-2022 by Marek Wydmuch
 
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -32,11 +32,26 @@
 #include <unistd.h>
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 Resources getResources() {
     Resources rc;
     rc.timePoint = std::chrono::steady_clock::now();
     rc.cpuTime = static_cast<double>(clock()) / CLOCKS_PER_SEC;
 
+    rc.userCpuTime = -1;
+    rc.systemCpuTime = -1;
+
+    rc.peakVirtualMem = -1;
+    rc.currentVirtualMem = -1;
+    rc.peakRealMem = -1;
+    rc.currentRealMem = -1;
+    rc.dataMemory = -1;
+    rc.stackMemory = -1;
+
+    // Time - TODO: Windows
 #if defined(__linux__) || defined(__APPLE__)
     const long ticks = sysconf(_SC_CLK_TCK);
     tms t;
@@ -46,6 +61,7 @@ Resources getResources() {
     rc.systemCpuTime = static_cast<double>(t.tms_stime) / ticks;
 #endif
 
+    //Memory - TODO: Mac, Windows
 #ifdef __linux__
     std::ifstream status("/proc/self/status");
     std::string next;
@@ -64,16 +80,15 @@ Resources getResources() {
         else if (next == "VmStk:")
             status >> rc.stackMemory;
     }
-
+    
     status.close();
 #endif
 
-// TODO
-#ifdef __APPLE__
-    rc.peakVirtualMem = 0;
-    rc.currentVirtualMem = 0;
-    rc.peakRealMem = 0;
-    rc.currentRealMem = 0;
+#ifdef _WIN32
+    MEMORYSTATUSEX statex;
+    GlobalMemoryStatusEx(&statex);
+    rc.peakVirtualMem = statex.ullTotalPhys / 1024;
+    rc.currentVirtualMem = statex.ullTotalPhys / 1024;
 #endif
 
     return rc;
@@ -83,10 +98,17 @@ int getCpuCount() { return std::thread::hardware_concurrency(); }
 
 unsigned long long getSystemMemory() {
     unsigned long long mem = 0;
+
 #if defined(__linux__) || defined(__APPLE__)
     long pages = sysconf(_SC_PHYS_PAGES);
     long page_size = sysconf(_SC_PAGE_SIZE);
     mem = pages* page_size;
+#endif
+
+#if _WIN32
+    MEMORYSTATUSEX statex;
+    GlobalMemoryStatusEx(&statex);
+    mem = statex.ullTotalPhys;
 #endif
 
     return mem;

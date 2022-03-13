@@ -89,22 +89,24 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
     if (args.autoCLin)
         cost *= static_cast<Real>(problemData.r) / problemData.binFeatures.size();
 
-    problem P = {.l = static_cast<int>(problemData.binLabels.size()),
-                 .n = problemData.n,
-                 .y = problemData.binLabels.data(),
-                 .x = reinterpret_cast<feature_node**>(problemData.binFeatures.data()),
-                 .bias = -1,
-                 .W = problemData.instancesWeights.data()};
 
-    parameter C = {.solver_type = args.solverType,
-                   .eps = args.eps,
-                   .C = cost,
-                   .nr_weight = problemData.labelsCount,
-                   .weight_label = problemData.labels,
-                   .weight = problemData.labelsWeights,
-                   .p = 0,
-                   .init_sol = NULL,
-                   .max_iter = args.maxIter};
+
+    problem P = {/*.l =*/ static_cast<int>(problemData.binLabels.size()),
+                 /*.n =*/ problemData.n,
+                 /*.y =*/ problemData.binLabels.data(),
+                 /*.x =*/ reinterpret_cast<feature_node**>(problemData.binFeatures.data()),
+                 /*.bias =*/ -1,
+                 /*.W =*/ problemData.instancesWeights.data()};
+
+    parameter C = {/*.solver_type =*/ args.solverType,
+                   /*.eps =*/ args.eps,
+                   /*.C =*/ cost,
+                   /*.nr_weight =*/ problemData.labelsCount,
+                   /*.weight_label =*/ problemData.labels,
+                   /*.weight =*/ problemData.labelsWeights,
+                   /*.p =*/ 0,
+                   /*.init_sol =*/ NULL,
+                   /*.max_iter =*/ args.maxIter};
 
     auto output = check_parameter(&P, &C);
     assert(output == NULL);

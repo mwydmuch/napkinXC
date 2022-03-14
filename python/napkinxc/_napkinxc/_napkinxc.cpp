@@ -51,49 +51,28 @@ enum InputDataType {
 typedef std::tuple<py::array_t<Real>, py::array_t<int>, py::array_t<int>> ScipyCSRMatrixData;
 
 template<typename F> void runAsInterruptable(F func){
-    std::atomic<bool> done(false);
-    std::thread t([&]{
-        func();
-        done = true;
-    });
+    try{
+        std::atomic<bool> done(false);
+        std::thread t([&]{
+            func();
+            done = true;
+        });
 
-    while(!done){
-        std::this_thread::sleep_for(100ms);
-        if (PyErr_CheckSignals() != 0) throw py::error_already_set();
+        while(!done){
+            std::this_thread::sleep_for(100ms);
+            if (PyErr_CheckSignals() != 0) throw py::error_already_set();
+        }
+
+        t.join();
+    } catch (std::exception &e) {
+        throw e;
     }
-
-    t.join();
 }
 
 template<typename T> std::vector<T> pyListToVector(py::list const &pyList){
     std::vector<T> vector(pyList.size());
     for (size_t i = 0; i < pyList.size(); ++i) vector[i] = py::cast<T>(pyList[i]);
     return vector;
-}
-
-template<typename T> void pyDataToSparseVector(std::vector<T>& output, py::object input, InputDataType dataType) {
-    if(dataType == ndarray) {
-        py::array_t<Real, py::array::c_style | py::array::forcecast> pyArray(input); // TODO: test it with different strides
-        output.reserve(output.size() + pyArray.size());
-        for(int i = 0; i < pyArray.size(); ++i) output.emplace_back(i, pyArray.at(i));
-    }
-    else if(dataType == list) {
-        py::list pyList(input);
-        if(pyList.size() == 0) return;
-        output.reserve(output.size() + pyList.size());
-
-        // Sparse vectors are expected to be list of (id (int), value (float)) tuples or list of ids (int).
-        if(py::isinstance<py::tuple>(pyList[0])){
-            for (int i = 0; i < pyList.size(); ++i) {
-                py::tuple pyTuple(pyList[i]);
-                output.emplace_back(py::cast<int>(pyTuple[0]), py::cast<Real>(pyTuple[1]));
-            }
-        } else {
-            for (int i = 0; i < pyList.size(); ++i)
-                output.emplace_back(py::cast<int>(pyList[i]), 1);
-        }
-    }
-    else throw py::value_error("Unsupported data type for pyDataToSparseVector");
 }
 
 template<typename T> py::array_t<T> dataToPyArray(T* ptr, std::vector<py::ssize_t> dims){
@@ -108,7 +87,6 @@ template<typename T> py::array_t<T> dataToPyArray(T* ptr, std::vector<py::ssize_
         strides             // Strides for each dimension */
         ));
 }
-
 
 ScipyCSRMatrixData SRMatrixToScipyCSRMatrix(SRMatrix& matrix, bool sortIndices){
     int rows = matrix.rows();
@@ -407,69 +385,150 @@ private:
     Args args;
     std::shared_ptr<Model> model;
 
+    template<typename T> void readPyArray(SRMatrix& output, py::array& pyArray, bool process = false){
+        std::vector<IRVPair> rVec;
+        if (pyArray.ndim() == 1){ // 1d multiclass data
+            auto pyData = pyArray.unchecked<T, 1>();
+
+            for (size_t r = 0; r < pyData.shape(0); ++r) {
+                rVec.clear();
+                rVec.emplace_back(pyData(r), 1);
+                output.appendRow(rVec);
+            }
+        }
+        else if(pyArray.ndim() == 2) { // 2d multilabel data
+            auto pyData = pyArray.unchecked<T, 2>();
+
+            // Read each row from the sparse matrix, and insert
+            for (size_t r = 0; r < pyData.shape(0); ++r) {
+                rVec.clear();
+                if (process) prepareFeaturesVector(rVec, args.bias);
+
+                for (int f = 0; f < pyData.shape(1); ++f) {
+                    Real v = pyData(r, f);
+                    if (v != 0) rVec.emplace_back(f, v);
+                }
+
+                if (process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+                output.appendRow(rVec);
+            }
+        }
+        else throw py::value_error("Data must be a 1d or 2d array.");
+    }
+
+    template<typename T, typename U> void readCSRMatrix(SRMatrix& output, py::object& input, bool process = false){
+        std::vector<IRVPair> rVec;
+
+        // Try to interpret input data as a csr_matrix CSR matrix
+        py::array_t<T> indptr(input.attr("indptr"));
+        py::array_t<T> indices(input.attr("indices"));
+        py::array_t<U> data(input.attr("data"));
+
+        // Read each row from the sparse matrix, and insert
+        for (int rId = 0; rId < indptr.size() - 1; ++rId) {
+            rVec.clear();
+            if(process) prepareFeaturesVector(rVec, args.bias);
+
+            for (int i = indptr.at(rId); i < indptr.at(rId + 1); ++i)
+                rVec.emplace_back(indices.at(i), data.at(i));
+
+            if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+            output.appendRow(rVec);
+        }
+    }
+
     // Reads multiple items from a python object and inserts onto a SRMatrix
     //SRMatrix readSRMatrix(py::object input, InputDataType dataType) {
     //SRMatrix output;
     void readSRMatrix(SRMatrix& output, py::object& input, InputDataType dataType, bool process = false) {
-        std::vector<IRVPair> rVec;
+        // Supproted types
+        auto floatType = py::dtype::of<float>();
+        auto doubleType = py::dtype::of<double>();
+        auto int32Type = py::dtype::of<int32_t>();
+        auto int64Type = py::dtype::of<int64_t>();
 
         if (dataType == list) {
-            py::list pyData(input);
-            for (size_t i = 0; i < pyData.size(); ++i) {
+            std::vector<IRVPair> rVec;
+            py::list pyList(input);
+            for (size_t i = 0; i < pyList.size(); ++i) {
                 rVec.clear();
                 if(process) prepareFeaturesVector(rVec, args.bias);
 
-                pyDataToSparseVector<IRVPair>(rVec, pyData[i], list);
+                //if(py::hasattr(pyData[i], "__iter__")){ // Is iterable, multilabel data
+                if(py::isinstance<py::list>(pyList[i])){ // Is list, multilabel data
+                    py::list pyRowList(pyList[i]);
+                    if(pyRowList.size() == 0){
+                        output.appendRow(rVec);
+                        continue;
+                    }
+
+                    for (int j = 0; j < pyRowList.size(); ++j) {
+                        if(py::isinstance<py::tuple>(pyRowList[j])){
+                            py::tuple pyTuple(pyRowList[j]);
+                            rVec.emplace_back(py::cast<int>(pyTuple[0]), py::cast<Real>(pyTuple[1]));
+                        } else if(py::isinstance<py::int_>(pyRowList[0])) rVec.emplace_back(py::cast<int>(pyRowList[j]), 1);
+                        else throw py::value_error("Unsupported row data type, can be list or tuple of ints or typles of int and floats.");
+                    }
+
+                    // TODO: New method with handle
+                    /*
+                    for(py::handle pyRow : pyData[i]){
+                        std::cout << py::isinstance<int32Type>(pyRow.ptr()) << " " << int32Type.str() << " " << pyRow.get_type().str() << std::endl;
+
+                        if(py::isinstance<py::tuple>(pyRow.ptr())){
+                            py::tuple pyTuple = py::cast<py::tuple>(pyRow.ptr());
+                            rVec.emplace_back(py::cast<int>(pyTuple[0]), py::cast<Real>(pyTuple[1]));
+                        } else if(py::isinstance<int>(pyData[i]))
+                            rVec.emplace_back(py::cast<int>(pyRow.ptr()), 1);
+                        else throw py::value_error("Unsupported row data type, can be list or tuple of ints or typles of int and floats.");
+                    }
+                     */
+                } else if(py::isinstance<py::int_>(pyList[i])) // single value, multiclass data
+                    rVec.emplace_back(py::cast<int>(pyList[i]), 1);
+                else throw py::value_error("Unsupported row data type, can be list or tuple of ints or typles of int and floats.");
 
                 if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+                
                 output.appendRow(rVec);
             }
-        } else if (dataType == ndarray) {
-            py::array_t<Real, py::array::c_style | py::array::forcecast> pyData(input);
-            auto buffer = pyData.request();
-            if (buffer.ndim != 2) throw py::value_error("Data must be a 2d array");
+        } else if (dataType == ndarray) { // Numpy and other data in array format
+            py::array pyArray(input);
+            auto dtype = pyArray.dtype();
 
-            size_t rows = buffer.shape[0];
-            size_t rSize = buffer.shape[1];
+            if(dtype.is(floatType)) readPyArray<float>(output, pyArray, process);
+            else if(dtype.is(doubleType)) readPyArray<double>(output, pyArray, process);
+            else if(dtype.is(int32Type)) readPyArray<int32_t>(output, pyArray, process);
+            else if(dtype.is(int64Type)) readPyArray<int64_t>(output, pyArray, process);
+            //TODO
+            //else throw py::value_error("Unsupported " + std::to_string(dtype) + " type of array."));
+            else throw py::value_error("Unsupported type of the array.");
 
-            // Read each row from the sparse matrix, and insert
-            for (size_t r = 0; r < rows; ++r) {
-                const Real* rData = pyData.data(r);
-                rVec.clear();
-                if(process) prepareFeaturesVector(rVec, args.bias);
-
-                for (int f = 0; f < rSize; ++f) {
-                    Real v = rData[f];
-                    if (v != 0) rVec.emplace_back(f, rData[f]);
-                }
-
-                if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
-                output.appendRow(rVec);
-            }
-        } else if (dataType == csr_matrix) {
+        } else if (dataType == csr_matrix) { // csr_matrix
             // Check for attributes
-            if (!py::hasattr(input, "indptr")) {
-                throw py::value_error("Expect csr_matrix CSR matrix");
-            }
+            if (!py::hasattr(input, "indptr") || !py::hasattr(input, "indices") || !py::hasattr(input, "data"))
+                throw py::value_error("Expected scipy.sparse.csr_matrix type or matrix in this format (data, indices, indptr).");
 
-            // Try to interpret input data as a csr_matrix CSR matrix
-            py::array_t<int> indptr(input.attr("indptr"));
-            py::array_t<int> indices(input.attr("indices"));
-            py::array_t<Real> data(input.attr("data"));
+            py::array indptr(input.attr("indptr"));
+            py::array indices(input.attr("indices"));
+            py::array data(input.attr("data"));
 
-            // Read each row from the sparse matrix, and insert
-            for (int rId = 0; rId < indptr.size() - 1; ++rId) {
-                rVec.clear();
-                if(process) prepareFeaturesVector(rVec, args.bias);
+            auto ptype = indptr.dtype();
+            auto itype = indices.dtype();
+            auto dtype = data.dtype();
 
-                for (int i = indptr.at(rId); i < indptr.at(rId + 1); ++i)
-                    rVec.emplace_back(indices.at(i), data.at(i));
+            std::cout << ptype << " " << itype << " " << dtype << std::endl;
+            bool typesMatch = ptype.is(itype);
 
-                if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
-                output.appendRow(rVec);
-            }
+            if(typesMatch && ptype.is(int32Type) && dtype.is(floatType)) readCSRMatrix<int32_t, float>(output, input, process);
+            else if(typesMatch && ptype.is(int32Type) && dtype.is(doubleType)) readCSRMatrix<int32_t, double>(output, input, process);
+            else if(typesMatch && ptype.is(int64Type) && dtype.is(floatType)) readCSRMatrix<int64_t, float>(output, input, process);
+            else if(typesMatch && ptype.is(int64Type) && dtype.is(doubleType)) readCSRMatrix<int64_t, double>(output, input, process);
+            //TODO: print types names
+//            else throw py::value_error("Unsupported data[" + py::str(dtype) +
+//                "], indices[" + py::str(itype) + "], indptr[" + py::str(ptype) + "], type of array."));
+            else throw py::value_error("Unsupported data types of the csr_matrix.");
         } else
-            throw py::value_error("Unsupported data type");
+            throw py::value_error("Unsupported data type.");
     }
 
     inline void fitHelper(SRMatrix& labels, SRMatrix& features){

@@ -659,6 +659,11 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
     :rtype: csr_matrix
     """
     if isinstance(X, list) and isinstance(X[0], (list, tuple, set)):
+        first_element = _get_first_element_of_list_of_lists(X)
+
+        if dtype is None:
+            dtype = _get_dtype(first_element)
+
         size = 0
         for x in X:
             size += len(x)
@@ -668,16 +673,7 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
         data = np.ones(size, dtype=dtype)
         cells = 0
 
-        first_element = _get_first_element_of_list_of_lists(X)
-
-        if isinstance(first_element, int):
-            for row, x in enumerate(X):
-                indptr[row] = cells
-                indices[cells:cells + len(x)] = sorted(x) if sort_indices else x
-                cells += len(x)
-            indptr[len(X)] = cells
-
-        elif isinstance(first_element, tuple):
+        if isinstance(first_element, tuple):
             for row, x in enumerate(X):
                 indptr[row] = cells
                 x = sorted(x) if sort_indices else x
@@ -687,11 +683,24 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
                     cells += 1
             indptr[len(X)] = cells
 
-        return csr_matrix((data, indices, indptr), shape=shape)
+        else:
+            for row, x in enumerate(X):
+                indptr[row] = cells
+                indices[cells:cells + len(x)] = sorted(x) if sort_indices else x
+                cells += len(x)
+            indptr[len(X)] = cells
+
+        array = csr_matrix((data, indices, indptr), shape=shape)
     else: # Try to convert via constructor
-        return csr_matrix(X, dtype=dtype, shape=shape)
+        array = csr_matrix(X, dtype=dtype, shape=shape)
     # raise TypeError('Cannot convert X to csr_matrix')
 
+    # Check type
+    if array.dtype != dtype:
+        print("Conversion", array.dtype, dtype)
+        array = array.astype(dtype)
+
+    return array
 
 def to_np_matrix(X, shape=None, dtype=np.float32):
     """
@@ -701,37 +710,52 @@ def to_np_matrix(X, shape=None, dtype=np.float32):
     :type X: ndarray, list[list[int|str]], list[list[tuple[int, float]]
     :param shape: Shape of the matrix, if None, shape will be deduce from X, defaults to None
     :type shape: tuple, optional
-    :param dtype: Data type of the matrix, defaults to np.float32
+    :param dtype: Data type of the matrix, if None, type will be deduced from data, defaults to np.float32
     :type dtype: type, optional
     :return: X as Numpy 2D array.
     :rtype: ndarray
     """
     if isinstance(X, list) and isinstance(X[0], (list, tuple, set)):
+        first_element = _get_first_element_of_list_of_lists(X)
+
+        if dtype is None:
+            dtype = _get_dtype(first_element)
+
         if shape is None:
             m = max([max(x) for x in X if len(x)]) + 1
             n = len(X)
             shape = (n, m)
         array = np.zeros(shape, dtype=dtype)
 
-        first_element = _get_first_element_of_list_of_lists(X)
-
-        if isinstance(first_element, int):
-            for row, x in enumerate(X):
-                array[row, x] = 1
-
-        elif isinstance(first_element, tuple):
+        if isinstance(first_element, (list, tuple)):
             for row, x in enumerate(X):
                 for x_i in x:
                     array[row, x_i[0]] = x_i[1]
+        else:
+            for row, x in enumerate(X):
+                array[row, x] = 1
 
-        return array
     elif isinstance(X, csr_matrix):
-        return X.toarrary()
+        array = X.toarray()
     else: # Try to convert via constructor
-        return np.array(X)
+        array = np.array(X, dtype=dtype)
+
+    # Check type
+    if array.dtype != dtype:
+        print("Conversion", array.dtype, dtype)
+        array = array.astype(dtype)
+
+    return array
 
 
 # Helpers
+def _get_dtype(first_element):
+    if isinstance(first_element, (list, tuple)):
+        return type(first_element[1])
+    else:
+        return type(first_element)
+
+
 def _get_first_element_of_list_of_lists(X):
     first_element = None
     for x in X:

@@ -277,7 +277,7 @@ def count_labels(Y):
     return counts
 
 
-def Jain_propensity(Y, A=0.55, B=1.5):
+def Jain_et_al_propensity(Y, A=0.55, B=1.5):
     """
     Calculate propensity as proposed in Jain et al. 2016.
     Propensity :math:`p_l` of label :math:`l` is calculated as:
@@ -314,7 +314,7 @@ def Jain_propensity(Y, A=0.55, B=1.5):
     return 1.0 / Jain_inverse_propensity(Y, A, B)
 
 
-def Jain_inverse_propensity(Y, A=0.55, B=1.5):
+def Jain_et_al_inverse_propensity(Y, A=0.55, B=1.5):
     """
     Calculate inverse propensity as proposed in Jain et al. 2016.
     Inverse propensity :math:`q_l` of label :math:`l` is calculated as:

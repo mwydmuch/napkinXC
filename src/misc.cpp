@@ -26,6 +26,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <mutex>
+#include <filesystem>
 
 #include "misc.h"
 #include "threads.h"
@@ -99,7 +100,7 @@ void computeLabelsFeaturesMatrix(SRMatrix& labelsFeatures, const SRMatrix& label
     assert(labels.cols() == labelsFeatures.rows());
 }
 
-// Splits string
+// String utils
 std::vector<std::string> split(std::string text, char d) {
     std::vector<std::string> tokens;
     const char* str = text.c_str();
@@ -135,20 +136,6 @@ std::string formatMem(size_t mem){
     return "~" + std::to_string(mem) + units[i];
 }
 
-// Files utils
-void FileHelper::saveToFile(std::string outfile) {
-    std::ofstream out(outfile);
-    save(out);
-    out.close();
-}
-
-void FileHelper::loadFromFile(std::string infile) {
-    checkFileName(infile);
-    std::ifstream in(infile);
-    load(in);
-    in.close();
-}
-
 // Joins two paths
 std::string joinPath(const std::string& path1, const std::string& path2) {
     char sep = '/';
@@ -161,6 +148,20 @@ std::string joinPath(const std::string& path1, const std::string& path2) {
         joined += path2;
 
     return (joined);
+}
+
+// Files utils
+void FileHelper::saveToFile(std::string outfile) {
+    std::ofstream out(outfile);
+    save(out);
+    out.close();
+}
+
+void FileHelper::loadFromFile(std::string infile) {
+    checkFileName(infile);
+    std::ifstream in(infile);
+    load(in);
+    in.close();
 }
 
 // Checks filename
@@ -184,21 +185,7 @@ void checkDirName(const std::string& dirname) {
     std::remove(tmpFile.c_str());
 }
 
-// TODO improve this
-// Run shell CMD
-void shellCmd(const std::string& cmd) {
-    const int cmdErr = std::system(cmd.c_str());
-    if (-1 == cmdErr) { exit(1); }
-}
-
 // Create directory
 void makeDir(const std::string& dirname) {
-    std::string mkdirCmd = "mkdir -p " + dirname;
-    shellCmd(mkdirCmd);
-}
-
-// Remove directory of file
-void remove(const std::string& path) {
-    std::string rmCmd = "rm -rf " + path;
-    shellCmd(rmCmd);
+    if(!std::filesystem::exists(dirname)) std::filesystem::create_directories(dirname);
 }

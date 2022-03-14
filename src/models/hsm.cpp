@@ -59,11 +59,8 @@ void HSM::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vecto
         int rSize = rLabels.nonZero();
 
         // Check row
-        if (!args.pickOneLabelWeighting && rSize != 1) {
-            Log(CERR) << "Encountered example with " << rSize
-                      << " labels HSM is multi-class classifier, use PLT instead\n";
-            continue;
-        }
+        if (!args.pickOneLabelWeighting && rSize != 1)
+            throw std::invalid_argument("Encountered example with " + std::to_string(rSize) + " labels. HSM is multi-class classifier, use PLT or --pickOneLabelWeighting option instead.");
 
         for (auto &l : labels[r]){
             getNodesToUpdate(nPositive, nNegative, l.index);
@@ -85,10 +82,8 @@ void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
     std::vector<TreeNode*> path;
 
     auto ni = tree->leaves.find(label);
-    if (ni == tree->leaves.end()) {
-        Log(CERR) << "Encountered example with label " << label << " that does not exists in the tree\n";
-        return;
-    }
+    if (ni == tree->leaves.end())
+        throw std::invalid_argument("Encountered example with " + std::to_string(label) + " that does not exists in the tree.");
     TreeNode* n = ni->second;
     path.push_back(n);
     while (n->parent) {

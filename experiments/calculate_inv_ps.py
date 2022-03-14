@@ -37,7 +37,7 @@ if __name__ == "__main__":
         A = 0.6
         B = 2.6
 
-    inv_ps = inverse_propensity(true, A=A, B=B)
+    inv_ps = Jain_et_al_inverse_propensity(true, A=A, B=B)
     with open(sys.argv[2], "w") as out:
         for ip in inv_ps:
             out.write("{}\n".format(ip))

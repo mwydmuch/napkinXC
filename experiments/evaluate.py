@@ -64,7 +64,6 @@ if __name__ == "__main__":
         "R": {"func": recall_at_k, "inv_ps": False},
         "nDCG": {"func": ndcg_at_k, "inv_ps": False},
         "PSP": {"func": psprecision_at_k, "inv_ps": True},
-        "PSR": {"func": psrecall_at_k, "inv_ps": True},
         "PSnDCG": {"func": psndcg_at_k, "inv_ps": True},
     }
 

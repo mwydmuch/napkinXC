@@ -37,7 +37,7 @@ DATASET_FILE=${DATASET_DIR}/${DATASET_NAME}
 
 # Download dataset
 if [[ ! -e $DATASET_DIR ]]; then
-    bash ${SCRIPT_DIR}/get_dataset.sh $DATASET_NAME
+    python3 ${SCRIPT_DIR}/get_dataset-v1.py $DATASET_NAME
 fi
 
 # Find train / test file

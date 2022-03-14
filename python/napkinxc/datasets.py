@@ -29,7 +29,11 @@ from sys import stdout
 from os import makedirs, path, remove
 import numpy as np
 from scipy.sparse import csr_matrix
-from ._napkinxc import _load_libsvm_file_labels_list, _load_libsvm_file_labels_csr_matrix
+
+try:
+    from ._napkinxc import _load_libsvm_file_labels_list, _load_libsvm_file_labels_csr_matrix
+except ImportError:
+    warnings.warn("Couldn't import napkinXC cpp module, some functions may fail.")
 
 
 # List of all available datasets
@@ -738,22 +742,26 @@ def _get_first_element_of_list_of_lists(X):
 
 
 def _get_data_meta(dataset, subset='train', format='bow'):
+    # Handel aliases
     aliases = {
         'wiki10': 'wiki10-31k',
         'deliciouslarge': 'deliciouslarge-200k',
         'wikilshtc': 'wikilshtc-325k',
         'wikipedialarge': 'wikipedialarge-500k'
     }
-
     _dataset = dataset.lower()
     if _dataset in aliases:
         _dataset = aliases[_dataset]
-    _format = format
-    if _format == 'tf-idf':
-        _format = 'bow'
 
     if _dataset not in DATASETS:
         raise ValueError("Dataset {} is not available".format(dataset))
+
+    # Handel format aliases and versions
+    _format = format
+    if _format == 'tf-idf':
+        _format = 'bow'
+    if _format.startswith("bow") and _format not in DATASETS[_dataset]:
+        _format = 'bow'
 
     if _format not in DATASETS[_dataset]['formats']:
         raise ValueError("Format {} is not available for dataset {}".format(format, dataset))
@@ -761,7 +769,7 @@ def _get_data_meta(dataset, subset='train', format='bow'):
     if subset is not None and subset not in DATASETS[_dataset]['subsets']:
         raise ValueError("Subset {} is not available for dataset {}".format(format, dataset))
 
-    return DATASETS[_dataset][format]
+    return DATASETS[_dataset][_format]
 
 
 def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=False, delete_zip=False, verbose=False):

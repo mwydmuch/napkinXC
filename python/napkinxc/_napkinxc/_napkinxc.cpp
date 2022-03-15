@@ -20,6 +20,7 @@
  SOFTWARE.
  */
 
+#include <Python.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -32,6 +33,7 @@
 #include "plt.h"
 #include "read_data.h"
 #include "resources.h"
+#include "threads.h"
 #include "version.h"
 
 #include <thread>
@@ -50,23 +52,46 @@ enum InputDataType {
 
 typedef std::tuple<py::array_t<Real>, py::array_t<int>, py::array_t<int>> ScipyCSRMatrixData;
 
-template<typename F> void runAsInterruptable(F func){
-    try{
-        std::atomic<bool> done(false);
-        std::thread t([&]{
-            func();
-            done = true;
-        });
 
-        while(!done){
+template<typename F> void runAsInterruptable(F func) {
+    func();
+
+    // Interruption without correct exception handling
+    /*
+    std::atomic<bool> done(false);
+    std::thread t([&] {
+        func();
+        done = true;
+    });
+
+    try {
+        while (!done) {
             std::this_thread::sleep_for(100ms);
+            std::cout << "running ..." << std::endl;
             if (PyErr_CheckSignals() != 0) throw py::error_already_set();
         }
+    } catch (py::error_already_set& e) { throw py::error_already_set(); }
 
-        t.join();
-    } catch (std::exception &e) {
-        throw e;
-    }
+    t.join();
+     */
+
+    // Async, correct exception handling, but not working interruption
+    /*
+    auto feature = std::async(std::launch::async,
+    [&]{
+        func();
+        return true;
+    });
+
+    try {
+        while (feature.wait_for(100ms) != std::future_status::ready) {
+            std::this_thread::sleep_for(100ms);
+            std::cout << "running ..." << std::endl;
+            if (PyErr_CheckSignals() != 0) throw py::error_already_set();
+        }
+        feature.get();
+    } catch (py::error_already_set &e){ throw; }
+     */
 }
 
 template<typename T> std::vector<T> pyListToVector(py::list const &pyList){
@@ -457,11 +482,6 @@ private:
                 //if(py::hasattr(pyData[i], "__iter__")){ // Is iterable, multilabel data
                 if(py::isinstance<py::list>(pyList[i])){ // Is list, multilabel data
                     py::list pyRowList(pyList[i]);
-                    if(pyRowList.size() == 0){
-                        output.appendRow(rVec);
-                        continue;
-                    }
-
                     for (int j = 0; j < pyRowList.size(); ++j) {
                         if(py::isinstance<py::tuple>(pyRowList[j])){
                             py::tuple pyTuple(pyRowList[j]);
@@ -469,26 +489,12 @@ private:
                         } else if(py::isinstance<py::int_>(pyRowList[0])) rVec.emplace_back(py::cast<int>(pyRowList[j]), 1);
                         else throw py::value_error("Unsupported row data type, can be list or tuple of ints or typles of int and floats.");
                     }
-
-                    // TODO: New method with handle
-                    /*
-                    for(py::handle pyRow : pyData[i]){
-                        std::cout << py::isinstance<int32Type>(pyRow.ptr()) << " " << int32Type.str() << " " << pyRow.get_type().str() << std::endl;
-
-                        if(py::isinstance<py::tuple>(pyRow.ptr())){
-                            py::tuple pyTuple = py::cast<py::tuple>(pyRow.ptr());
-                            rVec.emplace_back(py::cast<int>(pyTuple[0]), py::cast<Real>(pyTuple[1]));
-                        } else if(py::isinstance<int>(pyData[i]))
-                            rVec.emplace_back(py::cast<int>(pyRow.ptr()), 1);
-                        else throw py::value_error("Unsupported row data type, can be list or tuple of ints or typles of int and floats.");
-                    }
-                     */
                 } else if(py::isinstance<py::int_>(pyList[i])) // single value, multiclass data
                     rVec.emplace_back(py::cast<int>(pyList[i]), 1);
                 else throw py::value_error("Unsupported row data type, can be list or tuple of ints or typles of int and floats.");
 
                 if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
-                
+
                 output.appendRow(rVec);
             }
         } else if (dataType == ndarray) { // Numpy and other data in array format
@@ -515,8 +521,6 @@ private:
             auto ptype = indptr.dtype();
             auto itype = indices.dtype();
             auto dtype = data.dtype();
-
-            std::cout << ptype << " " << itype << " " << dtype << std::endl;
             bool typesMatch = ptype.is(itype);
 
             if(typesMatch && ptype.is(int32Type) && dtype.is(floatType)) readCSRMatrix<int32_t, float>(output, input, process);
@@ -586,6 +590,9 @@ private:
 
 
 PYBIND11_MODULE(_napkinxc, n) {
+    Py_Initialize();
+    PyEval_InitThreads();
+
     n.doc() = "Python bindings for napkinXC C++ core";
     n.attr("__version__") = VERSION;
 

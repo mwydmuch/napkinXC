@@ -3,6 +3,7 @@ name: Build Windows Python wheels
 on:
   push:
     paths:
+      - '.github/**'
       - 'python/**'
       - 'src/**'
       - 'CMakeLists.txt'

@@ -3,8 +3,10 @@ name: Lint with flake8
 on:
   push:
     paths:
+      - '.github/**'
       - 'python/**'
       - 'setup.py'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

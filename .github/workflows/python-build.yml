@@ -3,6 +3,7 @@ name: Python build
 on:
   push:
     paths:
+      - '.github/**'
       - 'python/**'
       - 'src/**'
       - 'CMakeLists.txt'

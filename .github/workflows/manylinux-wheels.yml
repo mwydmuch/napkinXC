@@ -3,6 +3,7 @@ name: Build manylinux Pyhton wheels
 on:
   push:
     paths:
+      - '.github/**'
       - 'python/**'
       - 'src/**'
       - 'CMakeLists.txt'

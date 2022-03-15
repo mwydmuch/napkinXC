@@ -3,6 +3,7 @@ name: C++ build
 on:
   push:
     paths:
+      - '.github/**'
       - 'src/**'
       - 'CMakeLists.txt'
 

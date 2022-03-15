@@ -311,7 +311,7 @@ def Jain_et_al_propensity(Y, A=0.55, B=1.5):
     :return: Array with the propensity for all labels
     :rtype: ndarray
     """
-    return 1.0 / Jain_inverse_propensity(Y, A, B)
+    return 1.0 / Jain_et_al_inverse_propensity(Y, A, B)
 
 
 def Jain_et_al_inverse_propensity(Y, A=0.55, B=1.5):

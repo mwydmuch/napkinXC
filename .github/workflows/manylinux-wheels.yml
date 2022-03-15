@@ -1,4 +1,4 @@
-name: Build manylinux Pyhton wheel
+name: Build manylinux Pyhton wheels
 
 on:
   push:

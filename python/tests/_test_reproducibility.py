@@ -47,13 +47,13 @@ def test_seed_reproducibility():
     X_test, Y_test = load_dataset("eurlex-4k", "test", root=data_path)
 
     for i in range(repeat):
-        plt_1 = PLT(model_path + "-1", optimizer="adagrad", loss="log", seed=i)
+        plt_1 = PLT(model_path + "-1", optimizer="adagrad", epochs=1, loss="log", seed=i)
         plt_1.fit(X_train, Y_train)
         Y_pred_1 = plt_1.predict(X_test, top_k=1)
         p_at_1_1 = precision_at_k(Y_test, Y_pred_1, k=1)
         tree_structure_1 = plt_1.get_tree_structure()
 
-        plt_2 = PLT(model_path + "-2", optimizer="adagrad", loss="log", seed=i)
+        plt_2 = PLT(model_path + "-2", optimizer="adagrad", epochs=1, loss="log", seed=i)
         plt_2.fit(X_train, Y_train)
         Y_pred_2 = plt_2.predict(X_test, top_k=1)
         p_at_1_2 = precision_at_k(Y_test, Y_pred_2, k=1)

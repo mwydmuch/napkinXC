@@ -47,7 +47,7 @@ setup(
         #Development Status :: 5 - Production/Stable,
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS',
-        'Operating System :: Windows',
+        'Operating System :: Microsoft :: Windows',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',

@@ -17,7 +17,7 @@ option(EXE "Build executable" ON)
 option(PYTHON "Build Python binding" OFF)
 option(BACKWARD "Build with backward.cpp" OFF)
 option(MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
-set(PYBIND11_VERSION "v2.6.2" CACHE STRING "Pybind11 version to use")
+set(PYBIND11_VERSION "v2.9.1" CACHE STRING "Pybind11 version to use")
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -90,10 +90,10 @@ if (PYTHON)
 
     # Get pybind11
     git_clone(PROJECT_NAME pybind11
-            GIT_URL https://github.com/pybind/pybind11.git
-            #GIT_BRANCH master # To use master version
-            GIT_TAG ${PYBIND11_VERSION}
-            DIRECTORY ${ROOT_DIR})
+        GIT_URL https://github.com/pybind/pybind11.git
+        #GIT_BRANCH master # To use master version
+        GIT_TAG ${PYBIND11_VERSION}
+        DIRECTORY ${ROOT_DIR})
 
     add_subdirectory("pybind11")
     add_subdirectory(python)

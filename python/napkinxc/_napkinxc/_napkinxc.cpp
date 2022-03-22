@@ -409,7 +409,11 @@ public:
 private:
     Args args;
     std::shared_ptr<Model> model;
-
+	
+	template<typename T> bool isArrayType(py::array& pyArray){
+		return py::isinstance<py::array_t<T>>(pyArray);
+	}
+	
     template<typename T> void readPyArray(SRMatrix& output, py::array& pyArray, bool process = false){
         std::vector<IRVPair> rVec;
         if (pyArray.ndim() == 1){ // 1d multiclass data
@@ -466,11 +470,7 @@ private:
     //SRMatrix readSRMatrix(py::object input, InputDataType dataType) {
     //SRMatrix output;
     void readSRMatrix(SRMatrix& output, py::object& input, InputDataType dataType, bool process = false) {
-        // Supproted types
-        auto floatType = py::dtype::of<float>();
-        auto doubleType = py::dtype::of<double>();
-        auto int32Type = py::dtype::of<int32_t>();
-        auto int64Type = py::dtype::of<int64_t>();
+        // TODO: Check memory consumption of this function
 
         if (dataType == list) {
             std::vector<IRVPair> rVec;
@@ -499,12 +499,11 @@ private:
             }
         } else if (dataType == ndarray) { // Numpy and other data in array format
             py::array pyArray(input);
-            auto dtype = pyArray.dtype();
 
-            if(dtype.is(floatType)) readPyArray<float>(output, pyArray, process);
-            else if(dtype.is(doubleType)) readPyArray<double>(output, pyArray, process);
-            else if(dtype.is(int32Type)) readPyArray<int32_t>(output, pyArray, process);
-            else if(dtype.is(int64Type)) readPyArray<int64_t>(output, pyArray, process);
+            if(isArrayType<float>(pyArray)) readPyArray<float>(output, pyArray, process);
+            else if(isArrayType<double>(pyArray)) readPyArray<double>(output, pyArray, process);
+            else if(isArrayType<std::int32_t>(pyArray)) readPyArray<std::int32_t>(output, pyArray, process);
+            else if(isArrayType<std::int64_t>(pyArray)) readPyArray<std::int64_t>(output, pyArray, process);
             //TODO
             //else throw py::value_error("Unsupported " + std::to_string(dtype) + " type of array."));
             else throw py::value_error("Unsupported type of the array.");
@@ -518,15 +517,10 @@ private:
             py::array indices(input.attr("indices"));
             py::array data(input.attr("data"));
 
-            auto ptype = indptr.dtype();
-            auto itype = indices.dtype();
-            auto dtype = data.dtype();
-            bool typesMatch = ptype.is(itype);
-
-            if(typesMatch && ptype.is(int32Type) && dtype.is(floatType)) readCSRMatrix<int32_t, float>(output, input, process);
-            else if(typesMatch && ptype.is(int32Type) && dtype.is(doubleType)) readCSRMatrix<int32_t, double>(output, input, process);
-            else if(typesMatch && ptype.is(int64Type) && dtype.is(floatType)) readCSRMatrix<int64_t, float>(output, input, process);
-            else if(typesMatch && ptype.is(int64Type) && dtype.is(doubleType)) readCSRMatrix<int64_t, double>(output, input, process);
+            if(isArrayType<std::int32_t>(indptr) && isArrayType<std::int32_t>(indices) && isArrayType<float>(data)) readCSRMatrix<std::int32_t, float>(output, input, process);
+            else if(isArrayType<std::int32_t>(indptr) && isArrayType<std::int32_t>(indices) && isArrayType<double>(data)) readCSRMatrix<std::int32_t, double>(output, input, process);
+            else if(isArrayType<std::int64_t>(indptr) && isArrayType<std::int64_t>(indices) && isArrayType<float>(data)) readCSRMatrix<std::int64_t, float>(output, input, process);
+            else if(isArrayType<std::int64_t>(indptr) && isArrayType<std::int64_t>(indices) && isArrayType<double>(data)) readCSRMatrix<std::int64_t, double>(output, input, process);
             //TODO: print types names
 //            else throw py::value_error("Unsupported data[" + py::str(dtype) +
 //                "], indices[" + py::str(itype) + "], indptr[" + py::str(ptype) + "], type of array."));
@@ -590,9 +584,6 @@ private:
 
 
 PYBIND11_MODULE(_napkinxc, n) {
-    Py_Initialize();
-    PyEval_InitThreads();
-
     n.doc() = "Python bindings for napkinXC C++ core";
     n.attr("__version__") = VERSION;
 

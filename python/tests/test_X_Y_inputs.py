@@ -65,7 +65,7 @@ def test_multilabel_numpy_input():
     X_train, Y_train = load_dataset("eurlex-4k", "train", root=data_path)
 
     #X_train = X_train.toarray()
-    #X_train = to_np_matrix(X_train)
+    X_train = to_np_matrix(X_train)
     Y_train = to_np_matrix(Y_train)
     eval_data_for_dataset(X_train, Y_train, PLT)
 

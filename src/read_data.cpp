@@ -112,7 +112,7 @@ void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVP
     // Trim leading spaces
     size_t nextPos, pos = line.find_first_not_of(' ');
 
-    while ((nextPos = line.find_first_of(",: ", pos))) {
+    while (nextPos = line.find_first_of(",: ", pos)) {
         // Label
         if ((pos == 0 || line[pos - 1] == ',') && (line[nextPos] == ',' || line[nextPos] == ' ' || nextPos == std::string::npos))
             lLabels.emplace_back(std::strtol(&line[pos], NULL, 10), 1.0);
@@ -122,7 +122,7 @@ void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVP
             lFeatures.emplace_back(std::strtol(&line[pos], NULL, 10), 1.0);
 
         // Feature value
-        else if (line[pos - 1] == ':' && (line[nextPos] == ' ' || nextPos == std::string::npos))
+        else if (line[pos - 1] == ':' && (nextPos == std::string::npos || line[nextPos] == ' '))
             lFeatures.back().value = strtor(&line[pos], NULL);
 
         if (nextPos == std::string::npos) break;

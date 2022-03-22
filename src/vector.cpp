@@ -69,7 +69,7 @@ void AbstractVector::unitNorm(){
     div(norm);
 }
 
-void AbstractVector::save(std::ostream& out) {
+void AbstractVector::save(std::ofstream& out) {
     checkD();
     saveVar(out, s);
     saveVar(out, n0);
@@ -90,7 +90,7 @@ void AbstractVector::save(std::ostream& out) {
     }
 }
 
-void AbstractVector::load(std::istream& in) {
+void AbstractVector::load(std::ifstream& in) {
     // Load header
     loadVar(in, s);
     size_t n0ToLoad;
@@ -121,7 +121,7 @@ void AbstractVector::load(std::istream& in) {
     assert(n0 == n0ToLoad);
 }
 
-void AbstractVector::skipLoad(std::istream& in){
+void AbstractVector::skipLoad(std::ifstream& in){
     size_t s, n0;
     bool sparse;
     loadVar(in, s);

@@ -59,13 +59,13 @@ public:
     }
     inline int size(int index) { return r[index].nonZero(); }
 
-    void save(std::ostream& out) {
+    void save(std::ofstream& out) {
         out.write((char*)&m, sizeof(m));
         out.write((char*)&n, sizeof(n));
         for(auto& v : r) v.save(out);
     }
 
-    void load(std::istream& in){
+    void load(std::ifstream& in){
         in.read((char*)&m, sizeof(m));
         in.read((char*)&n, sizeof(n));
         r.resize(m);

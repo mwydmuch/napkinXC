@@ -93,8 +93,8 @@ public:
     void setFirstClass(int first);
     void setLoss(LossType);
 
-    void save(std::ostream& out, bool saveGrads=false);
-    void load(std::istream& in, bool loadGrads=false, RepresentationType loadAs=map);
+    void save(std::ofstream& out, bool saveGrads=false);
+    void load(std::ifstream& in, bool loadGrads=false, RepresentationType loadAs=map);
 
     Base* copy();
     Base* copyInverted();

@@ -70,7 +70,7 @@ void BR::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string out
     std::vector<ProblemData> binProblemData;
     binWeights.reserve(range);
 
-    std::ofstream out(joinPath(output, "weights.bin"));
+    std::ofstream out(joinPath(output, "weights.bin"), std::ios::out | std::ios::binary);
     saveVar(out, lCols);
 
     for (int p = 0; p < parts; ++p) {

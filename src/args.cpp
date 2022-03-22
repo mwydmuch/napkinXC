@@ -523,7 +523,7 @@ int Args::countArgs(const std::vector<std::string>& args, std::vector<std::strin
     return count;
 }
 
-void Args::save(std::ostream& out) {
+void Args::save(std::ofstream& out) {
     std::string version = VERSION;
     saveVar(out, version);
 
@@ -539,7 +539,7 @@ void Args::save(std::ostream& out) {
     saveVar(out, ensemble);
 }
 
-void Args::load(std::istream& in) {
+void Args::load(std::ifstream& in) {
     std::string version;
     loadVar(in, version);
     if(version != VERSION)

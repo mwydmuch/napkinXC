@@ -8,6 +8,7 @@
 *.a
 *.so
 *.dylib
+*.lib
 /src/nmslib
 /src/version.h
 /build
@@ -18,6 +19,7 @@
 /dist
 /pybind11
 *.pyc
+*.pyd
 
 # Docs
 /docs/*/*
@@ -29,6 +31,7 @@ test-data
 /results*
 eurlex-model
 test-eurlex-model
+*.bin
 
 # Windows MSVC
 .vs
@@ -38,10 +41,14 @@ test-eurlex-model
 *.vcxproj*
 *.cmd
 *.obj
+*.iobj
 *.exe
 *.ilk
 *.pdb
 *.tlog
+*.exp
+*.recipe
+
 
 # Misc
 .idea

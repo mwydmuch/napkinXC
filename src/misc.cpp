@@ -152,14 +152,14 @@ std::string joinPath(const std::string& path1, const std::string& path2) {
 
 // Files utils
 void FileHelper::saveToFile(std::string outfile) {
-    std::ofstream out(outfile);
+    std::ofstream out(outfile, std::ios::out | std::ios::binary);
     save(out);
     out.close();
 }
 
 void FileHelper::loadFromFile(std::string infile) {
     checkFileName(infile);
-    std::ifstream in(infile);
+    std::ifstream in(infile, std::ios::in | std::ios::binary);
     load(in);
     in.close();
 }

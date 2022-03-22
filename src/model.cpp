@@ -94,6 +94,8 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Arg
                  std::min((t + 1) * tRows, rows));
     tSet.joinAll();
 
+    std::cout << predictions[0] << "\n";
+
     return predictions;
 }
 
@@ -264,7 +266,7 @@ void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& res
 }
 
 void Model::trainBases(std::string outfile, std::vector<ProblemData>& problemsData, Args& args) {
-    std::ofstream out(outfile);
+    std::ofstream out(outfile, std::ios::out | std::ios::binary);
     int size = problemsData.size();
     out.write((char*)&size, sizeof(size));
     trainBases(out, problemsData, args);
@@ -332,7 +334,7 @@ std::vector<Base*> Model::loadBases(std::string infile, bool resume, Representat
     int sparse = 0;
 
     std::vector<Base*> bases;
-    std::ifstream in(infile);
+    std::ifstream in(infile, std::ios::in | std::ios::binary);
     int size;
     in.read((char*)&size, sizeof(size));
     bases.reserve(size);

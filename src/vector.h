@@ -246,9 +246,9 @@ public:
     size_t sparseMem() const { return n0 * (sizeof(int) + sizeof(Real)); }
     size_t denseMem() const { return s * sizeof(Real); }
 
-    virtual void save(std::ostream& out);
-    virtual void load(std::istream& in);
-    static void skipLoad(std::istream& in);
+    virtual void save(std::ofstream& out);
+    virtual void load(std::ifstream& in);
+    static void skipLoad(std::ifstream& in);
 
     virtual RepresentationType type() const = 0;
 
@@ -452,7 +452,7 @@ public:
         return sizeof(SparseVector) + n0 * (sizeof(int) + sizeof(Real));
     }
 
-    void load(std::istream& in) override {
+    void load(std::ifstream& in) override {
         AbstractVector::load(in);
         sort();
     }

@@ -502,7 +502,7 @@ TreeNode* LabelTree::createTreeNode(TreeNode* parent, int label) {
     return n;
 }
 
-void LabelTree::save(std::ostream& out) {
+void LabelTree::save(std::ofstream& out) {
     Log(CERR) << "Saving tree ...\n";
 
     int k = leaves.size();
@@ -533,7 +533,7 @@ void LabelTree::save(std::ostream& out) {
     }
 }
 
-void LabelTree::load(std::istream& in) {
+void LabelTree::load(std::ifstream& in) {
     clear();
 
     Log(CERR) << "Loading tree ...\n";

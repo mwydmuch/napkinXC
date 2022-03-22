@@ -106,8 +106,8 @@ public:
     std::vector<std::tuple<int, int, int>> getTreeStructure();
     void validateTree();
 
-    void save(std::ostream& out) override;
-    void load(std::istream& in) override;
+    void save(std::ofstream& out) override;
+    void load(std::ifstream& in) override;
 
     inline TreeNode* getRoot() const { return root; };
     inline TreeNode* getNode(int index) const {

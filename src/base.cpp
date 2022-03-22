@@ -311,7 +311,7 @@ void Base::pruneWeights(Real threshold) {
     }
 }
 
-void Base::save(std::ostream& out, bool saveGrads) {
+void Base::save(std::ofstream& out, bool saveGrads) {
     saveVar(out, classCount);
     saveVar(out, firstClass);
     saveVar(out, lossType);
@@ -326,11 +326,11 @@ void Base::save(std::ostream& out, bool saveGrads) {
         W->save(out);
         bool grads = (saveGrads && G != nullptr);
         saveVar(out, grads);
-        if(grads) G->save(out);
+        if (grads) G->save(out);
     }
 }
 
-void Base::load(std::istream& in, bool loadGrads, RepresentationType loadAs) {
+void Base::load(std::ifstream& in, bool loadGrads, RepresentationType loadAs) {
     clear();
     loadVar(in, classCount);
     loadVar(in, firstClass);

@@ -38,8 +38,8 @@ public:
     void printArgs(std::string command = "");
     int countArg(const std::vector<std::string>& args, std::string to_count);
     int countArgs(const std::vector<std::string>& args, std::vector<std::string> to_count);
-    void save(std::ostream& out) override;
-    void load(std::istream& in) override;
+    void save(std::ofstream& out) override;
+    void load(std::ifstream& in) override;
 
     // Threading, memory and seed options
     int seed;

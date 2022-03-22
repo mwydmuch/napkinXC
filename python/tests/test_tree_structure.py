@@ -29,7 +29,7 @@ def test_set_get_tree_structure():
 
 
 def test_build_tree_structure_reproducibility():
-    X, Y = load_dataset("eurlex-4k", "train", root=TEST_DATA_PATH)
+    X, Y = load_dataset(TEST_DATASET, "train", root=TEST_DATA_PATH)
     plt = PLT(MODEL_PATH + "-1", seed=1993)
     plt.build_tree(X, Y)
     tree_structure = plt.get_tree_structure()

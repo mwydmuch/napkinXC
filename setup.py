@@ -2,6 +2,7 @@ import re
 from cmaketools import setup
 from multiprocessing import cpu_count
 from os import path
+from sys import version_info
 
 
 def get_long_description():
@@ -16,7 +17,7 @@ def get_long_description():
                            "you should create an issue at https://github.com/mwydmuch/napkinXC")
 
 
-def get_version():
+def get_napkinxc_version():
     try:
         dir_path = path.dirname(path.realpath(__file__))
         with open(path.join(dir_path, "CMakeLists.txt")) as cmake_file:
@@ -30,9 +31,13 @@ def get_version():
                            "you should create an issue at https://github.com/mwydmuch/napkinXC")
 
 
+def get_python_version():
+    return str(version_info[0]) + '.' + str(version_info[1])
+
+
 setup(
     name="napkinxc",
-    version=get_version(),
+    version=get_napkinxc_version(),
     author="Marek Wydmuch",
     author_email="mwydmuch@cs.put.poznan.pl",
     maintainer="Marek Wydmuch",
@@ -47,7 +52,7 @@ setup(
         #Development Status :: 5 - Production/Stable,
         'Operating System :: POSIX :: Linux',
         'Operating System :: MacOS',
-        'Operating System :: Microsoft :: Windows',
+        'Operating System :: Windows',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
@@ -59,12 +64,13 @@ setup(
     ],
     license="MIT License",
     platforms=["Linux", "MacOS", "Windows"],
+    python_requires='>=3.7.0',
     setup_requires=["cmaketools", "setuptools", "wheel"],
-    install_requires=['numpy', 'scipy', 'gdown>=4.4.0'],
+    install_requires=['numpy', 'scipy', 'gdown'],
     src_dir="python",
     packages=['napkinxc'],
     ext_module_hint=r"pybind11_add_module",
-    configure_opts=['-DPYTHON=ON', '-DEXE=OFF', '-DBACKWARD=OFF'],
+    configure_opts=['-DPYTHON=ON', '-DPYTHON_VERSION=' + get_python_version(), '-DEXE=OFF', '-DBACKWARD=OFF'],
     include_package_data=True,
     #parallel=max(cpu_count(), 1) # Unknown distribution option: 'parallel'
 )

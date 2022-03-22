@@ -3,10 +3,10 @@
 
 cmake_minimum_required(VERSION 3.12)
 project(napkinXC
-    VERSION 0.6.0
-    DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
-    HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
-    LANGUAGES C CXX)
+        VERSION 0.6.0
+        DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
+        HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
+        LANGUAGES C CXX)
 
 include(GitUtils.cmake)
 
@@ -15,9 +15,10 @@ set(ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 # Building options
 option(EXE "Build executable" ON)
 option(PYTHON "Build Python binding" OFF)
+set(PYTHON_VERSION "3" CACHE STRING "Build Python binding with specific Python version")
 option(BACKWARD "Build with backward.cpp" OFF)
 option(MIPS_EXT "Build extension with Maximum Inner Product Search-based models" OFF)
-set(PYBIND11_VERSION "v2.9.1" CACHE STRING "Pybind11 version to use")
+set(PYBIND11_VERSION "v2.6.2" CACHE STRING "Pybind11 version to use")
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -34,22 +35,22 @@ find_package(Threads REQUIRED)
 set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 configure_file(
-    ${SRC_DIR}/version.h.in
-    ${SRC_DIR}/version.h
+        ${SRC_DIR}/version.h.in
+        ${SRC_DIR}/version.h
 )
 
 # Gather napkinXC source files
 file(GLOB SOURCES
-    ${SRC_DIR}/*.cpp
-    ${SRC_DIR}/liblinear/*.cpp
-    ${SRC_DIR}/liblinear/blas/*.c
-    ${SRC_DIR}/models/*.cpp)
+        ${SRC_DIR}/*.cpp
+        ${SRC_DIR}/liblinear/*.cpp
+        ${SRC_DIR}/liblinear/blas/*.c
+        ${SRC_DIR}/models/*.cpp)
 
 set(INCLUDES
-    ${SRC_DIR}
-    ${SRC_DIR}/liblinear
-    ${SRC_DIR}/liblinear/blas
-    ${SRC_DIR}/models)
+        ${SRC_DIR}
+        ${SRC_DIR}/liblinear
+        ${SRC_DIR}/liblinear/blas
+        ${SRC_DIR}/models)
 
 set(LIBRARIES PRIVATE Threads::Threads)
 
@@ -63,9 +64,9 @@ endif ()
 # MIPS extension files
 if (MIPS_EXT)
     git_clone(PROJECT_NAME nmslib
-        GIT_URL https://github.com/nmslib/nmslib.git
-        GIT_BRANCH master
-        DIRECTORY ${SRC_DIR})
+            GIT_URL https://github.com/nmslib/nmslib.git
+            GIT_BRANCH master
+            DIRECTORY ${SRC_DIR})
 
     add_subdirectory(${SRC_DIR}/nmslib/similarity_search)
 
@@ -73,8 +74,8 @@ if (MIPS_EXT)
 
     file(GLOB MIPS_EXT_SOURCES ${SRC_DIR}/mips_models/*.cpp)
     set(MIPS_EXT_INCLUDES
-        ${SRC_DIR}/mips_models
-        ${SRC_DIR}/nmslib/similarity_search/include)
+            ${SRC_DIR}/mips_models
+            ${SRC_DIR}/nmslib/similarity_search/include)
 
     list(APPEND SOURCES ${MIPS_EXT_SOURCES})
     list(APPEND INCLUDES ${MIPS_EXT_INCLUDES})
@@ -90,11 +91,12 @@ if (PYTHON)
 
     # Get pybind11
     git_clone(PROJECT_NAME pybind11
-        GIT_URL https://github.com/pybind/pybind11.git
-        #GIT_BRANCH master # To use master version
-        GIT_TAG ${PYBIND11_VERSION}
-        DIRECTORY ${ROOT_DIR})
+            GIT_URL https://github.com/pybind/pybind11.git
+            #GIT_BRANCH master # To use master version
+            GIT_TAG ${PYBIND11_VERSION}
+            DIRECTORY ${ROOT_DIR})
 
+    find_package(Python ${PYTHON_VERSION} EXACT COMPONENTS Interpreter Development.Module REQUIRED)
     add_subdirectory("pybind11")
     add_subdirectory(python)
 endif ()
@@ -110,14 +112,14 @@ if (EXE)
     target_link_libraries(nxc PUBLIC ${LIBRARIES})
 
     set_target_properties(nxc
-        PROPERTIES
-        OUTPUT_NAME nxc
-#        RUNTIME_OUTPUT_DIRECTORY ${ROOT_DIR}
-#        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${ROOT_DIR}
-#        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ROOT_DIR}
-#        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${ROOT_DIR}
-#        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${ROOT_DIR}
-        PROJECT_LABEL "napkinXC")
+            PROPERTIES
+            OUTPUT_NAME nxc
+            #        RUNTIME_OUTPUT_DIRECTORY ${ROOT_DIR}
+            #        RUNTIME_OUTPUT_DIRECTORY_DEBUG ${ROOT_DIR}
+            #        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${ROOT_DIR}
+            #        RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${ROOT_DIR}
+            #        RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${ROOT_DIR}
+            PROJECT_LABEL "napkinXC")
 
     if(NOT ${DEPENDENCIES} STREQUAL "")
         add_dependencies(nxc ${DEPENDENCIES})

@@ -3,7 +3,7 @@ name: Python build
 on:
   push:
     paths:
-      - '.github/**'
+      - '.github/workflows/python-build.yml'
       - 'python/**'
       - 'src/**'
       - 'CMakeLists.txt'

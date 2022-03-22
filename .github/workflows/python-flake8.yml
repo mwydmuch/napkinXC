@@ -3,7 +3,7 @@ name: Lint with flake8
 on:
   push:
     paths:
-      - '.github/**'
+      - '.github/workflows/python-flake8.yml'
       - 'python/**'
       - 'setup.py'
 

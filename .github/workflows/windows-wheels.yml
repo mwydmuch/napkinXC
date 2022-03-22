@@ -3,7 +3,7 @@ name: Build Windows Python wheels
 on:
   push:
     paths:
-      - '.github/**'
+      - '.github/workflows/windows-wheels.yml'
       - 'python/**'
       - 'src/**'
       - 'CMakeLists.txt'
@@ -39,14 +39,14 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Build Windows Python wheels
+      - name: Build Windows Python wheel
         run: python setup.py bdist_wheel #-w ./dist --no-deps
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: windows-${{ matrix.python-version }}-dist
-          path: dist
+          name: windows-wheels
+          path: dist/*-win_amd64.whl
 
     #- name: Publish wheels to PyPI
     #  env:

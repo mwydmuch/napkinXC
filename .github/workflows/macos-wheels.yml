@@ -1,9 +1,9 @@
-name: Build manylinux Pyhton wheels
+name: Build MacOS Python wheels
 
 on:
   push:
     paths:
-      - '.github/workflows/manylinux-wheels.yml'
+      - '.github/workflows/macos-wheels.yml'
       - 'python/**'
       - 'src/**'
       - 'CMakeLists.txt'
@@ -13,9 +13,9 @@ jobs:
   deploy:
     strategy:
       matrix:
-        python-version: [ 'cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310' ]
+        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
 
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
 
     steps:
       - uses: actions/checkout@v2
@@ -23,12 +23,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: 3.9
+          python-version: ${{ matrix.python-version }}
+
+      - name: Python environment report
+        run: python -c "import sys; print(sys.version)"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install twine flake8
+          pip install twine flake8 cmaketools setuptools wheel
 
       - name: Lint with flake8 for syntax errors
         run: |
@@ -36,21 +39,18 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Build manylinux Python wheel
-        #uses: RalfG/python-wheels-manylinux-build@v0.4.2-manylinux_2_24_x86_64
-        uses: RalfG/python-wheels-manylinux-build@v0.4.2-manylinux2014_x86_64
-        with:
-          python-versions: ${{ matrix.python-version }}
+      - name: Build MacOS Python wheel
+        run: python setup.py bdist_wheel #-w ./dist --no-deps
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: manylinux-wheels
-          path: dist/*manylinux*.whl
+          name: macos-wheels
+          path: dist/*macosx*.whl
 
     #- name: Publish wheels to PyPI
     #  env:
     #    TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
     #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
     #  run: |
-    #    twine upload dist/*-manylinux*.whl
+    #    twine upload dist/*-win*.whl

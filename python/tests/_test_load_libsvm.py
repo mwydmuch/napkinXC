@@ -4,20 +4,20 @@ from sklearn.datasets import load_svmlight_file
 from napkinxc.datasets import download_dataset, load_libsvm_file
 import numpy as np
 
-
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
+from conf import *
+MODEL_PATH = get_model_path(__file__)
 
 
 def test_load_libsvm():
     datasets = {
-        "eurlex-4k": {"file": os.path.join(data_path, "Eurlex/eurlex_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 5000, "offset": 1}},
-        "amazonCat-13k": {"file": os.path.join(data_path, "AmazonCat/amazonCat_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 203882, "offset": 1}},
-        "amazonCat-14k": {"file": os.path.join(data_path, "AmazonCat-14K/amazonCat-14K_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 597540, "offset": 1}},
-        "wiki10-31k": {"file": os.path.join(data_path, "Wiki10/wiki10_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 101938, "offset": 1}}
+        "eurlex-4k": {"file": os.path.join(TEST_DATA_PATH, "Eurlex/eurlex_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 5000, "offset": 1}},
+        "amazonCat-13k": {"file": os.path.join(TEST_DATA_PATH, "AmazonCat/amazonCat_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 203882, "offset": 1}},
+        "amazonCat-14k": {"file": os.path.join(TEST_DATA_PATH, "AmazonCat-14K/amazonCat-14K_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 597540, "offset": 1}},
+        "wiki10-31k": {"file": os.path.join(TEST_DATA_PATH, "Wiki10/wiki10_test.txt"), "sklearn_args": {"multilabel": True, "zero_based": True, "n_features": 101938, "offset": 1}}
     }
 
     for d, v in datasets.items():
-        download_dataset(d, subset='test', format='bow', root=data_path)
+        download_dataset(d, subset='test', format='bow', root=TEST_DATA_PATH)
         print("\n{} time comparison:".format(d))
 
         t_start = time()

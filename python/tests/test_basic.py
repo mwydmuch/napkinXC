@@ -1,33 +1,38 @@
 import shutil
-import os
 from napkinxc.datasets import load_dataset
-from napkinxc.models import BR, PLT
+from napkinxc.models import *
 from napkinxc.measures import precision_at_k
 
+from conf import *
+MODEL_PATH = get_model_path(__file__)
 
-model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_model")
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_data")
 
+def _test_model(model_class, model_config):
+    X_train, Y_train = load_dataset(TEST_DATASET, "train", root=TEST_DATA_PATH)
+    X_test, Y_test = load_dataset(TEST_DATASET, "test", root=TEST_DATA_PATH)
 
-# Basic PLT test on eurlex
-def test_eurlex_plt_train_test():
-    X_train, Y_train = load_dataset("eurlex-4k", "train", root=data_path)
-    X_test, Y_test = load_dataset("eurlex-4k", "test", root=data_path)
-    plt = PLT(model_path, optimizer="adagrad", epochs=1)
-    plt.fit(X_train, Y_train)
-    Y_pred = plt.predict(X_test, top_k=1)
+    model = model_class(MODEL_PATH, seed=TEST_SEED, **model_config)
+    model.fit(X_train, Y_train)
+
+    Y_pred = model.predict(X_test, top_k=1)
     p_at_1 = precision_at_k(Y_test, Y_pred, k=1)
-    assert 0.78 < p_at_1 < 0.82
-    shutil.rmtree(model_path, ignore_errors=True)
+
+    assert SCORE_RANGE[0] < p_at_1 < SCORE_RANGE[1]
+
+    shutil.rmtree(MODEL_PATH, ignore_errors=True)
 
 
-# Basic BR test on eurlex
-def _test_eurlex_br_adagrad_train_test():
-    X_train, Y_train = load_dataset("eurlex-4k", "train", root=data_path)
-    X_test, Y_test = load_dataset("eurlex-4k", "test", root=data_path)
-    br = BR(model_path, optimizer="adagrad", epochs=1)
-    br.fit(X_train, Y_train)
-    Y_pred = br.predict(X_test, top_k=1)
-    p_at_1 = precision_at_k(Y_test, Y_pred, k=1)
-    assert 0.78 < p_at_1 < 0.82
-    shutil.rmtree(model_path, ignore_errors=True)
+def test_plt_train_test():
+    _test_model(PLT, {})
+
+
+def test_hsm_train_test():
+    _test_model(HSM, {"pick_one_label_weighting": True})
+
+
+def test_br_train_test():
+    _test_model(BR, {"optimizer": "adagrad", "epochs": 1})
+
+
+def test_ovr_train_test():
+    _test_model(OVR, {"pick_one_label_weighting": True})

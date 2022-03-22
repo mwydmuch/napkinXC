@@ -1,6 +1,6 @@
 from napkinxc.measures import *
-from scipy.sparse import csr_matrix
 import numpy as np
+from scipy.sparse import csr_matrix
 from sklearn.metrics import f1_score as skl_f1_score
 
 

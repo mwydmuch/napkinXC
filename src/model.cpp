@@ -94,8 +94,6 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Arg
                  std::min((t + 1) * tRows, rows));
     tSet.joinAll();
 
-    std::cout << predictions[0] << "\n";
-
     return predictions;
 }
 

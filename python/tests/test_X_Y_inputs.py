@@ -11,8 +11,8 @@ from napkinxc.models import HSM, PLT
 from napkinxc.measures import precision_at_k
 
 
-model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-eurlex-model")
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_model")
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_data")
 
 
 def print_data_info(X):
@@ -128,7 +128,7 @@ def test_multilabel_csr_float64_input():
 
 
 def test_numpy_3d_input():
-    size = 1000
+    size = 100
     X_train = np.ones((size, size, size))
     Y_train = np.ones((size))
 

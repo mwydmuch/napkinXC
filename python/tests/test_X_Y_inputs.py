@@ -12,7 +12,7 @@ from napkinxc.measures import precision_at_k
 
 
 model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_model")
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_data")
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_data")
 
 
 def print_data_info(X):

@@ -5,8 +5,10 @@ from napkinxc.models import BR, PLT
 from napkinxc.measures import precision_at_k
 
 
-model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-eurlex-model")
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_model")
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_data")
+
+
 repeat = 5
 model_configs = [
     {"tree_search_type": "exact"},
@@ -19,6 +21,7 @@ representation_configs = [
     {"load_as": "map"},
     {"load_as": "dense"},
 ]
+
 
 def test_plt_exact_prediction_reproducibility():
     X_train, Y_train = load_dataset("eurlex-4k", "train", root=data_path)

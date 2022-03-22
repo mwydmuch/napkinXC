@@ -7,7 +7,6 @@ data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data"
 
 
 def test_load_dataset():
-    print("\n")
     for d in DATASETS.values():
         for f in d['formats']:
             for s in d['subsets']:
@@ -17,4 +16,4 @@ def test_load_dataset():
                 len_X = len(X) if isinstance(X, list) else X.shape[0]
                 len_Y = len(Y) if isinstance(Y, list) else Y.shape[0]
                 assert len_X == len_Y
-                print("\tload_dataset({}, subset={}, format={}) rows: {}, time: {}s".format(d['name'], s, f, len_X, time() - t_start))
+                print("\tload_dataset({}, subset={}, format={}) rows: {}, time: {}s\n".format(d['name'], s, f, len_X, time() - t_start))

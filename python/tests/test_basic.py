@@ -5,8 +5,8 @@ from napkinxc.models import BR, PLT
 from napkinxc.measures import precision_at_k
 
 
-model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-eurlex-model")
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_model")
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_data")
 
 
 # Basic PLT test on eurlex

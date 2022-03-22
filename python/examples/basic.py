@@ -8,6 +8,7 @@ from napkinxc.measures import precision_at_k
 
 # Use load_dataset function to load one of the benchmark datasets
 # from XML Repository (http://manikvarma.org/downloads/XC/XMLRepository.html).
+print("Loading data ...")
 X_train, Y_train = load_dataset("eurlex-4k", "train")
 X_test, Y_test = load_dataset("eurlex-4k", "test")
 
@@ -21,6 +22,7 @@ plt = PLT("eurlex-model")
 # The model weights and additional data will be stored in "eurlex-model" directory.
 # Features matrix X should be SciPy csr_matrix, NumPy array, or list of tuples of (idx, value),
 # while labels matrix Y should be list of lists or tuples containing positive labels, SciPy csr_matrix, NumPy array.
+print("Fitting model...")
 plt.fit(X_train, Y_train)
 
 # After the training model is not loaded to RAM.
@@ -29,6 +31,7 @@ plt.load()
 
 # Predict only five top labels for each data point in the test dataset.
 # This will also load the model if it is not loaded.
+print("Predicting ...")
 Y_pred = plt.predict(X_test, top_k=5)
 
 # Evaluate the prediction with precision at 5 measure.

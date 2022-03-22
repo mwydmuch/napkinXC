@@ -45,4 +45,3 @@ def test_load_libsvm():
         for nxc_y, sk_y in zip(nxc_Y_list, sk_Y):
             assert len(nxc_y) == len(sk_y)
             assert all(y1 == y2 for y1, y2 in zip(nxc_y, sk_y))
-

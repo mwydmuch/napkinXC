@@ -4,8 +4,8 @@ from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
 
 
-model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-eurlex-model")
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test-data")
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{os.path.basename(__file__)}_model")
+data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_data")
 
 
 def test_set_get_tree_structure():

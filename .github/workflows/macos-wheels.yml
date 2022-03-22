@@ -1,4 +1,4 @@
-name: Build MacOS Python wheels
+name: Build macOS Python wheels
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Build MacOS Python wheel
+      - name: Build macOS Python wheel
         run: python setup.py bdist_wheel #-w ./dist --no-deps
 
       - name: Upload artifacts

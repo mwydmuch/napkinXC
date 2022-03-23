@@ -1,9 +1,8 @@
-# napkinXC
-# Authors: Marek Wydmuch
+# napkinXC CMakeLists.txt
 
 cmake_minimum_required(VERSION 3.12)
 project(napkinXC
-        VERSION 0.6.0
+        VERSION 0.6.1
         DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
         HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
         LANGUAGES C CXX)

@@ -54,3 +54,5 @@ test-eurlex-model
 .idea
 .DS_Store
 *.log
+cmake-build-debug/
+cmake-build-release/

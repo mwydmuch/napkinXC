@@ -1,3 +1,5 @@
+# napkinXC setup.py
+
 import re
 from cmaketools import setup
 from multiprocessing import cpu_count

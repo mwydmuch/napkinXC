@@ -25,6 +25,7 @@ Datasets
     datasets.load_libsvm_file
     datasets.load_json_lines_file
     datasets.to_csr_matrix
+    datasets.to_np_matrix
 
 Measures
 --------
@@ -36,8 +37,9 @@ Measures
     measures.recall_at_k
     measures.coverage_at_k
     measures.dcg_at_k
+    measures.Jain_et_al_inverse_propensity
+    measures.Jain_et_al_propensity
     measures.ndcg_at_k
-    measures.inverse_propensity
     measures.psprecision_at_k
     measures.psrecall_at_k
     measures.psdcg_at_k

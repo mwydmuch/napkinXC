@@ -9,9 +9,7 @@ sys.path.append(napkinxc_path)
 
 from napkinxc.datasets import download_dataset, _get_data_meta
 
-aliases = { 
-    "yeast": "yeast",
-    "mediamill": "mediamill",
+old_aliases = {
     "rcv1x": "RCV1X-2K",
     "amazonCat": "AmazonCat-13K",
     "amazonCat-14K": "AmazonCat-14K",
@@ -26,15 +24,19 @@ aliases = {
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Requires true and prediction files as arguments!")
+        print("Usage: download_dataset.py [dataset name] [format (optional)] [root dir (optional)]")
         exit(1)
 
-    dataset = aliases.get(sys.argv[1], sys.argv[1])
+    dataset = old_aliases.get(sys.argv[1], sys.argv[1])
 
-    root = "data"
+    format = "bow"
     if len(sys.argv) >= 3:
         root = sys.argv[2]
 
-    dataset_meta = _get_data_meta(dataset, format='bow-v1')
-    download_dataset(dataset, format='bow-v1', root=root, verbose=True)
+    root = "data"
+    if len(sys.argv) >= 4:
+        root = sys.argv[3]
+
+    dataset_meta = _get_data_meta(dataset, format=format)
+    download_dataset(dataset, format=format, root=root, verbose=True)
     shutil.move(os.path.join(root, dataset_meta['dir']), os.path.join(root, sys.argv[1]))

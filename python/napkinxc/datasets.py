@@ -498,6 +498,11 @@ def load_libsvm_file(file, labels_format="list", sort_indices=False):
         raise ValueError("Label format {} is not valid format".format(labels_format))
 
 
+def save_libsvm_file(file, X, Y, sort_indices=False):
+    with open(file, "w") as libsvm_file:
+        pass
+
+
 def load_json_lines_file(file, features_fields=['title', 'content'], labels_field='target_ind', gzip_file=None):
     """
     Load data in the JSON lines format into list of features and list of labels.
@@ -676,7 +681,8 @@ def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
         if isinstance(first_element, tuple):
             for row, x in enumerate(X):
                 indptr[row] = cells
-                x = sorted(x) if sort_indices else x
+                if sort_indices:
+                    x = sorted(x)
                 for x_i in x:
                     indices[cells] = x_i[0]
                     data[cells] = x_i[1]
@@ -757,12 +763,10 @@ def _get_dtype(first_element):
 
 
 def _get_first_element_of_list_of_lists(X):
-    first_element = None
     for x in X:
         if len(x):
-            first_element = x[0]
-    if first_element is None:
-        raise ValueError('X is does not contain any element')
+            return x[0]
+    raise ValueError('X is does not contain any element')
 
 
 def _get_data_meta(dataset, subset='train', format='bow'):

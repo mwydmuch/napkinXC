@@ -71,6 +71,7 @@ setup(
     install_requires=['numpy', 'scipy', 'gdown'],
     src_dir="python",
     packages=['napkinxc'],
+    package_data={'napkinxc': ['*.py', '*so', '*.pyd']},
     ext_module_hint=r"pybind11_add_module",
     configure_opts=['-DPYTHON=ON', '-DPYTHON_VERSION=' + get_python_version(), '-DEXE=OFF', '-DBACKWARD=OFF'],
     include_package_data=True,

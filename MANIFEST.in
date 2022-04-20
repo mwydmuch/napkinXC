@@ -1,9 +1,9 @@
 recursive-include docs *
-recursive-include src *
+recursive-include pybind11 *
 recursive-include python *
+recursive-include src *
 include CMakeLists.txt
-include GitUtils.cmake
 include LICENSE.md
-include README.md
 include pyproject.toml
-recursive-exclude * .DS_Store
+include README.md
+global-exclude Makefile CMakeFiles *.cmake *.so *.pyd .DS_Store

@@ -9,26 +9,26 @@
 *.so
 *.dylib
 *.lib
-/src/nmslib
-/src/version.h
-/build
+src/nmslib
+src/version.h
+build
 **/install_manifest.txt
 **/nxc
 
 # Python
-/dist
-/pybind11
+dist
+pybind11
 *.pyc
 *.pyd
 
 # Docs
-/docs/*/*
+docs/*/*
 
 # Experiments and examples
 data
 test-data
-/models*
-/results*
+models*
+results*
 eurlex-model
 test-eurlex-model
 *.bin

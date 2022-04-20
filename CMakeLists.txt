@@ -74,9 +74,9 @@ if (PYTHON)
             message(FATAL_ERROR "The pybind11 submodule was not downloaded!")
         endif()
     endif()
-
+    
+    find_package(Python ${PYTHON_VERSION} EXACT COMPONENTS Interpreter Development.Module REQUIRED)
     add_subdirectory(pybind11)
-
     add_subdirectory(python)
 endif ()
 

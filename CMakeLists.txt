@@ -74,8 +74,13 @@ if (PYTHON)
             message(FATAL_ERROR "The pybind11 submodule was not downloaded!")
         endif()
     endif()
-    
-    find_package(Python ${PYTHON_VERSION} EXACT COMPONENTS Interpreter Development.Module REQUIRED)
+
+    if(${CMAKE_VERSION} VERSION_LESS "3.18.0")
+        find_package(Python ${PYTHON_VERSION} EXACT COMPONENTS Interpreter Development REQUIRED)
+    else()
+        find_package(Python ${PYTHON_VERSION} EXACT COMPONENTS Interpreter Development.Module REQUIRED)
+    endif()
+
     add_subdirectory(pybind11)
     add_subdirectory(python)
 endif ()

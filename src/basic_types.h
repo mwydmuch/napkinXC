@@ -64,7 +64,7 @@ typedef IRVPair Feature;
 
 struct Prediction{
     int label;
-    Real value; // labels's value/probability/loss
+    Real value; // label's value/probability/loss
 
     Prediction(): label(0), value(0) {}
     Prediction(int label, double value): label(label), value(value) {};

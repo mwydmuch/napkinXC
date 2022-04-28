@@ -119,6 +119,7 @@ Args::Args() {
     treeSearchType = exact;
     beamSearchWidth = 10;
     beamSearchUnpack = true;
+    covWeights = false;
 
     // Measures for test command
     measures = "p@1,p@3,p@5";
@@ -379,6 +380,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 batchSizes = args.at(ai + 1);
             else if (args[ai] == "--batches")
                 batches = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--covWeights")
+                covWeights = std::stoi(args.at(ai + 1)) != 0;
 
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));

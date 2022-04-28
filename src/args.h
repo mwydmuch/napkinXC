@@ -118,6 +118,7 @@ public:
     TreeSearchType treeSearchType;
     int beamSearchWidth;
     bool beamSearchUnpack;
+    bool covWeights;
 
     // Measures for test command
     std::string measures;

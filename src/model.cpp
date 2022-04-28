@@ -86,6 +86,11 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Arg
     int rows = features.rows();
     std::vector<std::vector<Prediction>> predictions(rows);
 
+    if(args.covWeights){
+        std::vector<Real> lw(m, 1);
+        setLabelsWeights(lw);
+    }
+
     // Run prediction in parallel using thread set
     ThreadSet tSet;
     int tRows = ceil(static_cast<Real>(rows) / args.threads);

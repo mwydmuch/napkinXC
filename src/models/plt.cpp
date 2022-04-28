@@ -261,6 +261,11 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
             return prob * nodesWeights[node->index].weight;
         };
 
+    if (args.covWeights)
+        calculateValue = [&] (TreeNode* node, Real prob) {
+            return nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight;
+        };
+
     // Predict for root
     Real rootProb = predictForNode(tree->root, features);
     addToQueue(ifAddToQueue, calculateValue, nQueue, tree->root, rootProb);
@@ -271,6 +276,17 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
     while ((prediction.size() < topK || topK == 0) && p.label != -1) {
         prediction.push_back(p);
         p = predictNextLabel(ifAddToQueue, calculateValue, nQueue, features);
+    }
+
+    if (args.covWeights){
+        for(auto& p : prediction){
+            labelsWeights[p.label] *= (1 - p.value);
+            auto n = tree->leaves[p.label];
+            while(n != nullptr){
+                if(nodesWeights[n->index].label == p.label) setNodeWeight(n);
+                n = n->parent;
+            }
+        }
     }
 }
 

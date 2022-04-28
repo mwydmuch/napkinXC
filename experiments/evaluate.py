@@ -56,7 +56,7 @@ if __name__ == "__main__":
         inv_ps = load_inv_ps_file(sys.argv[3])
 
     precision = 6
-    max_k = 5
+    max_k = 10
 
     measures = {
         #"HL": {"func": hamming_loss, "inv_ps": False},
@@ -65,6 +65,7 @@ if __name__ == "__main__":
         "nDCG": {"func": ndcg_at_k, "inv_ps": False},
         "PSP": {"func": psprecision_at_k, "inv_ps": True},
         "PSnDCG": {"func": psndcg_at_k, "inv_ps": True},
+        "C": {"func": coverage_at_k, "inv_ps": False}
     }
 
     for m, v in measures.items():

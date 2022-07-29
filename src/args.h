@@ -119,6 +119,8 @@ public:
     int beamSearchWidth;
     bool beamSearchUnpack;
     bool covWeights;
+    Real precWeight;
+    int sampleTopK;
 
     // Measures for test command
     std::string measures;

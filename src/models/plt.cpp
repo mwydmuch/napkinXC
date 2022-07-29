@@ -231,12 +231,11 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
 }
 
 void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
-    int topK = args.topK;
+    int topK = std::max(args.topK, args.sampleTopK);
     Real threshold = args.threshold;
 
     if(topK > 0) prediction.reserve(topK);
-    TopKQueue<TreeNodeValue> nQueue(args.topK);
-
+    TopKQueue<TreeNodeValue> nQueue(topK);
 
     // Set functions
     std::function<bool(TreeNode*, Real)> ifAddToQueue = [&] (TreeNode* node, Real prob) {
@@ -261,10 +260,13 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
             return prob * nodesWeights[node->index].weight;
         };
 
-    if (args.covWeights)
-        calculateValue = [&] (TreeNode* node, Real prob) {
-            return nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight;
+    if (args.covWeights) {
+        Real precWeight = args.precWeight;
+        std::cout << precWeight << " ";
+        calculateValue = [&](TreeNode* node, Real prob) {
+            return (nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight) + (args.precWeight * prob);
         };
+    }
 
     // Predict for root
     Real rootProb = predictForNode(tree->root, features);
@@ -287,6 +289,12 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
                 n = n->parent;
             }
         }
+    }
+
+    if(args.sampleTopK > args.topK && args.ensemble == 0){
+        std::default_random_engine rng(rand());
+        std::shuffle(prediction.begin(), prediction.end(), rng);
+        prediction.resize(args.topK);
     }
 }
 

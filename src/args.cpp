@@ -120,6 +120,8 @@ Args::Args() {
     beamSearchWidth = 10;
     beamSearchUnpack = true;
     covWeights = false;
+    sampleTopK = 5;
+    precWeight = 0;
 
     // Measures for test command
     measures = "p@1,p@3,p@5";
@@ -356,6 +358,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
             // Prediction/test options
             else if (args[ai] == "--topK")
                 topK = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--sampleTopK")
+                sampleTopK = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--threshold")
                 threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--thresholds")
@@ -382,6 +386,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 batches = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--covWeights")
                 covWeights = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--precWeight")
+                precWeight = std::stof(args.at(ai + 1));
 
             else if (args[ai] == "--measures")
                 measures = std::string(args.at(ai + 1));

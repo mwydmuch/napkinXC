@@ -195,9 +195,20 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
     }
 
     // Create final predictions
-    for (int i = 0; i < rows; ++i) {
-        sort(predictions[i].rbegin(), predictions[i].rend());
-        if (args.topK > 0) predictions[i].resize(args.topK);
+    if(args.sampleTopK > args.topK){
+        std::default_random_engine rng(args.seed);
+
+        for (int i = 0; i < rows; ++i) {
+            sort(predictions[i].rbegin(), predictions[i].rend());
+            if (args.sampleTopK > 0) predictions[i].resize(args.sampleTopK);
+            std::shuffle(predictions[i].begin(), predictions[i].end(), rng);
+            if (args.topK > 0) predictions[i].resize(args.topK);
+        }
+    } else {
+        for (int i = 0; i < rows; ++i) {
+            sort(predictions[i].rbegin(), predictions[i].rend());
+            if (args.topK > 0) predictions[i].resize(args.topK);
+        }
     }
 
     return predictions;

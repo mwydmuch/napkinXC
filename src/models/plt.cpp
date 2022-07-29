@@ -261,8 +261,6 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
         };
 
     if (args.covWeights) {
-        Real precWeight = args.precWeight;
-        std::cout << precWeight << " ";
         calculateValue = [&](TreeNode* node, Real prob) {
             return (nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight) + (args.precWeight * prob);
         };
@@ -295,6 +293,7 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
         std::default_random_engine rng(rand());
         std::shuffle(prediction.begin(), prediction.end(), rng);
         prediction.resize(args.topK);
+        sort(prediction.rbegin(), prediction.rend());
     }
 }
 

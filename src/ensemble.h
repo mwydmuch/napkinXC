@@ -203,6 +203,7 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
             if (args.sampleTopK > 0) predictions[i].resize(args.sampleTopK);
             std::shuffle(predictions[i].begin(), predictions[i].end(), rng);
             if (args.topK > 0) predictions[i].resize(args.topK);
+            sort(predictions[i].rbegin(), predictions[i].rend());
         }
     } else {
         for (int i = 0; i < rows; ++i) {

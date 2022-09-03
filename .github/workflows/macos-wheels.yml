@@ -2,6 +2,8 @@ name: Build macOS Python wheels
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - '.github/workflows/macos-wheels.yml'
       - 'python/**'
@@ -13,6 +15,7 @@ jobs:
   deploy:
     strategy:
       matrix:
+        os: [macos-11, macos-12]
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
 
     runs-on: macos-latest
@@ -55,4 +58,4 @@ jobs:
     #    TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
     #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
     #  run: |
-    #    twine upload dist/*-win*.whl
+    #    twine upload dist/*macosx*.whl

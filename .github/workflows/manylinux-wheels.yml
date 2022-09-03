@@ -2,6 +2,8 @@ name: Build manylinux Pyhton wheels
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - '.github/workflows/manylinux-wheels.yml'
       - 'python/**'

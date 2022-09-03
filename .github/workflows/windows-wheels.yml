@@ -2,6 +2,8 @@ name: Build Windows Python wheels
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - '.github/workflows/windows-wheels.yml'
       - 'python/**'

@@ -12,12 +12,13 @@ on:
       - 'setup.py'
 
 jobs:
-  deploy:
+  build_wheels:
     strategy:
       matrix:
         os: [macos-10.15, macos-11, macos-12]
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
 
+    name: Build macOS wheel on ${{ matrix.os }} for Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
 
     steps:

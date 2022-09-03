@@ -18,10 +18,434 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+from abc import ABC, abstractmethod
 from math import log2, log
 import numpy as np
 from scipy.sparse import csr_matrix
+
+# Classes for different measures
+
+class Measure(ABC):
+    """
+    Abstract class for measure.
+    """
+    def __init__(self):
+        super().__init__()
+        self.needs_ranking = False
+        self.sum = 0
+        self.count = 0
+
+    def accumulate(self, Y_true, Y_pred):
+        Y_true = Measure._get_Y_iterator(Y_true)
+        Y_pred = Measure._get_Y_iterator(Y_pred, ranking=self.needs_ranking)
+
+        for t, p in zip(Y_true, Y_pred):
+            self._accumulate(t, p)
+            self.count += 1
+
+    def __call__(self, Y_true, Y_pred):
+        self.accumulate(Y_true, Y_pred)
+
+    @abstractmethod
+    def _accumulate(self, t, p):
+        raise NotImplemented
+
+    def summarize(self):
+        return self.sum / self.count
+
+    def reset(self):
+        self.sum = 0
+        self.count = 0
+
+    def calculate(self, Y_true, Y_pred):
+        self.reset()
+        self.accumulate(Y_true, Y_pred)
+        return self.summarize()
+
+    @staticmethod
+    def _get_Y_iterator(Y, ranking=False):
+        if isinstance(Y, np.ndarray):
+            return Measure._Y_np_iterator(Y, ranking)
+
+        elif isinstance(Y, csr_matrix):
+            return Measure._Y_csr_matrix_iterator(Y, ranking)
+
+        elif all(isinstance(y, (list, tuple)) for y in Y):
+            return Measure._Y_list_iterator(Y)
+
+        else:
+            raise TypeError("Unsupported data type, should be Numpy matrix (2d array), or Scipy CSR matrix, or list of list of ints")
+
+    @staticmethod
+    def _Y_np_iterator(Y, ranking=False):
+        rows = Y.shape[0]
+        if ranking:
+            for i in range(0, rows):
+                yield (-Y[i]).argsort()
+        else:
+            for i in range(0, rows):
+                yield Y[i].nonzero()[0]
+
+    @staticmethod
+    def _Y_csr_matrix_iterator(Y, ranking=False):
+        rows = Y.shape[0]
+        if ranking:
+            for i in range(0, rows):
+                y = Y[i]
+                ranking = (-y.data).argsort()
+                yield y.indices[ranking]
+        else:
+            for i in range(0, rows):
+                yield Y[i].indices
+
+    @staticmethod
+    def _Y_list_iterator(Y):
+        for y in Y:
+            if all(isinstance(y_i, tuple) for y_i in y):
+                #yield [y_i[0] for y_i in sorted(y, key=lambda y_i: y_i[1], reverse=True)]
+                yield [y_i[0] for y_i in y]
+            else:
+                yield y
+
+
+class MeasureAtK(Measure):
+    """
+    Abstract class for measure calculated at 1-k places.
+    """
+    def __init__(self, k=5):
+        super().__init__()
+        MeasureAtK._check_k(k)
+        self.k = k
+        self.sum = np.zeros(self.k)
+        self.needs_ranking = True
+
+    def accumulate(self, Y_true, Y_pred):
+        Y_true = Measure._get_Y_iterator(Y_true)
+        Y_pred = Measure._get_Y_iterator(Y_pred, ranking=True)
+
+        for t, p in zip(Y_true, Y_pred):
+            self._accumulate(t, p)
+            self.count += 1
+
+    def reset(self):
+        self.sum = np.zeros(self.k)
+        self.count = 0
+
+    @staticmethod
+    def _check_k(k):
+        if not isinstance(k, (int, np.integer)):
+            raise TypeError("k should be an integer number larger than 0")
+        if k < 1:
+            raise ValueError("k should be larger than 0")
+
+
+class PSMeasureAtK(MeasureAtK):
+    """
+    Abstract class for Propensity Scored measure calculated at 1-k places.
+    """
+    def __init__(self, inv_ps, k=5, normalize=True):
+        super().__init__(k=k)
+        self.inv_ps, self._top_ps = PSMeasureAtK._get_top_ps_func(inv_ps)
+        self.best_sum = np.zeros(self.k)
+        self.normalize = normalize
+
+    def summarize(self):
+        return self.sum / (self.best_sum if self.normalize else self.count)
+
+    @staticmethod
+    def _top_ps_dict(inv_ps, t):
+        return np.array(sorted([inv_ps.get(t_i, 0) for t_i in t], reverse=True))
+
+    @staticmethod
+    def _top_ps_np(inv_ps, t):
+        t = [t_i for t_i in t if t_i < inv_ps.shape[0]]
+        return -np.sort(-inv_ps[t])
+
+    @staticmethod
+    def _get_top_ps_func(inv_ps):
+        if isinstance(inv_ps, dict):
+            _top_ps = PSMeasureAtK._top_ps_dict
+        elif isinstance(inv_ps, list):
+            inv_ps = np.array(inv_ps)
+            _top_ps = PSMeasureAtK._top_ps_np
+        elif isinstance(inv_ps, np.ndarray):
+            _top_ps = PSMeasureAtK._top_ps_np
+        else:
+            raise TypeError("Unsupported data type for inv_ps, should be Numpy vector (1d array), or list, or dict")
+
+        return inv_ps, _top_ps
+
+
+
+# Popular standard measures
+
+class HammingLoss(Measure):
+    def __init__(self):
+        super().__init__()
+
+    def _accumulate(self, t, p):
+        self.sum += len(p) + len(t) - 2 * len(set(t).intersection(p))
+
+
+class PrecisionAtK(MeasureAtK):
+    def __init__(self, k=5):
+        super().__init__(k=k)
+
+    def _accumulate(self, t, p):
+        p_at_i = 0
+        for i in range(self.k):
+            if i < len(p):
+                p_at_i += 1 if p[i] in t else 0
+            self.sum[i] += p_at_i / (i + 1)
+
+
+class RecallAtK(MeasureAtK):
+    def __init__(self, k=5, zero_division=0):
+        super().__init__(k=k)
+        self.zero_division = zero_division
+
+    def _accumulate(self, t, p):
+        if len(t) > 0:
+            r_at_i = 0
+            for i in range(self.k):
+                if i < len(p):
+                    r_at_i += 1 if p[i] in t else 0
+                self.sum[i] += r_at_i / len(t)
+        else:
+            self.sum += self.zero_division
+
+
+class DCGAtK(MeasureAtK):
+    def __init__(self, k=5):
+        super().__init__(k=k)
+
+    def _accumulate(self, t, p):
+        dcg_at_i = 0
+        for i in range(self.k):
+            if i < len(p):
+                dcg_at_i += 1 / log2(i + 2) if p[i] in t else 0
+            self.sum[i] += dcg_at_i
+
+
+class NDCGAtK(MeasureAtK):
+    def __init__(self, k=5, zero_division=0):
+        super().__init__(k=k)
+        self.zero_division = zero_division
+
+    def _accumulate(self, t, p):
+        dcg_at_i = 0
+        norm_at_i = 0
+        norm_len = min(self.k, len(t))
+        if norm_len == 0:
+            self.sum += self.zero_division
+        else:
+            for i in range(self.k):
+                _log_i = 1 / log2(i + 2)
+                if i < norm_len:
+                    norm_at_i += _log_i
+                if i < len(p):
+                    dcg_at_i += 1 * _log_i if p[i] in t else 0
+                self.sum[i] += dcg_at_i / norm_at_i
+
+
+# Propensity scored (weighted) measures (unbiased variants of
+
+class PSPrecisionAtK(PSMeasureAtK):
+    def __init__(self, inv_ps, k=5, normalize=True):
+        super().__init__(inv_ps, k=k, normalize=normalize)
+
+    def _accumulate(self, t, p):
+        psp_at_i = 0
+        best_psp_at_i = 0
+        top_ps = self._top_ps(self.inv_ps, t)
+        for i in range(self.k):
+            if i < len(p):
+                psp_at_i += self.inv_ps[p[i]] if p[i] in t else 0
+            if i < top_ps.shape[0]:
+                best_psp_at_i += top_ps[i]
+            self.sum[i] += psp_at_i / (i + 1)
+            self.best_sum[i] += best_psp_at_i / (i + 1)
+
+
+class PSRecallAtK(PSMeasureAtK):
+    def __init__(self, inv_ps, k=5, normalize=True, zero_division=0):
+        super().__init__(inv_ps, k=k, normalize=normalize)
+        self.zero_division = zero_division
+
+    def _accumulate(self, t, p):
+        if len(t) == 0:
+            self.sum += self.zero_division
+            self.best_sum += self.zero_division
+        else:
+            psr_at_i = 0
+            best_psr_at_i = 0
+            top_ps = self._top_ps(self.inv_ps, t)
+            for i in range(self.k):
+                if i < len(p):
+                    psr_at_i += self.inv_ps[p[i]] if p[i] in t else 0
+                if i < top_ps.shape[0]:
+                    best_psr_at_i += top_ps[i]
+                self.sum[i] += psr_at_i / len(t)
+                self.best_sum[i] += best_psr_at_i / len(t)
+
+
+class PSDCGAtK(PSMeasureAtK):
+    def __init__(self, inv_ps, k=5, normalize=True):
+        super().__init__(inv_ps, k=k, normalize=normalize)
+
+    def _accumulate(self, t, p):
+        psdcg_at_i = 0
+        best_psdcg_at_i = 0
+        top_ps = self._top_ps(self.inv_ps, t)
+        for i in range(k):
+            _log_i = 1 / log2(i + 2)
+            if i < len(p):
+                psdcg_at_i += self.inv_ps[p[i]] * _log_i if p[i] in t else 0
+            if i < top_ps.shape[0]:
+                best_psdcg_at_i += top_ps[i] * _log_i
+            self. sum[i] += psdcg_at_i / (i + 1)
+            self.best_sum[i] += best_psdcg_at_i / (i + 1)
+
+
+class PSNDCGAtK(PSMeasureAtK):
+    def __init__(self, inv_ps, k=5, normalize=True, zero_division=0):
+        super().__init__(inv_ps, k=k, normalize=normalize)
+        self.zero_division = zero_division
+
+    def _accumulate(self, t, p):
+        psdcg_at_i = 0
+        best_psdcg_at_i = 0
+        norm_at_i = 0
+        norm_len = min(self.k, len(t))
+        if norm_len == 0:
+            self.sum += self.zero_division
+            self.best_sum += self.zero_division
+        else:
+            top_ps = self._top_ps(self.inv_ps, t)
+            for i in range(self.k):
+                _log_i = 1 / log2(i + 2)
+                if i < norm_len:
+                    norm_at_i += _log_i
+                if i < len(p):
+                    psdcg_at_i += self.inv_ps[p[i]] * _log_i if p[i] in t else 0
+                if i < top_ps.shape[0]:
+                    best_psdcg_at_i += top_ps[i] * _log_i
+                self.sum[i] += psdcg_at_i / norm_at_i
+                self.best_sum[i] += best_psdcg_at_i / norm_at_i
+
+
+# Other measures
+
+class AbandonmentAtK(MeasureAtK):
+    def __init__(self, k=5):
+        super().__init__(k=k)
+
+    def _accumulate(self, t, p):
+        a_at_i = 0
+        for i in range(self.k):
+            if i < len(p):
+                a_at_i = 1 if p[i] in t else a_at_i
+            self.sum[i] += a_at_i
+
+
+class CoverageAtK(MeasureAtK):
+    def __init__(self, k=5):
+        super().__init__(k=k)
+        self.uniq_t = set()
+        self.uniq_tp_at_i = [set() for _ in range(self.k)]
+
+    def _accumulate(self, t, p):
+        for t_i in t:
+            self.uniq_t.add(t_i)
+        for i, p_i in enumerate(p[:self.k]):
+            if p_i in t:
+                for j in range(i, self.k):
+                    self.uniq_tp_at_i[j].add(p_i)
+
+    def summarize(self):
+        uniq_tp = np.zeros(self.k)
+        for i in range(0, self.k):
+            uniq_tp[i] = len(self.uniq_tp_at_i[i]) / len(self.uniq_t)
+
+        return uniq_tp
+
+    def reset(self):
+        super().reset()
+        self.uniq_t = set()
+        self.uniq_tp_at_i = [set() for _ in range(self.k)]
+
+
+class MicroF1Measure(Measure):
+    def __init__(self):
+        super().__init__()
+
+    def _accumulate(self, t, p):
+        tp = len(set(t).intersection(p))
+        fp = len(p) - tp
+        fn = len(t) - tp
+        self.sum += 2 * tp
+        self.count += 2 * tp + fp + fn
+        self.count -= 1  # Because of count += 1 in accumulate
+
+
+class MacroF1Measure(Measure):
+    def __init__(self, zero_division=0):
+        super().__init__()
+        self.zero_division = zero_division
+        self.labels_tp = {}
+        self.labels_fp = {}
+        self.labels_fn = {}
+
+    def _accumulate(self, t, p):
+        tp = set(t).intersection(p)
+        for tp_i in tp:
+            self.labels_tp[tp_i] = self.labels_tp.get(tp_i, 0) + 1
+        for p_i in p:
+            if p_i not in tp:
+                self.labels_fp[p_i] = self.labels_fp.get(p_i, 0) + 1
+        for t_i in t:
+            if t_i not in tp:
+                self.labels_fn[t_i] = self.labels_fn.get(t_i, 0) + 1
+
+    def summarize(self):
+        labels = set(list(self.labels_tp.keys()) + list(self.labels_fp.keys()) + list(self.labels_fn.keys()))
+        if all(isinstance(l, (int, np.integer)) for l in labels):  # If there is no text labels
+            max_label = max(max(self.labels_tp.keys()), max(self.labels_fp.keys()), max(self.labels_fn.keys()))
+            labels = range(max_label + 1)
+
+        denominator = 0
+        for l in labels:
+            if (2 * self.labels_tp.get(l, 0) + self.labels_fp.get(l, 0) + self.labels_fn.get(l, 0)) > 0:
+                self.sum += 2 * self.labels_tp.get(l, 0) / (2 * self.labels_tp.get(l, 0) + self.labels_fp.get(l, 0) + self.labels_fn.get(l, 0))
+            else:
+                self.sum += self.zero_division
+            denominator += 1
+
+        return self.sum / denominator
+
+    def reset(self):
+        super().reset()
+        self.labels_tp = {}
+        self.labels_fp = {}
+        self.labels_fn = {}
+
+
+class SampleF1Measure(Measure):
+    def __init__(self, zero_division=0):
+        super().__init__()
+        self.zero_division = zero_division
+        
+    def _accumulate(self, t, p):
+        tp = len(set(t).intersection(p))
+        precision = tp / len(p) if len(p) > 0 else 0
+        recall = tp / len(t) if len(t) > 0 else self.zero_division
+        if recall > 0:
+            self.sum += 2 * (precision * recall) / (precision + recall)
+        else:
+            self.sum += self.zero_division
+
+
+# Functions for different measures
 
 
 def precision_at_k(Y_true, Y_pred, k=5):
@@ -49,20 +473,7 @@ def precision_at_k(Y_true, Y_pred, k=5):
     :return: Values of precision at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        p_at_i = 0
-        for i in range(k):
-            if i < len(p):
-                p_at_i += 1 if p[i] in t else 0
-            sum[i] += p_at_i / (i + 1)
-        count += 1
-    return sum / count
+    return PrecisionAtK(k=k).calculate(Y_true, Y_pred)
 
 
 def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
@@ -92,23 +503,25 @@ def recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
     :return: Values of recall at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
+    return RecallAtK(k=k, zero_division=zero_division).calculate(Y_true, Y_pred)
 
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        if len(t) > 0:
-            r_at_i = 0
-            for i in range(k):
-                if i < len(p):
-                    r_at_i += 1 if p[i] in t else 0
-                sum[i] += r_at_i / len(t)
-        else:
-            sum += zero_division
-        count += 1
-    return sum / count
+
+def abandonment_at_k(Y_true, Y_pred, k=5):
+    """
+    Calculate abandonment at 1-k places.
+
+    :param Y_true: Ground truth provided as a matrix with non-zero values for true labels or a list of lists or sets of true labels.
+    :type Y_true: ndarray, csr_matrix, list[list|set[int|str]]
+    :param Y_pred:
+        Predicted labels provided as a matrix with scores or list of rankings as a list of labels or tuples of labels with scores (label, score).
+        In the case of the matrix, the ranking will be calculated by sorting scores in descending order.
+    :type Y_pred: ndarray, csr_matrix, list[list[int|str]], list[list[tuple[int|str, float]]
+    :param k: Calculate at places from 1 to k, defaults to 5
+    :type k: int, optional
+    :return: Values of coverage at 1-k places.
+    :rtype: ndarray
+    """
+    return AbandonmentAtK(k=k).calculate(Y_true, Y_pred)
 
 
 def coverage_at_k(Y_true, Y_pred, k=5):
@@ -126,25 +539,7 @@ def coverage_at_k(Y_true, Y_pred, k=5):
     :return: Values of coverage at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    uniq_t = set()
-    uniq_tp_at_i = [set() for _ in range(k)]
-    for t, p in zip(Y_true, Y_pred):
-        for t_i in t:
-            uniq_t.add(t_i)
-        for i, p_i in enumerate(p[:k]):
-            if p_i in t:
-                uniq_tp_at_i[i].add(p_i)
-    uniq_tp = np.zeros(k)
-    for i in range(0, k):
-        if i > 0:
-            uniq_tp_at_i[i].update(uniq_tp_at_i[i - 1])
-        uniq_tp[i] = len(uniq_tp_at_i[i]) / len(uniq_t)
-
-    return uniq_tp
+    return CoverageAtK(k=k).calculate(Y_true, Y_pred)
 
 
 def dcg_at_k(Y_true, Y_pred, k=5):
@@ -172,20 +567,7 @@ def dcg_at_k(Y_true, Y_pred, k=5):
     :return: Values of DCG at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        dcg_at_i = 0
-        for i in range(k):
-            if i < len(p):
-                dcg_at_i += 1 / log2(i + 2) if p[i] in t else 0
-            sum[i] += dcg_at_i
-        count += 1
-    return sum / count
+    return DCGAtK(k=k).calculate(Y_true, Y_pred)
 
 
 def ndcg_at_k(Y_true, Y_pred, k=5, zero_division=0):
@@ -205,28 +587,7 @@ def ndcg_at_k(Y_true, Y_pred, k=5, zero_division=0):
     :return: Values of nDCG at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-
-    sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        count += 1
-        dcg_at_i = 0
-        norm_at_i = 0
-        norm_len = min(k, len(t))
-        if norm_len == 0:
-            sum += zero_division
-            continue
-        for i in range(k):
-            _log_i = 1 / log2(i + 2)
-            if i < norm_len:
-                norm_at_i += _log_i
-            if i < len(p):
-                dcg_at_i += 1 * _log_i if p[i] in t else 0
-            sum[i] += dcg_at_i / norm_at_i
-    return sum / count
+    return NDCGAtK(k=k, zero_division=zero_division).calculate(Y_true, Y_pred)
 
 
 def hamming_loss(Y_true, Y_pred):
@@ -240,17 +601,7 @@ def hamming_loss(Y_true, Y_pred):
     :return: Value of hamming loss.
     :rtype: float
     """
-
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred)
-
-    sum = 0
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        sum += len(p) + len(t) - 2 * len(set(t).intersection(p))
-        count += 1
-
-    return sum / count
+    return HammingLoss().calculate(Y_true, Y_pred)
 
 
 def count_labels(Y):
@@ -272,7 +623,8 @@ def count_labels(Y):
             counts[y] += 1
 
     else:
-        raise TypeError("Unsupported data type, should be Numpy matrix (2d array), Scipy sparse matrix or list of lists of ints")
+        raise TypeError(
+            "Unsupported data type, should be Numpy matrix (2d array), Scipy sparse matrix or list of lists of ints")
 
     return counts
 
@@ -392,30 +744,10 @@ def psprecision_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True):
     :return: Values of PSP at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
-
-    sum = np.zeros(k)
-    best_sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        psp_at_i = 0
-        best_psp_at_i = 0
-        top_ps = _top_ps(inv_ps, t)
-        for i in range(k):
-            if i < len(p):
-                psp_at_i += inv_ps[p[i]] if p[i] in t else 0
-            if i < top_ps.shape[0]:
-                best_psp_at_i += top_ps[i]
-            sum[i] += psp_at_i / (i + 1)
-            best_sum[i] += best_psp_at_i / (i + 1)
-        count += 1
-    return sum / (best_sum if normalize else count)
+    return PSPrecisionAtK(inv_ps, k=k, normalize=normalize).calculate(Y_true, Y_pred)
 
 
-def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
+def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True, zero_division=0):
     """
     Calculate Propensity Scored Recall (PSR) at 1-k places.
 
@@ -436,31 +768,7 @@ def psrecall_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
     :return: Values of PSR at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
-
-    sum = np.zeros(k)
-    best_sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        if len(t) == 0:
-            sum += zero_division
-            best_sum += zero_division
-            continue
-        psr_at_i = 0
-        best_psr_at_i = 0
-        top_ps = _top_ps(inv_ps, t)
-        for i in range(k):
-            if i < len(p):
-                psr_at_i += inv_ps[p[i]] if p[i] in t else 0
-            if i < top_ps.shape[0]:
-                best_psr_at_i += top_ps[i]
-            sum[i] += psr_at_i / len(t)
-            best_sum[i] += best_psr_at_i / len(t)
-        count += 1
-    return sum / (best_sum if normalize else count)
+    return PSRecallAtK(inv_ps, k=k, normalize=normalize, zero_division=zero_division).calculate(Y_true, Y_pred)
 
 
 def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True):
@@ -482,28 +790,7 @@ def psdcg_at_k(Y_true, Y_pred, inv_ps, k=5, normalize=True):
     :return: Values of PSDCG at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
-
-    sum = np.zeros(k)
-    best_sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        psdcg_at_i = 0
-        best_psdcg_at_i = 0
-        top_ps = _top_ps(inv_ps, t)
-        for i in range(k):
-            _log_i = 1 / log2(i + 2)
-            if i < len(p):
-                psdcg_at_i += inv_ps[p[i]] * _log_i if p[i] in t else 0
-            if i < top_ps.shape[0]:
-                best_psdcg_at_i += top_ps[i] * _log_i
-            sum[i] += psdcg_at_i / (i + 1)
-            best_sum[i] += best_psdcg_at_i / (i + 1)
-        count += 1
-    return sum / (best_sum if normalize else count)
+    return PSDCGAtK(inv_ps, k=k, normalize=normalize).calculate(Y_true, Y_pred)
 
 
 def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
@@ -527,37 +814,7 @@ def psndcg_at_k(Y_true, Y_pred, inv_ps, k=5, zero_division=0, normalize=True):
     :return: Values of PSnDCG at 1-k places.
     :rtype: ndarray
     """
-    _check_k(k)
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred, ranking=True)
-    inv_ps, _top_ps = _get_top_ps_func(inv_ps)
-
-    sum = np.zeros(k)
-    best_sum = np.zeros(k)
-    count = 0
-    for t, p in zip(Y_true, Y_pred):
-        psdcg_at_i = 0
-        best_psdcg_at_i = 0
-        norm_at_i = 0
-        norm_len = min(k, len(t))
-        if norm_len == 0:
-            sum += zero_division
-            best_sum += zero_division
-            continue
-
-        top_ps = _top_ps(inv_ps, t)
-        for i in range(k):
-            _log_i = 1 / log2(i + 2)
-            if i < norm_len:
-                norm_at_i += _log_i
-            if i < len(p):
-                psdcg_at_i += inv_ps[p[i]] * _log_i if p[i] in t else 0
-            if i < top_ps.shape[0]:
-                best_psdcg_at_i += top_ps[i] * _log_i
-            sum[i] += psdcg_at_i / norm_at_i
-            best_sum[i] += best_psdcg_at_i / norm_at_i
-        count += 1
-    return sum / (best_sum if normalize else count)
+    return PSNDCGAtK(inv_ps, k=k, normalize=normalize, zero_division=zero_division).calculate(Y_true, Y_pred)
 
 
 def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):
@@ -575,135 +832,14 @@ def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):
     :return: Value of F1-measure.
     :rtype: float
     """
-
-    Y_true = _get_Y_iterator(Y_true)
-    Y_pred = _get_Y_iterator(Y_pred)
-
-    sum = 0
-    count = 0
     if average == 'micro':
-        for t, p in zip(Y_true, Y_pred):
-            tp = len(set(t).intersection(p))
-            fp = len(p) - tp
-            fn = len(t) - tp
-            sum += 2 * tp
-            count += 2 * tp + fp + fn
+        return MicroF1Measure().calculate(Y_true, Y_pred)
 
     elif average == 'macro':
-        labels_tp = {}
-        labels_fp = {}
-        labels_fn = {}
-        for t, p in zip(Y_true, Y_pred):
-            tp = set(t).intersection(p)
-            for tp_i in tp:
-                labels_tp[tp_i] = labels_tp.get(tp_i, 0) + 1
-            for p_i in p:
-                if p_i not in tp:
-                    labels_fp[p_i] = labels_fp.get(p_i, 0) + 1
-            for t_i in t:
-                if t_i not in tp:
-                    labels_fn[t_i] = labels_fn.get(t_i, 0) + 1
-
-        labels = set(list(labels_tp.keys()) + list(labels_fp.keys()) + list(labels_fn.keys()))
-        if all(isinstance(l, (int, np.integer)) for l in labels): # If there is no text labels
-            max_label = max(max(labels_tp.keys()), max(labels_fp.keys()), max(labels_fn.keys()))
-            labels = range(max_label + 1)
-
-        for l in labels:
-            if (2 * labels_tp.get(l, 0) + labels_fp.get(l, 0) + labels_fn.get(l, 0)) > 0:
-                sum += 2 * labels_tp.get(l, 0) / (2 * labels_tp.get(l, 0) + labels_fp.get(l, 0) + labels_fn.get(l, 0))
-            else:
-                sum += zero_division
-            count += 1
+        return MacroF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
 
     elif average == 'samples':
-        for t, p in zip(Y_true, Y_pred):
-            tp = len(set(t).intersection(p))
-            precision = tp / len(p) if len(p) > 0 else 0
-            recall = tp / len(t) if len(t) > 0 else zero_division
-            if recall > 0:
-                sum += 2 * (precision * recall) / (precision + recall)
-            else:
-                sum += zero_division
-            count += 1
+        return SampleF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
 
     else:
         raise ValueError("average should be in {'micro', 'macro', 'samples'}")
-
-    return sum / count
-
-
-# Helpers
-def _check_k(k):
-    if not isinstance(k, (int, np.integer)):
-        raise TypeError("k should be an integer number larger than 0")
-    if k < 1:
-        raise ValueError("k should be larger than 0")
-
-
-def _Y_np_iterator(Y, ranking=False):
-    rows = Y.shape[0]
-    if ranking:
-        for i in range(0, rows):
-            yield (-Y[i]).argsort()
-    else:
-        for i in range(0, rows):
-            yield Y[i].nonzero()[0]
-
-
-def _Y_csr_matrix_iterator(Y, ranking=False):
-    rows = Y.shape[0]
-    if ranking:
-        for i in range(0, rows):
-            y = Y[i]
-            ranking = (-y.data).argsort()
-            yield y.indices[ranking]
-    else:
-        for i in range(0, rows):
-            yield Y[i].indices
-
-
-def _Y_list_iterator(Y):
-    for y in Y:
-        if all(isinstance(y_i, tuple) for y_i in y):
-            #yield [y_i[0] for y_i in sorted(y, key=lambda y_i: y_i[1], reverse=True)]
-            yield [y_i[0] for y_i in y]
-        else:
-            yield y
-
-
-def _get_Y_iterator(Y, ranking=False):
-    if isinstance(Y, np.ndarray):
-        return _Y_np_iterator(Y, ranking)
-
-    elif isinstance(Y, csr_matrix):
-        return _Y_csr_matrix_iterator(Y, ranking)
-
-    elif all(isinstance(y, (list, tuple)) for y in Y):
-        return _Y_list_iterator(Y)
-
-    else:
-        raise TypeError("Unsupported data type, should be Numpy matrix (2d array), or Scipy CSR matrix, or list of list of ints")
-
-
-def _top_ps_dict(inv_ps, t):
-    return np.array(sorted([inv_ps.get(t_i, 0) for t_i in t], reverse=True))
-
-
-def _top_ps_np(inv_ps, t):
-    t = [t_i for t_i in t if t_i < inv_ps.shape[0]]
-    return -np.sort(-inv_ps[t])
-
-
-def _get_top_ps_func(inv_ps):
-    if isinstance(inv_ps, dict):
-        _top_ps = _top_ps_dict
-    elif isinstance(inv_ps, list):
-        inv_ps = np.array(inv_ps)
-        _top_ps = _top_ps_np
-    elif isinstance(inv_ps, np.ndarray):
-        _top_ps = _top_ps_np
-    else:
-        raise TypeError("Unsupported data type for inv_ps, should be Numpy vector (1d array), or list, or dict")
-
-    return inv_ps, _top_ps

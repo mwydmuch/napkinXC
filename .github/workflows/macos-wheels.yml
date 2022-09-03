@@ -18,7 +18,7 @@ jobs:
         os: [macos-11, macos-12]
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
 
-    runs-on: macos-latest
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v3
@@ -30,8 +30,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Python environment report
-        run: python -c "import sys; print(sys.version)"
+      - name: Environment report
+        run: |
+          system_profiler SPSoftwareDataType | grep "System Version"
+          python -c "import sys; print(sys.version)"
 
       - name: Install dependencies
         run: |

@@ -2,6 +2,8 @@ name: Build manylinux Pyhton wheels
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - '.github/workflows/manylinux-wheels.yml'
       - 'python/**'
@@ -10,11 +12,12 @@ on:
       - 'setup.py'
 
 jobs:
-  deploy:
+  build_wheels:
     strategy:
       matrix:
         python-version: [ 'cp37-cp37m', 'cp38-cp38', 'cp39-cp39', 'cp310-cp310' ]
 
+    name: Build manylinux wheel for Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
 
     steps:

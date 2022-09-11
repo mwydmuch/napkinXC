@@ -2,6 +2,8 @@ name: Build macOS Python wheels
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - '.github/workflows/macos-wheels.yml'
       - 'python/**'
@@ -10,12 +12,14 @@ on:
       - 'setup.py'
 
 jobs:
-  deploy:
+  build_wheels:
     strategy:
       matrix:
+        os: [macos-10.15, macos-11, macos-12]
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
 
-    runs-on: macos-latest
+    name: Build macOS wheel on ${{ matrix.os }} for Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v3
@@ -27,8 +31,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Python environment report
-        run: python -c "import sys; print(sys.version)"
+      - name: Environment report
+        run: |
+          system_profiler SPSoftwareDataType | grep "System Version"
+          python -c "import sys; print(sys.version)"
 
       - name: Install dependencies
         run: |
@@ -55,4 +61,4 @@ jobs:
     #    TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
     #    TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
     #  run: |
-    #    twine upload dist/*-win*.whl
+    #    twine upload dist/*macosx*.whl

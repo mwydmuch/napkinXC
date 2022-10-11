@@ -35,7 +35,7 @@ DATASET_FILE=${DATASET_DIR}/${DATASET_NAME}
 
 # Download dataset
 if [[ ! -e $DATASET_DIR ]]; then
-    python3 ${SCRIPT_DIR}/get_dataset-v1.py $DATASET_NAME
+    python3 ${SCRIPT_DIR}/get_dataset.py $DATASET_NAME bow-v1
 fi
 
 # Find train / test file
@@ -68,8 +68,14 @@ fi
 # Calculate inverse propensity
 INV_PS_FILE="${DATASET_FILE}.inv_ps"
 if [[ ! -e $INV_PS_FILE ]]; then
-    python3 ${SCRIPT_DIR}/calculate_inv_ps.py $TRAIN_FILE $INV_PS_FILE
+    python3 ${SCRIPT_DIR}/calculate_Jain_et_al_inv_ps.py $TRAIN_FILE $INV_PS_FILE
 fi
+
+# Calculate inverse priors
+# INV_PRIORS_FILE="${DATASET_FILE}.inv_priors"
+# if [[ ! -e $INV_PRIORS_FILE ]]; then
+#     python3 ${SCRIPT_DIR}/calculate_inv_priors.py $TRAIN_FILE $INV_PRIORS_FILE
+# fi
 
 # Train model
 TRAIN_RESULT_FILE=${MODEL}/train_results

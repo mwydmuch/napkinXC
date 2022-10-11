@@ -23,6 +23,7 @@ from math import log2, log
 import numpy as np
 from scipy.sparse import csr_matrix
 
+
 # Classes for different measures
 
 class Measure(ABC):
@@ -610,7 +611,7 @@ def count_labels(Y):
 
     :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
     :type Y: ndarray, csr_matrix, list[list[int]]
-    :return: Array with the count of labels occurrences
+    :return: Array with the count of labels occurrences.
     :rtype: ndarray
     """
     if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
@@ -627,6 +628,35 @@ def count_labels(Y):
             "Unsupported data type, should be Numpy matrix (2d array), Scipy sparse matrix or list of lists of ints")
 
     return counts
+
+
+def labels_priors(Y):
+    """
+    Calculate prior probablity of each label.
+
+    :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
+    :type Y: ndarray, csr_matrix, list[list[int]]
+    :return: Array with the prior probabilities of labels.
+    :rtype: ndarray
+    """
+    counts = count_labels(Y)
+    if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
+        return counts / Y.shape[0]
+
+    else:
+        return counts / len(Y)
+
+
+def inverse_labels_priors(Y):
+    """
+    Calculate inverse of prior probablity of each label.
+
+    :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
+    :type Y: ndarray, csr_matrix, list[list[int]]
+    :return: Array with the inverse prior probabilities of labels.
+    :rtype: ndarray
+    """
+    return 1.0 / labels_priors(Y)
 
 
 def Jain_et_al_propensity(Y, A=0.55, B=1.5):

@@ -24,14 +24,22 @@ import numpy as np
 from scipy.sparse import csr_matrix
 
 
+# TODOs:
+# - Add docstrings to classes
+# - Add macro measures at k?
+# - Add measure dict class
+# - Add F-beta variant of measure?
+# - Add normalization to hamming loss?
+
+
 # Classes for different measures
 
 class Measure(ABC):
     """
     Abstract class for measure.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.needs_ranking = False
         self.sum = 0
         self.count = 0
@@ -49,7 +57,7 @@ class Measure(ABC):
 
     @abstractmethod
     def _accumulate(self, t, p):
-        raise NotImplemented
+        raise NotImplementedError
 
     def summarize(self):
         return self.sum / self.count
@@ -113,8 +121,8 @@ class MeasureAtK(Measure):
     """
     Abstract class for measure calculated at 1-k places.
     """
-    def __init__(self, k=5):
-        super().__init__()
+    def __init__(self, k=5, **kwargs):
+        super().__init__(**kwargs)
         MeasureAtK._check_k(k)
         self.k = k
         self.sum = np.zeros(self.k)
@@ -144,8 +152,8 @@ class PSMeasureAtK(MeasureAtK):
     """
     Abstract class for Propensity Scored measure calculated at 1-k places.
     """
-    def __init__(self, inv_ps, k=5, normalize=True):
-        super().__init__(k=k)
+    def __init__(self, inv_ps, k=5, normalize=True, **kwargs):
+        super().__init__(k=k, **kwargs)
         self.inv_ps, self._top_ps = PSMeasureAtK._get_top_ps_func(inv_ps)
         self.best_sum = np.zeros(self.k)
         self.normalize = normalize
@@ -249,7 +257,7 @@ class NDCGAtK(MeasureAtK):
                 self.sum[i] += dcg_at_i / norm_at_i
 
 
-# Propensity scored (weighted) measures (unbiased variants of
+# Propensity scored (weighted) measures (unbiased variants of standard measures)
 
 class PSPrecisionAtK(PSMeasureAtK):
     def __init__(self, inv_ps, k=5, normalize=True):
@@ -389,49 +397,7 @@ class MicroF1Measure(Measure):
         self.count -= 1  # Because of count += 1 in accumulate
 
 
-class MacroF1Measure(Measure):
-    def __init__(self, zero_division=0):
-        super().__init__()
-        self.zero_division = zero_division
-        self.labels_tp = {}
-        self.labels_fp = {}
-        self.labels_fn = {}
-
-    def _accumulate(self, t, p):
-        tp = set(t).intersection(p)
-        for tp_i in tp:
-            self.labels_tp[tp_i] = self.labels_tp.get(tp_i, 0) + 1
-        for p_i in p:
-            if p_i not in tp:
-                self.labels_fp[p_i] = self.labels_fp.get(p_i, 0) + 1
-        for t_i in t:
-            if t_i not in tp:
-                self.labels_fn[t_i] = self.labels_fn.get(t_i, 0) + 1
-
-    def summarize(self):
-        labels = set(list(self.labels_tp.keys()) + list(self.labels_fp.keys()) + list(self.labels_fn.keys()))
-        if all(isinstance(l, (int, np.integer)) for l in labels):  # If there is no text labels
-            max_label = max(max(self.labels_tp.keys()), max(self.labels_fp.keys()), max(self.labels_fn.keys()))
-            labels = range(max_label + 1)
-
-        denominator = 0
-        for l in labels:
-            if (2 * self.labels_tp.get(l, 0) + self.labels_fp.get(l, 0) + self.labels_fn.get(l, 0)) > 0:
-                self.sum += 2 * self.labels_tp.get(l, 0) / (2 * self.labels_tp.get(l, 0) + self.labels_fp.get(l, 0) + self.labels_fn.get(l, 0))
-            else:
-                self.sum += self.zero_division
-            denominator += 1
-
-        return self.sum / denominator
-
-    def reset(self):
-        super().reset()
-        self.labels_tp = {}
-        self.labels_fp = {}
-        self.labels_fn = {}
-
-
-class SampleF1Measure(Measure):
+class SamplesF1Measure(Measure):
     def __init__(self, zero_division=0):
         super().__init__()
         self.zero_division = zero_division
@@ -444,6 +410,145 @@ class SampleF1Measure(Measure):
             self.sum += 2 * (precision * recall) / (precision + recall)
         else:
             self.sum += self.zero_division
+
+
+# Macro measures
+
+
+class MacroMeasure(Measure):
+    """
+    Abstract class for macro measures.
+    """
+    def __init__(self, zero_division=0, **kwargs):
+        super().__init__(**kwargs)
+        self.zero_division = zero_division
+        self.labels_tp = {}
+        self.labels_fp = {}
+        self.labels_fn = {}
+
+    def reset(self):
+        super().reset()
+        self.labels_tp = {}
+        self.labels_fp = {}
+        self.labels_fn = {}
+
+    def _accumulate_conf_matrix(self, t, p, tp, labels_tp, labels_fp, labels_fn):
+        for tp_i in tp:
+            labels_tp[tp_i] = labels_tp.get(tp_i, 0) + 1
+        for p_i in p:
+            if p_i not in tp:
+                labels_fp[p_i] = labels_fp.get(p_i, 0) + 1
+        for t_i in t:
+            if t_i not in tp:
+                labels_fn[t_i] = labels_fn.get(t_i, 0) + 1
+
+    def _accumulate(self, t, p):
+        tp = set(t).intersection(p)
+        self._accumulate_conf_matrix(t, p, tp, self.labels_tp, self.labels_fp, self.labels_fn)
+
+    @abstractmethod
+    def _summarize_conf_matrix(self, l_tp, l_fp, l_fn):
+        raise NotImplementedError
+
+    def _summarize(self, labels_tp, labels_fp, labels_fn):
+        labels = set(list(labels_tp.keys()) + list(labels_fp.keys()) + list(labels_fn.keys()))
+        if all(isinstance(l, (int, np.integer)) for l in labels):  # If there is no text labels
+            max_label = max(max(labels_tp.keys()), max(labels_fp.keys()), max(labels_fn.keys()))
+            labels = range(max_label + 1)
+
+        sum = 0
+        denominator = 0
+        for l in labels:
+            l_tp = labels_tp.get(l, 0)
+            l_fp = labels_fp.get(l, 0)
+            l_fn = labels_fn.get(l, 0)
+
+            if self._check_div_zero(l_tp, l_fp, l_fn):
+                sum += self._summarize_conf_matrix(l_tp, l_fp, l_fn)
+            else:
+                sum += self.zero_division
+            denominator += 1
+
+        return sum / denominator
+
+    def summarize(self):
+        return self._summarize(self.labels_tp, self.labels_fp, self.labels_fn)
+
+
+class MacroF1Measure(MacroMeasure):
+    def __init__(self, zero_division=0):
+        super().__init__(zero_division=zero_division)
+
+    def _check_div_zero(self, l_tp, l_fp, l_fn):
+        return (l_tp + l_fp + l_fn) > 0
+
+    def _summarize_conf_matrix(self, l_tp, l_fp, l_fn):
+        return 2 * l_tp / (2 * l_tp + l_fp + l_fn)
+
+
+class MacroMeasureAtK(MeasureAtK, MacroMeasure):
+    """
+    Abstract class for macro measures calculated at k-place.
+    """
+    def __init__(self, k=5, zero_division=0, **kwargs):
+        super().__init__(k=5, zero_division=zero_division, **kwargs)
+        self.labels_tp = [{} for _ in range(self.k)]
+        self.labels_fp = [{} for _ in range(self.k)]
+        self.labels_fn = [{} for _ in range(self.k)]
+
+    def reset(self):
+        super().reset()
+        self.labels_tp = [{} for _ in range(self.k)]
+        self.labels_fp = [{} for _ in range(self.k)]
+        self.labels_fn = [{} for _ in range(self.k)]
+
+    def _accumulate(self, t, p):
+        tp_at_k = set()
+        for i in range(self.k):
+            if i < len(p) and p[i] in t:
+                tp_at_k.add(p[i])
+            self._accumulate_conf_matrix(t, p[:i+1], tp_at_k, self.labels_tp[i], self.labels_fp[i], self.labels_fn[i])
+
+    def summarize(self):
+        results = np.zeros(self.k)
+        for i in range(self.k):
+            results[i] = self._summarize(self.labels_tp[i], self.labels_fp[i], self.labels_fn[i])
+        return results
+
+
+class MacroPrecisionAtK(MacroMeasureAtK):
+    def __init__(self, k=5, zero_division=0):
+        super().__init__(k=k, zero_division=zero_division)
+
+    def _check_div_zero(self, l_tp, l_fp, l_fn):
+        return (l_tp + l_fp) > 0
+
+    def _summarize_conf_matrix(self, l_tp, l_fp, l_fn):
+        return l_tp / (l_tp + l_fp)
+
+
+class MacroRecallAtK(MacroMeasureAtK):
+    def __init__(self, k=5, zero_division=0):
+        super().__init__(k=k, zero_division=zero_division)
+
+    def _check_div_zero(self, l_tp, l_fp, l_fn):
+        return (l_tp + l_fn) > 0
+
+    def _summarize_conf_matrix(self, l_tp, l_fp, l_fn):
+        return l_tp / (l_tp + l_fn)
+
+
+class MacroF1MeasureAtK(MacroMeasureAtK):
+    def __init__(self, k=5, zero_division=0):
+        super().__init__(k=k, zero_division=zero_division)
+
+    def _check_div_zero(self, l_tp, l_fp, l_fn):
+        return (l_tp + l_fp + l_fn) > 0
+
+    def _summarize_conf_matrix(self, l_tp, l_fp, l_fn):
+        return 2 * l_tp / (2 * l_tp + l_fp + l_fn)
+
+
 
 
 # Functions for different measures
@@ -869,7 +974,32 @@ def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):
         return MacroF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
 
     elif average == 'samples':
-        return SampleF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
+        return SamplesF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
 
     else:
         raise ValueError("average should be in {'micro', 'macro', 'samples'}")
+
+
+def micro_f1_measure(Y_true, Y_pred):
+    return MicroF1Measure().calculate(Y_true, Y_pred)
+
+
+def macro_f1_measure(Y_true, Y_pred, zero_division=0):
+    return MacroF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
+
+
+def samples_f1_measure(Y_true, Y_pred, zero_division=0):
+    return SamplesF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
+
+
+def macro_precision_at_k(Y_true, Y_pred, k=5, zero_division=0):
+    return MacroPrecisionAtK(k=k, zero_division=zero_division).calculate(Y_true, Y_pred)
+
+
+def macro_recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
+    return MacroRecallAtK(k=k, zero_division=zero_division).calculate(Y_true, Y_pred)
+
+
+def macro_f1_measure_at_k(Y_true, Y_pred, k=5, zero_division=0):
+    return MacroF1MeasureAtK(k=k, zero_division=zero_division).calculate(Y_true, Y_pred)
+

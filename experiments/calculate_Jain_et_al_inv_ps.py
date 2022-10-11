@@ -3,25 +3,17 @@
 import sys
 import os
 
-napkinxc_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../python")
-sys.path.append(napkinxc_path)
+file_dir = os.path.dirname(os.path.abspath(__file__))
+napkinxc_path = os.path.join(file_dir, "../python")
+sys.path.extend([file_dir, napkinxc_path])
 
+from scripts_utils import *
 from napkinxc.measures import *
 
 
-def load_true_file(filepath):
-    with open(filepath) as file:
-        Y = []
-        for i, line in enumerate(file):
-            if i == 0 and len(line.split(' ')) == 3:
-                continue
-            Y.append([int(y) for y in line.strip().split(' ', 1)[0].split(',') if ':' not in y])
-        return Y
-
-
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: calculate_Jain_et_al_inb_ps.py [input file]")
+    if len(sys.argv) < 3:
+        print("Usage: calculate_Jain_et_al_inb_ps.py [input file] [output file]")
         exit(1)
 
     true_file = sys.argv[1]

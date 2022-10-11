@@ -8,7 +8,8 @@ on:
       - 'setup.py'
 
 jobs:
-  deploy:
+  lint:
+    name: Lint Python code
     runs-on: ubuntu-latest
 
     steps:

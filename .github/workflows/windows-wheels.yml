@@ -2,6 +2,8 @@ name: Build Windows Python wheels
 
 on:
   push:
+    branches:
+      - 'master'
     paths:
       - '.github/workflows/windows-wheels.yml'
       - 'python/**'
@@ -10,11 +12,12 @@ on:
       - 'setup.py'
 
 jobs:
-  deploy:
+  build_wheels:
     strategy:
       matrix:
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
 
+    name: Build Windows wheel on ${{ matrix.os }} for Python ${{ matrix.python-version }}
     runs-on: windows-latest
 
     steps:

@@ -79,28 +79,41 @@ binary_set = [(T1, L1l), (T1, L1lf), (T2, L2b), (T3, L3b), (T5, L5l)]
 ranking_set = binary_set + [(T1, L1l2), (T2, L2f), (T3, L3f)]
 
 
+def _test_binary_set(func, true_result):
+    for (T, L) in ranking_set:
+        func_result = func(T, L, 3)
+        assert np.allclose(true_result, func_result), "{}({}, {}, k=3) = {} != {}".format(func.__name__, T, L, func_result, true_result)
+
+
 def test_precision_at_k():
     true_p_at_3 = np.array([1, 3/4, 2/3])
-    for (T, L) in ranking_set:
-        assert np.array_equal(true_p_at_3, precision_at_k(T, L, 3)), "precision_at_k({}, {}, k=3) != {}".format(T, L, true_p_at_3)
+    _test_binary_set(precision_at_k, true_p_at_3)
 
 
 def test_recall_at_k():
     true_r_at_3 = np.array([1/3, 1/2, 2/3])
-    for (T, L) in ranking_set:
-        assert np.array_equal(true_r_at_3, recall_at_k(T, L, 3)), "recall_at_k({}, {}, k=3) != {}".format(T, L, true_r_at_3)
+    _test_binary_set(recall_at_k, true_r_at_3)
 
 
 def test_ndcg_at_k():
     true_ndcg_at_3 = np.array([1, 0.8065736, 0.73463936])
-    for (T, L) in ranking_set:
-        assert np.allclose(true_ndcg_at_3, ndcg_at_k(T, L, 3)), "ndcg_at_k({}, {}, k=3) != {}".format(T, L, true_ndcg_at_3)
+    _test_binary_set(ndcg_at_k, true_ndcg_at_3)
 
 
 def test_hamming_loss():
     true_hl = 2
     for (T, L) in binary_set:
         assert true_hl == hamming_loss(T, L), "hamming_loss({}, {}) != {}".format(T, L, true_hl)
+
+
+def test_coverage_at_k():
+    true_c_at_3 = np.array([2/5, 3/5, 4/5])
+    _test_binary_set(coverage_at_k, true_c_at_3)
+
+
+def test_abandonment_at_k():
+    true_a_at_3 = np.array([1, 1, 1])
+    _test_binary_set(abandonment_at_k, true_a_at_3)
 
 
 def test_f1_measure():

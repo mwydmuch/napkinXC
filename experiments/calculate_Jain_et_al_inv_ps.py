@@ -8,7 +8,7 @@ napkinxc_path = os.path.join(file_dir, "../python")
 sys.path.extend([file_dir, napkinxc_path])
 
 from scripts_utils import *
-from napkinxc.measures import *
+from napkinxc.measures import Jain_et_al_inverse_propensity
 
 
 if __name__ == "__main__":

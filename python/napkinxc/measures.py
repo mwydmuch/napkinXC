@@ -306,7 +306,7 @@ class PSDCGAtK(PSMeasureAtK):
         psdcg_at_i = 0
         best_psdcg_at_i = 0
         top_ps = self._top_ps(self.inv_ps, t)
-        for i in range(k):
+        for i in range(self.k):
             _log_i = 1 / log2(i + 2)
             if i < len(p):
                 psdcg_at_i += self.inv_ps[p[i]] * _log_i if p[i] in t else 0

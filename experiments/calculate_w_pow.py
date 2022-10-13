@@ -2,6 +2,7 @@
 
 import sys
 import os
+import numpy as np
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 napkinxc_path = os.path.join(file_dir, "../python")
@@ -20,7 +21,9 @@ if __name__ == "__main__":
     true = load_true_file(sys.argv[1])
 
     priors = labels_priors(true)
-    
+    to_replace = (priors == 0)
+    priors[to_replace] = np.min(priors[~to_replace])
+    priors = priors ** (-0.5)
     with open(sys.argv[2], "w") as out:
         for p in priors:
             out.write("{}\n".format(p))

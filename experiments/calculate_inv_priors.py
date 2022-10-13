@@ -2,6 +2,7 @@
 
 import sys
 import os
+import numpy as np
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 napkinxc_path = os.path.join(file_dir, "../python")
@@ -20,6 +21,8 @@ if __name__ == "__main__":
     true = load_true_file(sys.argv[1])
 
     inv_priors = inverse_labels_priors(true)
+    to_replace = np.isinf(inv_priors)
+    inv_priors[to_replace] = np.max(inv_priors[~to_replace])
     with open(sys.argv[2], "w") as out:
         for ip in inv_priors:
             out.write("{}\n".format(ip))

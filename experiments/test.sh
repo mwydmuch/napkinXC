@@ -72,10 +72,21 @@ if [[ ! -e $INV_PS_FILE ]]; then
 fi
 
 # Calculate inverse priors
-# INV_PRIORS_FILE="${DATASET_FILE}.inv_priors"
-# if [[ ! -e $INV_PRIORS_FILE ]]; then
-#     python3 ${SCRIPT_DIR}/calculate_inv_priors.py $TRAIN_FILE $INV_PRIORS_FILE
-# fi
+INV_PRIORS_FILE="${DATASET_FILE}.inv_priors"
+if [[ ! -e $INV_PRIORS_FILE ]]; then
+    python3 ${SCRIPT_DIR}/calculate_inv_priors.py $TRAIN_FILE $INV_PRIORS_FILE
+fi
+
+# Calculate other weights
+W_POW_FILE="${DATASET_FILE}.w_pow"
+if [[ ! -e $W_POW_FILE ]]; then
+    python3 ${SCRIPT_DIR}/calculate_w_pow.py $TRAIN_FILE $W_POW_FILE
+fi
+
+W_LOG_FILE="${DATASET_FILE}.w_log"
+if [[ ! -e $W_LOG_FILE ]]; then
+    python3 ${SCRIPT_DIR}/calculate_w_log.py $TRAIN_FILE $W_LOG_FILE
+fi
 
 # Train model
 TRAIN_RESULT_FILE=${MODEL}/train_results
@@ -84,9 +95,9 @@ if [[ ! -e $MODEL ]] || [[ -e $TRAIN_LOCK_FILE ]]; then
     mkdir -p $MODEL
     touch $TRAIN_LOCK_FILE
 
-    if [[ $TRAIN_ARGS == *"--labelsWeights"* ]]; then
-        TRAIN_ARGS="${TRAIN_ARGS} --labelsWeights ${INV_PS_FILE}"
-    fi
+    # if [[ $TRAIN_ARGS == *"--labelsWeights"* ]]; then
+    #     TRAIN_ARGS="${TRAIN_ARGS} --labelsWeights ${INV_PRIORS_FILE}"
+    # fi
 
     ${ROOT_DIR}/nxc train -i $TRAIN_FILE -o $MODEL $TRAIN_ARGS | tee $TRAIN_RESULT_FILE
     echo "Train date: $(date)" | tee -a $TRAIN_RESULT_FILE
@@ -108,8 +119,14 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         cat $TRAIN_RESULT_FILE > $TEST_RESULT_FILE
     fi
 
-    if [[ $TEST_ARGS == *"--labelsWeights"* ]]; then
+    if [[ $TEST_ARGS == *"--labelsWeights invPs"* ]]; then
         TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PS_FILE}"
+    elif [[ $TEST_ARGS == *"--labelsWeights invP"* ]]; then
+        TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PRIORS_FILE}"
+    elif [[ $TEST_ARGS == *"--labelsWeights wPow"* ]]; then
+        TEST_ARGS="${TEST_ARGS} --labelsWeights ${W_POW_FILE}"
+    elif [[ $TEST_ARGS == *"--labelsWeights wLog"* ]]; then
+        TEST_ARGS="${TEST_ARGS} --labelsWeights ${W_LOG_FILE}"
     fi
 
     PRED_CONFIG=$(echo "${TEST_ARGS}" | tr " /" "__")

@@ -795,7 +795,7 @@ def _get_data_meta(dataset, subset='train', format='bow'):
         raise ValueError("Format {} is not available for dataset {}".format(format, dataset))
 
     if subset is not None and subset not in DATASETS[_dataset]['subsets']:
-        raise ValueError("Subset {} is not available for dataset {}".format(format, dataset))
+        raise ValueError("Subset {} is not available for dataset {}".format(subset, dataset))
 
     return DATASETS[_dataset][_format]
 

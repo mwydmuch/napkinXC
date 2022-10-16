@@ -52,7 +52,7 @@ class Model():
         :param path: Path to the file.
         :type path: str
         """
-        self._model.fitOnFile(path)
+        self._model.fit_on_file(path)
 
     def load(self):
         """

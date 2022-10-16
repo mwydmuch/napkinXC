@@ -4,8 +4,9 @@ import sys
 import os
 import shutil
 
-napkinxc_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../python")
-sys.path.append(napkinxc_path)
+file_dir = os.path.dirname(os.path.abspath(__file__))
+napkinxc_path = os.path.join(file_dir, "../python")
+sys.path.extend([file_dir, napkinxc_path])
 
 from napkinxc.datasets import download_dataset, _get_data_meta
 
@@ -24,14 +25,14 @@ old_aliases = {
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: download_dataset.py [dataset name] [format (optional)] [root dir (optional)]")
+        print("Usage: download_dataset.py [dataset name] [format (optional, defaults to \"bow\")] [root dir (optional, defaults to \"data\")]")
         exit(1)
 
     dataset = old_aliases.get(sys.argv[1], sys.argv[1])
 
     format = "bow"
     if len(sys.argv) >= 3:
-        root = sys.argv[2]
+        format = sys.argv[2]
 
     root = "data"
     if len(sys.argv) >= 4:

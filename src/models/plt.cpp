@@ -242,27 +242,52 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
         return true;
     };
 
-    if(args.threshold > 0)
-        ifAddToQueue = [&] (TreeNode* node, Real prob) {
-            return (prob >= threshold);
-        };
-    else if(thresholds.size())
-        ifAddToQueue = [&] (TreeNode* node, Real prob) {
-            return (prob >= nodesThr[node->index].th);
-        };
+    // if(args.threshold > 0)
+    //     ifAddToQueue = [&] (TreeNode* node, Real prob) {
+    //         return (prob >= threshold);
+    //     };
+    // else if(thresholds.size())
+    //     ifAddToQueue = [&] (TreeNode* node, Real prob) {
+    //         return (prob >= nodesThr[node->index].th);
+    //     };
 
     std::function<Real(TreeNode*, Real)> calculateValue = [&] (TreeNode* node, Real prob) {
         return prob;
     };
 
-    if (!labelsWeights.empty())
-        calculateValue = [&] (TreeNode* node, Real prob) {
-            return prob * nodesWeights[node->index].weight;
-        };
+    // if (!labelsWeights.empty())
+    //     calculateValue = [&] (TreeNode* node, Real prob) {
+    //         return prob * nodesWeights[node->index].weight;
+    //     };
 
-    if (args.covWeights) {
+    // if (args.covWeights) {
+    //     calculateValue = [&](TreeNode* node, Real prob) {
+    //         return (nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight) + (args.precWeight * prob);
+    //     };
+    // }
+
+    if(!a.empty() && !b.empty()){
         calculateValue = [&](TreeNode* node, Real prob) {
-            return (nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight) + (args.precWeight * prob);
+
+            Real score = -9999999;
+            int bestL = -1;
+            for(auto& l : nodesLabels[node->index]){
+                //Real tmpScore = (b[l] * prob - a[l]) / (b[l] * (b[l] + 1.0/n));
+                Real tmpScore = (b[l] * prob - a[l]) / (b[l] * b[l]);
+                if(tmpScore >= score){
+                    bestL = l;
+                    score = tmpScore;
+                }
+            }
+
+            if(bestL == -1) std::cerr << "Somethign is wrong bestL == -1!\n";
+
+            // std::cout << node->index << " " << nodesLabels[node->index]
+            //  << prob << " " << bestL << " " << b[bestL] << " " << a[bestL] << " " << score << "\n";
+            // int x;
+            // std::cin >> x;
+
+            return score;
         };
     }
 
@@ -309,7 +334,7 @@ Prediction PLT::predictNextLabel(
                 addToQueue(ifAddToQueue, calculateValue, nQueue, child, nVal.prob * predictForNode(child, features));
             nodeEvaluationCount += nVal.node->children.size();
         }
-        if (nVal.node->label >= 0) return {nVal.node->label, nVal.value};
+        if (nVal.node->label >= 0) return {nVal.node->label, nVal.prob};
     }
 
     return {-1, 0};
@@ -427,6 +452,8 @@ void PLT::load(Args& args, std::string infile) {
     m = tree->getNumberOfLeaves();
 
     loaded = true;
+    
+    calculateNodesLabels();
 }
 
 void PLT::printInfo() {

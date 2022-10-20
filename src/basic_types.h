@@ -34,7 +34,7 @@
 #include "save_load.h"
 
 // Basic types
-typedef float Real;
+typedef double Real;
 #define strtor std::strtof
 
 template<typename T>
@@ -43,7 +43,7 @@ struct IVPair{
     T value;
 
     IVPair(): index(0), value(0) {}
-    IVPair(int index, float value): index(index), value(value) {}
+    IVPair(int index, Real value): index(index), value(value) {}
     
     bool operator<(const IVPair<T>& r) const { return value < r.value; };
 

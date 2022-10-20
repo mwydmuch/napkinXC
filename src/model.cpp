@@ -247,6 +247,112 @@ std::vector<Real> Model::ofo(SRMatrix& features, SRMatrix& labels, Args& args) {
     return thresholds;
 }
 
+
+void outputPrediction2(std::vector<std::vector<Prediction>>& predictions, std::ofstream& output){
+    for (const auto &p : predictions) {
+        for (const auto &l : p) output << l.label << ":" << l.value << " ";
+        output << "\n";
+    }
+}
+
+
+std::vector<std::vector<Prediction>> Model::bc(SRMatrix& features, SRMatrix& labels, Args& args) {
+
+    thresholds.clear();
+    labelsWeights.clear();
+
+    Log(CERR) << "Starting initial prediction ...\n";
+    
+    // Generate random prediction
+    n = labels.rows();
+    std::vector<std::vector<Prediction>> predictions(n);
+    std::default_random_engine rng; 
+    std::uniform_int_distribution<int> dist(0, m);
+    for(int i = 0; i < n; ++i){
+        printProgress(i, n);
+        std::unordered_set<int> repCheck;
+        for(int j = 0; j < args.topK; ++j){
+            int l = dist(rng);
+            while(repCheck.count(l)) l = dist(rng);
+            predictions[i].push_back({l, this->predictForLabel(l, features[i], args)});
+            repCheck.insert(l);
+        }
+    }
+
+    // Generate by predicting labels
+    // args.sampleTopK = 0;
+    // std::vector<std::vector<Prediction>> predictions = this->predictBatch(features, args);
+    // n = predictions.size();
+    // args.sampleTopK = 0;
+
+    std::ofstream out0(args.prediction + "_0");
+    outputPrediction2(predictions, out0);
+    out0.close();
+
+    // predictions = this->predictBatch(features, args);
+    // std::ofstream out2(args.prediction + "_2");
+    // outputPrediction2(predictions, out2);
+
+    // for(int j = 0; j < n; ++j){
+    //     predictions[j].clear();
+    //     this->predict(predictions[j], features[j], args);
+    // }
+
+    // std::ofstream out3(args.prediction + "_3");
+    // outputPrediction2(predictions, out3);
+
+
+    Log(CERR) << "Starting block cordinated algorithm ...\n";
+    a = std::vector<double>(m, 0);
+    b = std::vector<double>(m, 0);
+
+
+    std::random_device rd;
+    std::mt19937 g(rd());
+    
+    std::vector<int> o(n, 0);
+    for(int i = 0; i < n; ++i) o[i] = i;
+
+    for(int i = 0; i < args.bcIters; ++i){
+        Log(CERR) << "  Iter " << i + 1 << "/" << args.bcIters << " ...\n";
+        
+        Real epsilon = 0.001;
+        std::fill(a.begin(), a.end(), 0);
+        std::fill(b.begin(), b.end(), epsilon);
+        for(int j = 0; j < n; ++j){
+            for(auto& p : predictions[j]){
+                a[p.label] += p.value;
+                b[p.label] += 1;
+            }
+        }
+
+        std::shuffle(o.begin(), o.end(), g);
+
+        for(int tj = 0; tj < n; ++tj){
+            int j = o[tj];
+            printProgress(tj, n);
+            for(auto& p : predictions[j]){
+                a[p.label] -= p.value;
+                b[p.label] -= 1;
+            }
+
+            predictions[j].clear();
+            this->predict(predictions[j], features[j], args);
+
+            for(auto& p : predictions[j]){
+                a[p.label] += p.value;
+                b[p.label] += 1;
+            }
+        }
+
+        std::ofstream out(args.prediction + "_" + std::to_string(i + 1));
+        outputPrediction2(predictions, out);
+    }
+
+    return predictions;
+}
+
+
 Base* Model::trainBase(ProblemData& problemsData, Args& args) {
     Base* base = new Base();
     base->train(problemsData, args);

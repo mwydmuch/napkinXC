@@ -24,7 +24,7 @@ if __name__ == "__main__":
         inv_ps = load_weights_file(sys.argv[3])
 
     precision = 6
-    max_k = 5
+    max_k = 3
 
     measures = {
         #"HL": {"func": hamming_loss, "inv_ps": False},

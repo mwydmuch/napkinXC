@@ -138,6 +138,8 @@ public:
     std::string batchSizes;
     int batches;
 
+    int bcIters;
+
 private:
     std::default_random_engine rngSeeder;
 

@@ -120,7 +120,7 @@ Args::Args() {
     beamSearchWidth = 10;
     beamSearchUnpack = true;
     covWeights = false;
-    sampleTopK = 5;
+    sampleTopK = 0;
     precWeight = 0;
 
     // Measures for test command
@@ -139,6 +139,8 @@ Args::Args() {
     // Args for testPredictionTime command
     batchSizes = "100,1000,10000";
     batches = 10;
+
+    bcIters = 1;
 }
 
 // Parse args
@@ -182,6 +184,9 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 else if (args.at(ai + 1) == "sparse")
                     loadAs = sparse;
             }
+
+            else if (args[ai] == "--bcIters")
+                bcIters = std::stoi(args.at(ai + 1));
 
             // Input/output options
             else if (args[ai] == "-i" || args[ai] == "--input")

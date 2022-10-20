@@ -491,7 +491,7 @@ class MacroMeasureAtK(MeasureAtK, MacroMeasure):
     Abstract class for macro measures calculated at k-place.
     """
     def __init__(self, k=5, zero_division=0, **kwargs):
-        super().__init__(k=5, zero_division=zero_division, **kwargs)
+        super().__init__(k=k, zero_division=zero_division, **kwargs)
         self.labels_tp = [{} for _ in range(self.k)]
         self.labels_fp = [{} for _ in range(self.k)]
         self.labels_fn = [{} for _ in range(self.k)]

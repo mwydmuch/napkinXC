@@ -241,10 +241,50 @@ void ofo(Args& args) {
             .count()) /
                     1000;
     auto cpuTime = resAfterFo.cpuTime - resAfterData.cpuTime;
-    Log(COUT) << "Resources during F-measure optimization:"
+    Log(COUT) << "Resources during online F-measure (threshold) optimization:"
               << "\n  Optimization real time (s): " << realTime
               << "\n  Optimization CPU time (s): " << cpuTime << "\n";
 }
+
+
+void bc(Args& args) {
+    // Load model args
+    args.loadFromFile(joinPath(args.output, "args.bin"));
+    args.printArgs();
+
+    // Load model
+    std::shared_ptr<Model> model = Model::factory(args);
+    model->load(args, args.output);
+
+    SRMatrix labels;
+    SRMatrix features;
+    readData(labels, features, args);
+
+    auto resAfterData = getResources();
+
+    std::vector<std::vector<Prediction>> predictions = model->bc(features, labels, args);
+    auto resAfterFo = getResources();
+
+    // Output predictions
+    if(!args.prediction.empty()){
+        std::ofstream out(args.prediction);
+        outputPrediction(predictions, out);
+        out.close();
+    }
+
+    // Print resources
+    auto realTime = static_cast<Real>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            resAfterFo.timePoint - resAfterData.timePoint)
+            .count()) /
+                    1000;
+    auto cpuTime = resAfterFo.cpuTime - resAfterData.cpuTime;
+    Log(COUT) << "Resources during Block Cordinate prediction:"
+              << "\n  Test real time (s): " << realTime
+              << "\n  Test CPU time (s): " << cpuTime
+              << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
+              << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows() << "\n";
+}
+
 
 void testPredictionTime(Args& args) {
     // Method for testing performance on different batch (test dataset) sizes
@@ -430,6 +470,8 @@ int main(int argc, char** argv) {
         predict(args);
     else if (command == "ofo")
         ofo(args);
+    else if (command == "bc")
+        bc(args);
     else if (command == "testPredictionTime")
         testPredictionTime(args);
     else {

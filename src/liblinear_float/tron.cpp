@@ -16,10 +16,10 @@ template <class T> static inline T max(T x,T y) { return (x>y)?x:y; }
 extern "C" {
 #endif
 
-extern REAL nrm2_(int *, REAL *, int *);
-extern REAL dot_(int *, REAL *, int *, REAL *, int *);
-extern int axpy_(int *, REAL *, REAL *, int *, REAL *, int *);
-extern int scal_(int *, REAL *, REAL *, int *);
+extern float nrm2_(int *, float *, int *);
+extern float dot_(int *, float *, int *, float *, int *);
+extern int axpy_(int *, float *, float *, int *, float *, int *);
+extern int scal_(int *, float *, float *, int *);
 
 #ifdef __cplusplus
 }
@@ -31,10 +31,10 @@ static void default_print(const char *buf)
 	fflush(stdout);
 }
 
-static REAL uTMv(int n, REAL *u, REAL *M, REAL *v)
+static float uTMv(int n, float *u, float *M, float *v)
 {
 	const int m = n-4;
-	REAL res = 0;
+	float res = 0;
 	int i;
 	for (i=0; i<m; i+=5)
 		res += u[i]*M[i]*v[i]+u[i+1]*M[i+1]*v[i+1]+u[i+2]*M[i+2]*v[i+2]+
@@ -54,7 +54,7 @@ void TRON::info(const char *fmt,...)
 	(*tron_print_string)(buf);
 }
 
-TRON::TRON(const function *fun_obj, REAL eps, REAL eps_cg, int max_iter)
+TRON::TRON(const function *fun_obj, float eps, float eps_cg, int max_iter)
 {
 	this->fun_obj=const_cast<function *>(fun_obj);
 	this->eps=eps;
@@ -67,38 +67,38 @@ TRON::~TRON()
 {
 }
 
-void TRON::tron(REAL *w)
+void TRON::tron(float *w)
 {
 	// Parameters for updating the iterates.
-	REAL eta0 = 1e-4, eta1 = 0.25, eta2 = 0.75;
+	float eta0 = 1e-4, eta1 = 0.25, eta2 = 0.75;
 
 	// Parameters for updating the trust region size delta.
-	REAL sigma1 = 0.25, sigma2 = 0.5, sigma3 = 4;
+	float sigma1 = 0.25, sigma2 = 0.5, sigma3 = 4;
 
 	int n = fun_obj->get_nr_variable();
 	int i, cg_iter;
-	REAL delta=0, sMnorm, one=1.0;
-	REAL alpha, f, fnew, prered, actred, gs;
+	float delta=0, sMnorm, one=1.0;
+	float alpha, f, fnew, prered, actred, gs;
 	int search = 1, iter = 1, inc = 1;
-	REAL *s = new REAL[n];
-	REAL *r = new REAL[n];
-	REAL *g = new REAL[n];
+	float *s = new float[n];
+	float *r = new float[n];
+	float *g = new float[n];
 
-	const REAL alpha_pcg = 0.01;
-	REAL *M = new REAL[n];
+	const float alpha_pcg = 0.01;
+	float *M = new float[n];
 
 	// calculate gradient norm at w=0 for stopping condition.
-	REAL *w0 = new REAL[n];
+	float *w0 = new float[n];
 	for (i=0; i<n; i++)
 		w0[i] = 0;
 	fun_obj->fun(w0);
 	fun_obj->grad(w0, g);
-	REAL gnorm0 = nrm2_(&n, g, &inc);
+	float gnorm0 = nrm2_(&n, g, &inc);
 	delete [] w0;
 
 	f = fun_obj->fun(w);
 	fun_obj->grad(w, g);
-	REAL gnorm = nrm2_(&n, g, &inc);
+	float gnorm = nrm2_(&n, g, &inc);
 
 	if (gnorm <= eps*gnorm0)
 		search = 0;
@@ -108,14 +108,14 @@ void TRON::tron(REAL *w)
 		M[i] = (1-alpha_pcg) + alpha_pcg*M[i];
 	delta = sqrt(uTMv(n, g, M, g));
 
-	REAL *w_new = new REAL[n];
+	float *w_new = new float[n];
 	bool reach_boundary;
 	bool delta_adjusted = false;
 	while (iter <= max_iter && search)
 	{
 		cg_iter = trpcg(delta, g, M, s, r, &reach_boundary);
 
-		memcpy(w_new, w, sizeof(REAL)*n);
+		memcpy(w_new, w, sizeof(float)*n);
 		axpy_(&n, &one, s, &inc, w_new, &inc);
 
 		gs = dot_(&n, g, &inc, s, &inc);
@@ -159,7 +159,7 @@ void TRON::tron(REAL *w)
 		if (actred > eta0*prered)
 		{
 			iter++;
-			memcpy(w, w_new, sizeof(REAL)*n);
+			memcpy(w, w_new, sizeof(float)*n);
 			f = fnew;
 			fun_obj->grad(w, g);
 			fun_obj->get_diag_preconditioner(M);
@@ -195,15 +195,15 @@ void TRON::tron(REAL *w)
 	delete[] M;
 }
 
-int TRON::trpcg(REAL delta, REAL *g, REAL *M, REAL *s, REAL *r, bool *reach_boundary)
+int TRON::trpcg(float delta, float *g, float *M, float *s, float *r, bool *reach_boundary)
 {
 	int i, inc = 1;
 	int n = fun_obj->get_nr_variable();
-	REAL one = 1;
-	REAL *d = new REAL[n];
-	REAL *Hd = new REAL[n];
-	REAL zTr, znewTrnew, alpha, beta, cgtol;
-	REAL *z = new REAL[n];
+	float one = 1;
+	float *d = new float[n];
+	float *Hd = new float[n];
+	float zTr, znewTrnew, alpha, beta, cgtol;
+	float *z = new float[n];
 
 	*reach_boundary = false;
 	for (i=0; i<n; i++)
@@ -229,7 +229,7 @@ int TRON::trpcg(REAL delta, REAL *g, REAL *M, REAL *s, REAL *r, bool *reach_boun
 		alpha = zTr/dot_(&n, d, &inc, Hd, &inc);
 		axpy_(&n, &alpha, d, &inc, s, &inc);
 
-		REAL sMnorm = sqrt(uTMv(n, s, M, s));
+		float sMnorm = sqrt(uTMv(n, s, M, s));
 		if (sMnorm > delta)
 		{
 			//info("cg reaches trust region boundary\n");
@@ -237,11 +237,11 @@ int TRON::trpcg(REAL delta, REAL *g, REAL *M, REAL *s, REAL *r, bool *reach_boun
 			alpha = -alpha;
 			axpy_(&n, &alpha, d, &inc, s, &inc);
 
-			REAL sTMd = uTMv(n, s, M, d);
-			REAL sTMs = uTMv(n, s, M, s);
-			REAL dTMd = uTMv(n, d, M, d);
-			REAL dsq = delta*delta;
-			REAL rad = sqrt(sTMd*sTMd + dTMd*(dsq-sTMs));
+			float sTMd = uTMv(n, s, M, d);
+			float sTMs = uTMv(n, s, M, s);
+			float dTMd = uTMv(n, d, M, d);
+			float dsq = delta*delta;
+			float rad = sqrt(sTMd*sTMd + dTMd*(dsq-sTMs));
 			if (sTMd >= 0)
 				alpha = (dsq - sTMs)/(sTMd + rad);
 			else
@@ -273,9 +273,9 @@ int TRON::trpcg(REAL delta, REAL *g, REAL *M, REAL *s, REAL *r, bool *reach_boun
 	return(cg_iter);
 }
 
-REAL TRON::norm_inf(int n, REAL *x)
+float TRON::norm_inf(int n, float *x)
 {
-	REAL dmax = fabs(x[0]);
+	float dmax = fabs(x[0]);
 	for (int i=1; i<n; i++)
 		if (fabs(x[i]) >= dmax)
 			dmax = fabs(x[i]);

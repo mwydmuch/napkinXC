@@ -111,16 +111,20 @@ void BR::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string out
 void BR::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
     prediction = predictForAllLabels(features, args);
 
-    if(!labelsWeights.empty())
-        for(auto &p : prediction) p.value *= labelsWeights[p.label];
+    // if(!labelsWeights.empty())
+    //     for(auto &p : prediction) p.value *= labelsWeights[p.label];
 
-    if(!thresholds.empty()){
-        int j = 0;
-        for(int i = 0; i < prediction.size(); ++i){
-            if(prediction[i].value > thresholds[i])
-                prediction[j++] = prediction[i];
-        }
-        prediction.resize(j - 1);
+    // if(!thresholds.empty()){
+    //     int j = 0;
+    //     for(int i = 0; i < prediction.size(); ++i){
+    //         if(prediction[i].value > thresholds[i])
+    //             prediction[j++] = prediction[i];
+    //     }
+    //     prediction.resize(j - 1);
+    // }
+
+    if(!a.empty() && !b.empty()){
+        for(auto &p : prediction) p.value = (b[p.label] * p.value- a[p.label]) / (b[p.label] * b[p.label]);
     }
 
     sort(prediction.rbegin(), prediction.rend());
@@ -131,6 +135,7 @@ void BR::predict(std::vector<Prediction>& prediction, SparseVector& features, Ar
     }
     if (args.topK > 0) prediction.resize(args.topK);
     prediction.shrink_to_fit();
+    for(auto &p : prediction) p.value = predictForLabel(p.label, features, args);
 }
 
 std::vector<Prediction> BR::predictForAllLabels(SparseVector& features, Args& args) {

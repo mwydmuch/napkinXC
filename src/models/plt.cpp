@@ -242,29 +242,29 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
         return true;
     };
 
-    // if(args.threshold > 0)
-    //     ifAddToQueue = [&] (TreeNode* node, Real prob) {
-    //         return (prob >= threshold);
-    //     };
-    // else if(thresholds.size())
-    //     ifAddToQueue = [&] (TreeNode* node, Real prob) {
-    //         return (prob >= nodesThr[node->index].th);
-    //     };
+    if(args.threshold > 0)
+        ifAddToQueue = [&] (TreeNode* node, Real prob) {
+            return (prob >= threshold);
+        };
+    else if(thresholds.size())
+        ifAddToQueue = [&] (TreeNode* node, Real prob) {
+            return (prob >= nodesThr[node->index].th);
+        };
 
     std::function<Real(TreeNode*, Real)> calculateValue = [&] (TreeNode* node, Real prob) {
         return prob;
     };
 
-    // if (!labelsWeights.empty())
-    //     calculateValue = [&] (TreeNode* node, Real prob) {
-    //         return prob * nodesWeights[node->index].weight;
-    //     };
+    if (!labelsWeights.empty())
+        calculateValue = [&] (TreeNode* node, Real prob) {
+            return prob * nodesWeights[node->index].weight;
+        };
 
-    // if (args.covWeights) {
-    //     calculateValue = [&](TreeNode* node, Real prob) {
-    //         return (nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight) + (args.precWeight * prob);
-    //     };
-    // }
+    if (args.covWeights) {
+        calculateValue = [&](TreeNode* node, Real prob) {
+            return (nodesWeights[node->index].weight - (1 - prob) * nodesWeights[node->index].weight) + (args.precWeight * prob);
+        };
+    }
 
     if(!a.empty() && !b.empty()){
         calculateValue = [&](TreeNode* node, Real prob) {

@@ -473,7 +473,7 @@ void Args::printArgs(std::string command) {
     if (ensemble > 1){
         Log(CERR) << ", ensemble: " << ensemble;
         if (command == "test" || command == "predict")
-            Log(CERR) << ", onTheTrot: " << ensOnTheTrot << ", missingScores" << ensMissingScores;
+            Log(CERR) << ", onTheTrot: " << ensOnTheTrot << ", missingScores: " << ensMissingScores;
     }
 
     if (command == "train") {

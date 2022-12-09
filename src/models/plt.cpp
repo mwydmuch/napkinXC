@@ -280,7 +280,7 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
                 }
             }
 
-            if(bestL == -1) std::cerr << "Somethign is wrong bestL == -1!\n";
+            if(bestL == -1) std::cerr << "Something is wrong bestL == -1!\n";
 
             // std::cout << node->index << " " << nodesLabels[node->index]
             //  << prob << " " << bestL << " " << b[bestL] << " " << a[bestL] << " " << score << "\n";

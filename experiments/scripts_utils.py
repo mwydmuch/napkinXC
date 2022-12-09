@@ -8,7 +8,7 @@ def load_true_file(filepath):
         return Y
 
 
-def load_pred_file(filepath):
+def load_pred_file(filepath, sort=False):
     with open(filepath) as file:
         Y = []
 
@@ -19,8 +19,13 @@ def load_pred_file(filepath):
             else:
                 return int(y)
 
-        for line in file:
-            Y.append([convert_y(y) for y in line.strip().split(' ')])
+        for i, line in enumerate(file):
+            if i == 0 and len(line.split(' ')) == 2:
+                continue
+            y = [convert_y(y) for y in line.strip().split(' ')]
+            if sort and all([len(y_i) > 1 for y_i in y]):
+                y.sort(key=lambda v: v[1], reverse=True)
+            Y.append(y)
         return Y
 
 

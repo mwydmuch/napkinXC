@@ -13,32 +13,34 @@ from napkinxc.measures import *
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: evaluate.py [true file] [prediction file] [inverse propensities file (optional)]")
+        print("Usage: evaluate.py [true file] [prediction file] [inverse propensities/labels weights file (optional)]")
         exit(1)
 
     true = load_true_file(sys.argv[1])
     pred = load_pred_file(sys.argv[2])
 
-    inv_ps = None
+    labels_weights = None
     if len(sys.argv) > 3:
-        inv_ps = load_weights_file(sys.argv[3])
+        labels_weights = load_weights_file(sys.argv[3])
 
     precision = 6
     max_k = 5
 
     measures = {
-        #"HL": {"func": hamming_loss, "inv_ps": False},
-        "P": {"func": precision_at_k, "inv_ps": False},
-        "R": {"func": recall_at_k, "inv_ps": False},
-        "nDCG": {"func": ndcg_at_k, "inv_ps": False},
-        "PSP": {"func": psprecision_at_k, "inv_ps": True},
-        "PSnDCG": {"func": psndcg_at_k, "inv_ps": True},
+        #"HL": {"func": hamming_loss, "needs_weights": False},
+        "P": {"func": precision_at_k, "needs_weights": False},
+        "R": {"func": recall_at_k, "needs_weights": False},
+        "nDCG": {"func": ndcg_at_k, "needs_weights": False},
+        "PSP": {"func": psprecision_at_k, "needs_weights": True},
+        "PSnDCG": {"func": psndcg_at_k, "needs_weights": True},
+        "C": {"func": coverage_at_k, "needs_weights": False},
     }
 
     for m, v in measures.items():
         r = None
-        if v["inv_ps"] and inv_ps is not None:
-            r = v["func"](true, pred, inv_ps, k=max_k)
+        if v["needs_weights"]:
+            if labels_weights is not None:
+                r = v["func"](true, pred, labels_weights, k=max_k)
         else:
             r = v["func"](true, pred, k=max_k)
         if r is not None:

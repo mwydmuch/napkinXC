@@ -6,7 +6,7 @@
 
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
-from napkinxc.measures import precision_at_k, psprecision_at_k, inverse_propensity
+from napkinxc.measures import precision_at_k, psprecision_at_k, Jain_et_al_inverse_propensity
 
 # The beginning is the same as in the basic.py example.
 

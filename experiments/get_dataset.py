@@ -11,7 +11,7 @@ sys.path.extend([file_dir, napkinxc_path])
 from napkinxc.datasets import download_dataset, _get_data_meta
 
 old_aliases = {
-    "rcv1x": "RCV1X-2K",
+    "rcv1x": "RCV1-2K",
     "amazonCat": "AmazonCat-13K",
     "amazonCat-14K": "AmazonCat-14K",
     "amazon": "Amazon-670K",

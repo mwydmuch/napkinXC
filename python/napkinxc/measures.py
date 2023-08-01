@@ -73,12 +73,12 @@ class Measure(ABC):
         return self.summarize()
 
     @staticmethod
-    def _get_Y_iterator(Y, k=None, ranking=False):
+    def _get_Y_iterator(Y, ranking=False):
         if isinstance(Y, np.ndarray):
-            return Measure._Y_np_iterator(Y, k=k, ranking=ranking)
+            return Measure._Y_np_iterator(Y, ranking=ranking)
 
         elif isinstance(Y, csr_matrix):
-            return Measure._Y_csr_matrix_iterator(Y, k=k, ranking=ranking)
+            return Measure._Y_csr_matrix_iterator(Y, ranking=ranking)
 
         elif all(isinstance(y, (list, tuple)) for y in Y):
             return Measure._Y_list_iterator(Y)

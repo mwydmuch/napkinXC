@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.abspath('../python'))
 # -- Project information -----------------------------------------------------
 
 project = 'napkinXC'
-copyright = '2018-2021 Marek Wydmuch'
+copyright = '2018-2023 Marek Wydmuch'
 author = 'Marek Wydmuch'
 
 

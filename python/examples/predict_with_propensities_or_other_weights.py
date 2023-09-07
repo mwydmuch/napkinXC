@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 # This shows how to use exact top-k weighted prediction for PLT.
-# To demonstrate this we will use inverse propensities fo labels as weights.
+# To demonstrate this we will use inverse propensities of labels as weights.
 
 
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
-from napkinxc.measures import precision_at_k, psprecision_at_k, inverse_propensity
+from napkinxc.measures import precision_at_k, psprecision_at_k, Jain_et_al_inverse_propensity
 
 # The beginning is the same as in the basic.py example.
 
@@ -34,8 +34,10 @@ plt.load()
 # Predict five top labels for each data point in the test dataset using standard uniform-cost search
 Y_pred = plt.predict(X_test, top_k=5)
 
-# Calculate inverse propensity values (aka propensity scores) and predict with label weights
-inv_ps = inverse_propensity(Y_train, A=0.55, B=1.5)
+# Calculate inverse propensity values (aka propensity scores) using emprical model of Jain et al. 2016
+inv_ps = Jain_et_al_inverse_propensity(Y_train, A=0.55, B=1.5)
+
+# Predict with label weights
 ps_Y_pred = plt.predict(X_test, labels_weights=inv_ps, top_k=5)
 
 # Evaluate the both predictions with propensity-scored and vanilla precision at 5 measure.

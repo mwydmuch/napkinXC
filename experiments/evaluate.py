@@ -33,6 +33,9 @@ if __name__ == "__main__":
         "nDCG": {"func": ndcg_at_k, "needs_weights": False},
         "PSP": {"func": psprecision_at_k, "needs_weights": True},
         "PSnDCG": {"func": psndcg_at_k, "needs_weights": True},
+        "mP": {"func": macro_precision_at_k, "needs_weights": False},
+        "mR": {"func": macro_recall_at_k, "needs_weights": False},
+        "mF1": {"func": macro_f1_measure_at_k, "needs_weights": False},
         "C": {"func": coverage_at_k, "needs_weights": False},
     }
 

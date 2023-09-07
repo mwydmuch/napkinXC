@@ -13,7 +13,7 @@ from napkinxc.measures import Jain_et_al_inverse_propensity
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: calculate_Jain_et_al_inb_ps.py [input file] [output file]")
+        print("Usage: calculate_Jain_et_al_inv_ps.py [input file] [output file]")
         exit(1)
 
     true_file = sys.argv[1]

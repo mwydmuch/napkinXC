@@ -22,6 +22,7 @@ from abc import ABC, abstractmethod
 from math import log2, log
 import numpy as np
 from scipy.sparse import csr_matrix
+from collections.abc import Iterable
 
 
 # TODOs:
@@ -74,10 +75,10 @@ class Measure(ABC):
     @staticmethod
     def _get_Y_iterator(Y, ranking=False):
         if isinstance(Y, np.ndarray):
-            return Measure._Y_np_iterator(Y, ranking)
+            return Measure._Y_np_iterator(Y, ranking=ranking)
 
         elif isinstance(Y, csr_matrix):
-            return Measure._Y_csr_matrix_iterator(Y, ranking)
+            return Measure._Y_csr_matrix_iterator(Y, ranking=ranking)
 
         elif all(isinstance(y, (list, tuple)) for y in Y):
             return Measure._Y_list_iterator(Y)
@@ -715,18 +716,26 @@ def count_labels(Y):
     Count number of occurrences of each label.
 
     :param Y: Labels (typically ground truth for train data) provided as a matrix with non-zero values for relevant labels.
-    :type Y: ndarray, csr_matrix, list[list[int]]
+    :type Y: ndarray, csr_matrix, list[list[int|str]]
     :return: Array with the count of labels occurrences.
     :rtype: ndarray
     """
-    if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
+    if isinstance(Y, (np.ndarray, csr_matrix)):
         counts = np.ravel(np.sum(Y, axis=0))
 
-    elif all((isinstance(y, list) or isinstance(y, tuple)) for y in Y):
+    elif isinstance(Y, Iterable) and all(isinstance(y, (list, tuple)) for y in Y):
         m = max([max(y) for y in Y if len(y)])
-        counts = np.zeros(m + 1)
-        for y in Y:
-            counts[y] += 1
+        
+        if not isinstance(m, int):
+            counts = np.zeros(m + 1)
+            for y in Y:
+                counts[y] += 1
+        elif isinstance(m, str):
+            counts = {}
+            for y in Y:
+                counts[y] = counts.get(y, 0) + 1
+        else:
+            raise TypeError("Unsupported data type, labels should be integers or strings")
 
     else:
         raise TypeError(
@@ -745,7 +754,7 @@ def labels_priors(Y):
     :rtype: ndarray
     """
     counts = count_labels(Y)
-    if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
+    if isinstance(Y, (np.ndarray, csr_matrix)):
         return counts / Y.shape[0]
 
     else:
@@ -836,7 +845,7 @@ def Jain_et_al_inverse_propensity(Y, A=0.55, B=1.5):
     :rtype: ndarray
     """
     counts = count_labels(Y)
-    if isinstance(Y, np.ndarray) or isinstance(Y, csr_matrix):
+    if isinstance(Y, (np.ndarray, csr_matrix)):
         n = Y.shape[0]
     elif isinstance(Y, list):
         n = len(Y)

@@ -76,13 +76,18 @@ L5l = [
 
 # Sets of datasets
 binary_set = [(T1, L1l), (T1, L1lf), (T2, L2b), (T3, L3b), (T5, L5l)]
-ranking_set = binary_set + [(T1, L1l2), (T2, L2f), (T3, L3f)]
+ranking_set = [(T1, L1l2), (T2, L2f), (T3, L3f)]
 
 
 def _test_binary_set(func, true_result):
+    k = len(true_result)
+    for (T, L) in binary_set:
+        func_result = func(T, L, k)
+        assert np.allclose(true_result[-1], func_result[-1]), "{}({}, {}, k={}) = {} != {}".format(func.__name__, T, L, func_result[-1], true_result[-1], k)
+
     for (T, L) in ranking_set:
-        func_result = func(T, L, 3)
-        assert np.allclose(true_result, func_result), "{}({}, {}, k=3) = {} != {}".format(func.__name__, T, L, func_result, true_result)
+        func_result = func(T, L, k)
+        assert np.allclose(true_result, func_result), "{}({}, {}, k={}) = {} != {}".format(func.__name__, T, L, func_result, true_result, k)
 
 
 def test_precision_at_k():

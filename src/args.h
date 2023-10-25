@@ -139,6 +139,7 @@ public:
     int batches;
 
     int bcIters;
+    bool bcGreedy;
 
 private:
     std::default_random_engine rngSeeder;

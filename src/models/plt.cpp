@@ -266,27 +266,44 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
         };
     }
 
-    if(!a.empty() && !b.empty()){
+    // if(!a.empty() && !b.empty()){
+    //     calculateValue = [&](TreeNode* node, Real prob) {
+
+    //         Real score = -9999999;
+    //         int bestL = -1;
+    //         for(auto& l : nodesLabels[node->index]){
+    //             //Real tmpScore = (b[l] * prob - a[l]) / (b[l] * (b[l] + 1.0/n));
+    //             Real tmpScore = (b[l] * prob - a[l]) / (b[l] * b[l]);
+    //             if(tmpScore >= score){
+    //                 bestL = l;
+    //                 score = tmpScore;
+    //             }
+    //         }
+
+    //         if(bestL == -1) std::cerr << "Something is wrong bestL == -1!\n";
+
+    //         // std::cout << node->index << " " << nodesLabels[node->index]
+    //         //  << prob << " " << bestL << " " << b[bestL] << " " << a[bestL] << " " << score << "\n";
+    //         // int x;
+    //         // std::cin >> x;
+
+    //         return score;
+    //     };
+    // }
+
+    if(!tp.empty() && !fp.empty()){
+        //Log(CERR) << "Using TP/FP scores ...\n";
         calculateValue = [&](TreeNode* node, Real prob) {
 
             Real score = -9999999;
             int bestL = -1;
             for(auto& l : nodesLabels[node->index]){
-                //Real tmpScore = (b[l] * prob - a[l]) / (b[l] * (b[l] + 1.0/n));
-                Real tmpScore = (b[l] * prob - a[l]) / (b[l] * b[l]);
+                Real tmpScore = (tp[l] + prob) / (fp[l] + 1) - tp[l] / (fp[l] + 0.000001);
                 if(tmpScore >= score){
                     bestL = l;
                     score = tmpScore;
                 }
             }
-
-            if(bestL == -1) std::cerr << "Something is wrong bestL == -1!\n";
-
-            // std::cout << node->index << " " << nodesLabels[node->index]
-            //  << prob << " " << bestL << " " << b[bestL] << " " << a[bestL] << " " << score << "\n";
-            // int x;
-            // std::cin >> x;
-
             return score;
         };
     }

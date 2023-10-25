@@ -56,6 +56,7 @@ public:
     Real microOfo(SRMatrix& features, SRMatrix& labels, Args& args);
     std::vector<Real> macroOfo(SRMatrix& features, SRMatrix& labels, Args& args);
     std::vector<std::vector<Prediction>> bc(SRMatrix& features, SRMatrix& labels, Args& args);
+    std::vector<std::vector<Prediction>> bcaPrec(SRMatrix& features, SRMatrix& labels, Args& args);
 
     virtual void load(Args& args, std::string infile) = 0;
     virtual void preload(Args& args, std::string infile) { preloaded = true; };
@@ -76,8 +77,12 @@ protected:
     std::vector<Real> thresholds; // For prediction with thresholds
     std::vector<Real> labelsWeights; // For prediction with label weights
 
+    std::vector<Real> tp;
+    std::vector<Real> fp;
+    std::vector<Real> fn;
     std::vector<double> a;
     std::vector<double> b;
+
     int n; // Number of samples
 
     // Base utils

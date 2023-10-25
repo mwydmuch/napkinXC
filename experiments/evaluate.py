@@ -35,6 +35,7 @@ if __name__ == "__main__":
         "PSP": {"func": psprecision_at_k, "inv_ps": True},
         # "PSnDCG": {"func": psndcg_at_k, "inv_ps": True},
         "MacP": {"func": macro_precision_at_k, "inv_ps": False},
+        "MacF1": {"func": macro_f1_measure_at_k, "inv_ps": False},
         "C": {"func": coverage_at_k, "inv_ps": False},
         "MacR": {"func": macro_recall_at_k, "inv_ps": False}, 
     }

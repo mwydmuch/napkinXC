@@ -77,6 +77,12 @@ if [[ ! -e $INV_PRIORS_FILE ]]; then
     python3 ${SCRIPT_DIR}/calculate_inv_priors.py $TRAIN_FILE $INV_PRIORS_FILE
 fi
 
+# Calculate inverse priors test
+INV_PRIORS_TEST_FILE="${DATASET_FILE}.inv_priors_test"
+if [[ ! -e $INV_PRIORS_TEST_FILE ]]; then
+    python3 ${SCRIPT_DIR}/calculate_inv_priors.py $TEST_FILE $INV_PRIORS_TEST_FILE
+fi
+
 # Calculate other weights
 W_POW_FILE="${DATASET_FILE}.w_pow"
 if [[ ! -e $W_POW_FILE ]]; then
@@ -123,6 +129,8 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PS_FILE}"
     elif [[ $TEST_ARGS == *"--labelsWeights invP"* ]]; then
         TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PRIORS_FILE}"
+    elif [[ $TEST_ARGS == *"--labelsWeights invPTest"* ]]; then
+        TEST_ARGS="${TEST_ARGS} --labelsWeights ${INV_PRIORS_TEST_FILE}"
     elif [[ $TEST_ARGS == *"--labelsWeights wPow"* ]]; then
         TEST_ARGS="${TEST_ARGS} --labelsWeights ${W_POW_FILE}"
     elif [[ $TEST_ARGS == *"--labelsWeights wLog"* ]]; then

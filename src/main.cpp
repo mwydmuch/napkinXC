@@ -247,7 +247,7 @@ void ofo(Args& args) {
 }
 
 
-void bc(Args& args) {
+void bcaPrec(Args& args) {
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -262,7 +262,7 @@ void bc(Args& args) {
 
     auto resAfterData = getResources();
 
-    std::vector<std::vector<Prediction>> predictions = model->bc(features, labels, args);
+    std::vector<std::vector<Prediction>> predictions = model->bcaPrec(features, labels, args);
     auto resAfterFo = getResources();
 
     // Output predictions
@@ -271,6 +271,9 @@ void bc(Args& args) {
         outputPrediction(predictions, out);
         out.close();
     }
+
+    // Print additional model statistics
+    model->printInfo();
 
     // Print resources
     auto realTime = static_cast<Real>(std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -470,8 +473,8 @@ int main(int argc, char** argv) {
         predict(args);
     else if (command == "ofo")
         ofo(args);
-    else if (command == "bc")
-        bc(args);
+    else if (command == "bcaPrec")
+        bcaPrec(args);
     else if (command == "testPredictionTime")
         testPredictionTime(args);
     else {

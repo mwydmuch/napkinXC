@@ -110,7 +110,7 @@ fi
 TEST_ON_TRAIN=0
 TEST_USING_NXC_TEST=0
 
-TEST_RESULT_FILE=${RESULTS_DIR}/${TEST_CONFIG}_bc
+TEST_RESULT_FILE=${RESULTS_DIR}/${TEST_CONFIG}_bcaPrec
 TEST_LOCK_FILE=${RESULTS_DIR}/.test_lock_${TEST_CONFIG}
 if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
     mkdir -p $RESULTS_DIR
@@ -129,13 +129,13 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         TEST_ARGS="${TEST_ARGS} --labelsWeights ${W_LOG_FILE}"
     fi
 
-    PRED_CONFIG=$(echo "${TEST_ARGS}" | tr " /" "__")
+    PRED_CONFIG=$(echo "${TEST_ARGS}_bcaPrec" | tr " /" "__")
     PRED_FILE=${MODEL}/pred_${PRED_CONFIG}
     PRED_LOCK_FILE=${MODEL}/.test_lock_${PRED_CONFIG}
     PRED_RESULT_FILE=${MODEL}/pred_results_${PRED_CONFIG}
     if [[ ! -e $PRED_FILE ]] || [[ -e $PRED_LOCK_FILE ]]; then
         touch $PRED_LOCK_FILE
-        ${ROOT_DIR}/nxc bc -i $TEST_FILE -o $MODEL $TEST_ARGS --prediction $PRED_FILE --measures "" | tee -a $PRED_RESULT_FILE
+        ${ROOT_DIR}/nxc bcaPrec -i $TEST_FILE -o $MODEL $TEST_ARGS --prediction $PRED_FILE --measures "" | tee -a $PRED_RESULT_FILE
         rm -rf $PRED_LOCK_FILE
     fi
 
@@ -152,6 +152,7 @@ if [[ ! -e $TEST_RESULT_FILE ]] || [[ -e $TEST_LOCK_FILE ]]; then
         fi
     done
 
+    echo $PRED_FILE | tee -a $TEST_RESULT_FILE
     python3 ${SCRIPT_DIR}/evaluate.py $TEST_FILE $PRED_FILE $INV_PS_FILE | tee -a $TEST_RESULT_FILE
 
     echo "Test date: $(date)" | tee -a $TEST_RESULT_FILE

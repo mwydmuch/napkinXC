@@ -141,6 +141,7 @@ Args::Args() {
     batches = 10;
 
     bcIters = 1;
+    bcGreedy = true;
 }
 
 // Parse args

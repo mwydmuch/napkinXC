@@ -353,6 +353,94 @@ std::vector<std::vector<Prediction>> Model::bc(SRMatrix& features, SRMatrix& lab
 }
 
 
+std::vector<std::vector<Prediction>> Model::bcaPrec(SRMatrix& features, SRMatrix& labels, Args& args) {
+
+    thresholds.clear();
+    labelsWeights.clear();
+
+    Log(CERR) << "Starting initial prediction ...\n";
+    
+    // Generate random prediction
+    n = labels.rows();
+    int trueK = args.topK;
+    
+    std::vector<std::vector<Prediction>> predictions(n);
+    // std::default_random_engine rng; 
+    // std::uniform_int_distribution<int> dist(0, m);
+    // for(int i = 0; i < n; ++i){
+    //     printProgress(i, n);
+    //     std::unordered_set<int> repCheck;
+    //     for(int j = 0; j < args.topK; ++j){
+    //         int l = dist(rng);
+    //         while(repCheck.count(l)) l = dist(rng);
+    //         predictions[i].push_back({l, this->predictForLabel(l, features[i], args)});
+    //         repCheck.insert(l);
+    //     }
+    // }
+
+    tp.resize(m + 2, 0.0);
+    fp.resize(m + 2, 0.0);
+    fn.resize(m + 2, 0.0);
+
+    // Generate by predicting labels
+    if(!args.bcGreedy){
+        args.sampleTopK = 0;
+        predictions = this->predictBatch(features, args);
+        n = predictions.size();
+        args.sampleTopK = 0;
+
+        std::ofstream out0(args.prediction + "_0");
+        outputPrediction2(predictions, out0);
+        out0.close();
+
+        for(int j = 0; j < n; ++j){
+            for(auto &p : predictions[j]){
+                tp[p.label] += p.value;
+                fp[p.label] += (1 - p.value);
+            }
+        }
+    }
+
+    Log(CERR) << "Starting block cordinated algorithm ...\n";    
+    std::random_device rd;
+    std::mt19937 g(rd());
+    
+    std::vector<int> o(n, 0);
+    for(int i = 0; i < n; ++i) o[i] = i;
+
+    for(int i = 0; i < args.bcIters; ++i){
+        Log(CERR) << "  Iter " << i + 1 << "/" << args.bcIters << " ...\n";
+
+        std::shuffle(o.begin(), o.end(), g);
+
+        for(int tj = 0; tj < n; ++tj){
+            int j = o[tj];
+            printProgress(tj, n);
+            if(!args.bcGreedy){
+                for(auto& p : predictions[j]){
+                    tp[p.label] -= p.value;
+                    fp[p.label] -= (1 - p.value);
+                }
+            }
+
+            predictions[j].clear();
+            this->predict(predictions[j], features[j], args);
+
+            for(auto& p : predictions[j]){
+                tp[p.label] += p.value;
+                fp[p.label] += (1 - p.value);
+            }
+        }
+
+        std::ofstream out(args.prediction + "_" + std::to_string(i + 1));
+        outputPrediction2(predictions, out);
+        out.close();
+    }
+
+    return predictions;
+}
+
+
 Base* Model::trainBase(ProblemData& problemsData, Args& args) {
     Base* base = new Base();
     base->train(problemsData, args);

@@ -21,4 +21,7 @@ manylinux-aarch64-image = "manylinux2014"
 before-all = "brew install cmake"
 
 [tool.cibuildwheel.windows]
+
+# Only build for AMD64 is officially supported
+archs = "AMD64"
 before-all = "choco install -y cmake"

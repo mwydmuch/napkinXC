@@ -39,7 +39,7 @@ jobs:
           # Configure cibuildwheel to build native archs, and some emulated ones
           CIBW_ARCHS_LINUX: x86_64 aarch64
           CIBW_ARCHS_MACOS: x86_64
-          CIBW_ARCHS_WINDOWS: x86_64
+          CIBW_ARCHS_WINDOWS: AMD64
           CIBW_BUILD_VERBOSITY: 3
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
             auditwheel show {wheel} && auditwheel repair -w {dest_dir} {wheel}
@@ -68,6 +68,44 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           path: dist/*.tar.gz
+
+  # test_wheels:
+  #   name: Test wheels
+  #   needs: [build_wheels]
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-22.04, macos-11, windows-2019]
+  #       python-version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
+
+  #   steps:
+  #     - name: Download wheels
+  #       uses: actions/download-artifact@v3
+  #       with:
+  #         # Unpacks default artifact into dist/
+  #         # If `name: artifact` is omitted, the action will create extra parent dir
+  #         name: artifact
+  #         path: dist
+      
+  #     - name: Set up Python ${{ matrix.python-version }} environment
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+
+  #     - name: Python environment report
+  #       run: python -c "import sys; print(sys.version)"
+
+  #     - name: Upgrade pip and install pytest
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         pip install pytest scikit-learn==1.2.2
+
+  #     - name: Pip install
+  #       run: pip install dist/*.whl
+  
+  #     - name: Run tests
+  #       shell: bash
+  #       run: pytest python/tests/test_*
 
   upload_pypi:
     name: Upload to PyPI

@@ -39,6 +39,7 @@ jobs:
           # Configure cibuildwheel to build native archs, and some emulated ones
           CIBW_ARCHS_LINUX: x86_64 aarch64
           CIBW_ARCHS_MACOS: x86_64
+          MACOSX_DEPLOYMENT_TARGET: 10.15
           CIBW_ARCHS_WINDOWS: AMD64
           CIBW_BUILD_VERBOSITY: 3
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: >

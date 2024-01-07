@@ -1,2 +1,24 @@
 [build-system]
 requires = ["cmake>=3.13.0", "cmaketools", "setuptools", "wheel"]
+
+[tool.cibuildwheel]
+# We need to build for the following Python versions:
+build = "cp{38,39,310,311,312}-*"
+
+[tool.cibuildwheel.linux]
+# Only manylinux is supported (no musl)
+build = "cp{38,39,310,311,312}-manylinux*"
+
+# For manylinux2014 we need to install the following dependencies using yum:
+before-all = "yum install -y cmake"
+
+# Only build for x86_64 and aarch64 are officially supported
+archs = "x86_64 aarch64"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
+
+[tool.cibuildwheel.macos]
+before-all = "brew install cmake"
+
+[tool.cibuildwheel.windows]
+before-all = "choco install -y cmake"

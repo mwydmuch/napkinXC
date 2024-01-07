@@ -3,7 +3,7 @@ name: C++ build
 on:
   push:
     paths:
-      - '.github/workflows/cpp-build.yml'
+      - '.github/workflows/cpp-test-build.yml'
       - 'src/**'
       - 'CMakeLists.txt'
 

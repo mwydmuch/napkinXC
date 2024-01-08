@@ -1,6 +1,6 @@
 # napkinXC 
-[![C++ build](https://github.com/mwydmuch/napkinXC/workflows/C++%20build/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/cpp-build.yml)
-[![Python build](https://github.com/mwydmuch/napkinXC/workflows/Python%20build/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/python-build.yml)
+[![C++ build](https://github.com/mwydmuch/napkinXC/workflows/C++%20build/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/cpp-test-build.yml)
+[![Python build](https://github.com/mwydmuch/napkinXC/workflows/Python%20build/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/python-test-build.yml)
 [![Documentation Status](https://readthedocs.org/projects/napkinxc/badge/?version=latest)](https://napkinxc.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/napkinxc.svg)](https://badge.fury.io/py/napkinxc) 
 

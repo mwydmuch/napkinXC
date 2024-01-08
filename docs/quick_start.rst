@@ -4,7 +4,7 @@ Python Quick Start
 Installation
 ------------
 
-Python (3.5+) version of napkinXC can be easily installed from PyPy repository on Linux and MacOS (Windows is currently not supported).
+Python (3.8+) version of napkinXC can be easily installed from PyPy repository on Linux, MacOS and Windows.
 It requires modern C++17 compiler, CMake and Git installed:
 
 .. code:: sh
@@ -21,7 +21,11 @@ or directly from the GitHub repository:
 Usage
 -----
 
-napkinxc module contains three submodules: models that contains all the model classes and two additional modules
+napkinxc module contains three submodules: 
+- models that contains all the model classes 
+- datasets that contains functions for loading datasets
+- measures that contains functions for evaluating models
+
 
 Minimal example of usage:
 

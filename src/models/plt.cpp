@@ -291,14 +291,15 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
     //     };
     // }
 
-    if(!tp.empty() && !fp.empty()){
-        //Log(CERR) << "Using TP/FP scores ...\n";
+    // Precision
+    if(!truePos.empty() && !predPos.empty()){
+        //Log(CERR) << "Using Precision scores ...\n";
         calculateValue = [&](TreeNode* node, Real prob) {
 
             Real score = -9999999;
             int bestL = -1;
             for(auto& l : nodesLabels[node->index]){
-                Real tmpScore = (tp[l] + prob) / (fp[l] + 1) - tp[l] / (fp[l] + 0.000001);
+                Real tmpScore = (truePos[l] + prob) / (predPos[l] + 1) - truePos[l] / (predPos[l] + 0.000001);
                 if(tmpScore >= score){
                     bestL = l;
                     score = tmpScore;

@@ -77,9 +77,9 @@ protected:
     std::vector<Real> thresholds; // For prediction with thresholds
     std::vector<Real> labelsWeights; // For prediction with label weights
 
-    std::vector<Real> tp;
-    std::vector<Real> fp;
-    std::vector<Real> fn;
+    std::vector<Real> truePos;
+    std::vector<Real> predPos;
+    std::vector<Real> condPos;
     std::vector<double> a;
     std::vector<double> b;
 

@@ -378,9 +378,9 @@ std::vector<std::vector<Prediction>> Model::bcaPrec(SRMatrix& features, SRMatrix
     //     }
     // }
 
-    tp.resize(m + 2, 0.0);
-    fp.resize(m + 2, 0.0);
-    fn.resize(m + 2, 0.0);
+    predPos.resize(m + 2, 0.0);
+    truePos.resize(m + 2, 0.0);
+    condPos.resize(m + 2, 0.0);
 
     // Generate by predicting labels
     if(!args.bcGreedy){
@@ -395,8 +395,8 @@ std::vector<std::vector<Prediction>> Model::bcaPrec(SRMatrix& features, SRMatrix
 
         for(int j = 0; j < n; ++j){
             for(auto &p : predictions[j]){
-                tp[p.label] += p.value;
-                fp[p.label] += (1 - p.value);
+                truePos[p.label] += p.value;
+                predPos[p.label] += 1;
             }
         }
     }
@@ -418,8 +418,8 @@ std::vector<std::vector<Prediction>> Model::bcaPrec(SRMatrix& features, SRMatrix
             printProgress(tj, n);
             if(!args.bcGreedy){
                 for(auto& p : predictions[j]){
-                    tp[p.label] -= p.value;
-                    fp[p.label] -= (1 - p.value);
+                    truePos[p.label] -= p.value;
+                    predPos[p.label] -= 1;
                 }
             }
 
@@ -427,8 +427,8 @@ std::vector<std::vector<Prediction>> Model::bcaPrec(SRMatrix& features, SRMatrix
             this->predict(predictions[j], features[j], args);
 
             for(auto& p : predictions[j]){
-                tp[p.label] += p.value;
-                fp[p.label] += (1 - p.value);
+                truePos[p.label] += p.value;
+                predPos[p.label] += 1;
             }
         }
 

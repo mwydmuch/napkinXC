@@ -475,6 +475,8 @@ int main(int argc, char** argv) {
         ofo(args);
     else if (command == "bcaPrec")
         bcaPrec(args);
+    // else if (command == "bcaF1")
+    //     bcaF1(args);
     else if (command == "testPredictionTime")
         testPredictionTime(args);
     else {

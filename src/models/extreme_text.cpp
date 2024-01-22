@@ -99,7 +99,7 @@ void ExtremeText::train(SRMatrix& labels, SRMatrix& features, Args& args, std::s
 
     // Create tree
     if (!tree) {
-        tree = new LabelTree();
+        tree = std::make_unique<LabelTree>();
         tree->buildTreeStructure(labels, features, args);
     }
     m = tree->getNumberOfLeaves();
@@ -138,7 +138,7 @@ void ExtremeText::train(SRMatrix& labels, SRMatrix& features, Args& args, std::s
 void ExtremeText::load(Args& args, std::string infile) {
     Log(CERR) << "Loading " << name << " model ...\n";
 
-    tree = new LabelTree();
+    tree = std::make_unique<LabelTree>();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
 
     std::ifstream in(joinPath(infile, "XTWeights.bin"));

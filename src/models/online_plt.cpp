@@ -35,12 +35,12 @@ OnlinePLT::~OnlinePLT() {
 }
 
 void OnlinePLT::init(Args& args) {
-    tree = new LabelTree();
+    tree = std::make_unique<LabelTree>();
     onlineTree = true;
 }
 
 void OnlinePLT::init(SRMatrix& labels, SRMatrix& features, Args& args) {
-    tree = new LabelTree();
+    tree = std::make_unique<LabelTree>();
 
     if (args.treeType == onlineRandom || args.treeType == onlineBestScore) {
         onlineTree = true;

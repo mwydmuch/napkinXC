@@ -99,7 +99,7 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Arg
 
 void Model::setThresholds(std::vector<Real> th){
 //    if(th.size() != m)
-//        throw std::invalid_argument("Size of thresholds vector dose not match number of model outputs");
+//        throw std::invalid_argument("Size of thresholds vector does not match number of model outputs");
     thresholds = th;
 }
 
@@ -110,7 +110,7 @@ void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
 
 void Model::setLabelsWeights(std::vector<Real> lw){
 //    if(lw.size() != m)
-//        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
+//        throw std::invalid_argument("Size of labels' weights vector does not match number of model outputs");
     labelsWeights = lw;
 }
 

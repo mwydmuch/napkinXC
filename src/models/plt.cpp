@@ -44,7 +44,6 @@ void PLT::unload() {
     for (auto b : bases) delete b;
     bases.clear();
     bases.shrink_to_fit();
-    delete tree;
     tree = nullptr;
     Model::unload();
 }
@@ -389,8 +388,7 @@ Real PLT::predictForLabel(Label label, SparseVector& features, Args& args) {
 }
 
 void PLT::preload(Args& args, std::string infile){
-    delete tree;
-    tree = new LabelTree();
+    tree = std::make_unique<LabelTree>();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
     preloaded = true;
 }
@@ -418,8 +416,7 @@ void PLT::printInfo() {
 }
 
 void PLT::buildTree(SRMatrix& labels, SRMatrix& features, Args& args, const std::string& output){
-    delete tree;
-    tree = new LabelTree();
+    tree = std::make_unique<LabelTree>();
     tree->buildTreeStructure(labels, features, args);
 
     m = tree->getNumberOfLeaves();
@@ -483,8 +480,7 @@ std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesUpdates(const SRMatr
 }
 
 void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, const std::string& output){
-    if(tree == nullptr) tree = new LabelTree();
-    tree->setTreeStructure(treeStructure);
+    if(tree == nullptr) tree = std::make_unique<LabelTree>();
     tree->setTreeStructure(std::move(treeStructure));
 
     m = tree->getNumberOfLeaves();

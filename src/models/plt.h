@@ -57,8 +57,8 @@ public:
 
     void printInfo() override;
 
-    void setTree(LabelTree*t) { tree = t; };
-    LabelTree* getTree() { return tree; };
+    void setTree(std::unique_ptr<LabelTree> t) { tree = std::move(t); };
+    LabelTree* getTree() { return tree.get(); };
     bool isTreeLoaded() { return (tree != nullptr); };
     void preload(Args& args, std::string infile) override;
 
@@ -71,7 +71,7 @@ public:
     std::vector<std::tuple<int, int, int>> getTreeStructure();
 
 protected:
-    LabelTree* tree;
+    std::unique_ptr<LabelTree> tree;
     std::vector<Base*> bases;
 
     std::vector<std::vector<int>> nodesLabels;

@@ -135,24 +135,27 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
     std::vector<std::vector<TreeNodeValue>> levelPredictions(rows);
     std::vector<std::vector<Prediction>> nodePredictions(nodes);
 
-    auto nextLevelQueue = new std::queue<TreeNode*>();
-    nextLevelQueue->push(tree->root);
+    // note: technically, these are queues, but we have well separated phases, where we first only
+    // push elements, and after that, we only pop elements; thus, we can just use a vector, which is
+    // a more efficient container.
+    std::vector<TreeNode*> nextLevelQueue;
+    std::vector<TreeNode*> levelQueue;
+    nextLevelQueue.push_back(tree->root);
     for(int i = 0; i < rows; ++i) nodePredictions[tree->root->index].emplace_back(i, 1.0);
     AbstractVector* tmpW = new Vector(features.cols());
     AbstractVector* originalW = nullptr;
 
     int nCount = 0;
-    while(!nextLevelQueue->empty()){
-
-        auto levelQueue = nextLevelQueue;
-        nextLevelQueue = new std::queue<TreeNode*>();
+    while(!nextLevelQueue.empty()) {
+        levelQueue.clear();
+        // the swap in effect empties nextLevelQueue and assignes
+        // the next level to `levelQueue` while keeping allocated
+        // memory available for reuse.
+        std::swap(nextLevelQueue, levelQueue);
 
         // Predict for level
-        while(!levelQueue->empty()){
+        for(auto n: levelQueue) {
             printProgress(nCount++, nodes);
-
-            auto n = levelQueue->front();
-            levelQueue->pop();
             int nIdx = n->index;
 
             if(!nodePredictions[nIdx].empty()){
@@ -173,7 +176,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
                     if (!labelsWeights.empty()) value *= nodesWeights[nIdx].weight;
 
                     if(n->label >= 0) prediction[rIdx].emplace_back(n->label, value); // Label prediction
-                    if(n->children.size() > 0) levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
+                    if(!n->children.empty()) levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
                 }
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
@@ -184,10 +187,8 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
                 }
             }
 
-            for(auto &c : n->children)
-                nextLevelQueue->push(c);
+            nextLevelQueue.insert(nextLevelQueue.end(), n->children.begin(), n->children.end());
         }
-        delete levelQueue;
 
         // Keep top predictions and prepare next level
         for(int rIdx = 0; rIdx < rows; ++rIdx){
@@ -218,7 +219,6 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
             v.clear();
         }
     }
-    delete nextLevelQueue;
     delete tmpW;
 
     for(int rIdx = 0; rIdx < rows; ++rIdx){

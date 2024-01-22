@@ -25,6 +25,7 @@
 #include <climits>
 #include <cmath>
 #include <list>
+#include <utility>
 #include <vector>
 
 #include "plt.h"
@@ -336,7 +337,7 @@ void PLT::setNodeWeight(TreeNode* n){
 void PLT::setThresholds(std::vector<Real> th){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    Model::setThresholds(th);
+    Model::setThresholds(std::move(th));
     calculateNodesLabels();
     if (tree->size() != nodesThr.size()) nodesThr.resize(tree->size());
     for (auto& n : tree->nodes) setNodeThreshold(n);
@@ -345,7 +346,7 @@ void PLT::setThresholds(std::vector<Real> th){
 void PLT::setLabelsWeights(std::vector<Real> lw){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    Model::setLabelsWeights(lw);
+    Model::setLabelsWeights(std::move(lw));
     calculateNodesLabels();
     if (tree->size() != nodesWeights.size()) nodesWeights.resize(tree->size());
     for (auto& n : tree->nodes) setNodeWeight(n);
@@ -416,7 +417,7 @@ void PLT::printInfo() {
         Log(COUT) << "  Evaluated estimators / data point: " << static_cast<Real>(nodeEvaluationCount) / dataPointCount << "\n";
 }
 
-void PLT::buildTree(SRMatrix& labels, SRMatrix& features, Args& args, std::string output){
+void PLT::buildTree(SRMatrix& labels, SRMatrix& features, Args& args, const std::string& output){
     delete tree;
     tree = new LabelTree();
     tree->buildTreeStructure(labels, features, args);
@@ -481,9 +482,10 @@ std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesUpdates(const SRMatr
     return nodesDataPoints;
 }
 
-void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output){
+void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, const std::string& output){
     if(tree == nullptr) tree = new LabelTree();
     tree->setTreeStructure(treeStructure);
+    tree->setTreeStructure(std::move(treeStructure));
 
     m = tree->getNumberOfLeaves();
     tree->saveToFile(joinPath(output, "tree.bin"));
@@ -512,8 +514,9 @@ void BatchPLT::train(SRMatrix& labels, SRMatrix& features, Args& args, std::stri
 
     // Train bases
     std::vector<ProblemData> binProblemData;
+    binProblemData.reserve(tree->size());
     if (type == hsm && args.pickOneLabelWeighting)
-        for(int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
+        for (int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
     else
         for (int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[0]);
 

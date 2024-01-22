@@ -63,11 +63,11 @@ public:
     void preload(Args& args, std::string infile) override;
 
     // Helpers for Python PLT Framework
-    void buildTree(SRMatrix& labels, SRMatrix& features, Args& args, std::string output);
+    void buildTree(SRMatrix& labels, SRMatrix& features, Args& args, const std::string& output);
     std::vector<std::vector<std::pair<int, Real>>> getNodesToUpdate(const SRMatrix& labels);
     std::vector<std::vector<std::pair<int, Real>>> getNodesUpdates(const SRMatrix& labels);
 
-    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output);
+    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, const std::string& output);
     std::vector<std::tuple<int, int, int>> getTreeStructure();
 
 protected:

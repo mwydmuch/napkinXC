@@ -16,11 +16,11 @@ old_aliases = {
     "amazonCat-14K": "AmazonCat-14K",
     "amazon": "Amazon-670K",
     "amazon-3M": "Amazon-3M",
-    "deliciousLarge": "Delicious-200K",
+    "deliciousLarge": "DeliciousLarge-200K",
     "eurlex": "EURLex-4K",
     "wiki10": "Wiki10-31K",
     "wikiLSHTC": "WikiLSHTC-325K",
-    "WikipediaLarge-500K": "Wikipedia-500K",
+    "WikipediaLarge-500K": "WikipediaLarge-500K",
 }
 
 if __name__ == "__main__":

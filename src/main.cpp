@@ -26,13 +26,14 @@
  Only this file should use std:cout.
  */
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 
 #include "args.h"
 #include "basic_types.h"
 #include "log.h"
-#include "measure.h"
+#include "metric.h"
 #include "misc.h"
 #include "model.h"
 #include "read_data.h"
@@ -66,7 +67,8 @@ void loadVecs(std::shared_ptr<Model> model, Args& args){
     }
 }
 
-void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::ofstream& output){
+void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::ostream& output, Args& args){
+    output << std::setprecision(args.predictionPrecision);
     for (const auto &p : predictions) {
         for (const auto &l : p) output << l.label << ":" << l.value << " ";
         output << "\n";
@@ -83,7 +85,8 @@ void train(Args& args) {
     args.saveToFile(joinPath(args.output, "args.bin"));
 
     // Create data reader and load train data
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
     Log(COUT) << "Train data statistics:"
               << "\n  Train data points: " << features.rows()
               << "\n  Uniq features: " << features.cols() - 2
@@ -123,41 +126,61 @@ void test(Args& args) {
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs("test");
 
-    // Load test data
-    readData(labels, features, args);
-    Log(COUT) << "Test data statistics:"
-              << "\n  Test data points: " << features.rows()
-              << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
-              << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
+    // Load model
+    auto resBeforeModel = getResources();
 
-    auto resAfterData = getResources();
-
-    // Load model and test
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
+    loadVecs(model, args);
 
     auto resAfterModel = getResources();
 
-    // Predict for test set
-    loadVecs(model, args);
-    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+    std::vector<std::shared_ptr<Metric>> metrics;
+    if (!args.metrics.empty()) metrics = Metric::factory(args, model->outputSize());
+
+    DataReader dataReader(args);
+    bool isAllDataRead = false;
+    int batches = 0, rows = 0, featureCells = 0, labelCells = 0;
+    do{
+        // Load batch of data
+        SRMatrix labels;
+        SRMatrix features;
+        isAllDataRead = dataReader.readData(labels, features, args, args.batchSize); 
+
+        rows += features.rows();
+        featureCells += features.cells();
+        labelCells += labels.cells();
+
+        // Predict for batch
+        std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+
+        // Output predictions
+        if(!args.prediction.empty()){
+            std::ofstream out;
+            if(batches == 0) out.open(args.prediction);
+            else out.open(args.prediction, std::ios_base::app);
+            outputPrediction(predictions, out, args);
+            out.close();
+        }
+
+        // Accumulate metrics
+        if(!metrics.empty())
+            for (auto& m : metrics) m->accumulate(labels, predictions);
+        
+        ++batches;
+    } while (!isAllDataRead);
 
     auto resAfterPrediction = getResources();
 
-    // Output predictions
-    if(!args.prediction.empty()){
-        std::ofstream out(args.prediction);
-        outputPrediction(predictions, out);
-        out.close();
-    }
+    Log(COUT) << "Test data statistics:"
+              << "\n  Test data points: " << rows
+              << "\n  Labels / data point: " << static_cast<double>(labelCells) / rows
+              << "\n  Features / data point: " << static_cast<double>(featureCells) / rows << "\n";
 
-    // Create measures, calculate and print scores
-    if(!args.measures.empty()){
-        auto measures = Measure::factory(args, model->outputSize());
-        for (auto& m : measures) m->accumulate(labels, predictions);
-
-        Log(COUT) << std::setprecision(5) << "Results:\n";
-        for (auto& m : measures){
+    // Print scores
+    if(!metrics.empty()){
+        Log(COUT) << std::setprecision(args.metricsPrecision) << "Results:\n";
+        for (auto& m : metrics){
             Log(COUT) << "  " << m->getName() << ": " << m->value();
             //if(m->isMeanMeasure()) Log(COUT) << " ± " << m->stdDev(); // Print std
             Log(COUT) << "\n";
@@ -178,9 +201,9 @@ void test(Args& args) {
               << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
               << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
               << "\n  Model real memory size (MB): "
-              << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
+              << (resAfterModel.currentRealMem - resBeforeModel.currentRealMem) / 1024
               << "\n  Model virtual memory size (MB): "
-              << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
+              << (resAfterModel.currentVirtualMem - resBeforeModel.currentVirtualMem) / 1024
               << "\n  Test peak of real memory (MB): " << resAfterPrediction.peakRealMem / 1024
               << "\n  Test peak of virtual memory (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
 }
@@ -193,26 +216,33 @@ void predict(Args& args) {
     // Load model
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
-
-    SRMatrix labels;
-    SRMatrix features;
-    readData(labels, features, args);
-
     loadVecs(model, args);
-    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
 
-    // Output predictions
-    if(!args.prediction.empty()){
-        std::ofstream out(args.prediction);
-        outputPrediction(predictions, out);
-        out.close();
-    }
+    DataReader dataReader(args);
+    bool isAllDataRead = false;
+    int batches = 0;
+    do{
+        // Load batch of data
+        SRMatrix labels;
+        SRMatrix features;
+        isAllDataRead = dataReader.readData(labels, features, args, args.batchSize); 
 
-    Log(COUT) << std::setprecision(5);
-    for (const auto &p : predictions) {
-        for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
-        Log(COUT) << "\n";
-    }
+        // Predict for batch
+        std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+
+        // Output predictions
+        if(!args.prediction.empty()){
+            std::ofstream out;
+            if(batches == 0) out.open(args.prediction);
+            else out.open(args.prediction, std::ios_base::app);
+            outputPrediction(predictions, out, args);
+            out.close();
+        } else {
+            std::cout << std::setprecision(args.predictionPrecision);
+            outputPrediction(predictions, std::cout, args);
+        }
+        ++batches;
+    } while (!isAllDataRead);
 }
 
 void ofo(Args& args) {
@@ -226,7 +256,8 @@ void ofo(Args& args) {
 
     SRMatrix labels;
     SRMatrix features;
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
 
     auto resAfterData = getResources();
 
@@ -259,7 +290,8 @@ void testPredictionTime(Args& args) {
 
     SRMatrix labels;
     SRMatrix features;
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
 
     // Read batch sizes
     std::vector<int> batchSizes;
@@ -383,16 +415,18 @@ Args:
                             used in hierarchical k-means tree building procedure (default = 0.001)
     --kmeansBalanced        Use balanced K-Means clustering (default = 1)
 
-    Prediction:
+    Prediction (also for test command):
     --topK                  Predict top-k labels (default = 5)
     --threshold             Predict labels with probability above the threshold (default = 0)
     --thresholds            Path to a file with threshold for each label, one threshold per line
     --labelsWeights         Path to a file with weight for each label, one weight per line
+    --predictionPrecision   Number of decimal digits to output for predictions (default = 5)
 
     Test:
-    --measures              Evaluate test using set of measures (default = "p@1,p@3,p@5")
+    --metrics               Evaluate test using set of metrics (default = "p@1,p@3,p@5")
                             Measures: acc (accuracy), p (precision), r (recall), c (coverage), hl (hamming loos)
                                       p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
+    --metricsPrecision      Number of decimal digits to output for metrics (default = 5)
     )HELP";
 }
 

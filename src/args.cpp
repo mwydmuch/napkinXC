@@ -119,9 +119,10 @@ Args::Args() {
     treeSearchType = exact;
     beamSearchWidth = 10;
     beamSearchUnpack = true;
+    batchSize = -1;
 
     // Measures for test command
-    measures = "p@1,p@3,p@5";
+    metrics = "p@1,p@3,p@5";
 
     // Args for OFO command
     ofoType = micro;
@@ -375,20 +376,31 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 beamSearchWidth = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--beamSearchUnpack")
                 beamSearchUnpack = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--batchSizes")
+            else if (args[ai] == "--batchSize")
+                batchSize = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--predictionPrecision")
+                predictionPrecision = std::stoi(args.at(ai + 1));
+            
+            // TestPredictionTime options
+            else if (args[ai] == "--__batchSizes")
                 batchSizes = args.at(ai + 1);
-            else if (args[ai] == "--batches")
+            else if (args[ai] == "--__batches")
                 batches = std::stoi(args.at(ai + 1));
 
-            else if (args[ai] == "--measures")
-                measures = std::string(args.at(ai + 1));
-            else if (args[ai] == "--autoCLin")
+            // Test
+            else if (args[ai] == "--measures" || args[ai] == "--metrics") // measures keep for backward compatibility
+                metrics = std::string(args.at(ai + 1));
+            else if (args[ai] == "--measuresPrecision" || args[ai] == "--metricsPrecision") // measures keep for backward compatibility
+                metricsPrecision = std::stoi(args.at(ai + 1));
+
+            // Misc
+            else if (args[ai] == "--__autoCLin")
                 autoCLin = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--autoCLog")
+            else if (args[ai] == "--__autoCLog")
                 autoCLog = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--reportLoss")
                 reportLoss = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--dummy") {}
+            else if (args[ai] == "--__dummy") {}
             else
                 throw std::invalid_argument("Unknown argument: " + args[ai]);
 

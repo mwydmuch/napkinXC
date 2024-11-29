@@ -29,10 +29,23 @@
 #include "vector.h"
 #include "matrix.h"
 
+// Libsvm, XMLCRepo and numeric VW data reader
+class DataReader {
+public:
+    DataReader(Args& args);
+    virtual ~DataReader() { if(in.is_open()) in.close(); }; 
+    bool readData(SRMatrix& labels, SRMatrix& features, Args& args, int rows = -1);
+    static void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVPair>& lFeatures);
 
-// Libsvm, XMLCRepo and numeric VW file reader
-void readData(SRMatrix& labels, SRMatrix& features, Args& args);
-void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVPair>& lFeatures);
+    static void prepareFeaturesVector(std::vector<IRVPair> &lFeatures, Real bias = 1.0);
+    static void processFeaturesVector(std::vector<IRVPair> &lFeatures, bool norm = true, size_t hashSize = 0, Real featuresThreshold = 0);
 
-void prepareFeaturesVector(std::vector<IRVPair> &lFeatures, Real bias = 1.0);
-void processFeaturesVector(std::vector<IRVPair> &lFeatures, bool norm = true, size_t hashSize = 0, Real featuresThreshold = 0);
+private:
+    std::ifstream in;
+
+    int i;
+    int hLabels;
+    int hFeatures;
+    int hRows;
+    std::string line;
+};

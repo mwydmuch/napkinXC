@@ -27,20 +27,17 @@
 #include "misc.h"
 
 
-// Reads train/test data to sparse matrix
-void readData(SRMatrix& labels, SRMatrix& features, Args& args) {
+DataReader::DataReader(Args& args) {
     if (args.input.empty())
         throw std::invalid_argument("Empty input path");
 
-    Log(CERR) << "Loading data from: " << args.input << "\n";
+    in = std::ifstream(args.input);
+    if (!in.is_open())
+        throw std::invalid_argument("Cannot open input file: " + args.input);
 
-    std::ifstream in;
-    in.open(args.input);
-    std::string line;
+    i = 1; // Line counter
+    hLabels = 0, hFeatures = 0, hRows = 0;
 
-    // Check header
-    int i = 1; // Line counter
-    int hLabels = 0, hFeatures = 0, hRows = 0;
     getline(in, line);
 
     auto hTokens = split(line, ' ');
@@ -54,14 +51,23 @@ void readData(SRMatrix& labels, SRMatrix& features, Args& args) {
             Log(CERR) << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << "\n";
         } else Log(CERR) << "  Header: rows: " << hRows << ", features: " << hFeatures << "\n";
     }
+}
+
+// Reads train/test data to sparse matrix
+bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int rows) {
     if (args.hash) hFeatures = args.hash;
 
     // Read data points
     std::vector<IRVPair> lLabels;
     std::vector<IRVPair> lFeatures;
+    int j = 0;
+    bool lineRead = true;
     if (!hRows) Log(CERR) << "  ?%\r";
     do {
         if (hRows) printProgress(i, hRows); // If the number of rows is know, print progress
+
+        if (rows > 0 && i > rows) break;
+
         lLabels.clear();
         lFeatures.clear();
 
@@ -80,13 +86,13 @@ void readData(SRMatrix& labels, SRMatrix& features, Args& args) {
         features.appendRow(lFeatures);
 
         ++i;
-    } while (getline(in, line));
-
-    in.close();
+        ++j;
+        lineRead = getline(in, line) ? true : false;
+    } while (lineRead || (rows >= 0 && j < rows));
 
     // Checks
     assert(labels.rows() == features.rows());
-    if (hRows && hRows != features.rows())
+    if (hRows && hRows != features.rows() && rows >= 0)
         Log(CERR) << "  Warning: Number of lines does not match number in the file header!\n";
     if (hLabels && hFeatures < features.cols() - 2)
         Log(CERR) << "  Warning: Number of features is bigger then number in the file header!\n";
@@ -105,10 +111,12 @@ void readData(SRMatrix& labels, SRMatrix& features, Args& args) {
     // Print info about loaded data
     Log(CERR) << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2
               << ", labels: " << labels.cols() << "\n  Data size: " << formatMem(labels.mem() + features.mem()) << "\n";
+
+    return lineRead; 
 }
 
 // Reads line in LibSvm format label,label,... feature(:value) feature(:value) ...
-void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVPair>& lFeatures) {
+void DataReader::readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVPair>& lFeatures) {
     // Trim leading spaces
     size_t nextPos, pos = line.find_first_not_of(' ');
 
@@ -130,12 +138,12 @@ void readLine(std::string& line, std::vector<IRVPair>& lLabels, std::vector<IRVP
     }
 }
 
-void prepareFeaturesVector(std::vector<IRVPair> &lFeatures, Real bias) {
+void DataReader::prepareFeaturesVector(std::vector<IRVPair> &lFeatures, Real bias) {
     // Add bias feature (bias feature has index 1)
     lFeatures.emplace_back(1, bias);
 }
 
-void processFeaturesVector(std::vector<IRVPair> &lFeatures, bool norm, size_t hashSize, Real featuresThreshold) {
+void DataReader::processFeaturesVector(std::vector<IRVPair> &lFeatures, bool norm, size_t hashSize, Real featuresThreshold) {
     //Shift index by 2 because LibLinear ignore feature 0 and feature 1 is reserved for bias
     //assert(!lFeatures.empty());
     shift(lFeatures.begin() + 1, lFeatures.end(), 2);

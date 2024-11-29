@@ -118,9 +118,12 @@ public:
     TreeSearchType treeSearchType;
     int beamSearchWidth;
     bool beamSearchUnpack;
-
+    int batchSize;
+    int predictionPrecision;
+    
     // Measures for test command
-    std::string measures;
+    std::string metrics;
+    int metricsPrecision;
 
     // Args for OFO command
     OFOType ofoType;

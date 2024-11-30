@@ -65,6 +65,10 @@ void loadVecs(std::shared_ptr<Model> model, Args& args){
         std::vector<Real> labelsWeights = loadVec(args.labelsWeights);
         model->setLabelsWeights(labelsWeights);
     }
+    if (!args.labelsBiases.empty()) { // Using labelsBiases if provided
+        std::vector<Real> labelsBiases = loadVec(args.labelsBiases);
+        model->setLabelsBiases(labelsBiases);
+    }
 }
 
 void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::ostream& output, Args& args){
@@ -295,7 +299,7 @@ void testPredictionTime(Args& args) {
 
     // Read batch sizes
     std::vector<int> batchSizes;
-    for(const auto& s : split(args.batchSizes))
+    for(const auto& s : split(args.tptBatchSizes))
         batchSizes.push_back(std::stoi(s));
 
     // Prepare rng for selecting batches
@@ -309,7 +313,7 @@ void testPredictionTime(Args& args) {
         long double timePerPoint = 0;
         long double timePerPointSq = 0;
 
-        for (int i = 0; i < args.batches; ++i) {
+        for (int i = 0; i < args.tptBatches; ++i) {
             // Generate batch
             std::vector<int> batch;
             batch.reserve(batchSize);
@@ -336,12 +340,12 @@ void testPredictionTime(Args& args) {
             timePerPointSq += timeDiff * timeDiff;
         }
 
-        long double meanTime = time / args.batches;
-        long double meanTimePerPoint = timePerPoint / args.batches;
+        long double meanTime = time / args.tptBatches;
+        long double meanTimePerPoint = timePerPoint / args.tptBatches;
         Log(COUT) << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
-                  << "\n  Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
+                  << "\n  Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.tptBatches - meanTime * meanTime)
                   << "\n  Batch " << batchSize << " test CPU time / data points (ms): " << meanTimePerPoint
-                  << "\n  Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint);
+                  << "\n  Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.tptBatches - meanTimePerPoint * meanTimePerPoint);
 
     }
     Log(COUT) << "\n";
@@ -354,7 +358,6 @@ Commands:
     train                   Train model on given input data
     test                    Test model on given input data
     predict                 Predict for given data
-    ofo                     Use online f-measure optimization
     version                 Print napkinXC version
     help                    Print help
 
@@ -462,6 +465,8 @@ int main(int argc, char** argv) {
         test(args);
     else if (command == "predict")
         predict(args);
+
+    // These commands are for experiments and are not included in the help
     else if (command == "ofo")
         ofo(args);
     else if (command == "testPredictionTime")

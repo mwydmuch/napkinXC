@@ -111,6 +111,14 @@ void Model::setLabelsWeights(std::vector<Real> lw){
 //    if(lw.size() != m)
 //        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
     labelsWeights = lw;
+    if(labelsBiases.empty()) labelsBiases = std::vector<Real>(lw.size(), 0);
+}
+
+void Model::setLabelsBiases(std::vector<Real> lb){
+//    if(lw.size() != m)
+//        throw std::invalid_argument("Size of labels' biases vector dose not match number of model outputs");
+    labelsBiases = lb;
+    if(labelsWeights.empty()) labelsWeights = std::vector<Real>(lb.size(), 0);
 }
 
 Real Model::microOfo(SRMatrix& features, SRMatrix& labels, Args& args){
@@ -219,6 +227,7 @@ std::vector<Real> Model::ofo(SRMatrix& features, SRMatrix& labels, Args& args) {
     args.threshold = 0;
     thresholds.clear();
     labelsWeights.clear();
+    labelsBiases.clear();
 
     if(args.ofoType == macro)
         thresholds = macroOfo(features, labels, args);

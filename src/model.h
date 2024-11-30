@@ -51,6 +51,8 @@ public:
 
     virtual void setLabelsWeights(std::vector<Real> lw);
     std::vector<Real> getLabelsWeights(){ return labelsWeights; };
+    virtual void setLabelsBiases(std::vector<Real> lb);
+    std::vector<Real> getLabelsBiases(){ return labelsBiases; };
 
     std::vector<Real> ofo(SRMatrix& features, SRMatrix& labels, Args& args);
     Real microOfo(SRMatrix& features, SRMatrix& labels, Args& args);
@@ -74,6 +76,7 @@ protected:
     bool loaded;
     std::vector<Real> thresholds; // For prediction with thresholds
     std::vector<Real> labelsWeights; // For prediction with label weights
+    std::vector<Real> labelsBiases; // For prediction with label weights
 
     // Base utils
     static Base* trainBase(ProblemData& problemsData, Args& args);

@@ -115,11 +115,13 @@ public:
     Real threshold;
     std::string thresholds;
     std::string labelsWeights;
+    std::string labelsBiases;
     TreeSearchType treeSearchType;
     int beamSearchWidth;
     bool beamSearchUnpack;
     int batchSize;
     int predictionPrecision;
+    bool covWeights;
     
     // Measures for test command
     std::string metrics;
@@ -135,8 +137,8 @@ public:
     double psB;
 
     // Args for testPredictionTime command
-    std::string batchSizes;
-    int batches;
+    std::string tptBatchSizes;
+    int tptBatches;
 
 private:
     std::default_random_engine rngSeeder;

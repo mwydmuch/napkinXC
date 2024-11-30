@@ -134,7 +134,7 @@ void test(Args& args) {
     // Start loop with batches
     std::vector<std::vector<Prediction>> predictions;
     do{
-        if(args.batchSize > 0){
+        if(args.batchRows > 0){
             Log(CERR) << "Processing batch " << batches << "...\n";
             Log::updateGlobalIndent(2);
         }
@@ -142,7 +142,7 @@ void test(Args& args) {
         // Load batch of data
         SRMatrix labels;
         SRMatrix features;
-        isAllDataRead = !dataReader.readData(labels, features, args, args.batchSize); 
+        isAllDataRead = !dataReader.readData(labels, features, args, args.batchRows); 
 
         rows += features.rows();
         featureCells += features.cells();
@@ -170,7 +170,13 @@ void test(Args& args) {
         predictions.clear();
         ++batches;
 
-        if(args.batchSize > 0) Log::updateGlobalIndent(-2);
+        auto resAfterBatch = getResources();
+
+        Log(COUT) << "Batch resources:"
+            << Log::newLine(2) << "Test peak of real memory (MB): " << resAfterBatch.peakRealMem / 1024
+            << Log::newLine(2) << "Test peak of virtual memory (MB): " << resAfterBatch.peakVirtualMem / 1024 << "\n";
+
+        if(args.batchRows > 0) Log::updateGlobalIndent(-2);
     } while (!isAllDataRead);
 
     auto resAfterPrediction = getResources();
@@ -225,29 +231,36 @@ void predict(Args& args) {
     bool isAllDataRead = false;
     int batches = 0;
     do{
+        if(args.batchRows > 0){
+            Log(CERR) << "Processing batch " << batches << " ...\n";
+            Log::updateGlobalIndent(2);
+        }
+
         // Load batch of data
         SRMatrix labels;
         SRMatrix features;
-        isAllDataRead = !dataReader.readData(labels, features, args, args.batchSize); 
+        isAllDataRead = !dataReader.readData(labels, features, args, args.batchRows); 
 
         // Predict for batch
-        Log(CERR) << "Predicting for batch " << batches << "... \n";
+        Log(CERR) << "Predicting ... \n";
         std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
 
         // Output predictions
         if(!args.prediction.empty()){
-            Log(CERR) << "Saving prediction for batch " << batches << "... \n";
+            Log(CERR) << "Saving prediction ... \n";
             std::ofstream out;
             if(batches == 0) out.open(args.prediction);
             else out.open(args.prediction, std::ios_base::app);
             outputPrediction(predictions, out, args);
             out.close();
         } else {
-            Log(CERR) << "Outputing prediction for batch " << batches << "... \n";
+            Log(CERR) << "Outputing prediction ... \n";
             std::cout << std::setprecision(args.predictionPrecision);
             outputPrediction(predictions, std::cout, args);
         }
         ++batches;
+
+        if(args.batchRows > 0) Log::updateGlobalIndent(-2);
     } while (!isAllDataRead);
 }
 

@@ -120,7 +120,9 @@ Args::Args() {
     treeSearchType = exact;
     beamSearchWidth = 10;
     beamSearchUnpack = true;
-    batchSize = -1;
+    batchRows = -1;
+    startRow = -1;
+    endRow = -1;
 
     // Measures for test command
     metrics = "p@1,p@3,p@5";
@@ -477,8 +479,8 @@ void Args::printArgs(std::string command) {
         Log(CERR) << "\n  Input: " << input 
         << "\n    Bias: " << bias << ", norm: " << norm
         << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
-    if (batchSize > 0)
-        Log(CERR) << "\n    Batch size: " << batchSize;
+    if (batchRows > 0)
+        Log(CERR) << "\n    Batch size: " << batchRows;
     Log(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
     if (ensemble > 1){
         Log(CERR) << ", ensemble: " << ensemble;

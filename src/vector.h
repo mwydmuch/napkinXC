@@ -606,7 +606,7 @@ public:
         vec.forEachIV([&](const int& i, Real& v) { d[i] = v; });
     }
     ~Vector() override{
-        delete d;
+        delete[] d;
     }
 
     void initD() override {

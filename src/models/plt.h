@@ -37,6 +37,7 @@ struct TreeNodeValueExt {
 class PLT : virtual public Model {
 public:
     PLT();
+    ~PLT() override { unload(); }
 
     void predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) override;
     Real predictForLabel(Label label, SparseVector& features, Args& args) override;

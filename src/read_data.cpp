@@ -53,12 +53,12 @@ DataReader::DataReader(Args& args) {
     }
 
     if(args.startRow > args.endRow) 
-        throw std::invalid_argument("Start row " + args.startRow + " is bigger then end row " + args.endRow);
+        throw std::invalid_argument("Start row " + std::to_string(args.startRow) + " is bigger then end row " + std::to_string(args.endRow));
 
     if(args.startRow > 0) {
         while(rowsRead <= args.startRow){
             if(!getline(in, line))
-                throw std::invalid_argument("File ended before reaching start row " + args.startRow + ", only " + rowsRead + " rows found");
+                throw std::invalid_argument("File ended before reaching start row " + std::to_string(args.startRow) + ", only " + std::to_string(rowsRead) + " rows found");
             ++linesRead;
             ++rowsRead;
         }
@@ -74,9 +74,14 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
     std::vector<IRVPair> lFeatures;
     int i = 0;
     bool lineRead = true;
-    if (!hRows) Log(CERR) << "  ?%\r";
+    if (!hRows) Log(CERR, 2) << "?%\r";
     do {
-        if (hRows) printProgress(i, hRows); // If the number of rows is know, print progress
+        // If the number of rows is know, print progress
+        if (hRows){
+            if (rows < 0) printProgress(rowsRead, hRows);
+            else if (rows >= 0) printProgress(i, std::min(rowsRead + rows, hRows));
+        }
+        else if (rows >= 0) printProgress(i, rows); 
 
         lLabels.clear();
         lFeatures.clear();

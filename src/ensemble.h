@@ -48,6 +48,7 @@ public:
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix& features, Args& args) override;
 
     void setLabelsWeights(std::vector<Real> lw) override;
+    void setLabelsBiases(std::vector<Real> lb) override;
 
     void load(Args& args, std::string infile) override;
 
@@ -161,7 +162,6 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
         if (args.ensOnTheTrot) delete tmpMember;
     }
 
-
     std::vector<std::vector<Prediction>> predictions(rows);
 
     // Predict missing predictions for specific labels
@@ -178,6 +178,7 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
                 }
             }
 
+            tmpMember->unload();
             if (args.ensOnTheTrot) delete tmpMember;
         }
 
@@ -204,7 +205,8 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
 }
 
 template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& infile, int memberNo) {
-    Log(CERR) << "  Loading ensemble member number " << memberNo << " ...\n";
+    Log(CERR) << "Loading ensemble member " << memberNo << " ...\n";
+    Log::updateGlobalIndent(2);
     assert(memberNo < args.ensemble);
     T* member = new T();
     member->load(args, joinPath(infile, "member_" + std::to_string(memberNo)));
@@ -212,18 +214,26 @@ template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& 
     if(!labelsWeights.empty())
         member->setLabelsWeights(labelsWeights);
 
+    if(!labelsBiases.empty())
+        member->setLabelsBiases(labelsBiases);
+
+    Log::updateGlobalIndent(-2);
     return member;
 }
 
 template <typename T> void Ensemble<T>::load(Args& args, std::string infile) {
     if (!args.ensOnTheTrot) {
         Log(CERR) << "Loading ensemble of " << args.ensemble << " models ...\n";
+        Log::updateGlobalIndent(2);
         for (int i = 0; i < args.ensemble; ++i) members.push_back(loadMember(args, infile, i));
         m = members[0]->outputSize();
+        Log::updateGlobalIndent(-2);
     } else {
+        Log::updateGlobalIndent(2);
         T* member = loadMember(args, infile, 0);
         m = member->outputSize();
         delete member;
+        Log::updateGlobalIndent(-2);
     }
 }
 
@@ -234,4 +244,11 @@ template <typename T> void Ensemble<T>::setLabelsWeights(std::vector<Real> lw){
     if (members.size())
         for (size_t i = 0; i < members.size(); ++i)
             members[i]->setLabelsWeights(lw);
+}
+
+template <typename T> void Ensemble<T>::setLabelsBiases(std::vector<Real> lb){
+    Model::setLabelsBiases(lb);
+    if (members.size())
+        for (size_t i = 0; i < members.size(); ++i)
+            members[i]->setLabelsBiases(lb);
 }

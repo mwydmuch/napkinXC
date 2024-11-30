@@ -417,6 +417,7 @@ void PLT::preload(Args& args, std::string infile){
 void PLT::load(Args& args, std::string infile) {
     Log(CERR) << "Loading " << name << " model ...\n";
 
+    Log::updateGlobalIndent(2);
     preload(args, infile);
     bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadAs);
 
@@ -424,6 +425,7 @@ void PLT::load(Args& args, std::string infile) {
     m = tree->getNumberOfLeaves();
 
     loaded = true;
+    Log::updateGlobalIndent(-2);
 }
 
 void PLT::printInfo() {

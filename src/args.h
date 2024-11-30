@@ -119,7 +119,9 @@ public:
     TreeSearchType treeSearchType;
     int beamSearchWidth;
     bool beamSearchUnpack;
-    int batchSize;
+    int batchRows;
+    int startRow;
+    int endRow;
     int predictionPrecision;
     bool covWeights;
     

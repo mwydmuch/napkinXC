@@ -154,7 +154,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 
         try {
             if (args[ai] == "--verbose")
-                logLevel = static_cast<LogLevel>(std::stoi(args.at(ai + 1)));
+                Log::setLogLevel(static_cast<LogLevel>(std::stoi(args.at(ai + 1))));
 
             else if (args[ai] == "--seed") {
                 seed = std::stoi(args.at(ai + 1));
@@ -385,8 +385,12 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 beamSearchWidth = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--beamSearchUnpack")
                 beamSearchUnpack = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--batchSize")
-                batchSize = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--batchRows")
+                batchRows = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--startRow")
+                startRow = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--endRow")
+                endRow = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--predictionPrecision")
                 predictionPrecision = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--covWeights")
@@ -470,13 +474,16 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 void Args::printArgs(std::string command) {
     Log(CERR) << "napkinXC " << VERSION << " - " << command;
     if (!input.empty())
-        Log(CERR) << "\n  Input: " << input << "\n    Bias: " << bias << ", norm: " << norm
+        Log(CERR) << "\n  Input: " << input 
+        << "\n    Bias: " << bias << ", norm: " << norm
         << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
+    if (batchSize > 0)
+        Log(CERR) << "\n    Batch size: " << batchSize;
     Log(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
     if (ensemble > 1){
         Log(CERR) << ", ensemble: " << ensemble;
         if (command == "test" || command == "predict")
-            Log(CERR) << ", onTheTrot: " << ensOnTheTrot << ", missingScores" << ensMissingScores;
+            Log(CERR) << ", sequantial ens. pred.: " << ensOnTheTrot << ", predict missing scores: " << ensMissingScores;
     }
 
     if (command == "train") {

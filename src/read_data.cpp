@@ -35,21 +35,33 @@ DataReader::DataReader(Args& args) {
     if (!in.is_open())
         throw std::invalid_argument("Cannot open input file: " + args.input);
 
-    i = 1; // Line counter
     hLabels = 0, hFeatures = 0, hRows = 0;
 
     getline(in, line);
+    rowsRead = linesRead = 1;
 
     auto hTokens = split(line, ' ');
     if(hTokens.size() == 2 || hTokens.size() == 3) {
         hRows = std::stoi(hTokens[0]);
         hFeatures = std::stoi(hTokens[1]);
         getline(in, line);
-        ++i;
+        ++linesRead;
         if(hTokens.size() == 3) {
             hLabels = std::stoi(hTokens[2]);
-            Log(CERR) << "  Header: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << "\n";
-        } else Log(CERR) << "  Header: rows: " << hRows << ", features: " << hFeatures << "\n";
+            Log(CERR, 2) << "Header detected: rows: " << hRows << ", features: " << hFeatures << ", labels: " << hLabels << "\n";
+        } else Log(CERR, 2) << "Header detected: rows: " << hRows << ", features: " << hFeatures << "\n";
+    }
+
+    if(args.startRow > args.endRow) 
+        throw std::invalid_argument("Start row " + args.startRow + " is bigger then end row " + args.endRow);
+
+    if(args.startRow > 0) {
+        while(rowsRead <= args.startRow){
+            if(!getline(in, line))
+                throw std::invalid_argument("File ended before reaching start row " + args.startRow + ", only " + rowsRead + " rows found");
+            ++linesRead;
+            ++rowsRead;
+        }
     }
 }
 
@@ -60,13 +72,11 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
     // Read data points
     std::vector<IRVPair> lLabels;
     std::vector<IRVPair> lFeatures;
-    int j = 0;
+    int i = 0;
     bool lineRead = true;
     if (!hRows) Log(CERR) << "  ?%\r";
     do {
         if (hRows) printProgress(i, hRows); // If the number of rows is know, print progress
-
-        if (rows > 0 && i > rows) break;
 
         lLabels.clear();
         lFeatures.clear();
@@ -76,7 +86,7 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
         try {
             readLine(line, lLabels, lFeatures);
         } catch (const std::exception& e) {
-            Log(CERR) << "  Failed to read line " << i << ", skipping!\n";
+            Log(CERR, 2) << "Failed to read line " << lineRead << ", skipping!\n";
             continue;
         }
 
@@ -85,19 +95,23 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
 
+        ++rowsRead;
+        ++linesRead;
         ++i;
-        ++j;
+
         lineRead = getline(in, line) ? true : false;
-    } while (lineRead || (rows >= 0 && j < rows));
+        if(args.endRow > 0 && rowsRead >= args.endRow) lineRead = false;
+        
+    } while (lineRead && (rows >= 0 && i < rows));
 
     // Checks
     assert(labels.rows() == features.rows());
-    if (hRows && hRows != features.rows() && rows >= 0)
-        Log(CERR) << "  Warning: Number of lines does not match number in the file header!\n";
+    if (hRows && hRows != features.rows() && rows < 0)
+        Log(CERR, 2) << "Warning: Number of lines does not match number in the file header!\n";
     if (hLabels && hFeatures < features.cols() - 2)
-        Log(CERR) << "  Warning: Number of features is bigger then number in the file header!\n";
+        Log(CERR, 2) << "Warning: Number of features is bigger then number in the file header!\n";
     if (hFeatures && hLabels < labels.cols())
-        Log(CERR) << "  Warning: Number of labels is bigger then number in the file header!\n";
+        Log(CERR, 2) << "Warning: Number of labels is bigger then number in the file header!\n";
 
     // Print data
     /*
@@ -109,7 +123,7 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
     */
 
     // Print info about loaded data
-    Log(CERR) << "  Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2
+    Log(CERR) << "Loaded: rows: " << labels.rows() << ", features: " << features.cols() - 2
               << ", labels: " << labels.cols() << "\n  Data size: " << formatMem(labels.mem() + features.mem()) << "\n";
 
     return lineRead; 

@@ -36,7 +36,7 @@ void OnlineModel::onlineTrainThread(int threadId, OnlineModel* model, SRMatrix& 
         int e = i / rowsRange;
         model->update(e, r, labels[r], features[r], args);
 
-        if(!threadId && logLevel >= CERR_DEBUG && i % (examples / 100) == 0){
+        if(!threadId && Log::getLogLevel() >= CERR_DEBUG && i % (examples / 100) == 0){
             auto res = getResources();
             Log(COUT) << "  R mem (MB): " << res.currentRealMem / 1024
                       << ", V mem (MB): " << res.currentVirtualMem / 1024

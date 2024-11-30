@@ -43,7 +43,8 @@ public:
 private:
     std::ifstream in;
 
-    int i;
+    int linesRead; // Number of lines read from the file
+    int rowsRead; // Number of rows read from the file
     int hLabels;
     int hFeatures;
     int hRows;

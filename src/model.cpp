@@ -333,6 +333,7 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
 }
 
 std::vector<Base*> Model::loadBases(std::string infile, bool resume, RepresentationType loadAs) {
+    Log::updateGlobalIndent(2);
     Log(CERR) << "Loading base estimators ...\n";
 
     Real nonZeroSum = 0;
@@ -356,9 +357,10 @@ std::vector<Base*> Model::loadBases(std::string infile, bool resume, Representat
     }
     in.close();
 
-    Log(CERR) << "  Loaded bases: " << size
-              << "\n  Bases size: " << formatMem(memSize) << "\n  Non zero weights / bases: " << nonZeroSum / size
-              << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << "\n";
+    Log(CERR, 2) << "Loaded bases: " << size
+              << Log::newLine(2) << "Bases size: " << formatMem(memSize) << "\n  Non zero weights / bases: " << nonZeroSum / size
+              << Log::newLine(2) << "Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << "\n";
 
+    Log::updateGlobalIndent(-2);
     return bases;
 }

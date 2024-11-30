@@ -40,23 +40,8 @@
 #include "resources.h"
 #include "version.h"
 
-std::vector<Real> loadVec(std::string infile){
-    std::vector<Real> vec;
-    std::ifstream in(infile);
-    Real v;
-    while (in >> v) vec.push_back(v);
-    return vec;
-}
 
-void saveVec(std::vector<Real>& vec, std::string outfile){
-    std::ofstream out(outfile);
-    for(auto v : vec)
-        out << v << "\n";
-    out.close();
-}
-
-void loadVecs(std::shared_ptr<Model> model, Args& args){
-    std::vector<std::vector<Prediction>> predictions;
+void loadThWBVecs(std::shared_ptr<Model> model, Args& args){
     if (!args.thresholds.empty()) { // Using thresholds if provided
         std::vector<Real> thresholds = loadVec(args.thresholds);
         model->setThresholds(thresholds);
@@ -70,6 +55,7 @@ void loadVecs(std::shared_ptr<Model> model, Args& args){
         model->setLabelsBiases(labelsBiases);
     }
 }
+
 
 void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::ostream& output, Args& args){
     output << std::setprecision(args.predictionPrecision);
@@ -102,7 +88,7 @@ void train(Args& args) {
 
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = Model::factory(args);
-    loadVecs(model, args);
+    loadThWBVecs(model, args);
     model->train(labels, features, args, args.output);
     model->printInfo();
 
@@ -135,7 +121,7 @@ void test(Args& args) {
 
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
-    loadVecs(model, args);
+    loadThWBVecs(model, args);
 
     auto resAfterModel = getResources();
 
@@ -220,7 +206,7 @@ void predict(Args& args) {
     // Load model
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
-    loadVecs(model, args);
+    loadThWBVecs(model, args);
 
     DataReader dataReader(args);
     bool isAllDataRead = false;

@@ -94,3 +94,8 @@ void makeDir(const std::string& dirname);
 
 // Remove file or directory
 void remove(const std::string& path);
+
+// Save/load vector of numbers
+std::vector<Real> loadVec(std::string infile);
+
+void saveVec(std::vector<Real>& vec, std::string outfile);

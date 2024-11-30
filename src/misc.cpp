@@ -189,3 +189,19 @@ void checkDirName(const std::string& dirname) {
 void makeDir(const std::string& dirname) {
     if(!std::filesystem::exists(dirname)) std::filesystem::create_directories(dirname);
 }
+
+// Save/load vector of numbers
+std::vector<Real> loadVec(std::string infile){
+    std::vector<Real> vec;
+    std::ifstream in(infile);
+    Real v;
+    while (in >> v) vec.push_back(v);
+    return vec;
+}
+
+void saveVec(std::vector<Real>& vec, std::string outfile){
+    std::ofstream out(outfile);
+    for(auto v : vec)
+        out << v << "\n";
+    out.close();
+}

@@ -74,14 +74,19 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
     std::vector<IRVPair> lFeatures;
     int i = 0;
     bool lineRead = true;
-    if (!hRows) Log(CERR, 2) << "?%\r";
+    int rowsToRead = 0;
+    if (hRows){
+        if (rows < 0) rowsToRead = hRows;
+        else if (rows >= 0) rowsToRead = std::min(rowsRead + rows, hRows) - rowsRead;
+    }
+    else if (rows >= 0) rowsToRead = rows;
+
+    if (rowsToRead > 0) Log(CERR) << "Reading " << rowsToRead << " rows ... \n";
+    else Log(CERR) << "Reading rows ... \n" << Log::newLine(2) << "?%\r";
+
     do {
         // If the number of rows is know, print progress
-        if (hRows){
-            if (rows < 0) printProgress(rowsRead, hRows);
-            else if (rows >= 0) printProgress(i, std::min(rowsRead + rows, hRows));
-        }
-        else if (rows >= 0) printProgress(i, rows); 
+        if (rowsToRead > 0) printProgress(i, rowsToRead);
 
         lLabels.clear();
         lFeatures.clear();
@@ -107,9 +112,10 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
         lineRead = getline(in, line) ? true : false;
         if(args.endRow > 0 && rowsRead >= args.endRow) lineRead = false;
         
-    } while (lineRead && (rows >= 0 && i < rows));
-
+    } while (lineRead && i < rowsToRead);
+    
     // Checks
+    assert(i == rowsToRead);
     assert(labels.rows() == features.rows());
     if (hRows && hRows != features.rows() && rows < 0)
         Log(CERR, 2) << "Warning: Number of lines does not match number in the file header!\n";

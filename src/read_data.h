@@ -39,6 +39,7 @@ public:
 
     static void prepareFeaturesVector(std::vector<IRVPair> &lFeatures, Real bias = 1.0);
     static void processFeaturesVector(std::vector<IRVPair> &lFeatures, bool norm = true, size_t hashSize = 0, Real featuresThreshold = 0);
+    static void processLabelsVector(std::vector<IRVPair> &lLabels);
 
 private:
     std::ifstream in;

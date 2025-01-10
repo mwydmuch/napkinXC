@@ -100,7 +100,10 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
             continue;
         }
 
-        if(args.processData) processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
+        if(args.processData) {
+            processFeaturesVector(lFeatures, args.norm, args.hash, args.featuresThreshold);
+            processLabelsVector(lLabels);
+        }
 
         labels.appendRow(lLabels);
         features.appendRow(lFeatures);
@@ -191,6 +194,11 @@ void DataReader::processFeaturesVector(std::vector<IRVPair> &lFeatures, bool nor
 
     // Check if it requires sorting
     if (!std::is_sorted(lFeatures.begin(), lFeatures.end(), IRVPairIndexComp())) sort(lFeatures.begin(), lFeatures.end(), IRVPairIndexComp());
+}
+
+void DataReader::processLabelsVector(std::vector<IRVPair> &lLabels) {
+    // Check if it requires sorting
+    if (!std::is_sorted(lLabels.begin(), lLabels.end(), IRVPairIndexComp())) sort(lLabels.begin(), lLabels.end(), IRVPairIndexComp());
 }
 
 

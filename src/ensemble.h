@@ -74,14 +74,18 @@ template <typename T> Ensemble<T>::~Ensemble() {
 template <typename T>
 void Ensemble<T>::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) {
     Log(CERR) << "Training ensemble of " << args.ensemble << " models ...\n";
-
+    Log::updateGlobalIndent(2);
     for (int i = 0; i < args.ensemble; ++i) {
+        Log(CERR) << "Training ensemble " << i << " ...\n";
+        Log::updateGlobalIndent(2);
         std::string memberDir = joinPath(output, "member_" + std::to_string(i));
         makeDir(memberDir);
         T* member = new T();
         member->train(labels, features, args, memberDir);
         delete member;
+        Log::updateGlobalIndent(-2);
     }
+    Log::updateGlobalIndent(-2);
 }
 
 template <typename T>

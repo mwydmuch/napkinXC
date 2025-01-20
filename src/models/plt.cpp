@@ -170,7 +170,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
                     Real value = prob;
 
                     // Reweight score
-                    if (!labelsWeights.empty()) value *= nodesWeights[nIdx].weight;
+                    if (!labelsWeights.empty()) value *= nodesWeights[nIdx].value + nodesBiases[nIdx].value;
 
                     if(n->label >= 0) prediction[rIdx].emplace_back(n->label, value); // Label prediction
                     if(n->children.size() > 0) levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
@@ -196,7 +196,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
             if(!thresholds.empty()){
                 int j = 0;
                 for(int i = 0; i < v.size(); ++i){
-                    if(v[i].value > nodesThr[v[i].node->index].th)
+                    if(v[i].value > nodesThr[v[i].node->index].value)
                         v[j++] = v[i];
                 }
                 v.resize(j - 1);
@@ -249,7 +249,7 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
         };
     else if(thresholds.size())
         ifAddToQueue = [&] (TreeNode* node, Real prob) {
-            return (prob >= nodesThr[node->index].th);
+            return (prob >= nodesThr[node->index].value);
         };
 
     std::function<Real(TreeNode*, Real)> calculateValue = [&] (TreeNode* node, Real prob) {
@@ -258,7 +258,7 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
 
     if (!labelsWeights.empty())
         calculateValue = [&] (TreeNode* node, Real prob) {
-            return prob * nodesWeights[node->index].weight;
+            return prob * nodesWeights[node->index].value + nodesBiases[node->index].value;
         };
 
     // Predict for root
@@ -312,23 +312,34 @@ void PLT::calculateNodesLabels(){
 void PLT::setNodeThreshold(TreeNode* n){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    TreeNodeThrExt& nTh = nodesThr[n->index];
-    nTh.th = 1;
+    TreeNodeValueExt& nTh = nodesThr[n->index];
+    nTh.value = std::numeric_limits<Real>::min();
     for (auto &l : nodesLabels[n->index]) {
-        if (thresholds[l] < nTh.th) {
-            nTh.th = thresholds[l];
+        if (thresholds[l] < nTh.value) {
+            nTh.value = thresholds[l];
             nTh.label = l;
         }
     }
 }
 
 void PLT::setNodeWeight(TreeNode* n){
-    TreeNodeWeightsExt& nW = nodesWeights[n->index];
-    nW.weight = 0;
+    TreeNodeValueExt& nW = nodesWeights[n->index];
+    nW.value = std::numeric_limits<Real>::min();
     for (auto &l : nodesLabels[n->index]) {
-        if (labelsWeights[l] > nW.weight) {
-            nW.weight = labelsWeights[l];
+        if (labelsWeights[l] > nW.value) {
+            nW.value = labelsWeights[l];
             nW.label = l;
+        }
+    }
+}
+
+void PLT::setNodeBias(TreeNode* n){
+    TreeNodeValueExt& nB = nodesBiases[n->index];
+    nB.value = std::numeric_limits<Real>::max();
+    for (auto &l : nodesLabels[n->index]) {
+        if (labelsBiases[l] > nB.value) {
+            nB.value = labelsBiases[l];
+            nB.label = l;
         }
     }
 }
@@ -351,18 +362,27 @@ void PLT::setLabelsWeights(std::vector<Real> lw){
     for (auto& n : tree->nodes) setNodeWeight(n);
 }
 
+void PLT::setLabelsBiases(std::vector<Real> lb){
+    if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
+
+    Model::setLabelsBiases(lb);
+    calculateNodesLabels();
+    if (tree->size() != nodesBiases.size()) nodesBiases.resize(tree->size());
+    for (auto& n : tree->nodes) setNodeBias(n);
+}
+
 void PLT::updateThresholds(UnorderedMap<int, Real> thToUpdate){
     for(auto& th : thToUpdate)
         thresholds[th.first] = th.second;
 
     for(auto& th : thToUpdate){
         TreeNode* n = tree->leaves[th.first];
-        TreeNodeThrExt& nTh = nodesThr[n->index];
+        TreeNodeValueExt& nTh = nodesThr[n->index];
         while(n != tree->root){
-            if(th.second < nTh.th){
-                nTh.th = th.second;
+            if(th.second < nTh.value){
+                nTh.value = th.second;
                 nTh.label = th.first;
-            } else if (th.first == nTh.label && th.second > nTh.th){
+            } else if (th.first == nTh.label && th.second > nTh.value){
                 setNodeThreshold(n);
             }
             n = n->parent;
@@ -397,6 +417,7 @@ void PLT::preload(Args& args, std::string infile){
 void PLT::load(Args& args, std::string infile) {
     Log(CERR) << "Loading " << name << " model ...\n";
 
+    Log::updateGlobalIndent(2);
     preload(args, infile);
     bases = loadBases(joinPath(infile, "weights.bin"), args.resume, args.loadAs);
 
@@ -404,6 +425,7 @@ void PLT::load(Args& args, std::string infile) {
     m = tree->getNumberOfLeaves();
 
     loaded = true;
+    Log::updateGlobalIndent(-2);
 }
 
 void PLT::printInfo() {

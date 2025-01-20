@@ -29,6 +29,7 @@
 class BR : public Model {
 public:
     BR();
+    ~BR() override { unload(); }
 
     void train(SRMatrix& labels, SRMatrix& features, Args& args, std::string output) override;
     void predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) override;

@@ -115,13 +115,17 @@ Args::Args() {
     threshold = 0.0;
     thresholds = "";
     labelsWeights = "";
+    labelsBiases = "";
     treeSearchName = "exact";
     treeSearchType = exact;
     beamSearchWidth = 10;
     beamSearchUnpack = true;
+    batchRows = -1;
+    startRow = -1;
+    endRow = -1;
 
     // Measures for test command
-    measures = "p@1,p@3,p@5";
+    metrics = "p@1,p@3,p@5";
 
     // Args for OFO command
     ofoType = micro;
@@ -134,8 +138,8 @@ Args::Args() {
     psB = 1.5;
 
     // Args for testPredictionTime command
-    batchSizes = "100,1000,10000";
-    batches = 10;
+    tptBatchSizes = "100,1000,10000";
+    tptBatches = 10;
 }
 
 // Parse args
@@ -152,7 +156,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 
         try {
             if (args[ai] == "--verbose")
-                logLevel = static_cast<LogLevel>(std::stoi(args.at(ai + 1)));
+                Log::setLogLevel(static_cast<LogLevel>(std::stoi(args.at(ai + 1))));
 
             else if (args[ai] == "--seed") {
                 seed = std::stoi(args.at(ai + 1));
@@ -284,6 +288,12 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 l2Penalty = std::stof(args.at(ai + 1));
             else if (args[ai] == "--dims")
                 dims = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--autoCLin")
+                autoCLin = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--autoCLog")
+                autoCLog = std::stoi(args.at(ai + 1)) != 0;
+            else if (args[ai] == "--reportLoss")
+                reportLoss = std::stoi(args.at(ai + 1)) != 0;
 
             // Tree options
             else if (args[ai] == "-a" || args[ai] == "--arity")
@@ -361,6 +371,8 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 thresholds = std::string(args.at(ai + 1));
             else if (args[ai] == "--labelsWeights")
                 labelsWeights = std::string(args.at(ai + 1));
+            else if (args[ai] == "--labelsBiases")
+                labelsWeights = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensMissingScores")
                 ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--treeSearchType") {
@@ -375,20 +387,31 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 beamSearchWidth = std::stoi(args.at(ai + 1));
             else if (args[ai] == "--beamSearchUnpack")
                 beamSearchUnpack = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--batchSizes")
-                batchSizes = args.at(ai + 1);
-            else if (args[ai] == "--batches")
-                batches = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--batchRows")
+                batchRows = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--startRow")
+                startRow = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--endRow")
+                endRow = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--predictionPrecision")
+                predictionPrecision = std::stoi(args.at(ai + 1));
+            else if (args[ai] == "--covWeights")
+                covWeights = std::stoi(args.at(ai + 1)) != 0;
+            
+            // TestPredictionTime options
+            else if (args[ai] == "--tptBatchSizes")
+                tptBatchSizes = args.at(ai + 1);
+            else if (args[ai] == "--tptBatches")
+                tptBatches = std::stoi(args.at(ai + 1));
 
-            else if (args[ai] == "--measures")
-                measures = std::string(args.at(ai + 1));
-            else if (args[ai] == "--autoCLin")
-                autoCLin = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--autoCLog")
-                autoCLog = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--reportLoss")
-                reportLoss = std::stoi(args.at(ai + 1)) != 0;
-            else if (args[ai] == "--dummy") {}
+            // Test
+            else if (args[ai] == "--measures" || args[ai] == "--metrics") // measures keep for backward compatibility
+                metrics = std::string(args.at(ai + 1));
+            else if (args[ai] == "--measuresPrecision" || args[ai] == "--metricsPrecision") // measures keep for backward compatibility
+                metricsPrecision = std::stoi(args.at(ai + 1));
+
+            // Misc
+            else if (args[ai] == "--dummy") {}  // Dummy argument, do nothing
             else
                 throw std::invalid_argument("Unknown argument: " + args[ai]);
 
@@ -453,13 +476,16 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 void Args::printArgs(std::string command) {
     Log(CERR) << "napkinXC " << VERSION << " - " << command;
     if (!input.empty())
-        Log(CERR) << "\n  Input: " << input << "\n    Bias: " << bias << ", norm: " << norm
+        Log(CERR) << "\n  Input: " << input 
+        << "\n    Bias: " << bias << ", norm: " << norm
         << ", hash size: " << hash << ", features threshold: " << featuresThreshold;
+    if (batchRows > 0)
+        Log(CERR) << "\n    Batch size: " << batchRows;
     Log(CERR) << "\n  Model: " << output << "\n    Type: " << modelName;
     if (ensemble > 1){
         Log(CERR) << ", ensemble: " << ensemble;
         if (command == "test" || command == "predict")
-            Log(CERR) << ", onTheTrot: " << ensOnTheTrot << ", missingScores" << ensMissingScores;
+            Log(CERR) << ", sequantial ens. pred.: " << ensOnTheTrot << ", predict missing scores: " << ensMissingScores;
     }
 
     if (command == "train") {

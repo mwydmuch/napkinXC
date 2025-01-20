@@ -27,96 +27,96 @@
 #include <mutex>
 #include <string>
 
-#include "measure.h"
+#include "metric.h"
 
 
-std::vector<std::shared_ptr<Measure>> Measure::factory(Args& args, int outputSize) {
-    std::vector<std::shared_ptr<Measure>> measures;
+std::vector<std::shared_ptr<Metric>> Metric::factory(Args& args, int outputSize) {
+    std::vector<std::shared_ptr<Metric>> metrics;
 
-    std::vector<std::string> measuresNames = split(toLower(args.measures), ',');
-    for (const auto& m : measuresNames) {
+    std::vector<std::string> metricsNames = split(toLower(args.metrics), ',');
+    for (const auto& m : metricsNames) {
         // TODO: Add wrong values handling
         std::vector<std::string> mAt = split(m, '@');
         if (mAt.size() > 1) {
             int k = std::stoi(mAt[1]);
             if (mAt[0] == "p" || mAt[0] == "precision")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PrecisionAtK>(k)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<PrecisionAtK>(k)));
             else if (mAt[0] == "r" || mAt[0] == "recall")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<RecallAtK>(k)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<RecallAtK>(k)));
             else if (mAt[0] == "dcg")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<DCGAtK>(k)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<DCGAtK>(k)));
             else if (mAt[0] == "ndcg")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<NDCGAtK>(k)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<NDCGAtK>(k)));
             else if (mAt[0] == "c" || mAt[0] == "coverage")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<CoverageAtK>(outputSize, k)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<CoverageAtK>(outputSize, k)));
             else if (mAt[0] == "tp")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<TruePositivesAtK>(k)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<TruePositivesAtK>(k)));
             else
                 throw std::invalid_argument("Unknown measure type: " + mAt[0]);
         } else {
             if (m == "p" || m =="precision")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Precision>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<Precision>()));
             else if (m == "r" || m =="recall")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Recall>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<Recall>()));
             else if (m == "samplef1")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<SampleF1>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<SampleF1>()));
             else if (m == "microf1")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MicroF1>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<MicroF1>()));
             else if (m == "macrof1")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<MacroF1>(outputSize)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<MacroF1>(outputSize)));
             else if (m == "c" || m == "coverage")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Coverage>(outputSize)));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<Coverage>(outputSize)));
             else if (m == "acc" || m == "accuracy")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<Accuracy>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<Accuracy>()));
             else if (m == "s" || m == "size")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<PredictionSize>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<PredictionSize>()));
             else if (m == "hl")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<HammingLoss>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<HammingLoss>()));
             else if (m == "tp")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<TruePositives>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<TruePositives>()));
             else if (m == "fp")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalsePositives>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<FalsePositives>()));
             else if (m == "fn")
-                measures.push_back(std::static_pointer_cast<Measure>(std::make_shared<FalseNegatives>()));
+                metrics.push_back(std::static_pointer_cast<Metric>(std::make_shared<FalseNegatives>()));
             else
                 throw std::invalid_argument("Unknown measure type: " + m + "!");
         }
     }
 
-    return measures;
+    return metrics;
 }
 
-Measure::Measure() {
+Metric::Metric() {
     sum = 0;
     sumSq = 0;
     count = 0;
 }
 
-void Measure::accumulate(SRMatrix& labels, std::vector<std::vector<Prediction>>& predictions) {
+void Metric::accumulate(SRMatrix& labels, std::vector<std::vector<Prediction>>& predictions) {
     assert(predictions.size() == labels.rows());
     for (int i = 0; i < labels.rows(); ++i) accumulate(labels[i], predictions[i]);
 }
 
-double Measure::value() { return sum / count; }
+double Metric::value() { return sum / count; }
 
-double Measure::stdDev() {
+double Metric::stdDev() {
     double m = mean();
     return sumSq / count - m * m;
 }
 
-void Measure::addValue(double value){
+void Metric::addValue(double value){
     sum += value;
     sumSq += value * value;
     ++count;
 }
 
-MeasureAtK::MeasureAtK(int k) : k(k) {
+MetricAtK::MetricAtK(int k) : k(k) {
     if (k < 1) throw std::invalid_argument("K cannot be lower then 1!");
 }
 
-TruePositivesAtK::TruePositivesAtK(int k) : MeasureAtK(k) {
+TruePositivesAtK::TruePositivesAtK(int k) : MetricAtK(k) {
     name = "TP@";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void TruePositivesAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -138,7 +138,7 @@ double TruePositivesAtK::calculate(SparseVector& labels, const std::vector<Predi
 
 TruePositives::TruePositives() {
     name = "TP";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void TruePositives::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -151,7 +151,7 @@ double TruePositives::calculate(SparseVector& labels, const std::vector<Predicti
 
 FalsePositives::FalsePositives() {
     name = "FP";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void FalsePositives::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -177,7 +177,7 @@ double FalsePositives::calculate(SparseVector& labels, const std::vector<Predict
 
 FalseNegatives::FalseNegatives() {
     name = "FN";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void FalseNegatives::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -204,7 +204,7 @@ double FalseNegatives::calculate(SparseVector& labels, const std::vector<Predict
 
 Recall::Recall() {
     name = "Recall";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void Recall::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -212,9 +212,9 @@ void Recall::accumulate(SparseVector& labels, const std::vector<Prediction>& pre
     if(labels.nonZero()) addValue(tp / labels.nonZero());
 }
 
-RecallAtK::RecallAtK(int k) : MeasureAtK(k) {
+RecallAtK::RecallAtK(int k) : MetricAtK(k) {
     name = "R@" + std::to_string(k);
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void RecallAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -224,7 +224,7 @@ void RecallAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& 
 
 Precision::Precision() {
     name = "Precision";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void Precision::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -232,18 +232,18 @@ void Precision::accumulate(SparseVector& labels, const std::vector<Prediction>& 
     if (!prediction.empty()) addValue(tp / prediction.size());
 }
 
-PrecisionAtK::PrecisionAtK(int k) : MeasureAtK(k) {
+PrecisionAtK::PrecisionAtK(int k) : MetricAtK(k) {
     name = "P@" + std::to_string(k);
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void PrecisionAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
     addValue(TruePositivesAtK::calculate(labels, prediction, k) / k);
 }
 
-DCGAtK::DCGAtK(int k) : MeasureAtK(k) {
+DCGAtK::DCGAtK(int k) : MetricAtK(k) {
     name = "DCG@" + std::to_string(k);
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void DCGAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -264,9 +264,9 @@ double DCGAtK::calculate(SparseVector& labels, const std::vector<Prediction>& pr
 }
 
 
-NDCGAtK::NDCGAtK(int k) : MeasureAtK(k) {
+NDCGAtK::NDCGAtK(int k) : MetricAtK(k) {
     name = "nDCG@" + std::to_string(k);
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void NDCGAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -286,7 +286,7 @@ void NDCGAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& pr
 
 Coverage::Coverage(int outputSize) : m(outputSize) {
     name = "Coverage";
-    meanMeasure = false;
+    meanMetric = false;
 }
 
 void Coverage::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -301,9 +301,9 @@ void Coverage::accumulate(SparseVector& labels, const std::vector<Prediction>& p
 
 double Coverage::value() { return static_cast<double>(seen.size()) / m; }
 
-CoverageAtK::CoverageAtK(int outputSize, int k) : MeasureAtK(k), m(outputSize) {
+CoverageAtK::CoverageAtK(int outputSize, int k) : MetricAtK(k), m(outputSize) {
     name = "C@" + std::to_string(k);
-    meanMeasure = false;
+    meanMetric = false;
 }
 
 void CoverageAtK::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -320,7 +320,7 @@ double CoverageAtK::value() { return static_cast<double>(seen.size()) / m; }
 
 Accuracy::Accuracy() {
     name = "Acc";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void Accuracy::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -330,7 +330,7 @@ void Accuracy::accumulate(SparseVector& labels, const std::vector<Prediction>& p
 
 PredictionSize::PredictionSize() {
     name = "Prediction size";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void PredictionSize::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -339,7 +339,7 @@ void PredictionSize::accumulate(SparseVector& labels, const std::vector<Predicti
 
 HammingLoss::HammingLoss() {
     name = "Hamming loss";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void HammingLoss::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -348,7 +348,7 @@ void HammingLoss::accumulate(SparseVector& labels, const std::vector<Prediction>
 
 SampleF1::SampleF1() {
     name = "Sample-F1";
-    meanMeasure = true;
+    meanMetric = true;
 }
 
 void SampleF1::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -362,7 +362,7 @@ void SampleF1::accumulate(SparseVector& labels, const std::vector<Prediction>& p
 
 MicroF1::MicroF1() {
     name = "Micro-F1";
-    meanMeasure = false;
+    meanMetric = false;
 }
 
 void MicroF1::accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) {
@@ -373,7 +373,7 @@ void MicroF1::accumulate(SparseVector& labels, const std::vector<Prediction>& pr
 
 MacroF1::MacroF1(int outputSize) : m(outputSize), zeroDivisionDenominator(1) {
     name = "Macro-F1";
-    meanMeasure = false;
+    meanMetric = false;
     labelsTP.resize(m, 0);
     labelsFP.resize(m, 0);
     labelsFN.resize(m, 0);

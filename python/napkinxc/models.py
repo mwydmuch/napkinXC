@@ -205,7 +205,7 @@ class Model():
             if v is None:
                 continue
             elif not isinstance(v, (float, int, str, bool)):
-                raise TypeError("Model argument \"{}\" should be float, int, str, bool or None".format(k))
+                raise TypeError(f"Model argument \"{k}\" should be float, int, str, bool or None")
 
             arg_k = ("--" if len(k) > 1 else "-") + Model._to_camelcase(k)
             arg_v = v

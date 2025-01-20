@@ -495,7 +495,7 @@ def load_libsvm_file(file, labels_format="list", sort_indices=False):
         labels, features = _load_libsvm_file_labels_csr_matrix(file, sort_indices)
         return csr_matrix(features), csr_matrix(labels)
     else:
-        raise ValueError("Label format {} is not valid format".format(labels_format))
+        raise ValueError(f"Label format {labels_format} is not valid format")
 
 
 def save_libsvm_file(file, X, Y, sort_indices=False):
@@ -528,9 +528,9 @@ def load_json_lines_file(file, features_fields=['title', 'content'], labels_fiel
     for line in f:
         data = json.loads(line)
         if not all(f in data for f in features_fields):
-            raise ValueError("Not all features fields {} are not in {}".format(features_fields, data))
+            raise ValueError(f"Not all features fields {features_fields} are not in {data}")
         if not labels_field in data:
-            raise ValueError("Labels field {} is not not in {}".format(labels_field, data))
+            raise ValueError(f"Labels field {features_fields} is not not in {data}")
         X.append(' '.join([data[f] for f in features_fields]))
         Y.append(data[labels_field])
 
@@ -645,7 +645,7 @@ def load_dataset(dataset, subset='train', format='bow', root='./data', verbose=F
     elif file_format == 'jsonlines':
         return load_json_lines_file(path.join(data_dir, file_path), features_fields=dataset_meta['features_fields'], labels_field=dataset_meta['labels_field'])
     else:
-        raise ValueError("File format {} is not supported".format(file_format))
+        raise ValueError(f"File format {file_format} is not supported")
 
 
 def to_csr_matrix(X, shape=None, sort_indices=False, dtype=np.float32):
@@ -782,7 +782,7 @@ def _get_data_meta(dataset, subset='train', format='bow'):
         _dataset = aliases[_dataset]
 
     if _dataset not in DATASETS:
-        raise ValueError("Dataset {} is not available".format(dataset))
+        raise ValueError(f"Dataset {dataset} is not available")
 
     # Handel format aliases and versions
     _format = format
@@ -792,10 +792,10 @@ def _get_data_meta(dataset, subset='train', format='bow'):
         _format = 'bow'
 
     if _format not in DATASETS[_dataset]['formats']:
-        raise ValueError("Format {} is not available for dataset {}".format(format, dataset))
+        raise ValueError(f"Format {format} is not available for dataset {dataset}")
 
     if subset is not None and subset not in DATASETS[_dataset]['subsets']:
-        raise ValueError("Subset {} is not available for dataset {}".format(subset, dataset))
+        raise ValueError(f"Subset {subset} is not available for dataset {dataset}")
 
     return DATASETS[_dataset][_format]
 
@@ -825,7 +825,7 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
 
     if not path.exists(dest_path) or overwrite:
         if verbose:
-            print('Downloading {} into {} ... '.format(url, dest_path))
+            print(f'Downloading {url} into {dest_path} ... ')
 
         gdown.download(url=url, output=dest_path, quiet=not verbose)
 
@@ -840,7 +840,7 @@ def _download_file_from_google_drive(url, dest_path, overwrite=False, unzip=Fals
                     remove(dest_path)
 
             except zipfile.BadZipfile:
-                warnings.warn('Ignoring `unzip` since "{}" does not look like a valid zip file'.format(dest_path))
+                warnings.warn(f'Ignoring `unzip` since "{dest_path}" does not look like a valid zip file')
 
         if verbose:
             print('Done.')

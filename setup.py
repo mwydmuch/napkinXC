@@ -66,7 +66,7 @@ setup(
     ],
     license="MIT License",
     platforms=["Linux", "MacOS", "Windows"],
-    python_requires='>=3.7.0',
+    python_requires='>=3.9.0',
     setup_requires=["cmaketools", "setuptools", "wheel"],
     install_requires=['numpy', 'scipy', 'gdown'],
     src_dir="python",

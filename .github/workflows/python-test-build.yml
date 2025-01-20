@@ -18,7 +18,7 @@ jobs:
         #python-version: [ '3.9', '3.10', '3.11', '3.12' ]
         python-version: [ '3.9', '3.12' ] # Test only on 3.9 and 3.12 (the oldest and newest) to save time and resources
 
-    name: Build Pyhton binding on ${{ matrix.os }} for Python ${{ matrix.python-version }}
+    name: Build Python binding on ${{ matrix.os }} for Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     
     steps:

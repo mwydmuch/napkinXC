@@ -35,7 +35,7 @@ from collections.abc import Iterable
 
 # Classes for different measures
 
-class Measure(ABC):
+class Metric(ABC):
     """
     Abstract class for measure.
     """
@@ -46,8 +46,8 @@ class Measure(ABC):
         self.count = 0
 
     def accumulate(self, Y_true, Y_pred):
-        Y_true = Measure._get_Y_iterator(Y_true)
-        Y_pred = Measure._get_Y_iterator(Y_pred, ranking=self.needs_ranking)
+        Y_true = Metric._get_Y_iterator(Y_true)
+        Y_pred = Metric._get_Y_iterator(Y_pred, ranking=self.needs_ranking)
 
         for t, p in zip(Y_true, Y_pred):
             self._accumulate(t, p)
@@ -75,13 +75,13 @@ class Measure(ABC):
     @staticmethod
     def _get_Y_iterator(Y, ranking=False):
         if isinstance(Y, np.ndarray):
-            return Measure._Y_np_iterator(Y, ranking=ranking)
+            return Metric._Y_np_iterator(Y, ranking=ranking)
 
         elif isinstance(Y, csr_matrix):
-            return Measure._Y_csr_matrix_iterator(Y, ranking=ranking)
+            return Metric._Y_csr_matrix_iterator(Y, ranking=ranking)
 
         elif all(isinstance(y, (list, tuple)) for y in Y):
-            return Measure._Y_list_iterator(Y)
+            return Metric._Y_list_iterator(Y)
 
         else:
             raise TypeError("Unsupported data type, should be Numpy matrix (2d array), or Scipy CSR matrix, or list of list of ints")
@@ -118,20 +118,20 @@ class Measure(ABC):
                 yield y
 
 
-class MeasureAtK(Measure):
+class MetricAtK(Metric):
     """
     Abstract class for measure calculated at 1-k places.
     """
     def __init__(self, k=5, **kwargs):
         super().__init__(**kwargs)
-        MeasureAtK._check_k(k)
+        MetricAtK._check_k(k)
         self.k = k
         self.sum = np.zeros(self.k)
         self.needs_ranking = True
 
     def accumulate(self, Y_true, Y_pred):
-        Y_true = Measure._get_Y_iterator(Y_true)
-        Y_pred = Measure._get_Y_iterator(Y_pred, ranking=True)
+        Y_true = Metric._get_Y_iterator(Y_true)
+        Y_pred = Metric._get_Y_iterator(Y_pred, ranking=True)
 
         for t, p in zip(Y_true, Y_pred):
             self._accumulate(t, p)
@@ -149,13 +149,13 @@ class MeasureAtK(Measure):
             raise ValueError("k should be larger than 0")
 
 
-class PSMeasureAtK(MeasureAtK):
+class PSMetricAtK(MetricAtK):
     """
     Abstract class for Propensity Scored measure calculated at 1-k places.
     """
     def __init__(self, inv_ps, k=5, normalize=True, **kwargs):
         super().__init__(k=k, **kwargs)
-        self.inv_ps, self._top_ps = PSMeasureAtK._get_top_ps_func(inv_ps)
+        self.inv_ps, self._top_ps = PSMetricAtK._get_top_ps_func(inv_ps)
         self.best_sum = np.zeros(self.k)
         self.normalize = normalize
 
@@ -174,12 +174,12 @@ class PSMeasureAtK(MeasureAtK):
     @staticmethod
     def _get_top_ps_func(inv_ps):
         if isinstance(inv_ps, dict):
-            _top_ps = PSMeasureAtK._top_ps_dict
+            _top_ps = PSMetricAtK._top_ps_dict
         elif isinstance(inv_ps, list):
             inv_ps = np.array(inv_ps)
-            _top_ps = PSMeasureAtK._top_ps_np
+            _top_ps = PSMetricAtK._top_ps_np
         elif isinstance(inv_ps, np.ndarray):
-            _top_ps = PSMeasureAtK._top_ps_np
+            _top_ps = PSMetricAtK._top_ps_np
         else:
             raise TypeError("Unsupported data type for inv_ps, should be Numpy vector (1d array), or list, or dict")
 
@@ -189,7 +189,7 @@ class PSMeasureAtK(MeasureAtK):
 
 # Popular standard measures
 
-class HammingLoss(Measure):
+class HammingLoss(Metric):
     def __init__(self):
         super().__init__()
 
@@ -197,7 +197,7 @@ class HammingLoss(Measure):
         self.sum += len(p) + len(t) - 2 * len(set(t).intersection(p))
 
 
-class PrecisionAtK(MeasureAtK):
+class PrecisionAtK(MetricAtK):
     def __init__(self, k=5):
         super().__init__(k=k)
 
@@ -209,7 +209,7 @@ class PrecisionAtK(MeasureAtK):
             self.sum[i] += p_at_i / (i + 1)
 
 
-class RecallAtK(MeasureAtK):
+class RecallAtK(MetricAtK):
     def __init__(self, k=5, zero_division=0):
         super().__init__(k=k)
         self.zero_division = zero_division
@@ -225,7 +225,7 @@ class RecallAtK(MeasureAtK):
             self.sum += self.zero_division
 
 
-class DCGAtK(MeasureAtK):
+class DCGAtK(MetricAtK):
     def __init__(self, k=5):
         super().__init__(k=k)
 
@@ -237,7 +237,7 @@ class DCGAtK(MeasureAtK):
             self.sum[i] += dcg_at_i
 
 
-class NDCGAtK(MeasureAtK):
+class NDCGAtK(MetricAtK):
     def __init__(self, k=5, zero_division=0):
         super().__init__(k=k)
         self.zero_division = zero_division
@@ -260,7 +260,7 @@ class NDCGAtK(MeasureAtK):
 
 # Propensity scored (weighted) measures (unbiased variants of standard measures)
 
-class PSPrecisionAtK(PSMeasureAtK):
+class PSPrecisionAtK(PSMetricAtK):
     def __init__(self, inv_ps, k=5, normalize=True):
         super().__init__(inv_ps, k=k, normalize=normalize)
 
@@ -277,7 +277,7 @@ class PSPrecisionAtK(PSMeasureAtK):
             self.best_sum[i] += best_psp_at_i / (i + 1)
 
 
-class PSRecallAtK(PSMeasureAtK):
+class PSRecallAtK(PSMetricAtK):
     def __init__(self, inv_ps, k=5, normalize=True, zero_division=0):
         super().__init__(inv_ps, k=k, normalize=normalize)
         self.zero_division = zero_division
@@ -299,7 +299,7 @@ class PSRecallAtK(PSMeasureAtK):
                 self.best_sum[i] += best_psr_at_i / len(t)
 
 
-class PSDCGAtK(PSMeasureAtK):
+class PSDCGAtK(PSMetricAtK):
     def __init__(self, inv_ps, k=5, normalize=True):
         super().__init__(inv_ps, k=k, normalize=normalize)
 
@@ -317,7 +317,7 @@ class PSDCGAtK(PSMeasureAtK):
             self.best_sum[i] += best_psdcg_at_i / (i + 1)
 
 
-class PSNDCGAtK(PSMeasureAtK):
+class PSNDCGAtK(PSMetricAtK):
     def __init__(self, inv_ps, k=5, normalize=True, zero_division=0):
         super().__init__(inv_ps, k=k, normalize=normalize)
         self.zero_division = zero_division
@@ -346,7 +346,7 @@ class PSNDCGAtK(PSMeasureAtK):
 
 # Other measures
 
-class AbandonmentAtK(MeasureAtK):
+class AbandonmentAtK(MetricAtK):
     def __init__(self, k=5):
         super().__init__(k=k)
 
@@ -358,7 +358,7 @@ class AbandonmentAtK(MeasureAtK):
             self.sum[i] += a_at_i
 
 
-class CoverageAtK(MeasureAtK):
+class CoverageAtK(MetricAtK):
     def __init__(self, k=5):
         super().__init__(k=k)
         self.uniq_t = set()
@@ -385,7 +385,7 @@ class CoverageAtK(MeasureAtK):
         self.uniq_tp_at_i = [set() for _ in range(self.k)]
 
 
-class MicroF1Measure(Measure):
+class MicroF1Metric(Metric):
     def __init__(self):
         super().__init__()
 
@@ -398,7 +398,7 @@ class MicroF1Measure(Measure):
         self.count -= 1  # Because of count += 1 in accumulate
 
 
-class SamplesF1Measure(Measure):
+class SamplesF1Metric(Metric):
     def __init__(self, zero_division=0):
         super().__init__()
         self.zero_division = zero_division
@@ -416,7 +416,7 @@ class SamplesF1Measure(Measure):
 # Macro measures
 
 
-class MacroMeasure(Measure):
+class MacroMetric(Metric):
     """
     Abstract class for macro measures.
     """
@@ -476,7 +476,7 @@ class MacroMeasure(Measure):
         return self._summarize(self.labels_tp, self.labels_fp, self.labels_fn)
 
 
-class MacroF1Measure(MacroMeasure):
+class MacroF1Metric(MacroMetric):
     def __init__(self, zero_division=0):
         super().__init__(zero_division=zero_division)
 
@@ -487,7 +487,7 @@ class MacroF1Measure(MacroMeasure):
         return 2 * l_tp / (2 * l_tp + l_fp + l_fn)
 
 
-class MacroMeasureAtK(MeasureAtK, MacroMeasure):
+class MacroMetricAtK(MetricAtK, MacroMetric):
     """
     Abstract class for macro measures calculated at k-place.
     """
@@ -517,7 +517,7 @@ class MacroMeasureAtK(MeasureAtK, MacroMeasure):
         return results
 
 
-class MacroPrecisionAtK(MacroMeasureAtK):
+class MacroPrecisionAtK(MacroMetricAtK):
     def __init__(self, k=5, zero_division=0):
         super().__init__(k=k, zero_division=zero_division)
 
@@ -528,7 +528,7 @@ class MacroPrecisionAtK(MacroMeasureAtK):
         return l_tp / (l_tp + l_fp)
 
 
-class MacroRecallAtK(MacroMeasureAtK):
+class MacroRecallAtK(MacroMetricAtK):
     def __init__(self, k=5, zero_division=0):
         super().__init__(k=k, zero_division=zero_division)
 
@@ -539,7 +539,7 @@ class MacroRecallAtK(MacroMeasureAtK):
         return l_tp / (l_tp + l_fn)
 
 
-class MacroF1MeasureAtK(MacroMeasureAtK):
+class MacroF1MetricAtK(MacroMetricAtK):
     def __init__(self, k=5, zero_division=0):
         super().__init__(k=k, zero_division=zero_division)
 
@@ -977,28 +977,28 @@ def f1_measure(Y_true, Y_pred, average='micro', zero_division=0):
     :rtype: float
     """
     if average == 'micro':
-        return MicroF1Measure().calculate(Y_true, Y_pred)
+        return MicroF1Metric().calculate(Y_true, Y_pred)
 
     elif average == 'macro':
-        return MacroF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
+        return MacroF1Metric(zero_division=zero_division).calculate(Y_true, Y_pred)
 
     elif average == 'samples':
-        return SamplesF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
+        return SamplesF1Metric(zero_division=zero_division).calculate(Y_true, Y_pred)
 
     else:
         raise ValueError("average should be in {'micro', 'macro', 'samples'}")
 
 
 def micro_f1_measure(Y_true, Y_pred):
-    return MicroF1Measure().calculate(Y_true, Y_pred)
+    return MicroF1Metric().calculate(Y_true, Y_pred)
 
 
 def macro_f1_measure(Y_true, Y_pred, zero_division=0):
-    return MacroF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
+    return MacroF1Metric(zero_division=zero_division).calculate(Y_true, Y_pred)
 
 
 def samples_f1_measure(Y_true, Y_pred, zero_division=0):
-    return SamplesF1Measure(zero_division=zero_division).calculate(Y_true, Y_pred)
+    return SamplesF1Metric(zero_division=zero_division).calculate(Y_true, Y_pred)
 
 
 def macro_precision_at_k(Y_true, Y_pred, k=5, zero_division=0):
@@ -1010,5 +1010,5 @@ def macro_recall_at_k(Y_true, Y_pred, k=5, zero_division=0):
 
 
 def macro_f1_measure_at_k(Y_true, Y_pred, k=5, zero_division=0):
-    return MacroF1MeasureAtK(k=k, zero_division=zero_division).calculate(Y_true, Y_pred)
+    return MacroF1MetricAtK(k=k, zero_division=zero_division).calculate(Y_true, Y_pred)
 

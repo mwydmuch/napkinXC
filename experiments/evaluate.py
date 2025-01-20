@@ -8,7 +8,7 @@ napkinxc_path = os.path.join(file_dir, "../python")
 sys.path.extend([file_dir, napkinxc_path])
 
 from scripts_utils import *
-from napkinxc.measures import *
+from napkinxc.metrics import *
 
 
 if __name__ == "__main__":
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     precision = 6
     max_k = 5
 
-    measures = {
+    metrics = {
         #"HL": {"func": hamming_loss, "needs_weights": False},
         "P": {"func": precision_at_k, "needs_weights": False},
         "R": {"func": recall_at_k, "needs_weights": False},
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         "C": {"func": coverage_at_k, "needs_weights": False},
     }
 
-    for m, v in measures.items():
+    for m, v in metrics.items():
         r = None
         if v["needs_weights"]:
             if labels_weights is not None:

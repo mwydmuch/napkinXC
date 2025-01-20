@@ -4,7 +4,7 @@
 
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
-from napkinxc.measures import precision_at_k
+from napkinxc.metrics import precision_at_k
 
 # The beginning is the same as in the basic.py example.
 

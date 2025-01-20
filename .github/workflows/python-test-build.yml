@@ -14,8 +14,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-        python-version: [ '3.8', '3.9', '3.10', '3.11', '3.12' ]
+        os: [ ubuntu-22.04, macos-12, macos-14, windows-2022 ]
+        #python-version: [ '3.9', '3.10', '3.11', '3.12' ]
+        python-version: [ '3.9', '3.12' ] # Test only on 3.9 and 3.12 (the oldest and newest) to save time and resources
 
     name: Build Pyhton binding on ${{ matrix.os }} for Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}

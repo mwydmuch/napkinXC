@@ -33,7 +33,7 @@ Minimal example of usage:
 
     from napkinxc.datasets import load_dataset
     from napkinxc.models import PLT
-    from napkinxc.measures import precision_at_k
+    from napkinxc.metrics import precision_at_k
 
     X_train, Y_train = load_dataset("eurlex-4k", "train")
     X_test, Y_test = load_dataset("eurlex-4k", "test")

@@ -7,7 +7,7 @@ from xclib.evaluation.xc_metrics import *
 
 from napkinxc.datasets import load_dataset, to_csr_matrix
 from napkinxc.models import PLT
-from napkinxc.measures import *
+from napkinxc.metrics import *
 
 
 from conf import *
@@ -56,11 +56,11 @@ def test_compare_napkinxc_with_xclib():
 
         t_start = time()
         nxc_r = v["nxc"](Y_test, Y_pred, xcl_inv_ps, k=k) if v["inv_ps"] else v["nxc"](Y_test, Y_pred, k=k)
-        print("\tnapkinXC.measures.{} with lists: {}s".format(v["nxc"].__name__, time() - t_start))
+        print("\tnapkinxc.metrics.{} with lists: {}s".format(v["nxc"].__name__, time() - t_start))
 
         t_start = time()
         csr_nxc_r = v["nxc"](csr_Y_test, csr_Y_pred, csr_nxc_inv_ps, k=k) if v["inv_ps"] else v["nxc"](csr_Y_test, csr_Y_pred, k=k)
-        print("\tnapkinXC.measures.{} with csr_matrices: {}s".format(v["nxc"].__name__, time() - t_start))
+        print("\tnapkinxc.metrics.{} with csr_matrices: {}s".format(v["nxc"].__name__, time() - t_start))
 
         assert np.allclose(nxc_r, csr_nxc_r)
         assert np.allclose(nxc_r, xclib_r)

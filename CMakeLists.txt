@@ -81,6 +81,10 @@ if (PYTHON)
         find_package(Python ${PYTHON_VERSION} EXACT COMPONENTS Interpreter Development.Module REQUIRED)
     endif()
 
+
+    set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
+    set(PYBIND11_FINDPYTHON True)
+
     add_subdirectory(pybind11)
     add_subdirectory(python)
 endif ()

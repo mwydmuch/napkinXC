@@ -33,9 +33,9 @@ Install via pip:
 ```
 pip install napkinxc
 ```
-We provide precompiled wheels for many Linux distros, macOS, and Windows for Python 3.7+.
+We provide precompiled wheels for many Linux distros, macOS, and Windows for Python 3.9+.
 In case there is no wheel for your OS, it will be quickly compiled from the source.
-Compilation from source requires modern C++17 compiler, CMake, Git, and Python 3.7+ installed.
+Compilation from source requires modern C++17 compiler, CMake, Git, and Python 3.9+ installed.
 
 
 The latest (master) version can be installed directly from the GitHub repository (not recommended):

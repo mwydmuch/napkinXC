@@ -83,6 +83,18 @@ if (PYTHON)
 
     add_subdirectory(pybind11)
     add_subdirectory(python)
+
+    set(BUILD_PYTHON_VERSION "" CACHE STRING "Version of Python to build bindings for")
+
+if("${BUILD_PYTHON_VERSION}" STREQUAL "")
+    # Try to find Python 3 if BUILD_PYTHON_VERSION is not set
+    message(STATUS "BUILD_PYTHON_VERSION is not set, trying to find Python 3, Python_ROOT_DIR is ${Python_ROOT_DIR}")
+    find_package(Python 3 COMPONENTS Interpreter Development REQUIRED)
+    set(BUILD_PYTHON_VERSION ${Python_VERSION_MAJOR}.${Python_VERSION_MINOR})
+endif()
+
+set(PYBIND11_PYTHON_VERSION ${BUILD_PYTHON_VERSION})
+set(PYBIND11_FINDPYTHON True)
 endif ()
 
 if (EXE)

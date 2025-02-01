@@ -81,7 +81,6 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
         else if (rows >= 0) rowsToRead = std::min(rowsRead + rows, hRows) - rowsRead;
     }
     else if (rows >= 0) rowsToRead = rows;
-    else rowsToRead = INT_MAX;
 
     if (rowsToRead > 0) Log(CERR) << "Reading " << rowsToRead << " rows ... \n";
     else Log(CERR) << "Reading rows ... \n" << Log::newLine(2) << "?%\r";
@@ -117,7 +116,7 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
         lineRead = getline(in, line) ? true : false;
         if(args.endRow > 0 && rowsRead >= args.endRow) lineRead = false;
         
-    } while (lineRead && i < rowsToRead);
+    } while (lineRead && (rowsToRead == 0 || i < rowsToRead));
     
     // Checks
     assert(i == rowsToRead);

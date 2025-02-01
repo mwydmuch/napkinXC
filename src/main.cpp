@@ -41,6 +41,17 @@
 #include "version.h"
 
 
+void printLogo() {
+    Log(CERR) << R"LOGO(
+ |`\                            _     _        __  __ ____
+ |  `\     _ __    __ _  _ __  | | __(_) _ __  \ \/ // ___|
+ |    )   | '_ \  / _` || '_ \ | |/ /| || '_ \  \  /| |   
+ |  ,//   | | | || (_| || |_) ||   < | || | | | /  \| |___ 
+ |,/ /    |_| |_| \__,_|| .__/ |_|\_\|_||_| |_|/_/\_\\____|
+   \/                   |_|                           )LOGO" 
+   << VERSION << "\n";
+}
+
 void loadThWBVecs(std::shared_ptr<Model> model, Args& args){
     if (!args.thresholds.empty()) { // Using thresholds if provided
         std::vector<Real> thresholds = loadVec(args.thresholds);
@@ -65,6 +76,7 @@ void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::os
 }
 
 void train(Args& args) {
+    printLogo();
 
     SRMatrix labels;
     SRMatrix features;
@@ -108,6 +120,8 @@ void train(Args& args) {
 }
 
 void test(Args& args) {
+    printLogo();
+    
     SRMatrix labels;
     SRMatrix features;
 
@@ -218,6 +232,8 @@ void test(Args& args) {
 }
 
 void predict(Args& args) {
+    printLogo();
+
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs("predict");
@@ -265,6 +281,8 @@ void predict(Args& args) {
 }
 
 void ofo(Args& args) {
+    printLogo();
+
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -297,6 +315,8 @@ void ofo(Args& args) {
 }
 
 void testPredictionTime(Args& args) {
+    printLogo();
+
     // Method for testing performance on different batch (test dataset) sizes
 
     // Load model args
@@ -450,7 +470,7 @@ Args:
 
 int main(int argc, char** argv) {
     Log::setLogLevel(CERR);
-
+    
     if(argc == 1) {
         std::cout << "No command provided \n";
         printHelp();

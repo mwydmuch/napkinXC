@@ -21,6 +21,7 @@
  */
 
 #include <algorithm>
+#include <climits>
 
 #include "read_data.h"
 #include "log.h"
@@ -80,6 +81,7 @@ bool DataReader::readData(SRMatrix& labels, SRMatrix& features, Args& args, int 
         else if (rows >= 0) rowsToRead = std::min(rowsRead + rows, hRows) - rowsRead;
     }
     else if (rows >= 0) rowsToRead = rows;
+    else rowsToRead = INT_MAX;
 
     if (rowsToRead > 0) Log(CERR) << "Reading " << rowsToRead << " rows ... \n";
     else Log(CERR) << "Reading rows ... \n" << Log::newLine(2) << "?%\r";

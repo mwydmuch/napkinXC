@@ -1,8 +1,11 @@
-# napkinXC 
 [![C++ build](https://github.com/mwydmuch/napkinXC/actions/workflows/cpp-test-build.yml/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/cpp-test-build.yml)
 [![Python build](https://github.com/mwydmuch/napkinXC/actions/workflows/python-test-build.yml/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/python-test-build.yml)
 [![Documentation Status](https://readthedocs.org/projects/napkinxc/badge/?version=latest)](https://napkinxc.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/napkinxc.svg)](https://badge.fury.io/py/napkinxc) 
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mwydmuch/napkinXC/master/docs/_static/napkinXC_logo.png" width="500px"/>
+</p>
 
 napkinXC is an extremely simple and fast library for extreme multi-class and multi-label classification, 
 that focus on implementing various methods for Probabilistic Label Trees.

@@ -474,7 +474,7 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
 }
 
 void Args::printArgs(std::string command) {
-    Log(CERR) << "napkinXC " << VERSION << " - " << command;
+    Log(CERR) << "Command: " << command;
     if (!input.empty())
         Log(CERR) << "\n  Input: " << input 
         << "\n    Bias: " << bias << ", norm: " << norm

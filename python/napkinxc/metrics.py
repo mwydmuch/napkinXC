@@ -726,7 +726,7 @@ def count_labels(Y):
     elif isinstance(Y, Iterable) and all(isinstance(y, (list, tuple)) for y in Y):
         m = max([max(y) for y in Y if len(y)])
         
-        if not isinstance(m, int):
+        if isinstance(m, int):    
             counts = np.zeros(m + 1)
             for y in Y:
                 counts[y] += 1

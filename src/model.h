@@ -81,11 +81,11 @@ protected:
     // Base utils
     static Base* trainBase(ProblemData& problemsData, Args& args);
     static void trainBatchThread(std::vector<std::promise<Base *>>& results, std::vector<ProblemData>& problemsData, Args& args, int threadId, int threads);
-    static void trainBases(std::string outfile, std::vector<ProblemData>& problemsData, Args& args);
+    static void trainBases(const std::string& outfile, std::vector<ProblemData>& problemsData, Args& args);
     static void trainBases(std::ofstream& out, std::vector<ProblemData>& problemsData, Args& args);
 
     static void saveResults(std::ofstream& out, std::vector<std::future<Base*>>& results, bool saveGrads=false);
-    static std::vector<Base*> loadBases(std::string infile, bool resume=false, RepresentationType loadAs=map);
+    static std::vector<Base*> loadBases(const std::string& infile, bool resume=false, RepresentationType loadAs=map);
 
 private:
     static void predictBatchThread(int threadId, Model* model, std::vector<std::vector<Prediction>>& predictions,

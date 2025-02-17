@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <mutex>
 #include <string>
+#include <utility>
 
 #include "ensemble.h"
 #include "log.h"
@@ -98,8 +99,8 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Arg
 
 void Model::setThresholds(std::vector<Real> th){
 //    if(th.size() != m)
-//        throw std::invalid_argument("Size of thresholds vector dose not match number of model outputs");
-    thresholds = th;
+//        throw std::invalid_argument("Size of thresholds vector does not match number of model outputs");
+    thresholds = std::move(th);
 }
 
 void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
@@ -110,14 +111,14 @@ void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
 void Model::setLabelsWeights(std::vector<Real> lw){
 //    if(lw.size() != m)
 //        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
-    labelsWeights = lw;
+    labelsWeights = std::move(lw);
     if(labelsBiases.empty()) labelsBiases = std::vector<Real>(lw.size(), 0);
 }
 
 void Model::setLabelsBiases(std::vector<Real> lb){
 //    if(lw.size() != m)
 //        throw std::invalid_argument("Size of labels' biases vector dose not match number of model outputs");
-    labelsBiases = lb;
+    labelsBiases = std::move(lb);
     if(labelsWeights.empty()) labelsWeights = std::vector<Real>(lb.size(), 0);
 }
 
@@ -271,7 +272,7 @@ void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& res
     }
 }
 
-void Model::trainBases(std::string outfile, std::vector<ProblemData>& problemsData, Args& args) {
+void Model::trainBases(const std::string& outfile, std::vector<ProblemData>& problemsData, Args& args) {
     std::ofstream out(outfile, std::ios::out | std::ios::binary);
     int size = problemsData.size();
     out.write((char*)&size, sizeof(size));
@@ -332,7 +333,7 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
     }
 }
 
-std::vector<Base*> Model::loadBases(std::string infile, bool resume, RepresentationType loadAs) {
+std::vector<Base*> Model::loadBases(const std::string& infile, bool resume, RepresentationType loadAs) {
     Log(CERR) << "Loading base estimators ...\n";
 
     Real nonZeroSum = 0;

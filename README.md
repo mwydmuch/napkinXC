@@ -8,7 +8,7 @@
 </p>
 
 napkinXC is an extremely simple and fast library for extreme multi-class and multi-label classification, 
-that focus on implementing various methods for Probabilistic Label Trees.
+that focuses on implementing various methods for Probabilistic Label Trees.
 It allows training a classifier for very large datasets in just a few lines of code with minimal resources.
 
 Right now, napkinXC implements the following features both in Python and C++:

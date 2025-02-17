@@ -25,6 +25,7 @@
 #include <climits>
 #include <cmath>
 #include <list>
+#include <utility>
 #include <vector>
 
 #include "plt.h"
@@ -43,7 +44,6 @@ void PLT::unload() {
     for (auto b : bases) delete b;
     bases.clear();
     bases.shrink_to_fit();
-    delete tree;
     tree = nullptr;
     Model::unload();
 }
@@ -135,24 +135,27 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
     std::vector<std::vector<TreeNodeValue>> levelPredictions(rows);
     std::vector<std::vector<Prediction>> nodePredictions(nodes);
 
-    auto nextLevelQueue = new std::queue<TreeNode*>();
-    nextLevelQueue->push(tree->root);
+    // note: technically, these are queues, but we have well separated phases, where we first only
+    // push elements, and after that, we only pop elements; thus, we can just use a vector, which is
+    // a more efficient container.
+    std::vector<TreeNode*> nextLevelQueue;
+    std::vector<TreeNode*> levelQueue;
+    nextLevelQueue.push_back(tree->root);
     for(int i = 0; i < rows; ++i) nodePredictions[tree->root->index].emplace_back(i, 1.0);
     AbstractVector* tmpW = new Vector(features.cols());
     AbstractVector* originalW = nullptr;
 
     int nCount = 0;
-    while(!nextLevelQueue->empty()){
-
-        auto levelQueue = nextLevelQueue;
-        nextLevelQueue = new std::queue<TreeNode*>();
+    while(!nextLevelQueue.empty()) {
+        levelQueue.clear();
+        // the swap in effect empties nextLevelQueue and assignes
+        // the next level to `levelQueue` while keeping allocated
+        // memory available for reuse.
+        std::swap(nextLevelQueue, levelQueue);
 
         // Predict for level
-        while(!levelQueue->empty()){
+        for(auto n: levelQueue) {
             printProgress(nCount++, nodes);
-
-            auto n = levelQueue->front();
-            levelQueue->pop();
             int nIdx = n->index;
 
             if(!nodePredictions[nIdx].empty()){
@@ -173,7 +176,7 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
                     if (!labelsWeights.empty()) value *= nodesWeights[nIdx].value + nodesBiases[nIdx].value;
 
                     if(n->label >= 0) prediction[rIdx].emplace_back(n->label, value); // Label prediction
-                    if(n->children.size() > 0) levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
+                    if(!n->children.empty()) levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
                 }
                 nodeEvaluationCount += nodePredictions[nIdx].size();
                 nodePredictions[nIdx].clear();
@@ -184,10 +187,8 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
                 }
             }
 
-            for(auto &c : n->children)
-                nextLevelQueue->push(c);
+            nextLevelQueue.insert(nextLevelQueue.end(), n->children.begin(), n->children.end());
         }
-        delete levelQueue;
 
         // Keep top predictions and prepare next level
         for(int rIdx = 0; rIdx < rows; ++rIdx){
@@ -218,7 +219,6 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
             v.clear();
         }
     }
-    delete nextLevelQueue;
     delete tmpW;
 
     for(int rIdx = 0; rIdx < rows; ++rIdx){
@@ -347,7 +347,7 @@ void PLT::setNodeBias(TreeNode* n){
 void PLT::setThresholds(std::vector<Real> th){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    Model::setThresholds(th);
+    Model::setThresholds(std::move(th));
     calculateNodesLabels();
     if (tree->size() != nodesThr.size()) nodesThr.resize(tree->size());
     for (auto& n : tree->nodes) setNodeThreshold(n);
@@ -356,7 +356,7 @@ void PLT::setThresholds(std::vector<Real> th){
 void PLT::setLabelsWeights(std::vector<Real> lw){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    Model::setLabelsWeights(lw);
+    Model::setLabelsWeights(std::move(lw));
     calculateNodesLabels();
     if (tree->size() != nodesWeights.size()) nodesWeights.resize(tree->size());
     for (auto& n : tree->nodes) setNodeWeight(n);
@@ -408,8 +408,7 @@ Real PLT::predictForLabel(Label label, SparseVector& features, Args& args) {
 }
 
 void PLT::preload(Args& args, std::string infile){
-    delete tree;
-    tree = new LabelTree();
+    tree = std::make_unique<LabelTree>();
     tree->loadFromFile(joinPath(infile, "tree.bin"));
     preloaded = true;
 }
@@ -438,9 +437,8 @@ void PLT::printInfo() {
         Log(COUT) << "  Evaluated estimators / data point: " << static_cast<Real>(nodeEvaluationCount) / dataPointCount << "\n";
 }
 
-void PLT::buildTree(SRMatrix& labels, SRMatrix& features, Args& args, std::string output){
-    delete tree;
-    tree = new LabelTree();
+void PLT::buildTree(SRMatrix& labels, SRMatrix& features, Args& args, const std::string& output){
+    tree = std::make_unique<LabelTree>();
     tree->buildTreeStructure(labels, features, args);
 
     m = tree->getNumberOfLeaves();
@@ -503,9 +501,9 @@ std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesUpdates(const SRMatr
     return nodesDataPoints;
 }
 
-void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output){
-    if(tree == nullptr) tree = new LabelTree();
-    tree->setTreeStructure(treeStructure);
+void PLT::setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, const std::string& output){
+    if(tree == nullptr) tree = std::make_unique<LabelTree>();
+    tree->setTreeStructure(std::move(treeStructure));
 
     m = tree->getNumberOfLeaves();
     tree->saveToFile(joinPath(output, "tree.bin"));
@@ -534,8 +532,9 @@ void BatchPLT::train(SRMatrix& labels, SRMatrix& features, Args& args, std::stri
 
     // Train bases
     std::vector<ProblemData> binProblemData;
+    binProblemData.reserve(tree->size());
     if (type == hsm && args.pickOneLabelWeighting)
-        for(int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
+        for (int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[i]);
     else
         for (int i = 0; i < tree->size(); ++i) binProblemData.emplace_back(binLabels[i], binFeatures[i], features.cols(), binWeights[0]);
 

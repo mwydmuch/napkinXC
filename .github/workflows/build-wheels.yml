@@ -20,12 +20,18 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-11, windows-2019]
+        os: [ ubuntu-22.04, macos-13, macos-14, windows-2022 ]
 
     steps:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      - name: Report OS
+        run: |
+          echo ${{ matrix.os }}
+          echo ${{ runner.os }}
+          uname -p
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
@@ -33,17 +39,29 @@ jobs:
         with:
           platforms: all
 
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v2.15.0
+      - name: Build manylinux wheels
+        if: matrix.os == 'ubuntu-22.04'
+        uses: pypa/cibuildwheel@v2.19.2
         env:
           # Configure cibuildwheel to build native archs, and some emulated ones
           CIBW_ARCHS_LINUX: x86_64 aarch64
+          CIBW_BUILD_VERBOSITY: 1
+  
+      - name: Build macOS Intel wheels
+        if: matrix.os == 'macos-12' || matrix.os == 'macos-13'
+        uses: pypa/cibuildwheel@v2.19.2
+        env:
           CIBW_ARCHS_MACOS: x86_64
-          MACOSX_DEPLOYMENT_TARGET: 10.15
-          CIBW_ARCHS_WINDOWS: AMD64
-          CIBW_BUILD_VERBOSITY: 3
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
-            auditwheel show {wheel} && auditwheel repair -w {dest_dir} {wheel}
+          CIBW_ENVIRONMENT_MACOS: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 MACOSX_DEPLOYMENT_TARGET=12.0
+          CIBW_BUILD_VERBOSITY: 1
+
+      - name: Build macOS Apple Silicon wheels
+        if: matrix.os == 'macos-14'
+        uses: pypa/cibuildwheel@v2.19.2
+        env:
+          CIBW_ARCHS_MACOS: arm64
+          CIBW_ENVIRONMENT_MACOS: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 MACOSX_DEPLOYMENT_TARGET=14.0
+          CIBW_BUILD_VERBOSITY: 1
 
       - name: Report built wheels
         run: |

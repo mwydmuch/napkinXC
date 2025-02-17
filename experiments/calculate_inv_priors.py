@@ -8,7 +8,7 @@ napkinxc_path = os.path.join(file_dir, "../python")
 sys.path.extend([file_dir, napkinxc_path])
 
 from scripts_utils import *
-from napkinxc.measures import inverse_labels_priors
+from napkinxc.metrics import inverse_labels_priors
 
 
 if __name__ == "__main__":

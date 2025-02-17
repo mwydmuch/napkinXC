@@ -4,7 +4,7 @@
 
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
-from napkinxc.measures import f1_measure
+from napkinxc.metrics import f1_measure
 from sklearn.model_selection import train_test_split
 
 # Use load_dataset function to load one of the benchmark datasets

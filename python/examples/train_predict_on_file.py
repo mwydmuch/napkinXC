@@ -7,7 +7,7 @@
 
 from napkinxc.datasets import download_dataset, load_dataset, save_libsvm_file
 from napkinxc.models import PLT
-from napkinxc.measures import precision_at_k
+from napkinxc.metrics import precision_at_k
 
 # Use download_dataset to download data
 # from XML Repository (http://manikvarma.org/downloads/XC/XMLRepository.html).

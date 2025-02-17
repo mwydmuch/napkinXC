@@ -27,6 +27,7 @@
 #include <ctime>
 #include <cstdio>
 #include <iostream>
+#include <string>
 
 // Logging
 enum LogLevel {
@@ -36,17 +37,22 @@ enum LogLevel {
     CERR_DEBUG,
 };
 
-// Log config
-extern LogLevel logLevel;
-extern bool logTime;
-extern bool logLabel;
+
 
 class Log {
 public:
+    // Log config
+    static inline LogLevel logLevel = NONE;
+    static inline bool logTime = false;
+    static inline bool logLabel = false;
+    static inline int logIndent = 0;
+
+    
     Log() {}
-    Log(LogLevel level): level(level) {
-        if(logTime) operator << (getTime() + " ");
-        if(logLabel) operator << ("[" + getLabel(level) + "] : ");
+    Log(LogLevel level, int indent = 0, bool time = false, bool label = false): level(level) {
+        if(time || logTime) operator << (getTime() + " ");
+        if(label || logLabel) operator << ("[" + getLabel(level) + "] : ");
+        if((logIndent + indent) > 0) operator << (std::string(logIndent + indent, ' '));
     }
 
     ~Log() {
@@ -66,6 +72,15 @@ public:
         }
         return *this;
     }
+
+    static LogLevel getLogLevel() { return logLevel; }
+    static void setLogLevel(LogLevel level) { logLevel = level; }
+
+    static int getGlobalIndent() { return logIndent; }
+    static void setGlobalIndent(int indent) { logIndent = indent; }
+    static void updateGlobalIndent(int indent) { logIndent += indent; }
+
+    static std::string newLine(int indent = 0) { return "\n" + std::string(logIndent + indent, ' '); }
 
 private:
     bool opened = false;

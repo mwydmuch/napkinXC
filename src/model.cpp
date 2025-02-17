@@ -28,7 +28,6 @@
 
 #include "ensemble.h"
 #include "log.h"
-#include "measure.h"
 #include "model.h"
 #include "threads.h"
 
@@ -111,8 +110,16 @@ void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
 
 void Model::setLabelsWeights(std::vector<Real> lw){
 //    if(lw.size() != m)
-//        throw std::invalid_argument("Size of labels' weights vector does not match number of model outputs");
+//        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
     labelsWeights = std::move(lw);
+    if(labelsBiases.empty()) labelsBiases = std::vector<Real>(lw.size(), 0);
+}
+
+void Model::setLabelsBiases(std::vector<Real> lb){
+//    if(lw.size() != m)
+//        throw std::invalid_argument("Size of labels' biases vector dose not match number of model outputs");
+    labelsBiases = std::move(lb);
+    if(labelsWeights.empty()) labelsWeights = std::vector<Real>(lb.size(), 0);
 }
 
 Real Model::microOfo(SRMatrix& features, SRMatrix& labels, Args& args){
@@ -221,6 +228,7 @@ std::vector<Real> Model::ofo(SRMatrix& features, SRMatrix& labels, Args& args) {
     args.threshold = 0;
     thresholds.clear();
     labelsWeights.clear();
+    labelsBiases.clear();
 
     if(args.ofoType == macro)
         thresholds = macroOfo(features, labels, args);
@@ -349,9 +357,11 @@ std::vector<Base*> Model::loadBases(const std::string& infile, bool resume, Repr
     }
     in.close();
 
-    Log(CERR) << "  Loaded bases: " << size
-              << "\n  Bases size: " << formatMem(memSize) << "\n  Non zero weights / bases: " << nonZeroSum / size
-              << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << "\n";
+    Log(CERR) << "Loaded bases: " << size
+              << Log::newLine(2) << "Base classifiers size: " << formatMem(memSize) 
+              << Log::newLine(2) << "Non-zero weights / classifiers: " << nonZeroSum / size
+              << Log::newLine(2) << "Dense classifiers: " << size - sparse 
+              << Log::newLine(2) << "Sparse classifiers: " << sparse << "\n";
 
     return bases;
 }

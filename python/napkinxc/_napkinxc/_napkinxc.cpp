@@ -28,7 +28,7 @@
 
 #include "args.h"
 #include "basic_types.h"
-#include "measure.h"
+#include "metric.h"
 #include "model.h"
 #include "plt.h"
 #include "read_data.h"
@@ -148,7 +148,8 @@ std::tuple<std::vector<std::vector<int>>, ScipyCSRMatrixData> loadLibSvmFileLabe
     Args args;
     args.input = path;
     args.processData = false;
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
 
     // Labels
     int rows = labels.rows();
@@ -172,7 +173,8 @@ std::tuple<ScipyCSRMatrixData, ScipyCSRMatrixData> loadLibSvmFileLabelsCSRMatrix
     Args args;
     args.input = path;
     args.processData = false;
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
 
     auto pyLabels = SRMatrixToScipyCSRMatrix(labels, sortIndices);
     auto pyFeatures = SRMatrixToScipyCSRMatrix(features, sortIndices);
@@ -194,7 +196,8 @@ public:
             args.input = path;
             SRMatrix labels;
             SRMatrix features;
-            readData(labels, features, args);
+            DataReader dataReader(args);
+            dataReader.readData(labels, features, args);
             fitHelper(labels, features);
         });
     }
@@ -284,7 +287,8 @@ public:
 
             SRMatrix labels;
             SRMatrix features;
-            readData(labels, features, args);
+            DataReader dataReader(args);
+            dataReader.readData(labels, features, args);
             pred = predictHelper(features, topK, threshold);
         });
 
@@ -292,7 +296,7 @@ public:
     }
 
     std::vector<std::pair<std::string, Real>> test(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType,
-                                                     int topK, Real threshold, std::string measuresStr){
+                                                     int topK, Real threshold, std::string metricsStr){
         std::vector<std::pair<std::string, Real>> results;
         runAsInterruptable([&] {
             load();
@@ -300,13 +304,13 @@ public:
             SRMatrix features;
             readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
             readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
-            results = testHelper(labels, features, topK, threshold, measuresStr);
+            results = testHelper(labels, features, topK, threshold, metricsStr);
         });
 
         return results;
     }
 
-    std::vector<std::pair<std::string, Real>> testOnFile(std::string path, int topK, Real threshold, std::string measuresStr){
+    std::vector<std::pair<std::string, Real>> testOnFile(std::string path, int topK, Real threshold, std::string metricsStr){
         std::vector<std::pair<std::string, Real>> results;
         runAsInterruptable([&] {
             load();
@@ -314,8 +318,9 @@ public:
 
             SRMatrix labels;
             SRMatrix features;
-            readData(labels, features, args);
-            results = testHelper(labels, features, topK, threshold, measuresStr);
+            DataReader dataReader(args);
+            dataReader.readData(labels, features, args);
+            results = testHelper(labels, features, topK, threshold, metricsStr);
         });
 
         return results;
@@ -431,14 +436,14 @@ private:
             // Read each row from the sparse matrix, and insert
             for (size_t r = 0; r < pyData.shape(0); ++r) {
                 rVec.clear();
-                if (process) prepareFeaturesVector(rVec, args.bias);
+                if (process) DataReader::prepareFeaturesVector(rVec, args.bias);
 
                 for (int f = 0; f < pyData.shape(1); ++f) {
                     Real v = pyData(r, f);
                     if (v != 0) rVec.emplace_back(f, v);
                 }
 
-                if (process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+                if (process) DataReader::processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
                 output.appendRow(rVec);
             }
         }
@@ -456,12 +461,12 @@ private:
         // Read each row from the sparse matrix, and insert
         for (int rId = 0; rId < indptr.size() - 1; ++rId) {
             rVec.clear();
-            if(process) prepareFeaturesVector(rVec, args.bias);
+            if(process) DataReader::prepareFeaturesVector(rVec, args.bias);
 
             for (int i = indptr.at(rId); i < indptr.at(rId + 1); ++i)
                 rVec.emplace_back(indices.at(i), data.at(i));
 
-            if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+            if(process) DataReader::processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
             output.appendRow(rVec);
         }
     }
@@ -477,7 +482,7 @@ private:
             py::list pyList(input);
             for (size_t i = 0; i < pyList.size(); ++i) {
                 rVec.clear();
-                if(process) prepareFeaturesVector(rVec, args.bias);
+                if(process) DataReader::prepareFeaturesVector(rVec, args.bias);
 
                 //if(py::hasattr(pyData[i], "__iter__")){ // Is iterable, multilabel data
                 if(py::isinstance<py::list>(pyList[i])){ // Is list, multilabel data
@@ -493,7 +498,7 @@ private:
                     rVec.emplace_back(py::cast<int>(pyList[i]), 1);
                 else throw py::value_error("Unsupported row data type, can be list or tuple of ints or typles of int and floats.");
 
-                if(process) processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
+                if(process) DataReader::processFeaturesVector(rVec, args.norm, args.hash, args.featuresThreshold);
 
                 output.appendRow(rVec);
             }
@@ -552,19 +557,19 @@ private:
         return reinterpret_cast<std::vector<std::vector<std::pair<int, Real>>>&>(predictions);
     }
 
-    inline std::vector<std::pair<std::string, Real>> testHelper(SRMatrix& labels, SRMatrix& features, int topK, Real threshold, std::string measuresStr){
+    inline std::vector<std::pair<std::string, Real>> testHelper(SRMatrix& labels, SRMatrix& features, int topK, Real threshold, std::string metricsStr){
         args.printArgs("test");
 
         args.topK = topK;
         args.threshold = threshold;
         auto predictions = model->predictBatch(features, args);
 
-        args.measures = measuresStr;
-        auto measures = Measure::factory(args, model->outputSize());
-        for (auto& m : measures) m->accumulate(labels, predictions);
+        args.metrics = metricsStr;
+        auto metrics = Metric::factory(args, model->outputSize());
+        for (auto& m : metrics) m->accumulate(labels, predictions);
 
         std::vector<std::pair<std::string, Real>> results;
-        for (auto& m : measures)
+        for (auto& m : metrics)
             results.push_back({m->getName(), m->value()});
 
         return results;

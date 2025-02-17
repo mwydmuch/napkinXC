@@ -2,7 +2,7 @@ import shutil
 import os
 from napkinxc.datasets import load_dataset
 from napkinxc.models import BR, PLT
-from napkinxc.measures import precision_at_k
+from napkinxc.metrics import precision_at_k
 
 from conf import *
 MODEL_PATH = get_model_path(__file__)

@@ -3,7 +3,7 @@
 import os
 import numpy as np
 from napkinxc.datasets import *
-from napkinxc.measures import *
+from napkinxc.metrics import *
 from napkinxc.models import PLT
 
 

@@ -14,7 +14,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ ubuntu-22.04, macos-13, macos-14, windows-2022 ]
+        os: [ ubuntu-24.04, macos-13, macos-14, windows-2022 ]
 
     name: Build C++ core on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}

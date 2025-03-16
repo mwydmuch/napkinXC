@@ -6,7 +6,7 @@ from scipy.sparse import csr_matrix
 
 from napkinxc.datasets import load_dataset, to_csr_matrix, to_np_matrix
 from napkinxc.models import HSM, PLT
-from napkinxc.measures import precision_at_k
+from napkinxc.metrics import precision_at_k
 
 from conf import *
 MODEL_PATH = get_model_path(__file__)

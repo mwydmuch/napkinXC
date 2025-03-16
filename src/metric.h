@@ -28,17 +28,17 @@
 #include "model.h"
 
 
-class Measure {
+class Metric {
 public:
-    static std::vector<std::shared_ptr<Measure>> factory(Args& args, int outputSize);
+    static std::vector<std::shared_ptr<Metric>> factory(Args& args, int outputSize);
 
-    Measure();
+    Metric();
 
     virtual void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) = 0;
     void accumulate(SRMatrix& labels, std::vector<std::vector<Prediction>>& predictions);
     virtual double value();
 
-    inline bool isMeanMeasure(){ return meanMeasure; };
+    inline bool isMeanMetric(){ return meanMetric; };
     inline double mean(){ return value(); };
     double stdDev();
 
@@ -47,22 +47,22 @@ public:
 protected:
     void addValue(double value);
 
-    bool meanMeasure;
+    bool meanMetric;
     std::string name;
     double sum;
     double sumSq;
     int count;
 };
 
-class MeasureAtK : public Measure {
+class MetricAtK : public Metric {
 public:
-    explicit MeasureAtK(int k);
+    explicit MetricAtK(int k);
 
 protected:
     int k;
 };
 
-class TruePositivesAtK : public MeasureAtK {
+class TruePositivesAtK : public MetricAtK {
 public:
     explicit TruePositivesAtK(int k);
 
@@ -70,7 +70,7 @@ public:
     static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction, int k);
 };
 
-class TruePositives : public Measure {
+class TruePositives : public Metric {
 public:
     TruePositives();
 
@@ -78,7 +78,7 @@ public:
     static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction);
 };
 
-class FalsePositives : public Measure {
+class FalsePositives : public Metric {
 public:
     FalsePositives();
 
@@ -86,7 +86,7 @@ public:
     static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction);
 };
 
-class FalseNegatives : public Measure {
+class FalseNegatives : public Metric {
 public:
     FalseNegatives();
 
@@ -94,35 +94,35 @@ public:
     static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction);
 };
 
-class Recall : public Measure {
+class Recall : public Metric {
 public:
     Recall();
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class RecallAtK : public MeasureAtK {
+class RecallAtK : public MetricAtK {
 public:
     explicit RecallAtK(int k);
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class Precision : public Measure {
+class Precision : public Metric {
 public:
     Precision();
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class PrecisionAtK : public MeasureAtK {
+class PrecisionAtK : public MetricAtK {
 public:
     explicit PrecisionAtK(int k);
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class DCGAtK : public MeasureAtK {
+class DCGAtK : public MetricAtK {
 public:
     explicit DCGAtK(int k);
 
@@ -130,14 +130,14 @@ public:
     static double calculate(SparseVector& labels, const std::vector<Prediction>& prediction, int k);
 };
 
-class NDCGAtK : public MeasureAtK{
+class NDCGAtK : public MetricAtK{
 public:
     explicit NDCGAtK(int k);
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class Coverage : public Measure {
+class Coverage : public Metric {
 public:
     explicit Coverage(int outputSize);
 
@@ -149,7 +149,7 @@ protected:
     int m;
 };
 
-class CoverageAtK : public MeasureAtK {
+class CoverageAtK : public MetricAtK {
 public:
     CoverageAtK(int outputSize, int k);
 
@@ -161,42 +161,42 @@ protected:
     int m;
 };
 
-class Accuracy : public Measure {
+class Accuracy : public Metric {
 public:
     Accuracy();
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class PredictionSize : public Measure {
+class PredictionSize : public Metric {
 public:
     PredictionSize();
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class HammingLoss : public Measure {
+class HammingLoss : public Metric {
 public:
     HammingLoss();
 
     void accumulate(SparseVector& labels, const std::vector<Prediction>& prediction) override;
 };
 
-class SampleF1 : public Measure {
+class SampleF1 : public Metric {
 public:
     SampleF1();
 
     void accumulate(SparseVector& labels, const std::vector<Prediction> &prediction) override;
 };
 
-class MicroF1 : public Measure {
+class MicroF1 : public Metric {
 public:
     MicroF1();
 
     void accumulate(SparseVector& labels, const std::vector<Prediction> &prediction) override;
 };
 
-class MacroF1 : public Measure {
+class MacroF1 : public Metric {
 public:
     explicit MacroF1(int outputSize);
 

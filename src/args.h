@@ -115,12 +115,19 @@ public:
     Real threshold;
     std::string thresholds;
     std::string labelsWeights;
+    std::string labelsBiases;
     TreeSearchType treeSearchType;
     int beamSearchWidth;
     bool beamSearchUnpack;
-
+    int batchRows;
+    int startRow;
+    int endRow;
+    int predictionPrecision;
+    bool covWeights;
+    
     // Measures for test command
-    std::string measures;
+    std::string metrics;
+    int metricsPrecision;
 
     // Args for OFO command
     OFOType ofoType;
@@ -132,8 +139,8 @@ public:
     double psB;
 
     // Args for testPredictionTime command
-    std::string batchSizes;
-    int batches;
+    std::string tptBatchSizes;
+    int tptBatches;
 
 private:
     std::default_random_engine rngSeeder;

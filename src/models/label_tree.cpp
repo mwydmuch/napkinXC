@@ -535,7 +535,6 @@ void LabelTree::save(std::ofstream& out) {
 
 void LabelTree::load(std::ifstream& in) {
     clear();
-
     Log(CERR) << "Loading tree ...\n";
 
     int k, t;
@@ -565,7 +564,7 @@ void LabelTree::load(std::ifstream& in) {
         }
     }
 
-    Log(CERR) << "  Nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
+    Log(CERR, 2) << "Loaded nodes: " << nodes.size() << ", leaves: " << leaves.size() << "\n";
 }
 
 void LabelTree::printTree(TreeNode* rootNode, bool printNodes) {

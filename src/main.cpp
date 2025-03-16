@@ -26,36 +26,33 @@
  Only this file should use std:cout.
  */
 
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 
 #include "args.h"
 #include "basic_types.h"
 #include "log.h"
-#include "measure.h"
+#include "metric.h"
 #include "misc.h"
 #include "model.h"
 #include "read_data.h"
 #include "resources.h"
 #include "version.h"
 
-std::vector<Real> loadVec(std::string infile){
-    std::vector<Real> vec;
-    std::ifstream in(infile);
-    Real v;
-    while (in >> v) vec.push_back(v);
-    return vec;
+
+void printLogo() {
+    Log(CERR) << R"LOGO(
+ |`\                            _     _        __  __ ____
+ |  `\     _ __    __ _  _ __  | | __(_) _ __  \ \/ // ___|
+ |    )   | '_ \  / _` || '_ \ | |/ /| || '_ \  \  /| |   
+ |  ,//   | | | || (_| || |_) ||   < | || | | | /  \| |___ 
+ |,/ /    |_| |_| \__,_|| .__/ |_|\_\|_||_| |_|/_/\_\\____|
+   \/                   |_|                           )LOGO" 
+   << VERSION << "\n";
 }
 
-void saveVec(std::vector<Real>& vec, std::string outfile){
-    std::ofstream out(outfile);
-    for(auto v : vec)
-        out << v << "\n";
-    out.close();
-}
-
-void loadVecs(std::shared_ptr<Model> model, Args& args){
-    std::vector<std::vector<Prediction>> predictions;
+void loadThWBVecs(std::shared_ptr<Model> model, Args& args){
     if (!args.thresholds.empty()) { // Using thresholds if provided
         std::vector<Real> thresholds = loadVec(args.thresholds);
         model->setThresholds(thresholds);
@@ -64,9 +61,14 @@ void loadVecs(std::shared_ptr<Model> model, Args& args){
         std::vector<Real> labelsWeights = loadVec(args.labelsWeights);
         model->setLabelsWeights(labelsWeights);
     }
+    if (!args.labelsBiases.empty()) { // Using labelsBiases if provided
+        std::vector<Real> labelsBiases = loadVec(args.labelsBiases);
+        model->setLabelsBiases(labelsBiases);
+    }
 }
 
-void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::ofstream& output){
+void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::ostream& output, Args& args){
+    //output << std::setprecision(args.predictionPrecision); // This actually slows down the output significantly
     for (const auto &p : predictions) {
         for (const auto &l : p) output << l.label << ":" << l.value << " ";
         output << "\n";
@@ -74,6 +76,7 @@ void outputPrediction(std::vector<std::vector<Prediction>>& predictions, std::of
 }
 
 void train(Args& args) {
+    printLogo();
 
     SRMatrix labels;
     SRMatrix features;
@@ -83,19 +86,20 @@ void train(Args& args) {
     args.saveToFile(joinPath(args.output, "args.bin"));
 
     // Create data reader and load train data
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
     Log(COUT) << "Train data statistics:"
-              << "\n  Train data points: " << features.rows()
-              << "\n  Uniq features: " << features.cols() - 2
-              << "\n  Uniq labels: " << labels.cols()
-              << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
-              << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
+              << Log::newLine(2) << "Train data points: " << features.rows()
+              << Log::newLine(2) << "Uniq features: " << features.cols() - 2
+              << Log::newLine(2) << "Uniq labels: " << labels.cols()
+              << Log::newLine(2) << "Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
+              << Log::newLine(2) << "Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
 
     auto resAfterData = getResources();
 
     // Create and train model (train function also saves model)
     std::shared_ptr<Model> model = Model::factory(args);
-    loadVecs(model, args);
+    loadThWBVecs(model, args);
     model->train(labels, features, args, args.output);
     model->printInfo();
 
@@ -107,15 +111,17 @@ void train(Args& args) {
                                             .count()) / 1000;
     auto cpuTime = resAfterTraining.cpuTime - resAfterData.cpuTime;
     Log(COUT) << "Train resources:"
-              << "\n  Train real time (s): " << realTime
-              << "\n  Train CPU time (s): " << cpuTime
-              << "\n  Train real time / data point (ms): " << realTime * 1000 / labels.rows()
-              << "\n  Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
-              << "\n  Train peak of real memory (MB): " << resAfterTraining.peakRealMem / 1024
-              << "\n  Train peak of virtual memory (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
+              << Log::newLine(2) << "Train real time (s): " << realTime
+              << Log::newLine(2) << "Train CPU time (s): " << cpuTime
+              << Log::newLine(2) << "Train real time / data point (ms): " << realTime * 1000 / labels.rows()
+              << Log::newLine(2) << "Train CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
+              << Log::newLine(2) << "Train peak of real memory (MB): " << resAfterTraining.peakRealMem / 1024
+              << Log::newLine(2) << "Train peak of virtual memory (MB): " << resAfterTraining.peakVirtualMem / 1024 << "\n";
 }
 
 void test(Args& args) {
+    printLogo();
+    
     SRMatrix labels;
     SRMatrix features;
 
@@ -123,41 +129,81 @@ void test(Args& args) {
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs("test");
 
-    // Load test data
-    readData(labels, features, args);
-    Log(COUT) << "Test data statistics:"
-              << "\n  Test data points: " << features.rows()
-              << "\n  Labels / data point: " << static_cast<double>(labels.cells()) / labels.rows()
-              << "\n  Features / data point: " << static_cast<double>(features.cells()) / features.rows() << "\n";
-
-    auto resAfterData = getResources();
-
-    // Load model and test
+    // Load model
+    auto resBeforeModel = getResources();
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
-
+    loadThWBVecs(model, args);
     auto resAfterModel = getResources();
 
-    // Predict for test set
-    loadVecs(model, args);
-    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+    // Init metrics
+    std::vector<std::shared_ptr<Metric>> metrics;
+    if (!args.metrics.empty()) metrics = Metric::factory(args, model->outputSize());
+
+    // Init data reader
+    DataReader dataReader(args);
+    bool isAllDataRead = false;
+    int batches = 0, rows = 0, featureCells = 0, labelCells = 0;
+
+    // Start loop with batches
+    std::vector<std::vector<Prediction>> predictions;
+    do{
+        if(args.batchRows > 0){
+            Log(CERR) << "Processing batch " << batches << "...\n";
+            Log::updateGlobalIndent(2);
+        }
+
+        // Load batch of data
+        SRMatrix labels;
+        SRMatrix features;
+        isAllDataRead = !dataReader.readData(labels, features, args, args.batchRows); 
+
+        rows += features.rows();
+        featureCells += features.cells();
+        labelCells += labels.cells();
+
+        // Predict for batch
+        Log(CERR) << "Predicting ... \n";
+        predictions = model->predictBatch(features, args);
+        
+        // Output predictions
+        if(!args.prediction.empty()){
+            Log(CERR) << "Saving prediction ... \n";
+            std::ofstream out;
+            if(batches == 0) out.open(args.prediction);
+            else out.open(args.prediction, std::ios_base::app);
+            outputPrediction(predictions, out, args);
+            out.close();
+        }    
+
+        // Accumulate metrics
+        Log(CERR) << "Accumulating metrics ... \n";
+        if(!metrics.empty())
+            for (auto& m : metrics) m->accumulate(labels, predictions);
+               
+        predictions.clear();
+        ++batches;
+
+        auto resAfterBatch = getResources();
+
+        Log(COUT) << "Batch resources:"
+            << Log::newLine(2) << "Test peak of real memory (MB): " << resAfterBatch.peakRealMem / 1024
+            << Log::newLine(2) << "Test peak of virtual memory (MB): " << resAfterBatch.peakVirtualMem / 1024 << "\n";
+
+        if(args.batchRows > 0) Log::updateGlobalIndent(-2);
+    } while (!isAllDataRead);
 
     auto resAfterPrediction = getResources();
 
-    // Output predictions
-    if(!args.prediction.empty()){
-        std::ofstream out(args.prediction);
-        outputPrediction(predictions, out);
-        out.close();
-    }
+    Log(COUT) << "Test data statistics:"
+              << Log::newLine(2) << "Test data points: " << rows
+              << Log::newLine(2) << "Labels / data point: " << static_cast<double>(labelCells) / rows
+              << Log::newLine(2) << "Features / data point: " << static_cast<double>(featureCells) / rows << "\n";
 
-    // Create measures, calculate and print scores
-    if(!args.measures.empty()){
-        auto measures = Measure::factory(args, model->outputSize());
-        for (auto& m : measures) m->accumulate(labels, predictions);
-
-        Log(COUT) << std::setprecision(5) << "Results:\n";
-        for (auto& m : measures){
+    // Print scores
+    if(!metrics.empty()){
+        Log(COUT) << std::setprecision(args.metricsPrecision) << "Results:\n";
+        for (auto& m : metrics){
             Log(COUT) << "  " << m->getName() << ": " << m->value();
             //if(m->isMeanMeasure()) Log(COUT) << " ± " << m->stdDev(); // Print std
             Log(COUT) << "\n";
@@ -173,19 +219,21 @@ void test(Args& args) {
                                             .count()) / 1000;
     auto cpuTime = resAfterPrediction.cpuTime - resAfterModel.cpuTime;
     Log(COUT) << "Test resources:"
-              << "\n  Test real time (s): " << realTime
-              << "\n  Test CPU time (s): " << cpuTime
-              << "\n  Test real time / data point (ms): " << realTime * 1000 / labels.rows()
-              << "\n  Test CPU time / data point (ms): " << cpuTime * 1000 / labels.rows()
-              << "\n  Model real memory size (MB): "
-              << (resAfterModel.currentRealMem - resAfterData.currentRealMem) / 1024
-              << "\n  Model virtual memory size (MB): "
-              << (resAfterModel.currentVirtualMem - resAfterData.currentVirtualMem) / 1024
-              << "\n  Test peak of real memory (MB): " << resAfterPrediction.peakRealMem / 1024
-              << "\n  Test peak of virtual memory (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
+              << Log::newLine(2) << "Test real time (s): " << realTime
+              << Log::newLine(2) << "Test CPU time (s): " << cpuTime
+              << Log::newLine(2) << "Test real time / data point (ms): " << realTime * 1000 / rows
+              << Log::newLine(2) << "Test CPU time / data point (ms): " << cpuTime * 1000 / rows
+              << Log::newLine(2) << "Model real memory size (MB): "
+              << (resAfterModel.currentRealMem - resBeforeModel.currentRealMem) / 1024
+              << Log::newLine(2) << "Model virtual memory size (MB): "
+              << (resAfterModel.currentVirtualMem - resBeforeModel.currentVirtualMem) / 1024
+              << Log::newLine(2) << "Test peak of real memory (MB): " << resAfterPrediction.peakRealMem / 1024
+              << Log::newLine(2) << "Test peak of virtual memory (MB): " << resAfterPrediction.peakVirtualMem / 1024 << "\n";
 }
 
 void predict(Args& args) {
+    printLogo();
+
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs("predict");
@@ -193,29 +241,48 @@ void predict(Args& args) {
     // Load model
     std::shared_ptr<Model> model = Model::factory(args);
     model->load(args, args.output);
+    loadThWBVecs(model, args);
 
-    SRMatrix labels;
-    SRMatrix features;
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    bool isAllDataRead = false;
+    int batches = 0;
+    do{
+        if(args.batchRows > 0){
+            Log(CERR) << "Processing batch " << batches << " ...\n";
+            Log::updateGlobalIndent(2);
+        }
 
-    loadVecs(model, args);
-    std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
+        // Load batch of data
+        SRMatrix labels;
+        SRMatrix features;
+        isAllDataRead = !dataReader.readData(labels, features, args, args.batchRows); 
 
-    // Output predictions
-    if(!args.prediction.empty()){
-        std::ofstream out(args.prediction);
-        outputPrediction(predictions, out);
-        out.close();
-    }
+        // Predict for batch
+        Log(CERR) << "Predicting ... \n";
+        std::vector<std::vector<Prediction>> predictions = model->predictBatch(features, args);
 
-    Log(COUT) << std::setprecision(5);
-    for (const auto &p : predictions) {
-        for (const auto &l : p) Log(COUT) << l.label << ":" << l.value << " ";
-        Log(COUT) << "\n";
-    }
+        // Output predictions
+        if(!args.prediction.empty()){
+            Log(CERR) << "Saving prediction ... \n";
+            std::ofstream out;
+            if(batches == 0) out.open(args.prediction);
+            else out.open(args.prediction, std::ios_base::app);
+            outputPrediction(predictions, out, args);
+            out.close();
+        } else {
+            Log(CERR) << "Outputing prediction ... \n";
+            std::cout << std::setprecision(args.predictionPrecision);
+            outputPrediction(predictions, std::cout, args);
+        }
+        ++batches;
+
+        if(args.batchRows > 0) Log::updateGlobalIndent(-2);
+    } while (!isAllDataRead);
 }
 
 void ofo(Args& args) {
+    printLogo();
+
     // Load model args
     args.loadFromFile(joinPath(args.output, "args.bin"));
     args.printArgs();
@@ -226,7 +293,8 @@ void ofo(Args& args) {
 
     SRMatrix labels;
     SRMatrix features;
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
 
     auto resAfterData = getResources();
 
@@ -242,11 +310,13 @@ void ofo(Args& args) {
                     1000;
     auto cpuTime = resAfterFo.cpuTime - resAfterData.cpuTime;
     Log(COUT) << "Resources during F-measure optimization:"
-              << "\n  Optimization real time (s): " << realTime
-              << "\n  Optimization CPU time (s): " << cpuTime << "\n";
+              << Log::newLine(2) << "Optimization real time (s): " << realTime
+              << Log::newLine(2) << "Optimization CPU time (s): " << cpuTime << "\n";
 }
 
 void testPredictionTime(Args& args) {
+    printLogo();
+
     // Method for testing performance on different batch (test dataset) sizes
 
     // Load model args
@@ -259,25 +329,26 @@ void testPredictionTime(Args& args) {
 
     SRMatrix labels;
     SRMatrix features;
-    readData(labels, features, args);
+    DataReader dataReader(args);
+    dataReader.readData(labels, features, args);
 
     // Read batch sizes
     std::vector<int> batchSizes;
-    for(const auto& s : split(args.batchSizes))
+    for(const auto& s : split(args.tptBatchSizes))
         batchSizes.push_back(std::stoi(s));
 
     // Prepare rng for selecting batches
     std::default_random_engine rng(args.seed);
     std::uniform_int_distribution<int> dist(0, features.rows() - 1);
 
-    Log(COUT) << "Results:";
+    Log(COUT) << "Results:\n";
     for(const auto& batchSize : batchSizes) {
         long double time = 0;
         long double timeSq = 0;
         long double timePerPoint = 0;
         long double timePerPointSq = 0;
 
-        for (int i = 0; i < args.batches; ++i) {
+        for (int i = 0; i < args.tptBatches; ++i) {
             // Generate batch
             std::vector<int> batch;
             batch.reserve(batchSize);
@@ -304,12 +375,12 @@ void testPredictionTime(Args& args) {
             timePerPointSq += timeDiff * timeDiff;
         }
 
-        long double meanTime = time / args.batches;
-        long double meanTimePerPoint = timePerPoint / args.batches;
-        Log(COUT) << "\n  Batch " << batchSize << " test CPU time / batch (s): " << meanTime
-                  << "\n  Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.batches - meanTime * meanTime)
-                  << "\n  Batch " << batchSize << " test CPU time / data points (ms): " << meanTimePerPoint
-                  << "\n  Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.batches - meanTimePerPoint * meanTimePerPoint);
+        long double meanTime = time / args.tptBatches;
+        long double meanTimePerPoint = timePerPoint / args.tptBatches;
+        Log(COUT, 2) << "Batch " << batchSize << " test CPU time / batch (s): " << meanTime
+                  << Log::newLine(2) << "Batch " << batchSize << " test CPU time std (s): " << std::sqrt(timeSq / args.tptBatches - meanTime * meanTime)
+                  << Log::newLine(2) << "Batch " << batchSize << " test CPU time / data points (ms): " << meanTimePerPoint
+                  << Log::newLine(2) << "Batch " << batchSize << " test CPU time / data points std (ms): " << std::sqrt(timePerPointSq / args.tptBatches - meanTimePerPoint * meanTimePerPoint);
 
     }
     Log(COUT) << "\n";
@@ -322,7 +393,6 @@ Commands:
     train                   Train model on given input data
     test                    Test model on given input data
     predict                 Predict for given data
-    ofo                     Use online f-measure optimization
     version                 Print napkinXC version
     help                    Print help
 
@@ -383,22 +453,24 @@ Args:
                             used in hierarchical k-means tree building procedure (default = 0.001)
     --kmeansBalanced        Use balanced K-Means clustering (default = 1)
 
-    Prediction:
+    Prediction (also for test command):
     --topK                  Predict top-k labels (default = 5)
     --threshold             Predict labels with probability above the threshold (default = 0)
     --thresholds            Path to a file with threshold for each label, one threshold per line
     --labelsWeights         Path to a file with weight for each label, one weight per line
+    --predictionPrecision   Number of decimal digits to output for predictions (default = 5)
 
     Test:
-    --measures              Evaluate test using set of measures (default = "p@1,p@3,p@5")
+    --metrics               Evaluate test using set of metrics (default = "p@1,p@3,p@5")
                             Measures: acc (accuracy), p (precision), r (recall), c (coverage), hl (hamming loos)
                                       p@k (precision at k), r@k (recall at k), c@k (coverage at k), s (prediction size)
+    --metricsPrecision      Number of decimal digits to output for metrics (default = 5)
     )HELP";
 }
 
 int main(int argc, char** argv) {
-    logLevel = CERR;
-
+    Log::setLogLevel(CERR);
+    
     if(argc == 1) {
         std::cout << "No command provided \n";
         printHelp();
@@ -428,6 +500,8 @@ int main(int argc, char** argv) {
         test(args);
     else if (command == "predict")
         predict(args);
+
+    // These commands are for experiments and are not included in the help
     else if (command == "ofo")
         ofo(args);
     else if (command == "testPredictionTime")

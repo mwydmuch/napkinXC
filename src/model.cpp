@@ -24,10 +24,10 @@
 #include <iomanip>
 #include <mutex>
 #include <string>
+#include <utility>
 
 #include "ensemble.h"
 #include "log.h"
-#include "measure.h"
 #include "model.h"
 #include "threads.h"
 
@@ -99,8 +99,8 @@ std::vector<std::vector<Prediction>> Model::predictBatch(SRMatrix& features, Arg
 
 void Model::setThresholds(std::vector<Real> th){
 //    if(th.size() != m)
-//        throw std::invalid_argument("Size of thresholds vector dose not match number of model outputs");
-    thresholds = th;
+//        throw std::invalid_argument("Size of thresholds vector does not match number of model outputs");
+    thresholds = std::move(th);
 }
 
 void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
@@ -111,7 +111,15 @@ void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
 void Model::setLabelsWeights(std::vector<Real> lw){
 //    if(lw.size() != m)
 //        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
-    labelsWeights = lw;
+    labelsWeights = std::move(lw);
+    if(labelsBiases.empty()) labelsBiases = std::vector<Real>(lw.size(), 0);
+}
+
+void Model::setLabelsBiases(std::vector<Real> lb){
+//    if(lw.size() != m)
+//        throw std::invalid_argument("Size of labels' biases vector dose not match number of model outputs");
+    labelsBiases = std::move(lb);
+    if(labelsWeights.empty()) labelsWeights = std::vector<Real>(lb.size(), 0);
 }
 
 Real Model::microOfo(SRMatrix& features, SRMatrix& labels, Args& args){
@@ -220,6 +228,7 @@ std::vector<Real> Model::ofo(SRMatrix& features, SRMatrix& labels, Args& args) {
     args.threshold = 0;
     thresholds.clear();
     labelsWeights.clear();
+    labelsBiases.clear();
 
     if(args.ofoType == macro)
         thresholds = macroOfo(features, labels, args);
@@ -263,7 +272,7 @@ void Model::saveResults(std::ofstream& out, std::vector<std::future<Base*>>& res
     }
 }
 
-void Model::trainBases(std::string outfile, std::vector<ProblemData>& problemsData, Args& args) {
+void Model::trainBases(const std::string& outfile, std::vector<ProblemData>& problemsData, Args& args) {
     std::ofstream out(outfile, std::ios::out | std::ios::binary);
     int size = problemsData.size();
     out.write((char*)&size, sizeof(size));
@@ -324,7 +333,7 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
     }
 }
 
-std::vector<Base*> Model::loadBases(std::string infile, bool resume, RepresentationType loadAs) {
+std::vector<Base*> Model::loadBases(const std::string& infile, bool resume, RepresentationType loadAs) {
     Log(CERR) << "Loading base estimators ...\n";
 
     Real nonZeroSum = 0;
@@ -348,9 +357,11 @@ std::vector<Base*> Model::loadBases(std::string infile, bool resume, Representat
     }
     in.close();
 
-    Log(CERR) << "  Loaded bases: " << size
-              << "\n  Bases size: " << formatMem(memSize) << "\n  Non zero weights / bases: " << nonZeroSum / size
-              << "\n  Dense classifiers: " << size - sparse << "\n  Sparse classifiers: " << sparse << "\n";
+    Log(CERR) << "Loaded bases: " << size
+              << Log::newLine(2) << "Base classifiers size: " << formatMem(memSize) 
+              << Log::newLine(2) << "Non-zero weights / classifiers: " << nonZeroSum / size
+              << Log::newLine(2) << "Dense classifiers: " << size - sparse 
+              << Log::newLine(2) << "Sparse classifiers: " << sparse << "\n";
 
     return bases;
 }

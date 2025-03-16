@@ -26,22 +26,18 @@
 #include "label_tree.h"
 #include "model.h"
 
-// Additional node information for prediction with thresholds
-struct TreeNodeThrExt {
-    Real th;
+// Additional node information for prediction with thresholds/weights/etc
+struct TreeNodeValueExt {
+    Real value;
     int label;
 };
 
-// Additional node information for prediction with weights
-struct TreeNodeWeightsExt {
-    Real weight;
-    int label;
-};
 
 // This is virtual class for all PLT based models: HSM, Batch PLT, Online PLT
 class PLT : virtual public Model {
 public:
     PLT();
+    ~PLT() override { unload(); }
 
     void predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) override;
     Real predictForLabel(Label label, SparseVector& features, Args& args) override;
@@ -51,36 +47,39 @@ public:
     void setThresholds(std::vector<Real> th) override;
     void updateThresholds(UnorderedMap<int, Real> thToUpdate) override;
     void setLabelsWeights(std::vector<Real> lw) override;
+    void setLabelsBiases(std::vector<Real> lb) override;
 
     void load(Args& args, std::string infile) override;
     void unload() override;
 
     void printInfo() override;
 
-    void setTree(LabelTree*t) { tree = t; };
-    LabelTree* getTree() { return tree; };
+    void setTree(std::unique_ptr<LabelTree> t) { tree = std::move(t); };
+    LabelTree* getTree() { return tree.get(); };
     bool isTreeLoaded() { return (tree != nullptr); };
     void preload(Args& args, std::string infile) override;
 
     // Helpers for Python PLT Framework
-    void buildTree(SRMatrix& labels, SRMatrix& features, Args& args, std::string output);
+    void buildTree(SRMatrix& labels, SRMatrix& features, Args& args, const std::string& output);
     std::vector<std::vector<std::pair<int, Real>>> getNodesToUpdate(const SRMatrix& labels);
     std::vector<std::vector<std::pair<int, Real>>> getNodesUpdates(const SRMatrix& labels);
 
-    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, std::string output);
+    void setTreeStructure(std::vector<std::tuple<int, int, int>> treeStructure, const std::string& output);
     std::vector<std::tuple<int, int, int>> getTreeStructure();
 
 protected:
-    LabelTree* tree;
+    std::unique_ptr<LabelTree> tree;
     std::vector<Base*> bases;
 
     std::vector<std::vector<int>> nodesLabels;
-    std::vector<TreeNodeThrExt> nodesThr; // For prediction with thresholds
-    std::vector<TreeNodeWeightsExt> nodesWeights; // For prediction with labels weights
+    std::vector<TreeNodeValueExt> nodesThr; // For prediction with thresholds
+    std::vector<TreeNodeValueExt> nodesWeights; // For prediction with labels weights
+    std::vector<TreeNodeValueExt> nodesBiases; // For prediction with labels weights
 
     void calculateNodesLabels();
     void setNodeThreshold(TreeNode* n);
     void setNodeWeight(TreeNode* n);
+    void setNodeBias(TreeNode* n);
 
     virtual void assignDataPoints(std::vector<std::vector<Real>>& binLabels,
                                   std::vector<std::vector<Feature*>>& binFeatures,

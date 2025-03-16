@@ -1,11 +1,14 @@
-# napkinXC 
 [![C++ build](https://github.com/mwydmuch/napkinXC/actions/workflows/cpp-test-build.yml/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/cpp-test-build.yml)
 [![Python build](https://github.com/mwydmuch/napkinXC/actions/workflows/python-test-build.yml/badge.svg)](https://github.com/mwydmuch/napkinXC/actions/workflows/python-test-build.yml)
 [![Documentation Status](https://readthedocs.org/projects/napkinxc/badge/?version=latest)](https://napkinxc.readthedocs.io/en/latest/?badge=latest)
 [![PyPI version](https://badge.fury.io/py/napkinxc.svg)](https://badge.fury.io/py/napkinxc) 
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mwydmuch/napkinXC/master/docs/_static/napkinXC_logo.png" width="500px"/>
+</p>
+
 napkinXC is an extremely simple and fast library for extreme multi-class and multi-label classification, 
-that focus on implementing various methods for Probabilistic Label Trees.
+that focuses on implementing various methods for Probabilistic Label Trees.
 It allows training a classifier for very large datasets in just a few lines of code with minimal resources.
 
 Right now, napkinXC implements the following features both in Python and C++:
@@ -33,9 +36,9 @@ Install via pip:
 ```
 pip install napkinxc
 ```
-We provide precompiled wheels for many Linux distros, macOS, and Windows for Python 3.7+.
+We provide precompiled wheels for many Linux distros, macOS, and Windows for Python 3.9+.
 In case there is no wheel for your OS, it will be quickly compiled from the source.
-Compilation from source requires modern C++17 compiler, CMake, Git, and Python 3.7+ installed.
+Compilation from source requires modern C++17 compiler, CMake, Git, and Python 3.9+ installed.
 
 
 The latest (master) version can be installed directly from the GitHub repository (not recommended):
@@ -48,7 +51,7 @@ A minimal example of usage:
 ```
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
-from napkinxc.measures import precision_at_k
+from napkinxc.metrics import precision_at_k
 
 X_train, Y_train = load_dataset("eurlex-4k", "train")
 X_test, Y_test = load_dataset("eurlex-4k", "test")

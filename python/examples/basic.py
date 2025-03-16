@@ -4,7 +4,7 @@
 
 from napkinxc.datasets import load_dataset
 from napkinxc.models import PLT
-from napkinxc.measures import precision_at_k
+from napkinxc.metrics import precision_at_k
 
 # Use load_dataset function to load one of the benchmark datasets
 # from XML Repository (http://manikvarma.org/downloads/XC/XMLRepository.html).

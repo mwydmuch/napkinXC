@@ -2,7 +2,7 @@
 
 cmake_minimum_required(VERSION 3.12)
 project(napkinXC
-        VERSION 0.6.3
+        VERSION 0.7.0
         DESCRIPTION "Extremely simple and fast extreme multi-class and multi-label classifiers"
         HOMEPAGE_URL https://github.com/mwydmuch/napkinXC
         LANGUAGES C CXX)
@@ -80,6 +80,10 @@ if (PYTHON)
     else()
         find_package(Python ${PYTHON_VERSION} EXACT COMPONENTS Interpreter Development.Module REQUIRED)
     endif()
+
+
+    set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
+    set(PYBIND11_FINDPYTHON True)
 
     add_subdirectory(pybind11)
     add_subdirectory(python)

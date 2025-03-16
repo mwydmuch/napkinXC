@@ -1,7 +1,7 @@
 import shutil
 from napkinxc.datasets import load_dataset
 from napkinxc.models import *
-from napkinxc.measures import precision_at_k
+from napkinxc.metrics import precision_at_k
 import numpy as np
 
 from conf import *

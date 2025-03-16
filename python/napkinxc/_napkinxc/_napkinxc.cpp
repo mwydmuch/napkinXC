@@ -1,30 +1,31 @@
 /*
- Copyright (c) 2020-2021 by Marek Wydmuch
+Copyright (c) 2020-2021 by Marek Wydmuch
 
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
- The above copyright notice and this permission notice shall be included in all
- copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
- */
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
 
 #include <Python.h>
 #include <pybind11/pybind11.h>
+#include <pybind11/functional.h>
+#include <pybind11/iostream.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
-#include <pybind11/functional.h>
 
 #include "args.h"
 #include "basic_types.h"
@@ -40,9 +41,7 @@
 #include <future>
 #include <chrono>
 
-using namespace std::chrono_literals;
 namespace py = pybind11;
-
 
 enum InputDataType {
     list,
@@ -104,11 +103,14 @@ std::tuple<std::vector<std::vector<int>>, ScipyCSRMatrixData> loadLibSvmFileLabe
     SRMatrix labels;
     SRMatrix features;
 
-    Args args;
-    args.input = path;
-    args.processData = false;
-    DataReader dataReader(args);
-    dataReader.readData(labels, features, args);
+    {
+        py::gil_scoped_release release;
+        Args args;
+        args.input = path;
+        args.processData = false;
+        DataReader dataReader(args);
+        dataReader.readData(labels, features, args);
+    }
 
     // Labels
     int rows = labels.rows();
@@ -129,11 +131,14 @@ std::tuple<ScipyCSRMatrixData, ScipyCSRMatrixData> loadLibSvmFileLabelsCSRMatrix
     SRMatrix labels;
     SRMatrix features;
 
-    Args args;
-    args.input = path;
-    args.processData = false;
-    DataReader dataReader(args);
-    dataReader.readData(labels, features, args);
+    {
+        py::gil_scoped_release release;
+        Args args;
+        args.input = path;
+        args.processData = false;
+        DataReader dataReader(args);
+        dataReader.readData(labels, features, args);
+    }
 
     auto pyLabels = SRMatrixToScipyCSRMatrix(labels, sortIndices);
     auto pyFeatures = SRMatrixToScipyCSRMatrix(features, sortIndices);
@@ -151,12 +156,17 @@ public:
     }
 
     void fitOnFile(std::string path){
-        args.input = path;
-        SRMatrix labels;
-        SRMatrix features;
-        DataReader dataReader(args);
-        dataReader.readData(labels, features, args);
-        fitHelper(labels, features);
+        {
+            py::gil_scoped_release release;
+
+            args.input = path;
+            SRMatrix labels;
+            SRMatrix features;
+            DataReader dataReader(args);
+            dataReader.readData(labels, features, args);
+            
+            fitHelper(labels, features);
+        }
     }
 
     void fit(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
@@ -164,7 +174,11 @@ public:
         SRMatrix features;
         readSRMatrix(features, inputFeatures, (InputDataType) featuresDataType, true);
         readSRMatrix(labels, inputLabels, (InputDataType) labelsDataType);
-        fitHelper(labels, features);
+        {
+            py::gil_scoped_release release;
+            
+            fitHelper(labels, features);
+        }
     }
 
     void preload(){
@@ -204,25 +218,16 @@ public:
 
     std::vector<std::vector<std::pair<int, Real>>> predictProba(py::object inputFeatures, int featuresDataType, int topK, Real threshold){
         std::vector<std::vector<std::pair<int, Real>>> pred;
-        load();
         SRMatrix features;
         readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
-        pred = predictHelper(features, topK, threshold);
+        {
+            py::gil_scoped_release release;
+
+            load();
+            pred = predictHelper(features, topK, threshold);
+        }
 
         return pred;
-    }
-
-    std::vector<Real> ofo(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType) {
-        std::vector<Real> thresholds;
-        load();
-        SRMatrix labels;
-        SRMatrix features;
-        readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
-        readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
-        args.printArgs("ofo");
-        thresholds = model->ofo(features, labels, args);
-
-        return thresholds;
     }
 
     std::vector<std::vector<int>> predictForFile(std::string path, int topK, Real threshold) {
@@ -232,58 +237,71 @@ public:
 
     std::vector<std::vector<std::pair<int, Real>>> predictProbaForFile(std::string path, int topK, Real threshold) {
         std::vector<std::vector<std::pair<int, Real>>> pred;
-        load();
-        args.input = path;
+        {
+            py::gil_scoped_release release;
 
-        SRMatrix labels;
-        SRMatrix features;
-        DataReader dataReader(args);
-        dataReader.readData(labels, features, args);
-        pred = predictHelper(features, topK, threshold);
+            args.input = path;
+            SRMatrix labels;
+            SRMatrix features;
+            DataReader dataReader(args);
+            dataReader.readData(labels, features, args);
+            
+            load();
+            pred = predictHelper(features, topK, threshold);
+        }
 
         return pred;
     }
 
     std::vector<std::pair<std::string, Real>> test(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType,
-                                                     int topK, Real threshold, std::string metricsStr){
+                                                    int topK, Real threshold, std::string metricsStr){
         std::vector<std::pair<std::string, Real>> results;
-        load();
         SRMatrix labels;
         SRMatrix features;
         readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
         readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
-        results = testHelper(labels, features, topK, threshold, metricsStr);
+        {
+            py::gil_scoped_release release;
+            load();
+            results = testHelper(labels, features, topK, threshold, metricsStr);
+        };
 
         return results;
     }
 
     std::vector<std::pair<std::string, Real>> testOnFile(std::string path, int topK, Real threshold, std::string metricsStr){
         std::vector<std::pair<std::string, Real>> results;
-        load();
-        args.input = path;
+        {
+            py::gil_scoped_release release;
 
-        SRMatrix labels;
-        SRMatrix features;
-        DataReader dataReader(args);
-        dataReader.readData(labels, features, args);
-        results = testHelper(labels, features, topK, threshold, metricsStr);
+            args.input = path;
+            SRMatrix labels;
+            SRMatrix features;
+            DataReader dataReader(args);
+            dataReader.readData(labels, features, args);
+
+            load();
+            results = testHelper(labels, features, topK, threshold, metricsStr);
+        }
 
         return results;
     }
 
     void buildTree(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
         if(args.modelType == plt || args.modelType == hsm) {
-            if(model == nullptr) model = Model::factory(args);
-            auto treeModel = std::dynamic_pointer_cast<PLT>(model);
-
             SRMatrix labels;
             SRMatrix features;
             readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
             readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+            {
+                py::gil_scoped_release release;
+                if(model == nullptr) model = Model::factory(args);
+                auto treeModel = std::dynamic_pointer_cast<PLT>(model);
 
-            makeDir(args.output);
-            args.saveToFile(joinPath(args.output, "args.bin"));
-            treeModel->buildTree(labels, features, args, args.output);
+                makeDir(args.output);
+                args.saveToFile(joinPath(args.output, "args.bin"));
+                treeModel->buildTree(labels, features, args, args.output);
+            }
         }
     }
 
@@ -357,11 +375,11 @@ public:
 private:
     Args args;
     std::shared_ptr<Model> model;
-	
-	template<typename T> bool isArrayType(py::array& pyArray){
-		return py::isinstance<py::array_t<T>>(pyArray);
-	}
-	
+    
+    template<typename T> bool isArrayType(py::array& pyArray){
+        return py::isinstance<py::array_t<T>>(pyArray);
+    }
+    
     template<typename T> void readPyArray(SRMatrix& output, py::array& pyArray, bool process = false){
         std::vector<IRVPair> rVec;
         if (pyArray.ndim() == 1){ // 1d multiclass data
@@ -530,15 +548,14 @@ private:
     }
 };
 
-
-#define LONG_METHODS_CALL_GUARDS py::call_guard<py::gil_scoped_release, py::scoped_ostream_redirect, py::scoped_estream_redirect>()
+#define OE_CALL_GUARDS py::call_guard<py::scoped_ostream_redirect, py::scoped_estream_redirect>()
 
 PYBIND11_MODULE(_napkinxc, n) {
     n.doc() = "Python bindings for napkinXC C++ core";
     n.attr("__version__") = VERSION;
 
-    n.def("_load_libsvm_file_labels_list", &loadLibSvmFileLabelsList, LONG_METHODS_CALL_GUARDS);
-    n.def("_load_libsvm_file_labels_csr_matrix", &loadLibSvmFileLabelsCSRMatrix, LONG_METHODS_CALL_GUARDS);
+    n.def("_load_libsvm_file_labels_list", &loadLibSvmFileLabelsList);
+    n.def("_load_libsvm_file_labels_csr_matrix", &loadLibSvmFileLabelsCSRMatrix);
 
     py::enum_<InputDataType>(n, "InputDataType")
     .value("list", list)
@@ -548,24 +565,23 @@ PYBIND11_MODULE(_napkinxc, n) {
     py::class_<CPPModel>(n, "CPPModel")
     .def(py::init<>())
     .def("set_args", &CPPModel::setArgs)
-    .def("fit", &CPPModel::fit, LONG_METHODS_CALL_GUARDS)
-    .def("fit_on_file", &CPPModel::fitOnFile, LONG_METHODS_CALL_GUARDS)
-    .def("load", &CPPModel::load, LONG_METHODS_CALL_GUARDS)
-    .def("unload", &CPPModel::unload, LONG_METHODS_CALL_GUARDS)
+    .def("fit", &CPPModel::fit)
+    .def("fit_on_file", &CPPModel::fitOnFile, OE_CALL_GUARDS)
+    .def("load", &CPPModel::load)
+    .def("unload", &CPPModel::unload)
     .def("set_thresholds", &CPPModel::setThresholds)
     .def("set_labels_weights", &CPPModel::setLabelsWeights)
-    .def("predict", &CPPModel::predict, LONG_METHODS_CALL_GUARDS)
-    .def("predict_proba", &CPPModel::predictProba, LONG_METHODS_CALL_GUARDS)
-    .def("predict_for_file", &CPPModel::predictForFile, LONG_METHODS_CALL_GUARDS)
-    .def("predict_proba_for_file", &CPPModel::predictProbaForFile, LONG_METHODS_CALL_GUARDS)
-    .def("test", &CPPModel::test, LONG_METHODS_CALL_GUARDS)
-    .def("test_on_file", &CPPModel::testOnFile, LONG_METHODS_CALL_GUARDS)
-    .def("build_tree", &CPPModel::buildTree, LONG_METHODS_CALL_GUARDS)
+    .def("predict", &CPPModel::predict, OE_CALL_GUARDS)
+    .def("predict_proba", &CPPModel::predictProba, OE_CALL_GUARDS)
+    .def("predict_for_file", &CPPModel::predictForFile, OE_CALL_GUARDS)
+    .def("predict_proba_for_file", &CPPModel::predictProbaForFile, OE_CALL_GUARDS)
+    .def("test", &CPPModel::test, OE_CALL_GUARDS)
+    .def("test_on_file", &CPPModel::testOnFile, OE_CALL_GUARDS)
+    .def("build_tree", &CPPModel::buildTree, OE_CALL_GUARDS)
     .def("get_nodes_to_update", &CPPModel::getNodesToUpdate)
     .def("get_nodes_updates", &CPPModel::getNodesUpdates)
     .def("get_tree_structure", &CPPModel::getTreeStructure)
     .def("set_tree_structure", &CPPModel::setTreeStructure);
-//    .def("get_weights", &CPPModel::getWeights)
-//    .def("set_weights", &CPPModel::setWeights);
+    //    .def("get_weights", &CPPModel::getWeights)
+    //    .def("set_weights", &CPPModel::setWeights);
 }
-

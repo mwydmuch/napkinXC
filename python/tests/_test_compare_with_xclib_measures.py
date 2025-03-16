@@ -2,6 +2,7 @@ from time import time
 import numpy as np
 import shutil
 
+# pip install Cython
 # pip install git+https://github.com/kunaldahiya/pyxclib.git
 from xclib.evaluation.xc_metrics import *
 
@@ -31,8 +32,8 @@ def test_compare_napkinxc_with_xclib():
     csr_Y_pred = to_csr_matrix(Y_pred, shape=csr_Y_test.shape)
 
     # Calculate propensities
-    nxc_inv_ps = inverse_propensity(Y_train, A=0.55, B=1.5)
-    csr_nxc_inv_ps = inverse_propensity(csr_Y_train, A=0.55, B=1.5)
+    nxc_inv_ps = Jain_et_al_inverse_propensity(Y_train, A=0.55, B=1.5)
+    csr_nxc_inv_ps = Jain_et_al_inverse_propensity(csr_Y_train, A=0.55, B=1.5)
     xcl_inv_ps = compute_inv_propesity(csr_Y_train, A=0.55, B=1.5)
     assert np.allclose(nxc_inv_ps, csr_nxc_inv_ps)
     assert np.allclose(nxc_inv_ps, xcl_inv_ps)

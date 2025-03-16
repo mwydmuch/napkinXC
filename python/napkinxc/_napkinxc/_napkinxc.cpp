@@ -53,47 +53,6 @@ enum InputDataType {
 typedef std::tuple<py::array_t<Real>, py::array_t<int>, py::array_t<int>> ScipyCSRMatrixData;
 
 
-template<typename F> void runAsInterruptable(F func) {
-    func();
-
-    // Interruption without correct exception handling
-    /*
-    std::atomic<bool> done(false);
-    std::thread t([&] {
-        func();
-        done = true;
-    });
-
-    try {
-        while (!done) {
-            std::this_thread::sleep_for(100ms);
-            std::cout << "running ..." << std::endl;
-            if (PyErr_CheckSignals() != 0) throw py::error_already_set();
-        }
-    } catch (py::error_already_set& e) { throw py::error_already_set(); }
-
-    t.join();
-     */
-
-    // Async, correct exception handling, but not working interruption
-    /*
-    auto feature = std::async(std::launch::async,
-    [&]{
-        func();
-        return true;
-    });
-
-    try {
-        while (feature.wait_for(100ms) != std::future_status::ready) {
-            std::this_thread::sleep_for(100ms);
-            std::cout << "running ..." << std::endl;
-            if (PyErr_CheckSignals() != 0) throw py::error_already_set();
-        }
-        feature.get();
-    } catch (py::error_already_set &e){ throw; }
-     */
-}
-
 template<typename T> std::vector<T> pyListToVector(py::list const &pyList){
     std::vector<T> vector(pyList.size());
     for (size_t i = 0; i < pyList.size(); ++i) vector[i] = py::cast<T>(pyList[i]);
@@ -190,23 +149,19 @@ public:
     }
 
     void fitOnFile(std::string path){
-        runAsInterruptable([&] {
-            args.input = path;
-            SRMatrix labels;
-            SRMatrix features;
-            readData(labels, features, args);
-            fitHelper(labels, features);
-        });
+        args.input = path;
+        SRMatrix labels;
+        SRMatrix features;
+        readData(labels, features, args);
+        fitHelper(labels, features);
     }
 
     void fit(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
-        runAsInterruptable([&] {
-            SRMatrix labels;
-            SRMatrix features;
-            readSRMatrix(features, inputFeatures, (InputDataType) featuresDataType, true);
-            readSRMatrix(labels, inputLabels, (InputDataType) labelsDataType);
-            fitHelper(labels, features);
-        });
+        SRMatrix labels;
+        SRMatrix features;
+        readSRMatrix(features, inputFeatures, (InputDataType) featuresDataType, true);
+        readSRMatrix(labels, inputLabels, (InputDataType) labelsDataType);
+        fitHelper(labels, features);
     }
 
     void preload(){
@@ -246,27 +201,23 @@ public:
 
     std::vector<std::vector<std::pair<int, Real>>> predictProba(py::object inputFeatures, int featuresDataType, int topK, Real threshold){
         std::vector<std::vector<std::pair<int, Real>>> pred;
-        runAsInterruptable([&] {
-            load();
-            SRMatrix features;
-            readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
-            pred = predictHelper(features, topK, threshold);
-        });
+        load();
+        SRMatrix features;
+        readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
+        pred = predictHelper(features, topK, threshold);
 
         return pred;
     }
 
     std::vector<Real> ofo(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType) {
         std::vector<Real> thresholds;
-        runAsInterruptable([&] {
-            load();
-            SRMatrix labels;
-            SRMatrix features;
-            readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
-            readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
-            args.printArgs("ofo");
-            thresholds = model->ofo(features, labels, args);
-        });
+        load();
+        SRMatrix labels;
+        SRMatrix features;
+        readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
+        readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+        args.printArgs("ofo");
+        thresholds = model->ofo(features, labels, args);
 
         return thresholds;
     }
@@ -278,15 +229,13 @@ public:
 
     std::vector<std::vector<std::pair<int, Real>>> predictProbaForFile(std::string path, int topK, Real threshold) {
         std::vector<std::vector<std::pair<int, Real>>> pred;
-        runAsInterruptable([&] {
-            load();
-            args.input = path;
+        load();
+        args.input = path;
 
-            SRMatrix labels;
-            SRMatrix features;
-            readData(labels, features, args);
-            pred = predictHelper(features, topK, threshold);
-        });
+        SRMatrix labels;
+        SRMatrix features;
+        readData(labels, features, args);
+        pred = predictHelper(features, topK, threshold);
 
         return pred;
     }
@@ -294,48 +243,42 @@ public:
     std::vector<std::pair<std::string, Real>> test(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType,
                                                      int topK, Real threshold, std::string measuresStr){
         std::vector<std::pair<std::string, Real>> results;
-        runAsInterruptable([&] {
-            load();
-            SRMatrix labels;
-            SRMatrix features;
-            readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
-            readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
-            results = testHelper(labels, features, topK, threshold, measuresStr);
-        });
+        load();
+        SRMatrix labels;
+        SRMatrix features;
+        readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
+        readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+        results = testHelper(labels, features, topK, threshold, measuresStr);
 
         return results;
     }
 
     std::vector<std::pair<std::string, Real>> testOnFile(std::string path, int topK, Real threshold, std::string measuresStr){
         std::vector<std::pair<std::string, Real>> results;
-        runAsInterruptable([&] {
-            load();
-            args.input = path;
+        load();
+        args.input = path;
 
-            SRMatrix labels;
-            SRMatrix features;
-            readData(labels, features, args);
-            results = testHelper(labels, features, topK, threshold, measuresStr);
-        });
+        SRMatrix labels;
+        SRMatrix features;
+        readData(labels, features, args);
+        results = testHelper(labels, features, topK, threshold, measuresStr);
 
         return results;
     }
 
     void buildTree(py::object inputFeatures, py::object inputLabels, int featuresDataType, int labelsDataType){
         if(args.modelType == plt || args.modelType == hsm) {
-            runAsInterruptable([&] {
-                if(model == nullptr) model = Model::factory(args);
-                auto treeModel = std::dynamic_pointer_cast<PLT>(model);
+            if(model == nullptr) model = Model::factory(args);
+            auto treeModel = std::dynamic_pointer_cast<PLT>(model);
 
-                SRMatrix labels;
-                SRMatrix features;
-                readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
-                readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
+            SRMatrix labels;
+            SRMatrix features;
+            readSRMatrix(features, inputFeatures, (InputDataType)featuresDataType, true);
+            readSRMatrix(labels, inputLabels, (InputDataType)labelsDataType);
 
-                makeDir(args.output);
-                args.saveToFile(joinPath(args.output, "args.bin"));
-                treeModel->buildTree(labels, features, args, args.output);
-            });
+            makeDir(args.output);
+            args.saveToFile(joinPath(args.output, "args.bin"));
+            treeModel->buildTree(labels, features, args, args.output);
         }
     }
 
@@ -583,12 +526,14 @@ private:
 };
 
 
+#define LONG_METHODS_CALL_GUARDS py::call_guard<py::gil_scoped_release, py::scoped_ostream_redirect, py::scoped_estream_redirect>()
+
 PYBIND11_MODULE(_napkinxc, n) {
     n.doc() = "Python bindings for napkinXC C++ core";
     n.attr("__version__") = VERSION;
 
-    n.def("_load_libsvm_file_labels_list", &loadLibSvmFileLabelsList);
-    n.def("_load_libsvm_file_labels_csr_matrix", &loadLibSvmFileLabelsCSRMatrix);
+    n.def("_load_libsvm_file_labels_list", &loadLibSvmFileLabelsList, LONG_METHODS_CALL_GUARDS);
+    n.def("_load_libsvm_file_labels_csr_matrix", &loadLibSvmFileLabelsCSRMatrix, LONG_METHODS_CALL_GUARDS);
 
     py::enum_<InputDataType>(n, "InputDataType")
     .value("list", list)
@@ -598,20 +543,19 @@ PYBIND11_MODULE(_napkinxc, n) {
     py::class_<CPPModel>(n, "CPPModel")
     .def(py::init<>())
     .def("set_args", &CPPModel::setArgs)
-    .def("fit", &CPPModel::fit)
-    .def("fit_on_file", &CPPModel::fitOnFile)
-    .def("load", &CPPModel::load)
-    .def("unload", &CPPModel::unload)
+    .def("fit", &CPPModel::fit, LONG_METHODS_CALL_GUARDS)
+    .def("fit_on_file", &CPPModel::fitOnFile, LONG_METHODS_CALL_GUARDS)
+    .def("load", &CPPModel::load, LONG_METHODS_CALL_GUARDS)
+    .def("unload", &CPPModel::unload, LONG_METHODS_CALL_GUARDS)
     .def("set_thresholds", &CPPModel::setThresholds)
     .def("set_labels_weights", &CPPModel::setLabelsWeights)
-    .def("predict", &CPPModel::predict)
-    .def("predict_proba", &CPPModel::predictProba)
-    .def("predict_for_file", &CPPModel::predictForFile)
-    .def("predict_proba_for_file", &CPPModel::predictProbaForFile)
-    .def("ofo", &CPPModel::ofo)
-    .def("test", &CPPModel::test)
-    .def("test_on_file", &CPPModel::testOnFile)
-    .def("build_tree", &CPPModel::buildTree)
+    .def("predict", &CPPModel::predict, LONG_METHODS_CALL_GUARDS)
+    .def("predict_proba", &CPPModel::predictProba, LONG_METHODS_CALL_GUARDS)
+    .def("predict_for_file", &CPPModel::predictForFile, LONG_METHODS_CALL_GUARDS)
+    .def("predict_proba_for_file", &CPPModel::predictProbaForFile, LONG_METHODS_CALL_GUARDS)
+    .def("test", &CPPModel::test, LONG_METHODS_CALL_GUARDS)
+    .def("test_on_file", &CPPModel::testOnFile, LONG_METHODS_CALL_GUARDS)
+    .def("build_tree", &CPPModel::buildTree, LONG_METHODS_CALL_GUARDS)
     .def("get_nodes_to_update", &CPPModel::getNodesToUpdate)
     .def("get_nodes_updates", &CPPModel::getNodesUpdates)
     .def("get_tree_structure", &CPPModel::getTreeStructure)
@@ -619,3 +563,4 @@ PYBIND11_MODULE(_napkinxc, n) {
 //    .def("get_weights", &CPPModel::getWeights)
 //    .def("set_weights", &CPPModel::setWeights);
 }
+

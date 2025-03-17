@@ -88,7 +88,7 @@ setup(
         "-DPYTHON=ON",
         "-DPYTHON_VERSION=" + get_python_version(),
         "-DEXE=OFF",
-        "-DBACKWARD=ON",
+        "-DBACKWARD=OFF",
     ],
     include_package_data=True,
     # parallel=max(cpu_count(), 1) # Unknown distribution option: 'parallel'

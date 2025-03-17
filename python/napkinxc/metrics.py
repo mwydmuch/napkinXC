@@ -134,7 +134,6 @@ class MetricAtK(Metric):
         Y_pred = Metric._get_Y_iterator(Y_pred, ranking=True)
 
         for t, p in zip(Y_true, Y_pred):
-            print(t, p)
             self._accumulate(t, p)
             self.count += 1
 

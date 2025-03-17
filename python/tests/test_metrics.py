@@ -76,7 +76,7 @@ L5l = [
 
 # Sets of datasets
 binary_set = [(T1, L1l), (T1, L1lf), (T2, L2b), (T3, L3b), (T5, L5l)]
-ranking_set = [(T1, L1l2), (T2, L2f), (T3, L3f)]
+ranking_set = [(T1, L1l), (T1, L1lf), (T1, L1l2), (T2, L2f), (T3, L3f), (T5, L5l)]
 
 
 def _test_using_set(func, true_result, test_set):
@@ -88,19 +88,16 @@ def _test_using_set(func, true_result, test_set):
 
 def test_precision_at_k():
     true_p_at_3 = np.array([1, 3/4, 2/3])
-    _test_using_set(precision_at_k, true_p_at_3, binary_set)
     _test_using_set(precision_at_k, true_p_at_3, ranking_set)
 
 
 def test_recall_at_k():
     true_r_at_3 = np.array([1/3, 1/2, 2/3])
-    _test_using_set(recall_at_k, true_r_at_3, binary_set)
     _test_using_set(recall_at_k, true_r_at_3, ranking_set)
 
 
 def test_ndcg_at_k():
     true_ndcg_at_3 = np.array([1, 0.8065736, 0.73463936])
-    _test_using_set(ndcg_at_k, true_ndcg_at_3, binary_set)
     _test_using_set(ndcg_at_k, true_ndcg_at_3, ranking_set)
 
 
@@ -112,13 +109,11 @@ def test_hamming_loss():
 
 def test_coverage_at_k():
     true_c_at_3 = np.array([2/5, 3/5, 4/5])
-    _test_using_set(coverage_at_k, true_c_at_3, binary_set)
     _test_using_set(coverage_at_k, true_c_at_3, ranking_set)
 
 
 def test_abandonment_at_k():
     true_a_at_3 = np.array([1, 1, 1])
-    _test_using_set(abandonment_at_k, true_a_at_3, binary_set)
     _test_using_set(abandonment_at_k, true_a_at_3, ranking_set)
 
 

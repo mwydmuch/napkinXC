@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2022 by Marek Wydmuch
+# Copyright (c) 2020-2025 by Marek Wydmuch
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -134,6 +134,7 @@ class MetricAtK(Metric):
         Y_pred = Metric._get_Y_iterator(Y_pred, ranking=True)
 
         for t, p in zip(Y_true, Y_pred):
+            print(t, p)
             self._accumulate(t, p)
             self.count += 1
 

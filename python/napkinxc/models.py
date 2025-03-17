@@ -150,31 +150,6 @@ class Model():
         threshold = self._prepare_pred(top_k, threshold, labels_weights)
         return self._model.predict_proba_for_file(path, top_k, threshold)
 
-    def ofo(self, X, Y, type='micro', a=10, b=20, epochs=1):
-        """
-        Perform Online F-measure Optimization procedure on the given data to find optimal thresholds.
-
-        :param X: Data points as a matrix or list of lists of int or tuples of int and float (feature id, value).
-        :type X: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]]
-        :param Y: Target labels as a matrix or lists or tuples of ints (multi-label data) or list of ints (multi-class data).
-        :type Y: csr_matrix, ndarray, list[list[int]|tuple[int]], list[list[tuple[int, float]], list[int]
-        :param type: Type of OFO procedure {``'micro'``, ``'macro'``}, default to ``'micro'``
-        :type type: str
-        :param a: Parameter of OFO procedure, defaults to 10
-        :type a: int
-        :param b: Parameter of OFO procedure, defaults to 20
-        :type b: int
-        :param epochs: Number of OFO epochs, defaults to 1
-        :type epochs: int, optional
-        :return: Single threshold in case of ``type='micro'`` and list of thresholds in case of ``type='macro'``
-        :rtype: float, list[float]
-        """
-        self.set_params(ofo_type=type, ofo_a=a, ofo_b=b, epochs=epochs)
-        thr = self._model.ofo(X, Y, Model._check_data_type(X), Model._check_data_type(Y))
-        if type == 'micro':
-            thr = thr[0]
-        return thr
-
     def get_params(self, deep=False): # deep argument for Scikit-learn compatibility
         """
         Get parameters of this model.

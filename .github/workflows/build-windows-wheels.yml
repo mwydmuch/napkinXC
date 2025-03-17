@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/windows-wheels.yml'
+      - '.github/workflows/build-windows-wheels.yml'
       - 'python/**'
       - 'src/**'
       - 'CMakeLists.txt'

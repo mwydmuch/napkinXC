@@ -14,9 +14,8 @@ It allows training a classifier for very large datasets in just a few lines of c
 Right now, napkinXC implements the following features both in Python and C++:
 - Probabilistic Label Trees (PLTs) and Hierarchical softmax (HSM),
 - different types of inference methods (top-k, above a given threshold, etc.),
-- fast prediction with labels weight, e.g., propensity scores,
-- efficient online F-measure optimization (OFO) procedure,
-- different tree building methods, including hierarchical k-means clustering method,
+- fast prediction with label weights, e.g., propensity scores,
+- different tree-building methods, including the hierarchical k-means clustering method,
 - training of tree node
 - support for custom tree structures, and node weights, 
 - helpers to download and load data from [XML Repository](http://manikvarma.org/downloads/XC/XMLRepository.html),
@@ -37,8 +36,8 @@ Install via pip:
 pip install napkinxc
 ```
 We provide precompiled wheels for many Linux distros, macOS, and Windows for Python 3.9+.
-In case there is no wheel for your OS, it will be quickly compiled from the source.
-Compilation from source requires modern C++17 compiler, CMake, Git, and Python 3.9+ installed.
+If there is no wheel for your OS, it will be quickly compiled from the source.
+Compilation from source requires a modern C++17 compiler, CMake, Git, and Python 3.9+ installed.
 
 
 The latest (master) version can be installed directly from the GitHub repository (not recommended):
@@ -67,7 +66,7 @@ and napkinXC's documentation is available at [https://napkinxc.readthedocs.io](h
 
 ## Executable
 
-napkinXC can also be used as executable to train and evaluate models using data in LIBSVM format.
+napkinXC can also be used as an executable to train and evaluate models using data in LIBSVM format.
 See [documentation](https://napkinxc.readthedocs.io/en/latest/exe_usage.html) for more details.
 
 
@@ -81,4 +80,4 @@ This library implements methods from the following papers (see `experiments` dir
 - [Efficient Algorithms for Set-Valued Prediction in Multi-Class Classification](https://link.springer.com/article/10.1007/s10618-021-00751-x)
 
 Another implementation of PLT model is available in [extremeText](https://github.com/mwydmuch/extremeText) library, 
-that implements approach described in this [NeurIPS paper](http://papers.nips.cc/paper/7872-a-no-regret-generalization-of-hierarchical-softmax-to-extreme-multi-label-classification).
+that implements the approach described in this [NeurIPS paper](http://papers.nips.cc/paper/7872-a-no-regret-generalization-of-hierarchical-softmax-to-extreme-multi-label-classification).

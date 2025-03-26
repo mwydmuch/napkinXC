@@ -44,20 +44,23 @@ public:
     virtual Real predictForLabel(Label label, SparseVector& features, Args& args) = 0;
     virtual std::vector<std::vector<Prediction>> predictBatch(SRMatrix& features, Args& args);
 
-    // Prediction with thresholds and ofo
+    // Prediction with thresholds
     virtual void setThresholds(std::vector<Real> th);
-    virtual void updateThresholds(UnorderedMap<int, Real> thToUpdate);
+    virtual void updateThresholds(UnorderedMap<int, Real> thToUpdate); // Used only by OFO (experimental)
     std::vector<Real> getThresholds(){ return thresholds; };
 
+    // Prediction with label weights and biases
     virtual void setLabelsWeights(std::vector<Real> lw);
     std::vector<Real> getLabelsWeights(){ return labelsWeights; };
     virtual void setLabelsBiases(std::vector<Real> lb);
     std::vector<Real> getLabelsBiases(){ return labelsBiases; };
 
+    // OFO
     std::vector<Real> ofo(SRMatrix& features, SRMatrix& labels, Args& args);
     Real microOfo(SRMatrix& features, SRMatrix& labels, Args& args);
     std::vector<Real> macroOfo(SRMatrix& features, SRMatrix& labels, Args& args);
 
+    // Utils
     virtual void load(Args& args, std::string infile) = 0;
     virtual void preload(Args& args, std::string infile) { preloaded = true; };
     virtual void unload() { preloaded = false; loaded = false; };

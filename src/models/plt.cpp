@@ -365,7 +365,7 @@ void PLT::setLabelsWeights(std::vector<Real> lw){
 void PLT::setLabelsBiases(std::vector<Real> lb){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    Model::setLabelsBiases(lb);
+    Model::setLabelsBiases(std::move(lb));
     calculateNodesLabels();
     if (tree->size() != nodesBiases.size()) nodesBiases.resize(tree->size());
     for (auto& n : tree->nodes) setNodeBias(n);

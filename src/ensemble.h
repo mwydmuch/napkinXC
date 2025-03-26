@@ -47,10 +47,12 @@ public:
     Real predictForLabel(Label label, SparseVector& features, Args& args) override;
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix& features, Args& args) override;
 
+    void setThresholds(std::vector<Real> th) override;
     void setLabelsWeights(std::vector<Real> lw) override;
     void setLabelsBiases(std::vector<Real> lb) override;
 
     void load(Args& args, std::string infile) override;
+    void unload() override;
 
     void printInfo() override;
 
@@ -154,16 +156,15 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
 
     // Get top predictions for members
     for (int i = 0; i < args.ensemble; ++i) {
-        if (args.ensOnTheTrot) tmpMember = loadMember(args, args.output, i);
-        else tmpMember = members[i];
+        if(!members[i]->isLoaded()) loadMember(args, args.output, i);
 
-        std::vector<std::vector<Prediction>> memberPredictions = tmpMember->predictBatch(features, args);
+        std::vector<std::vector<Prediction>> memberPredictions = members[i]->predictBatch(features, args);
         if(args.ensMissingScores)
             for (int j = 0; j < rows; ++j) accumulatePrediction(allEnsemblePredictions[j], memberPredictions[j], i);
         else
             for (int j = 0; j < rows; ++j) accumulatePrediction(simpleEnsemblePredictions[j], memberPredictions[j]);
-
-        if (args.ensOnTheTrot) delete tmpMember;
+        
+        if (args.ensOnTheTrot) members[i]->unload();
     }
 
     std::vector<std::vector<Prediction>> predictions(rows);
@@ -171,19 +172,17 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
     // Predict missing predictions for specific labels
     if(args.ensMissingScores) {
         for (int i = 0; i < args.ensemble; ++i) {
-            if (args.ensOnTheTrot) tmpMember = loadMember(args, args.output, i);
-            else tmpMember = members[i];
+            if(!members[i]->isLoaded()) loadMember(args, args.output, i);
 
             for (int j = 0; j < rows; ++j) {
                 printProgress(j, rows);
                 for (auto &p : allEnsemblePredictions[j]) {
                     if (!std::count(p.second.members.begin(), p.second.members.end(), i))
-                        p.second.value += tmpMember->predictForLabel(p.second.label, features[j], args);
+                        p.second.value += members[i]->predictForLabel(p.second.label, features[j], args);
                 }
             }
 
-            tmpMember->unload();
-            if (args.ensOnTheTrot) delete tmpMember;
+            if (args.ensOnTheTrot) members[i]->unload();
         }
 
         for (int i = 0; i < rows; ++i) {
@@ -211,48 +210,62 @@ std::vector<std::vector<Prediction>> Ensemble<T>::predictBatch(SRMatrix& feature
 template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& infile, int memberNo) {
     Log(CERR) << "Loading ensemble member " << memberNo << " ...\n";
     Log::updateGlobalIndent(2);
-    assert(memberNo < args.ensemble);
-    T* member = new T();
+    assert(memberNo < args.ensemble || memberNo < members.size());
+
+    auto member = members[memberNo];
     member->load(args, joinPath(infile, "member_" + std::to_string(memberNo)));
 
-    if(!labelsWeights.empty())
-        member->setLabelsWeights(labelsWeights);
-
-    if(!labelsBiases.empty())
-        member->setLabelsBiases(labelsBiases);
+    if (!thresholds.empty()) member->setThresholds(thresholds);
+    if(!labelsWeights.empty()) member->setLabelsWeights(labelsWeights);
+    if(!labelsBiases.empty()) member->setLabelsBiases(labelsBiases);
 
     Log::updateGlobalIndent(-2);
     return member;
 }
 
 template <typename T> void Ensemble<T>::load(Args& args, std::string infile) {
-    if (!args.ensOnTheTrot) {
-        Log(CERR) << "Loading ensemble of " << args.ensemble << " models ...\n";
-        Log::updateGlobalIndent(2);
-        for (int i = 0; i < args.ensemble; ++i) members.push_back(loadMember(args, infile, i));
-        m = members[0]->outputSize();
-        Log::updateGlobalIndent(-2);
-    } else {
-        Log::updateGlobalIndent(2);
-        T* member = loadMember(args, infile, 0);
-        m = member->outputSize();
-        delete member;
-        Log::updateGlobalIndent(-2);
+    if (!args.ensOnTheTrot) Log(CERR) << "Loading ensemble of " << args.ensemble << " models ...\n";
+    Log::updateGlobalIndent(2);
+    for (int i = 0; i < args.ensemble; ++i){
+        members.push_back(new T());
+        if(i == 0 || !args.ensOnTheTrot) loadMember(args, infile, i);
+    }
+    m = members[0]->outputSize();
+    Log::updateGlobalIndent(-2);
+}
+
+template <typename T> void Ensemble<T>::unload() {
+    for (auto& m : members) m->unload();
+    Model::unload();
+}
+
+template <typename T> void Ensemble<T>::printInfo() {
+    Log(CERR) << "Ensemble of " << members.size() << " info:\n";
+    Log::updateGlobalIndent(2);
+    for (int i = 0; i < members.size(); ++i) {
+        Log(CERR) << "Member " << i << " info:\n";
+        members[i]->printInfo();
+    }
+    Log::updateGlobalIndent(-2);
+}
+
+template <typename T> void Ensemble<T>::setThresholds(std::vector<Real> th){
+    Model::setThresholds(th);
+    for(auto& m : members){
+        if(m->isPreloaded()) m->setThresholds(th);
     }
 }
 
-template <typename T> void Ensemble<T>::printInfo() {}
-
 template <typename T> void Ensemble<T>::setLabelsWeights(std::vector<Real> lw){
     Model::setLabelsWeights(lw);
-    if (members.size())
-        for (size_t i = 0; i < members.size(); ++i)
-            members[i]->setLabelsWeights(lw);
+    for (auto &m : members){
+        if(m->isPreloaded()) m->setLabelsWeights(lw);
+    }
 }
 
 template <typename T> void Ensemble<T>::setLabelsBiases(std::vector<Real> lb){
     Model::setLabelsBiases(lb);
-    if (members.size())
-        for (size_t i = 0; i < members.size(); ++i)
-            members[i]->setLabelsBiases(lb);
+    for (auto &m : members){
+        if(m->isPreloaded()) m->setLabelsBiases(lb);
+    }
 }

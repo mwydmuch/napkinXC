@@ -78,7 +78,7 @@ Args::Args() {
     // Ensemble options
     ensemble = 0;
     ensOnTheTrot = true;
-    ensMissingScores = true;
+    ensMissingScores = false;
 
     // For online training
     eta = 1.0;

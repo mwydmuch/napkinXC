@@ -192,6 +192,15 @@ class Model():
         self._model.set_args(params_list)
 
         return self
+    
+    def is_loaded(self):
+        """
+        Check if the model is loaded to RAM.
+
+        :return: True if the model is loaded, False otherwise.
+        :rtype: bool
+        """
+        return self._model.is_loaded()
 
     # def get_weights(self):
     #     """

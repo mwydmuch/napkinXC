@@ -26,8 +26,11 @@ print("Fitting model...")
 plt.fit(X_train, Y_train)
 
 # After the training model is not loaded to RAM.
+print("Is model loaded?", plt.is_loaded())
 # You can preload the model to RAM to perform prediction.
+print("Loading model ...")
 plt.load()
+print("Is model loaded?", plt.is_loaded())
 
 # Predict only five top labels for each data point in the test dataset.
 # This will also load the model if it is not loaded.
@@ -47,3 +50,4 @@ print("Precision at k:", precision_at_k(Y_test, Y_pred, k=5))
 # Unload the model from RAM
 # You can also just delete the object if you do not need it
 plt.unload()
+print("Is model loaded?", plt.is_loaded())

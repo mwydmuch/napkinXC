@@ -351,6 +351,10 @@ public:
         }
     }
 
+    bool isLoaded(){
+        return model != nullptr && model->isLoaded();
+    }
+
 //    ScipyCSRMatrixData getWeights() {
 //        int cells = 0;
 //        int rows = 0;
@@ -581,7 +585,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("get_nodes_to_update", &CPPModel::getNodesToUpdate)
     .def("get_nodes_updates", &CPPModel::getNodesUpdates)
     .def("get_tree_structure", &CPPModel::getTreeStructure)
-    .def("set_tree_structure", &CPPModel::setTreeStructure);
+    .def("set_tree_structure", &CPPModel::setTreeStructure)
+    .def("is_loaded", &CPPModel::isLoaded);
     //    .def("get_weights", &CPPModel::getWeights)
     //    .def("set_weights", &CPPModel::setWeights);
 }

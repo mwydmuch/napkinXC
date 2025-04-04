@@ -108,18 +108,18 @@ void Model::updateThresholds(UnorderedMap<int, Real> thToUpdate){
         thresholds[th.first] = th.second;
 }
 
-void Model::setLabelsWeights(std::vector<Real> lw){
+void Model::setLabelWeights(std::vector<Real> lw){
 //    if(lw.size() != m)
 //        throw std::invalid_argument("Size of labels' weights vector dose not match number of model outputs");
-    labelsWeights = std::move(lw);
-    if(labelsBiases.empty()) labelsBiases = std::vector<Real>(lw.size(), 0);
+    labelWeights = std::move(lw);
+    if(labelBiases.empty()) labelBiases = std::vector<Real>(lw.size(), 0);
 }
 
-void Model::setLabelsBiases(std::vector<Real> lb){
+void Model::setLabelBiases(std::vector<Real> lb){
 //    if(lw.size() != m)
 //        throw std::invalid_argument("Size of labels' biases vector dose not match number of model outputs");
-    labelsBiases = std::move(lb);
-    if(labelsWeights.empty()) labelsWeights = std::vector<Real>(lb.size(), 0);
+    labelBiases = std::move(lb);
+    if(labelWeights.empty()) labelWeights = std::vector<Real>(lb.size(), 0);
 }
 
 Real Model::microOfo(SRMatrix& features, SRMatrix& labels, Args& args){
@@ -227,8 +227,8 @@ std::vector<Real> Model::ofo(SRMatrix& features, SRMatrix& labels, Args& args) {
     args.topK = 0;
     args.threshold = 0;
     thresholds.clear();
-    labelsWeights.clear();
-    labelsBiases.clear();
+    labelWeights.clear();
+    labelBiases.clear();
 
     if(args.ofoType == macro)
         thresholds = macroOfo(features, labels, args);
@@ -303,7 +303,7 @@ void Model::trainBases(std::ofstream& out, std::vector<ProblemData>& problemsDat
         results.reserve(size);
         for (int i = 0; i < size; ++i)
             results.emplace_back(tPool.enqueue(trainBase, n, std::ref(baseLabels[i]), std::ref(baseFeatures[i]),
-                                               (instancesWeights != nullptr) ? (*instancesWeights)[i] : nullptr, args));
+                                               (instanceWeights != nullptr) ? (*instanceWeights)[i] : nullptr, args));
         */
 
         // Saving in the main thread

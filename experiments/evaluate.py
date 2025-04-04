@@ -19,9 +19,9 @@ if __name__ == "__main__":
     true = load_true_file(sys.argv[1])
     pred = load_pred_file(sys.argv[2])
 
-    labels_weights = None
+    label_weights = None
     if len(sys.argv) > 3:
-        labels_weights = load_weights_file(sys.argv[3])
+        label_weights = load_weights_file(sys.argv[3])
 
     precision = 6
     max_k = 5
@@ -42,8 +42,8 @@ if __name__ == "__main__":
     for m, v in metrics.items():
         r = None
         if v["needs_weights"]:
-            if labels_weights is not None:
-                r = v["func"](true, pred, labels_weights, k=max_k)
+            if label_weights is not None:
+                r = v["func"](true, pred, label_weights, k=max_k)
         else:
             r = v["func"](true, pred, k=max_k)
         if r is not None:

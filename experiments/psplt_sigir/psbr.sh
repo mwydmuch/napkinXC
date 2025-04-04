@@ -9,8 +9,8 @@ SEEDS=(1993)
 
 # log loss (liblinear optimizer)
 BASE_TRAIN_ARGS="-m br --loss log"
-# difference between propensity scored and vanila version is in "--labelsWeights 1" argument
-BASE_TEST_ARGS="--topK 5 --labelsWeights 1"
+# difference between propensity scored and vanila version is in "--labelWeights 1" argument
+BASE_TEST_ARGS="--topK 5 --labelWeights 1"
 for s in "${SEEDS[@]}"; do
     bash ${EXP_DIR}/test.sh eurlex "${BASE_TRAIN_ARGS} -C 32 --seed ${s}" "${BASE_TEST_ARGS}" $MODEL $RESULTS
     bash ${EXP_DIR}/test.sh wiki10 "${BASE_TRAIN_ARGS} -C 32 --seed ${s}" "${BASE_TEST_ARGS}" $MODEL $RESULTS

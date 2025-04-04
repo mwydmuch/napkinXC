@@ -37,21 +37,21 @@
 struct ProblemData {
     std::vector<Real>& binLabels;
     std::vector<Feature*>& binFeatures;
-    std::vector<Real>& instancesWeights;
+    std::vector<Real>& instanceWeights;
     int n; // features space size
 
     int labelsCount;
     int* labels;
-    Real* labelsWeights;
+    Real* labelWeights;
     Real invPs; // inverse propensity
     int r; // number of all examples
     Real loss;
 
-    ProblemData(std::vector<Real>& binLabels, std::vector<Feature*>& binFeatures, int n, std::vector<Real>& instancesWeights):
-                binLabels(binLabels), binFeatures(binFeatures), n(n), instancesWeights(instancesWeights) {
+    ProblemData(std::vector<Real>& binLabels, std::vector<Feature*>& binFeatures, int n, std::vector<Real>& instanceWeights):
+                binLabels(binLabels), binFeatures(binFeatures), n(n), instanceWeights(instanceWeights) {
         labelsCount = 0;
         labels = NULL;
-        labelsWeights = NULL;
+        labelWeights = NULL;
         invPs = 1.0;
         r = 0;
     }

@@ -44,16 +44,16 @@ void HSM::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vecto
     Log(CERR) << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
-    UnorderedSet<TreeNode*> nPositive;
-    UnorderedSet<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> positiveNodes;
+    UnorderedSet<TreeNode*> negativeNodes;
 
     // Gather examples for each node
     int rows = features.rows();
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
-        nPositive.clear();
-        nNegative.clear();
+        positiveNodes.clear();
+        negativeNodes.clear();
 
         SparseVector& rLabels = labels[r];
         int rSize = rLabels.nonZero();
@@ -63,21 +63,21 @@ void HSM::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vecto
             throw std::invalid_argument("Encountered example with " + std::to_string(rSize) + " labels. HSM is multi-class classifier, use PLT or --pickOneLabelWeighting option instead.");
 
         for (auto &l : labels[r]){
-            getNodesToUpdate(nPositive, nNegative, l.index);
-            addNodesLabelsAndFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
+            getNodesToUpdate(positiveNodes, negativeNodes, l.index);
+            addNodesLabelsAndFeatures(binLabels, binFeatures, positiveNodes, negativeNodes, features[r]);
             if (args.pickOneLabelWeighting) {
                 Real w = 1.0 / rSize;
-                for (const auto& n : nPositive) binWeights[n->index].push_back(w);
-                for (const auto& n : nNegative) binWeights[n->index].push_back(w);
+                for (const auto& n : positiveNodes) binWeights[n->index].push_back(w);
+                for (const auto& n : negativeNodes) binWeights[n->index].push_back(w);
             }
 
-            nodeUpdateCount += nPositive.size() + nNegative.size();
+            nodeUpdateCount += positiveNodes.size() + negativeNodes.size();
         }
         ++dataPointCount;
     }
 }
 
-void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, int label) {
+void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& positiveNodes, UnorderedSet<TreeNode*>& negativeNodes, int label) {
 
     std::vector<TreeNode*> path;
 
@@ -97,15 +97,15 @@ void HSM::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
     for (int i = path.size() - 1; i >= 0; --i) {
         TreeNode *n = path[i], *p = n->parent;
         if (p == nullptr || p->children.size() == 1) {
-            nPositive.insert(n);
+            positiveNodes.insert(n);
         } else if (p->children.size() == 2) { // Binary node requires just 1 probability estimator
             TreeNode *c0 = n->parent->children[0];
-            if (c0 == n) nPositive.insert(c0);
-            else nNegative.insert(c0);
+            if (c0 == n) positiveNodes.insert(c0);
+            else negativeNodes.insert(c0);
         } else if (p->children.size() > 2) { // Node with arity > 2 requires OVR estimator
             for (const auto& c : p->children) {
-                if (c == n) nPositive.insert(c);
-                else nNegative.insert(c);
+                if (c == n) positiveNodes.insert(c);
+                else negativeNodes.insert(c);
             }
         }
     }

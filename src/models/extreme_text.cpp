@@ -72,19 +72,19 @@ Real ExtremeText::update(Real lr, const SparseVector& features, const SparseVect
     hidden.div(valuesSum);
 
     // Gather nodes to update
-    UnorderedSet<TreeNode*> nPositive;
-    UnorderedSet<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> positiveNodes;
+    UnorderedSet<TreeNode*> negativeNodes;
 
-    getNodesToUpdate(nPositive, nNegative, labels);
+    getNodesToUpdate(positiveNodes, negativeNodes, labels);
 
     // Compute gradient
     Vector gradient(dims);
     //Real lr = 0.5 * args.eta * std::sqrt(1.0 / ++t);
     Real loss = 0.0;
-    for (auto &n : nPositive)
+    for (auto &n : positiveNodes)
         loss += updateNode(n, 1.0, hidden, gradient, lr, args.l2Penalty);
 
-    for (auto &n : nNegative)
+    for (auto &n : negativeNodes)
         loss += updateNode(n, 0.0, hidden, gradient, lr, args.l2Penalty);
 
     // Update input weights

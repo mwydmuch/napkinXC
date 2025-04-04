@@ -48,8 +48,8 @@ public:
     std::vector<std::vector<Prediction>> predictBatch(SRMatrix& features, Args& args) override;
 
     void setThresholds(std::vector<Real> th) override;
-    void setLabelsWeights(std::vector<Real> lw) override;
-    void setLabelsBiases(std::vector<Real> lb) override;
+    void setLabelWeights(std::vector<Real> lw) override;
+    void setLabelBiases(std::vector<Real> lb) override;
 
     void load(Args& args, std::string infile) override;
     void unload() override;
@@ -216,8 +216,8 @@ template <typename T> T* Ensemble<T>::loadMember(Args& args, const std::string& 
     member->load(args, joinPath(infile, "member_" + std::to_string(memberNo)));
 
     if (!thresholds.empty()) member->setThresholds(thresholds);
-    if(!labelsWeights.empty()) member->setLabelsWeights(labelsWeights);
-    if(!labelsBiases.empty()) member->setLabelsBiases(labelsBiases);
+    if(!labelWeights.empty()) member->setLabelWeights(labelWeights);
+    if(!labelBiases.empty()) member->setLabelBiases(labelBiases);
 
     Log::updateGlobalIndent(-2);
     return member;
@@ -256,16 +256,16 @@ template <typename T> void Ensemble<T>::setThresholds(std::vector<Real> th){
     }
 }
 
-template <typename T> void Ensemble<T>::setLabelsWeights(std::vector<Real> lw){
-    Model::setLabelsWeights(lw);
+template <typename T> void Ensemble<T>::setLabelWeights(std::vector<Real> lw){
+    Model::setLabelWeights(lw);
     for (auto &m : members){
-        if(m->isPreloaded()) m->setLabelsWeights(lw);
+        if(m->isPreloaded()) m->setLabelWeights(lw);
     }
 }
 
-template <typename T> void Ensemble<T>::setLabelsBiases(std::vector<Real> lb){
-    Model::setLabelsBiases(lb);
+template <typename T> void Ensemble<T>::setLabelBiases(std::vector<Real> lb){
+    Model::setLabelBiases(lb);
     for (auto &m : members){
-        if(m->isPreloaded()) m->setLabelsBiases(lb);
+        if(m->isPreloaded()) m->setLabelBiases(lb);
     }
 }

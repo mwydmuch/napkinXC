@@ -114,8 +114,8 @@ Args::Args() {
     topK = 5;
     threshold = 0.0;
     thresholds = "";
-    labelsWeights = "";
-    labelsBiases = "";
+    labelWeights = "";
+    labelBiases = "";
     treeSearchName = "exact";
     treeSearchType = exact;
     beamSearchWidth = 10;
@@ -369,10 +369,10 @@ void Args::parseArgs(const std::vector<std::string>& args, bool keepArgs) {
                 threshold = std::stof(args.at(ai + 1));
             else if (args[ai] == "--thresholds")
                 thresholds = std::string(args.at(ai + 1));
-            else if (args[ai] == "--labelsWeights")
-                labelsWeights = std::string(args.at(ai + 1));
-            else if (args[ai] == "--labelsBiases")
-                labelsWeights = std::string(args.at(ai + 1));
+            else if (args[ai] == "--labelWeights")
+                labelWeights = std::string(args.at(ai + 1));
+            else if (args[ai] == "--labelBiases")
+                labelWeights = std::string(args.at(ai + 1));
             else if (args[ai] == "--ensMissingScores")
                 ensMissingScores = std::stoi(args.at(ai + 1)) != 0;
             else if (args[ai] == "--treeSearchType") {
@@ -518,7 +518,8 @@ void Args::printArgs(std::string command) {
         }
     }
 
-    if(!labelsWeights.empty()) Log(CERR) << "\n  Label weights: " << labelsWeights;
+    if(!labelWeights.empty()) Log(CERR) << "\n  Label weights: " << labelWeights;
+    if(!labelBiases.empty()) Log(CERR) << "\n  Label biases: " << labelWeights;
 
     if (command == "test" || command == "predict") {
         if (modelType == plt || modelType == hsm || modelType == oplt) {

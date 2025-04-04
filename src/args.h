@@ -114,8 +114,8 @@ public:
     int topK;
     Real threshold;
     std::string thresholds;
-    std::string labelsWeights;
-    std::string labelsBiases;
+    std::string labelWeights;
+    std::string labelBiases;
     TreeSearchType treeSearchType;
     int beamSearchWidth;
     bool beamSearchUnpack;

@@ -92,9 +92,9 @@ void BR::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string out
         // Train bases
         for(int i = 0; i < range; ++i) binProblemData.emplace_back(binLabels[i], binFeatures, features.cols(), binWeights);
 
-        if(!labelsWeights.empty()) {
+        if(!labelWeights.empty()) {
             Log(CERR) << "Setting inv ps weights for training ...\n";
-            for (int i = 0; i < range; ++i) binProblemData[i].invPs = labelsWeights[i + rStart];
+            for (int i = 0; i < range; ++i) binProblemData[i].invPs = labelWeights[i + rStart];
         }
 
         trainBases(out, binProblemData, args);
@@ -111,8 +111,8 @@ void BR::train(SRMatrix& labels, SRMatrix& features, Args& args, std::string out
 void BR::predict(std::vector<Prediction>& prediction, SparseVector& features, Args& args) {
     prediction = predictForAllLabels(features, args);
 
-    if(!labelsWeights.empty())
-        for(auto &p : prediction) p.value *= labelsWeights[p.label];
+    if(!labelWeights.empty())
+        for(auto &p : prediction) p.value *= labelWeights[p.label];
 
     if(!thresholds.empty()){
         int j = 0;

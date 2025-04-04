@@ -47,7 +47,7 @@ protected:
                           std::vector<std::vector<Feature*>>& binFeatures,
                           std::vector<std::vector<Real>>& binWeights,
                           SRMatrix& labels, SRMatrix& features, Args& args) override;
-    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, int rLabel);
+    void getNodesToUpdate(UnorderedSet<TreeNode*>& positiveNodes, UnorderedSet<TreeNode*>& negativeNodes, int rLabel);
     Prediction predictNextLabel(
         std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,
         TopKQueue<TreeNodeValue>& nQueue, SparseVector& features) override;

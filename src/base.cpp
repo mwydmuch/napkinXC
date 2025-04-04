@@ -96,14 +96,14 @@ void Base::trainLiblinear(ProblemData& problemData, Args& args) {
                  /*.y =*/ problemData.binLabels.data(),
                  /*.x =*/ reinterpret_cast<feature_node**>(problemData.binFeatures.data()),
                  /*.bias =*/ -1,
-                 /*.W =*/ problemData.instancesWeights.data()};
+                 /*.W =*/ problemData.instanceWeights.data()};
 
     parameter C = {/*.solver_type =*/ args.solverType,
                    /*.eps =*/ args.eps,
                    /*.C =*/ cost,
                    /*.nr_weight =*/ problemData.labelsCount,
                    /*.weight_label =*/ problemData.labels,
-                   /*.weight =*/ problemData.labelsWeights,
+                   /*.weight =*/ problemData.labelWeights,
                    /*.p =*/ 0,
                    /*.init_sol =*/ NULL,
                    /*.max_iter =*/ args.maxIter};
@@ -165,7 +165,7 @@ void Base::trainOnline(ProblemData& problemData, Args& args) {
             if (problemData.binLabels[r] == firstClass) ++firstClassCount;
 
             Real pred = newW->dot(features);
-            Real grad = gradFunc(label, pred, problemData.invPs) * problemData.instancesWeights[r];
+            Real grad = gradFunc(label, pred, problemData.invPs) * problemData.instanceWeights[r];
             if (!std::isinf(grad) && !std::isnan(grad))
                 updateFunc(*newW, *newG, features, grad, t, args);
         }
@@ -189,7 +189,7 @@ void Base::train(ProblemData& problemData, Args& args) {
     }
 
     assert(problemData.binLabels.size() == problemData.binFeatures.size());
-    assert(problemData.instancesWeights.size() >= problemData.binLabels.size());
+    assert(problemData.instanceWeights.size() >= problemData.binLabels.size());
 
     int positiveLabels = std::count(problemData.binLabels.begin(), problemData.binLabels.end(), 1.0);
     if (positiveLabels == 0 || positiveLabels == problemData.binLabels.size()) {
@@ -204,15 +204,15 @@ void Base::train(ProblemData& problemData, Args& args) {
         problemData.labels = new int[2];
         problemData.labels[0] = 0;
         problemData.labels[1] = 1;
-        problemData.labelsWeights = new Real[2];
+        problemData.labelWeights = new Real[2];
 
         int negativeLabels = static_cast<int>(problemData.binLabels.size()) - positiveLabels;
         if (negativeLabels > positiveLabels) {
-            problemData.labelsWeights[0] = 1.0;
-            problemData.labelsWeights[1] = 1.0 + log(static_cast<Real>(negativeLabels) / positiveLabels);
+            problemData.labelWeights[0] = 1.0;
+            problemData.labelWeights[1] = 1.0 + log(static_cast<Real>(negativeLabels) / positiveLabels);
         } else {
-            problemData.labelsWeights[0] = 1.0 + log(static_cast<Real>(positiveLabels) / negativeLabels);
-            problemData.labelsWeights[1] = 1.0;
+            problemData.labelWeights[0] = 1.0 + log(static_cast<Real>(positiveLabels) / negativeLabels);
+            problemData.labelWeights[1] = 1.0;
         }
     }
 
@@ -242,7 +242,7 @@ void Base::train(ProblemData& problemData, Args& args) {
     }
 
     delete[] problemData.labels;
-    delete[] problemData.labelsWeights;
+    delete[] problemData.labelWeights;
 }
 
 void Base::setupOnlineTraining(Args& args, int n, bool startWithDenseW) {

@@ -46,8 +46,8 @@ public:
 
     void setThresholds(std::vector<Real> th) override;
     void updateThresholds(UnorderedMap<int, Real> thToUpdate) override;
-    void setLabelsWeights(std::vector<Real> lw) override;
-    void setLabelsBiases(std::vector<Real> lb) override;
+    void setLabelWeights(std::vector<Real> lw) override;
+    void setLabelBiases(std::vector<Real> lb) override;
 
     void load(Args& args, std::string infile) override;
     void unload() override;
@@ -73,8 +73,8 @@ protected:
 
     std::vector<std::vector<int>> nodesLabels;
     std::vector<TreeNodeValueExt> nodesThr; // For prediction with thresholds
-    std::vector<TreeNodeValueExt> nodesWeights; // For prediction with labels weights
-    std::vector<TreeNodeValueExt> nodesBiases; // For prediction with labels weights
+    std::vector<TreeNodeValueExt> nodeWeights; // For prediction with labels weights
+    std::vector<TreeNodeValueExt> nodeBiases; // For prediction with labels weights
 
     void calculateNodesLabels();
     void setNodeThreshold(TreeNode* n);
@@ -86,9 +86,9 @@ protected:
                                   std::vector<std::vector<Real>>& binWeights,
                                   SRMatrix& labels, SRMatrix& features, Args& args);
 
-    void getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const SparseVector& labels);
+    void getNodesToUpdate(UnorderedSet<TreeNode*>& positiveNodes, UnorderedSet<TreeNode*>& negativeNodes, const SparseVector& labels);
     static void addNodesLabelsAndFeatures(std::vector<std::vector<Real>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                                          UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, SparseVector& features);
+                                          UnorderedSet<TreeNode*>& positiveNodes, UnorderedSet<TreeNode*>& negativeNodes, SparseVector& features);
 
     // Helper methods for prediction
     virtual Prediction predictNextLabel(std::function<bool(TreeNode*, Real)>& ifAddToQueue, std::function<Real(TreeNode*, Real)>& calculateValue,

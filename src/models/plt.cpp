@@ -53,21 +53,21 @@ void PLT::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vecto
     Log(CERR) << "Assigning data points to nodes ...\n";
 
     // Positive and negative nodes
-    UnorderedSet<TreeNode*> nPositive;
-    UnorderedSet<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> positiveNodes;
+    UnorderedSet<TreeNode*> negativeNodes;
 
     // Gather examples for each node
     int rows = features.rows();
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
-        nPositive.clear();
-        nNegative.clear();
+        positiveNodes.clear();
+        negativeNodes.clear();
 
-        getNodesToUpdate(nPositive, nNegative, labels[r]);
-        addNodesLabelsAndFeatures(binLabels, binFeatures, nPositive, nNegative, features[r]);
+        getNodesToUpdate(positiveNodes, negativeNodes, labels[r]);
+        addNodesLabelsAndFeatures(binLabels, binFeatures, positiveNodes, negativeNodes, features[r]);
 
-        nodeUpdateCount += nPositive.size() + nNegative.size();
+        nodeUpdateCount += positiveNodes.size() + negativeNodes.size();
         ++dataPointCount;
     }
 
@@ -75,7 +75,7 @@ void PLT::assignDataPoints(std::vector<std::vector<Real>>& binLabels, std::vecto
     Log(CERR) << "  Temporary data size: " << formatMem(usedMem) << "\n";
 }
 
-void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative, const SparseVector& labels) {
+void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& positiveNodes, UnorderedSet<TreeNode*>& negativeNodes, const SparseVector& labels) {
     for (auto &l : labels) {
         auto ni = tree->leaves.find(l.index);
         if (ni == tree->leaves.end()) {
@@ -83,37 +83,37 @@ void PLT::getNodesToUpdate(UnorderedSet<TreeNode*>& nPositive, UnorderedSet<Tree
             continue;
         }
         TreeNode* n = ni->second;
-        nPositive.insert(n);
+        positiveNodes.insert(n);
         while (n->parent) {
             n = n->parent;
-            nPositive.insert(n);
+            positiveNodes.insert(n);
         }
     }
 
-    if (nPositive.empty()) {
-        nNegative.insert(tree->root);
+    if (positiveNodes.empty()) {
+        negativeNodes.insert(tree->root);
         return;
     }
 
-    for(auto& n : nPositive) {
+    for(auto& n : positiveNodes) {
         for (const auto &child : n->children) {
-            if (!nPositive.count(child))
-                nNegative.insert(child);
+            if (!positiveNodes.count(child))
+                negativeNodes.insert(child);
         }
     }
 }
 
 void PLT::addNodesLabelsAndFeatures(std::vector<std::vector<Real>>& binLabels, std::vector<std::vector<Feature*>>& binFeatures,
-                      UnorderedSet<TreeNode*>& nPositive, UnorderedSet<TreeNode*>& nNegative,
+                      UnorderedSet<TreeNode*>& positiveNodes, UnorderedSet<TreeNode*>& negativeNodes,
                       SparseVector& features) {
     Feature* featuresData = features.data();
 
-    for (const auto& n : nPositive) {
+    for (const auto& n : positiveNodes) {
         binLabels[n->index].push_back(1.0);
         binFeatures[n->index].push_back(featuresData);
     }
 
-    for (const auto& n : nNegative) {
+    for (const auto& n : negativeNodes) {
         binLabels[n->index].push_back(0.0);
         binFeatures[n->index].push_back(featuresData);
     }
@@ -173,7 +173,8 @@ std::vector<std::vector<Prediction>> PLT::predictWithBeamSearch(SRMatrix& featur
                     Real value = prob;
 
                     // Reweight score
-                    if (!labelsWeights.empty()) value *= nodesWeights[nIdx].value + nodesBiases[nIdx].value;
+                    if (!labelWeights.empty()) value *= nodeWeights[nIdx].value;
+                    if (!labelBiases.empty()) value += nodeBiases[nIdx].value;
 
                     if(n->label >= 0) prediction[rIdx].emplace_back(n->label, value); // Label prediction
                     if(!n->children.empty()) levelPredictions[rIdx].emplace_back(n, prob, value); // Internal node prediction
@@ -256,9 +257,9 @@ void PLT::predict(std::vector<Prediction>& prediction, SparseVector& features, A
         return prob;
     };
 
-    if (!labelsWeights.empty())
+    if (!labelWeights.empty())
         calculateValue = [&] (TreeNode* node, Real prob) {
-            return prob * nodesWeights[node->index].value + nodesBiases[node->index].value;
+            return prob * nodeWeights[node->index].value + nodeBiases[node->index].value;
         };
 
     // Predict for root
@@ -323,22 +324,22 @@ void PLT::setNodeThreshold(TreeNode* n){
 }
 
 void PLT::setNodeWeight(TreeNode* n){
-    TreeNodeValueExt& nW = nodesWeights[n->index];
+    TreeNodeValueExt& nW = nodeWeights[n->index];
     nW.value = std::numeric_limits<Real>::min();
     for (auto &l : nodesLabels[n->index]) {
-        if (labelsWeights[l] > nW.value) {
-            nW.value = labelsWeights[l];
+        if (labelWeights[l] > nW.value) {
+            nW.value = labelWeights[l];
             nW.label = l;
         }
     }
 }
 
 void PLT::setNodeBias(TreeNode* n){
-    TreeNodeValueExt& nB = nodesBiases[n->index];
+    TreeNodeValueExt& nB = nodeBiases[n->index];
     nB.value = std::numeric_limits<Real>::max();
     for (auto &l : nodesLabels[n->index]) {
-        if (labelsBiases[l] > nB.value) {
-            nB.value = labelsBiases[l];
+        if (labelBiases[l] > nB.value) {
+            nB.value = labelBiases[l];
             nB.label = l;
         }
     }
@@ -353,21 +354,21 @@ void PLT::setThresholds(std::vector<Real> th){
     for (auto& n : tree->nodes) setNodeThreshold(n);
 }
 
-void PLT::setLabelsWeights(std::vector<Real> lw){
+void PLT::setLabelWeights(std::vector<Real> lw){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    Model::setLabelsWeights(std::move(lw));
+    Model::setLabelWeights(std::move(lw));
     calculateNodesLabels();
-    if (tree->size() != nodesWeights.size()) nodesWeights.resize(tree->size());
+    if (tree->size() != nodeWeights.size()) nodeWeights.resize(tree->size());
     for (auto& n : tree->nodes) setNodeWeight(n);
 }
 
-void PLT::setLabelsBiases(std::vector<Real> lb){
+void PLT::setLabelBiases(std::vector<Real> lb){
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
-    Model::setLabelsBiases(std::move(lb));
+    Model::setLabelBiases(std::move(lb));
     calculateNodesLabels();
-    if (tree->size() != nodesBiases.size()) nodesBiases.resize(tree->size());
+    if (tree->size() != nodeBiases.size()) nodeBiases.resize(tree->size());
     for (auto& n : tree->nodes) setNodeBias(n);
 }
 
@@ -401,8 +402,8 @@ Real PLT::predictForLabel(Label label, SparseVector& features, Args& args) {
         ++nodeEvaluationCount;
     }
 
-    if(!labelsWeights.empty())
-        value *= labelsWeights[label];
+    if(!labelWeights.empty())
+        value *= labelWeights[label];
 
     return value;
 }
@@ -450,8 +451,8 @@ std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesToUpdate(const SRMat
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     // Positive and negative nodes
-    UnorderedSet<TreeNode*> nPositive;
-    UnorderedSet<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> positiveNodes;
+    UnorderedSet<TreeNode*> negativeNodes;
 
     Log(CERR) << "Getting nodes to update ...\n";
 
@@ -462,13 +463,13 @@ std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesToUpdate(const SRMat
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
-        nPositive.clear();
-        nNegative.clear();
+        positiveNodes.clear();
+        negativeNodes.clear();
 
-        getNodesToUpdate(nPositive, nNegative, labels[r]);
-        nodesToUpdate[r].reserve(nPositive.size() + nNegative.size());
-        for (const auto& n : nPositive) nodesToUpdate[r].emplace_back(n->index, 1.0);
-        for (const auto& n : nNegative) nodesToUpdate[r].emplace_back(n->index, 0);
+        getNodesToUpdate(positiveNodes, negativeNodes, labels[r]);
+        nodesToUpdate[r].reserve(positiveNodes.size() + negativeNodes.size());
+        for (const auto& n : positiveNodes) nodesToUpdate[r].emplace_back(n->index, 1.0);
+        for (const auto& n : negativeNodes) nodesToUpdate[r].emplace_back(n->index, 0);
     }
 
     return nodesToUpdate;
@@ -478,8 +479,8 @@ std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesUpdates(const SRMatr
     if(!tree) throw std::runtime_error("Tree is not constructed, load or build a tree first");
 
     // Positive and negative nodes
-    UnorderedSet<TreeNode*> nPositive;
-    UnorderedSet<TreeNode*> nNegative;
+    UnorderedSet<TreeNode*> positiveNodes;
+    UnorderedSet<TreeNode*> negativeNodes;
 
     Log(CERR) << "Getting nodes to update ...\n";
 
@@ -490,12 +491,12 @@ std::vector<std::vector<std::pair<int, Real>>> PLT::getNodesUpdates(const SRMatr
     for (int r = 0; r < rows; ++r) {
         printProgress(r, rows);
 
-        nPositive.clear();
-        nNegative.clear();
+        positiveNodes.clear();
+        negativeNodes.clear();
 
-        getNodesToUpdate(nPositive, nNegative, labels[r]);
-        for (const auto& n : nPositive) nodesDataPoints[n->index].emplace_back(r, 1.0);
-        for (const auto& n : nNegative) nodesDataPoints[n->index].emplace_back(r, 0);
+        getNodesToUpdate(positiveNodes, negativeNodes, labels[r]);
+        for (const auto& n : positiveNodes) nodesDataPoints[n->index].emplace_back(r, 1.0);
+        for (const auto& n : negativeNodes) nodesDataPoints[n->index].emplace_back(r, 0);
     }
 
     return nodesDataPoints;

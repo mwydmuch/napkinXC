@@ -57,13 +57,13 @@ void loadThWBVecs(std::shared_ptr<Model> model, Args& args){
         std::vector<Real> thresholds = loadVec(args.thresholds);
         model->setThresholds(thresholds);
     }
-    if (!args.labelsWeights.empty()) { // Using labelsWeights if provided
-        std::vector<Real> labelsWeights = loadVec(args.labelsWeights);
-        model->setLabelsWeights(labelsWeights);
+    if (!args.labelWeights.empty()) { // Using labelWeights if provided
+        std::vector<Real> labelWeights = loadVec(args.labelWeights);
+        model->setLabelWeights(labelWeights);
     }
-    if (!args.labelsBiases.empty()) { // Using labelsBiases if provided
-        std::vector<Real> labelsBiases = loadVec(args.labelsBiases);
-        model->setLabelsBiases(labelsBiases);
+    if (!args.labelBiases.empty()) { // Using labelBiases if provided
+        std::vector<Real> labelBiases = loadVec(args.labelBiases);
+        model->setLabelBiases(labelBiases);
     }
 }
 
@@ -456,7 +456,8 @@ Args:
     --topK                  Predict top-k labels (default = 5)
     --threshold             Predict labels with probability above the threshold (default = 0)
     --thresholds            Path to a file with threshold for each label, one threshold per line
-    --labelsWeights         Path to a file with weight for each label, one weight per line
+    --labelWeights          Path to a file with weight for each label, one weight per line
+    --labelBiases           Path to a file with bias for each label, one weight per line
     --predictionPrecision   Number of decimal digits to output for predictions (default = 5)
 
     Test:

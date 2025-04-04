@@ -66,8 +66,8 @@ void OnlinePLT::init(SRMatrix& labels, SRMatrix& features, Args& args) {
 }
 
 void OnlinePLT::update(const int epoch, const int row, SparseVector& labels, SparseVector& features, Args& args) {
-    UnorderedSet<TreeNode *> nPositive;
-    UnorderedSet<TreeNode *> nNegative;
+    UnorderedSet<TreeNode *> positiveNodes;
+    UnorderedSet<TreeNode *> negativeNodes;
     if (epoch == 0 && onlineTree) { // Check if example contains a new label
         std::vector<int> newLabels;
 
@@ -94,15 +94,15 @@ void OnlinePLT::update(const int epoch, const int row, SparseVector& labels, Spa
     // Update positive, negative and aux base estimators
     if(epoch == 0 && onlineTree && args.threads > 1) {
         std::shared_lock<std::shared_timed_mutex> lock(treeMtx);
-        getNodesToUpdate(nPositive, nNegative, labels);
+        getNodesToUpdate(positiveNodes, negativeNodes, labels);
     }
-    else getNodesToUpdate(nPositive, nNegative, labels);
+    else getNodesToUpdate(positiveNodes, negativeNodes, labels);
 
-    for (const auto &n : nPositive){
+    for (const auto &n : positiveNodes){
         bases[n->index]->update(1.0, features.data(), args);
         if (!auxBases[n->index]->isDummy()) auxBases[n->index]->update(0.0, features.data(), args);
     }
-    for (const auto &n : nNegative) bases[n->index]->update(0.0, features.data(), args);
+    for (const auto &n : negativeNodes) bases[n->index]->update(0.0, features.data(), args);
 }
 
 void OnlinePLT::save(Args& args, std::string output) {

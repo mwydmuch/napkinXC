@@ -206,9 +206,14 @@ public:
         model->setThresholds(thresholds);
     }
 
-    void setLabelsWeights(std::vector<Real> weights){
+    void setLabelWeights(std::vector<Real> weights){
         load();
-        model->setLabelsWeights(weights);
+        model->setLabelWeights(weights);
+    }
+
+    void setLabelBiases(std::vector<Real> biases){
+        load();
+        model->setLabelBiases(biases);
     }
 
     std::vector<std::vector<int>> predict(py::object inputFeatures, int featuresDataType, int topK, Real threshold){
@@ -574,7 +579,8 @@ PYBIND11_MODULE(_napkinxc, n) {
     .def("load", &CPPModel::load)
     .def("unload", &CPPModel::unload)
     .def("set_thresholds", &CPPModel::setThresholds)
-    .def("set_labels_weights", &CPPModel::setLabelsWeights)
+    .def("set_label_weights", &CPPModel::setLabelWeights)
+    .def("set_label_biases", &CPPModel::setLabelBiases)
     .def("predict", &CPPModel::predict, OE_CALL_GUARDS)
     .def("predict_proba", &CPPModel::predictProba, OE_CALL_GUARDS)
     .def("predict_for_file", &CPPModel::predictForFile, OE_CALL_GUARDS)

@@ -38,7 +38,7 @@ Y_pred = plt.predict(X_test, top_k=5)
 inv_ps = Jain_et_al_inverse_propensity(Y_train, A=0.55, B=1.5)
 
 # Predict with label weights
-ps_Y_pred = plt.predict(X_test, labels_weights=inv_ps, top_k=5)
+ps_Y_pred = plt.predict(X_test, label_weights=inv_ps, top_k=5)
 
 # Evaluate the both predictions with propensity-scored and vanilla precision at 5 measure.
 print("Standard prediction:")

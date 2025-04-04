@@ -66,7 +66,7 @@ class Model():
         """
         self._model.unload()
 
-    def predict(self, X, top_k=0, threshold=0, labels_weights=None):
+    def predict(self, X, top_k=0, threshold=0, label_weights=None, label_biases=None):
         """
         Predict labels for data points in X.
 
@@ -78,16 +78,16 @@ class Model():
             or above the specific threshold for each label in case of list or array of values,
             if 0, the option is ignored, defaults to 0
         :type threshold: float, list[float], ndarray, optional
-        :param labels_weights: Predict labels according to their weights multiplied by probability
+        :param label_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
-        :type labels_weights: list[float], ndarray, optional
+        :type label_weights: list[float], ndarray, optional
         :return: List of lists with predicted labels.
         :rtype: list[list[int]]
         """
-        threshold = self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, label_weights, label_biases)
         return self._model.predict(X, Model._check_data_type(X), top_k, threshold)
 
-    def predict_proba(self, X, top_k=0, threshold=0, labels_weights=None):
+    def predict_proba(self, X, top_k=0, threshold=0, label_weights=None, label_biases=None):
         """
         Predict labels with probability estimates for data points in X.
 
@@ -99,16 +99,16 @@ class Model():
             or above the specific threshold for each label in case of list or array of values,
             if 0, the option is ignored, defaults to 0
         :type threshold: float, list[float], ndarray, optional
-        :param labels_weights: Predict labels according to their weights multiplied by probability
+        :param label_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
-        :type labels_weights: list[float], ndarray, optional
+        :type label_weights: list[float], ndarray, optional
         :return: List of list of tuples (label id, probability) with predicted labels
         :rtype: list[list[tuple[int, float]]
         """
-        threshold = self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, label_weights, label_biases)
         return self._model.predict_proba(X, Model._check_data_type(X), top_k, threshold)
 
-    def predict_for_file(self, path, top_k=0, threshold=0, labels_weights=None):
+    def predict_for_file(self, path, top_k=0, threshold=0, label_weights=None, label_biases=None):
         """
         Predict labels for data points in the given file in multi-label svmlight/libsvm format.
 
@@ -120,16 +120,16 @@ class Model():
             or above the specific threshold for each label in case of list or array of values,
             if 0, the option is ignored, defaults to 0
         :type threshold: float, list[float], ndarray, optional
-        :param labels_weights: Predict labels according to their weights multiplied by probability
+        :param label_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
-        :type labels_weights: list[float], ndarray, optional
+        :type label_weights: list[float], ndarray, optional
         :return: List of lists with predicted labels.
         :rtype: list[list[int]]
         """
-        threshold = self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, label_weights, label_biases)
         return self._model.predict_for_file(path, top_k, threshold)
 
-    def predict_proba_for_file(self, path, top_k=0, threshold=0, labels_weights=None):
+    def predict_proba_for_file(self, path, top_k=0, threshold=0, label_weights=None, label_biases=None):
         """
         Predict labels with probability estimates for data points in the given file in multi-label svmlight/libsvm format.
 
@@ -141,13 +141,13 @@ class Model():
             or above the specific threshold for each label in case of list or array of values,
             if 0, the option is ignored, defaults to 0
         :type threshold: float, list[float], ndarray, optional
-        :param labels_weights: Predict labels according to their weights multiplied by probability
+        :param label_weights: Predict labels according to their weights multiplied by probability
             if None, the option is ignored, defaults to None
-        :type labels_weights: list[float], ndarray, optional
+        :type label_weights: list[float], ndarray, optional
         :return: List of list of tuples (label id, probability) with predicted labels
         :rtype: list[list[tuple[int, float]]
         """
-        threshold = self._prepare_pred(top_k, threshold, labels_weights)
+        threshold = self._prepare_pred(top_k, threshold, label_weights, label_biases)
         return self._model.predict_proba_for_file(path, top_k, threshold)
 
     def get_params(self, deep=False): # deep argument for Scikit-learn compatibility
@@ -244,7 +244,7 @@ class Model():
         else:
             return -1
 
-    def _prepare_pred(self, top_k, threshold, labels_weights):
+    def _prepare_pred(self, top_k, threshold, label_weights, label_biases):
         if top_k == 0 and threshold == 0:
             print("Warning: both top_k and threshold arguments set to 0, this will predict all labels")
 
@@ -257,10 +257,14 @@ class Model():
         elif not isinstance(threshold, (float, int)):
             raise TypeError("Unsupported threshold type, should be float, or list of floats, or Numpy vector (1d array)")
 
-        if isinstance(labels_weights, (list, ndarray)):
-            self._model.set_labels_weights(labels_weights)
-        elif labels_weights is not None:
-            raise TypeError("Unsupported labels_weights type, should be list of floats, or Numpy vector (1d array)")
+        if isinstance(label_weights, (list, ndarray)):
+            self._model.set_label_weights(label_weights)
+        elif label_weights is not None:
+            raise TypeError("Unsupported label_weights type, should be list of floats, or Numpy vector (1d array)")
+        if isinstance(label_biases, (list, ndarray)):
+            self._model.set_label_biases(label_biases)
+        elif label_biases is not None:
+            raise TypeError("Unsupported label_biases type, should be list of floats, or Numpy vector (1d array)")
 
         return threshold
 

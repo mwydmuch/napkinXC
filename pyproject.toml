@@ -3,11 +3,11 @@ requires = ["cmake>=3.13.0", "cmaketools", "setuptools", "wheel"]
 
 [tool.cibuildwheel]
 # We need to build for the following Python versions:
-build = "cp{39,310,311,312,313}-*"
+build = "cp{310,311,312,313,314}-*"
 
 [tool.cibuildwheel.linux]
 # Only manylinux is supported (no musl)
-build = "cp{39,310,311,312,313}-manylinux*"
+build = "cp{310,311,312,313,314}-manylinux*"
 
 # For manylinux2014 we need to install the following dependencies using yum:
 before-all = "yum install -y cmake"

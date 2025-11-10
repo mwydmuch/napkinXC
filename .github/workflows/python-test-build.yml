@@ -15,8 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-22.04, macos-13, macos-14, windows-2022 ]
-        #python-version: [ '3.9', '3.10', '3.11', '3.12', '3.13' ]
-        python-version: [ '3.9', '3.13' ] # Test only on 3.9 and 3.12 (the oldest and newest) to save time and resources
+        python-version: [ '3.10', '3.12', '3.14' ] # Test only on 3.10 and 3.13 (the oldest and newest) to save time and resources
 
     name: Build Python binding on ${{ matrix.os }} for Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}

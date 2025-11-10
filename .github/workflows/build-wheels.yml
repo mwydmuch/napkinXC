@@ -40,7 +40,7 @@ jobs:
 
       - name: Build manylinux wheels
         if: matrix.os == 'ubuntu-22.04'
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           # Configure cibuildwheel to build native archs, and some emulated ones
           CIBW_ARCHS_LINUX: x86_64 aarch64
@@ -48,7 +48,7 @@ jobs:
   
       - name: Build macOS Intel wheels
         if: matrix.os == 'macos-12' || matrix.os == 'macos-13'
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_ARCHS_MACOS: x86_64
           CIBW_ENVIRONMENT_MACOS: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 MACOSX_DEPLOYMENT_TARGET=12.0
@@ -56,7 +56,7 @@ jobs:
 
       - name: Build macOS Apple Silicon wheels
         if: matrix.os == 'macos-14' || matrix.os == 'macos-15'
-        uses: pypa/cibuildwheel@v2.19.2
+        uses: pypa/cibuildwheel@v3.2.1
         env:
           CIBW_ARCHS_MACOS: arm64
           CIBW_ENVIRONMENT_MACOS: HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 MACOSX_DEPLOYMENT_TARGET=14.0
